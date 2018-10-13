@@ -1,7 +1,11 @@
-## AWS Cloudformation Rpdk Java Plugin
+## AWS CloudFormation Resource Provider Java Plugin
 
-The CloudFormation Provider Development Toolkit Java Plugin allows you to autogenerate java code based on an input schema.
 
-## License
+The CloudFormation Resource Provider Development Kit (RPDK) allows you to author your own resource providers that can be used by CloudFormation.
 
-This library is licensed under the Apache 2.0 License. 
+This plugin library helps to provide runtime bindings for the execution of your providers by CloudFormation. 
+
+License
+-------
+
+This library is licensed under the Apache 2.0 License.
