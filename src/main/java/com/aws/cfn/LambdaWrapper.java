@@ -28,7 +28,6 @@ import org.apache.commons.io.IOUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -37,7 +36,7 @@ import java.util.UUID;
 
 import static com.aws.cfn.cron.CronHelper.generateOneTimeCronExpression;
 
-public class LambdaWrapper implements RequestStreamHandler, RequestHandler<Request, Response> {
+public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestHandler<Request<T>, Response> {
 
     private final MetricsPublisher metricsPublisher;
     private LambdaLogger logger;
@@ -68,7 +67,7 @@ public class LambdaWrapper implements RequestStreamHandler, RequestHandler<Reque
                               final Context context) throws IOException {
         this.logger = context.getLogger();
 
-        if (inputStream == null ) {
+        if (inputStream == null) {
             writeResponse(
                 outputStream,
                 createErrorResponse("No request object received.")
@@ -78,10 +77,10 @@ public class LambdaWrapper implements RequestStreamHandler, RequestHandler<Reque
 
         // decode the input request
         final String input = IOUtils.toString(inputStream, "UTF-8");
-        final HandlerRequest<?> request =
+        final HandlerRequest<T> request =
             new Gson().fromJson(
                 input,
-                new TypeToken<HandlerRequestImpl<?>>(){}.getType());
+                new TypeToken<HandlerRequestImpl<T>>(){}.getType());
 
         if (request == null || request.getRequestContext() == null) {
             writeResponse(
@@ -251,41 +250,7 @@ public class LambdaWrapper implements RequestStreamHandler, RequestHandler<Reque
         }
     }
 
-    /**
-     * NOTE: This function needs to be updated to invoke the real interface/handlers
-     */
-    public ProgressEvent invokeHandler(final HandlerRequest<?> request,
-                                       final Action action,
-                                       final RequestContext context) {
-        ProgressEvent progressEvent = null;
-        final java.lang.reflect.Method method;
-        try {
-            final Class<?> handlerImpl = Class.forName("com.aws.cfn.GenericHandler");
-            final Object handler = handlerImpl.newInstance();
-            method = handlerImpl.getDeclaredMethod(
-                "handleRequest",
-                com.aws.rpdk.HandlerRequest.class,
-                Action.class,
-                com.aws.rpdk.RequestContext.class);
-            progressEvent = (ProgressEvent) method.invoke(
-                handler,
-                request,
-                action,
-                context);
-        } catch (final SecurityException e) {
-            e.printStackTrace();
-        } catch (final NoSuchMethodException e) {
-            e.printStackTrace();
-        } catch (final ClassNotFoundException e) {
-            e.printStackTrace();
-        } catch (final IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (final InstantiationException e) {
-            e.printStackTrace();
-        } catch (final InvocationTargetException e) {
-            e.printStackTrace();
-        }
-
-        return progressEvent;
-    }
+    public abstract ProgressEvent invokeHandler(final HandlerRequest<T> request,
+                                                final Action action,
+                                                final RequestContext context);
 }
