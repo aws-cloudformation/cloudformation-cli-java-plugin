@@ -1,5 +1,6 @@
-package com.aws.cfn.cron;
+package com.aws.cron;
 
+import com.aws.cfn.cron.CronHelper;
 import org.junit.Test;
 
 import java.time.Clock;
