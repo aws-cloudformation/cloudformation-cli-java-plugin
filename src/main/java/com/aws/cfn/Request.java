@@ -1,17 +1,15 @@
 package com.aws.cfn;
 
-import com.aws.rpdk.ResourceModel;
-
-public class Request {
-    ResourceModel resource;
+public class Request<T> {
+    T resource;
 
     int invocation;
 
-    public ResourceModel getResource() {
+    public T getResource() {
         return resource;
     }
 
-    public void setResource(final ResourceModel resource) {
+    public void setResource(final T resource) {
         this.resource = resource;
     }
 
@@ -23,8 +21,7 @@ public class Request {
         this.invocation = invocation;
     }
 
-    public Request(final ResourceModel resource,
-                   final int invocation) {
+    public Request(final T resource, final int invocation) {
         this.resource = resource;
         this.invocation = invocation;
     }
