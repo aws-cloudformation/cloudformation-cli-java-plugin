@@ -5,6 +5,8 @@ Parameters:
   ResourceType:
     Type: String
     AllowedPattern: "^[a-zA-Z0-9]{2,64}-[a-zA-Z0-9]{2,64}-[a-zA-Z0-9]{2,64}$"
+  HandlerPackageNamespace:
+    Type: String
   PackageS3Key:
     Type: String
 
@@ -17,7 +19,77 @@ Resources:
         S3Key: !Ref PackageS3Key
       Description: !Sub "Create Handler for ${ResourceType} Resources"
       FunctionName: !Sub "create-${ResourceType}-handler"
-      Handler: "com.aws.cfn.LambdaWrapper::handleRequest"
+      Handler: !Sub "${HandlerPackageNamespace}.BaseHandler::handleRequest"
+      Layers:
+        - !ImportValue LambdaLayer
+      KmsKeyArn: !ImportValue EncryptionKey
+      MemorySize: 128
+      Role: !ImportValue LambdaRole
+      Runtime: "java8"
+      Timeout: 120
+
+  UpdateHandler:
+      Type: AWS::Lambda::Function
+      Properties:
+        Code:
+          S3Bucket: !ImportValue ArtifactBucket
+          S3Key: !Ref PackageS3Key
+        Description: !Sub "Update Handler for ${ResourceType} Resources"
+        FunctionName: !Sub "update-${ResourceType}-handler"
+        Handler: !Sub "${HandlerPackageNamespace}.BaseHandler::handleRequest"
+        Layers:
+          - !ImportValue LambdaLayer
+        KmsKeyArn: !ImportValue EncryptionKey
+        MemorySize: 128
+        Role: !ImportValue LambdaRole
+        Runtime: "java8"
+        Timeout: 120
+
+  DeleteHandler:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !ImportValue ArtifactBucket
+        S3Key: !Ref PackageS3Key
+      Description: !Sub "Delete Handler for ${ResourceType} Resources"
+      FunctionName: !Sub "delete-${ResourceType}-handler"
+      Handler: !Sub "${HandlerPackageNamespace}.BaseHandler::handleRequest"
+      Layers:
+        - !ImportValue LambdaLayer
+      KmsKeyArn: !ImportValue EncryptionKey
+      MemorySize: 128
+      Role: !ImportValue LambdaRole
+      Runtime: "java8"
+      Timeout: 120
+
+  ReadHandler:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !ImportValue ArtifactBucket
+        S3Key: !Ref PackageS3Key
+      Description: !Sub "Read Handler for ${ResourceType} Resources"
+      FunctionName: !Sub "read-${ResourceType}-handler"
+      Handler: !Sub "${HandlerPackageNamespace}.BaseHandler::handleRequest"
+      Layers:
+        - !ImportValue LambdaLayer
+      KmsKeyArn: !ImportValue EncryptionKey
+      MemorySize: 128
+      Role: !ImportValue LambdaRole
+      Runtime: "java8"
+      Timeout: 120
+
+  ListHandler:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !ImportValue ArtifactBucket
+        S3Key: !Ref PackageS3Key
+      Description: !Sub "List Handler for ${ResourceType} Resources"
+      FunctionName: !Sub "list-${ResourceType}-handler"
+      Handler: !Sub "${HandlerPackageNamespace}.BaseHandler::handleRequest"
+      Layers:
+        - !ImportValue LambdaLayer
       KmsKeyArn: !ImportValue EncryptionKey
       MemorySize: 128
       Role: !ImportValue LambdaRole
@@ -29,3 +101,20 @@ Outputs:
     Value: !GetAtt CreateHandler.Arn
     Export:
       Name: !Sub "${ResourceType}-create-handler"
+  UpdateHandlerArn:
+    Value: !GetAtt UpdateHandler.Arn
+    Export:
+      Name: !Sub "${ResourceType}-update-handler"
+  DeleteHandlerArn:
+    Value: !GetAtt DeleteHandler.Arn
+    Export:
+      Name: !Sub "${ResourceType}-delete-handler"
+  ReadHandlerArn:
+    Value: !GetAtt ReadHandler.Arn
+    Export:
+      Name: !Sub "${ResourceType}-read-handler"
+  ListHandlerArn:
+    Value: !GetAtt ListHandler.Arn
+    Export:
+      Name: !Sub "${ResourceType}-list-handler"
+

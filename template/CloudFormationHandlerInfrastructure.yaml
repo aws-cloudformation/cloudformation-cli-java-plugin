@@ -2,7 +2,14 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: This CloudFormation template provisions all the infrastructure and dependencies for a Java Provider on Lambda
 
 Parameters:
+  LayerPackageS3Bucket:
+    Description: The object name of the layer package .zip in S3
+    Type: String
+  LayerPackageS3ObjectKey:
+    Description: The object name of the layer package .zip in S3
+    Type: String
   ManagementUserArn:
+    Description: The Arn of an IAM user to grant KMS permissions to
     NoEcho: True
     Type: String
 
@@ -109,6 +116,17 @@ Resources:
               - "kms:DescribeKey"
             Resource: "*"
 
+  LambdaWrapperLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      CompatibleRuntimes:
+        - java8
+      Content:
+        S3Bucket: !Ref LayerPackageS3Bucket
+        S3Key: !Ref LayerPackageS3ObjectKey
+      Description: "The content of the Lambda Wrapper package for Java is deployed as a shareable Lambda Layer"
+      LayerName: "CloudFormationResourceProviderJavaLambdaLayer"
+
 Outputs:
   BucketName:
     Value: !Ref ArtifactBucket
@@ -122,3 +140,8 @@ Outputs:
     Value: !GetAtt LambdaRole.Arn
     Export:
       Name: LambdaRole
+  LambdaLayer:
+    Value: !Ref LambdaWrapperLayer
+    Export:
+      Name: LambdaLayer
+
