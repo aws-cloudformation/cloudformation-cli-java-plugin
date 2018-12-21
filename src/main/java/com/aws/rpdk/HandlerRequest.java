@@ -1,19 +1,18 @@
 package com.aws.rpdk;
 
 import com.aws.cfn.Action;
+import lombok.Data;
 
 /**
  * This interface describes the request object for the provisioning request
  * @param <T> Type of resource model being provisioned
  */
-public interface HandlerRequest<T> {
+@Data
+public abstract class HandlerRequest<T> {
 
-    Action getAction();
-    void setAction(Action action);
-
-    T getResourceModel();
-    void setResourceModel(T resourceModel);
-
-    RequestContext getRequestContext();
-    void setRequestContext(RequestContext context);
+    private Action action;
+    private String region;
+    private AWSCredentials awsCredentials;
+    private T resourceModel;
+    private RequestContext requestContext;
 }

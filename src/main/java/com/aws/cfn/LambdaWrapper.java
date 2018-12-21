@@ -15,7 +15,6 @@ import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.amazonaws.util.StringUtils;
 import com.aws.cfn.metrics.MetricsPublisher;
 import com.aws.rpdk.HandlerRequest;
-import com.aws.rpdk.HandlerRequestImpl;
 import com.aws.rpdk.ProgressEvent;
 import com.aws.rpdk.RequestContext;
 import com.google.gson.Gson;
@@ -80,7 +79,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
         final HandlerRequest<T> request =
             new Gson().fromJson(
                 input,
-                new TypeToken<HandlerRequestImpl<T>>(){}.getType());
+                new TypeToken<HandlerRequest<T>>(){}.getType());
 
         if (request == null || request.getRequestContext() == null) {
             writeResponse(
@@ -125,7 +124,8 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
 
         final Date startTime = Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant());
 
-        final ProgressEvent handlerResponse = invokeHandler(request, request.getAction(), requestContext);
+        final ProgressEvent handlerResponse = invokeHandler(request, request.getAction(),
+            requestContext);
 
         final Date endTime = Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant());
 
@@ -250,7 +250,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
         }
     }
 
-    public abstract ProgressEvent invokeHandler(final HandlerRequest<T> request,
-                                                final Action action,
-                                                final RequestContext context);
+    public abstract ProgressEvent<T> invokeHandler(final HandlerRequest<T> request,
+                                                   final Action action,
+                                                   final RequestContext context);
 }

@@ -2,8 +2,10 @@ package com.aws.rpdk;
 
 import com.aws.cfn.ProgressStatus;
 import com.google.gson.JsonObject;
+import lombok.Data;
 
-public class ProgressEvent {
+@Data
+public class ProgressEvent<T> {
 
     /**
      * The status indicates whether the handler has reached a terminal state or
@@ -33,53 +35,9 @@ public class ProgressEvent {
      */
     private int callbackDelayMinutes;
 
-    public ProgressStatus getStatus() {
-        return this.status;
-    }
-
-    public void setStatus(final ProgressStatus status) {
-        this.status = status;
-    }
-
-    public String getMessage() {
-        return this.message;
-    }
-
-    public  void setMessage(final String message) {
-        this.message = message;
-    }
-
-    public JsonObject getCallbackContext() {
-        return callbackContext;
-    }
-
-    public void setCallbackContext(final JsonObject callbackContext) {
-        this.callbackContext = callbackContext;
-    }
-
-    public int getCallbackDelayMinutes() {
-        return callbackDelayMinutes;
-    }
-
-    public void setCallbackDelayMinutes(final int callbackDelayMinutes) {
-        this.callbackDelayMinutes = callbackDelayMinutes;
-    }
-
-    public ProgressEvent(
-        final ProgressStatus status,
-        final String message) {
-        this.setStatus(status);
-        this.setMessage(message);
-    }
-
-    public ProgressEvent(
-        final ProgressStatus status,
-        final String message,
-        final JsonObject callbackContext,
-        final int callbackDelayMinutes) {
-        this.setStatus(status);
-        this.setMessage(message);
-        this.setCallbackContext(callbackContext);
-        this.setCallbackDelayMinutes(callbackDelayMinutes);
-    }
+    /**
+     * The output resource instance populated by a READ/LIST for synchronous results
+     * and by CREATE/UPDATE/DELETE for final response validation/confirmation
+     */
+    private T resourceModel;
 }
