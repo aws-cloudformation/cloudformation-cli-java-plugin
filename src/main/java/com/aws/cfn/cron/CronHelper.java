@@ -38,7 +38,7 @@ public class CronHelper {
      * day-of-year is not necessary when the day-of-month and month-of-year fields are supplied
      */
     public static String generateOneTimeCronExpression(final int minutesFromNow) {
-        return  generateOneTimeCronExpression(minutesFromNow, Clock.systemUTC());
+        return generateOneTimeCronExpression(minutesFromNow, Clock.systemUTC());
     }
 }
 

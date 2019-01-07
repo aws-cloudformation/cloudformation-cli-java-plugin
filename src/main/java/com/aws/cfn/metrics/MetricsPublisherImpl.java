@@ -15,7 +15,7 @@ import java.util.Date;
 
 public class MetricsPublisherImpl implements MetricsPublisher {
 
-    private AmazonCloudWatch amazonCloudWatch;
+    private final AmazonCloudWatch amazonCloudWatch;
     private String resourceNamespace;
     private String resourceTypeName;
 

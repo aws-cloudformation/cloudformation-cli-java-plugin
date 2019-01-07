@@ -6,7 +6,7 @@ import lombok.Data;
 import java.util.Map;
 
 @Data
-public class RequestData {
+public class RequestData<T> {
     private static final String ATTRIBUTES = "attributes";
     private static final String CREDENTIALS = "credentials";
     private static final String LOGICAL_RESOURCE_ID = "logicalResourceId";
@@ -18,22 +18,22 @@ public class RequestData {
     private static final String PREVIOUS_STACK_TAGS = "previousStackTags";
 
     @JsonProperty(ATTRIBUTES)
-    private Map<String, Object> attributes;
+    private final Map<String, Object> attributes;
 
     @JsonProperty(LOGICAL_RESOURCE_ID)
-    private String logicalResourceId;
+    private final String logicalResourceId;
 
     @JsonProperty(PHYSICAL_RESOURCE_ID)
     private final String physicalResourceId;
 
     @JsonProperty(RESOURCE_PROPERTIES)
-    private Map<String, Object> resourceProperties;
+    private final T resourceProperties;
 
     @JsonProperty(PREVIOUS_RESOURCE_PROPERTIES)
-    private final Map<String, Object> previousResourceProperties;
+    private final T previousResourceProperties;
 
     @JsonProperty(CREDENTIALS)
-    private Credentials credentials;
+    private final Credentials credentials;
 
     @JsonProperty(SYSTEM_TAGS)
     private final Map<String, String> systemTags;

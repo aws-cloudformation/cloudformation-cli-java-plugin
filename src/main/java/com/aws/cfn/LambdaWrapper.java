@@ -1,19 +1,13 @@
 package com.aws.cfn;
 
-import com.amazonaws.services.cloudwatchevents.AmazonCloudWatchEvents;
-import com.amazonaws.services.cloudwatchevents.AmazonCloudWatchEventsClientBuilder;
-import com.amazonaws.services.cloudwatchevents.model.DeleteRuleRequest;
-import com.amazonaws.services.cloudwatchevents.model.PutRuleRequest;
-import com.amazonaws.services.cloudwatchevents.model.PutTargetsRequest;
-import com.amazonaws.services.cloudwatchevents.model.RemoveTargetsRequest;
-import com.amazonaws.services.cloudwatchevents.model.RuleState;
-import com.amazonaws.services.cloudwatchevents.model.Target;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
-import com.amazonaws.util.StringUtils;
+import com.aws.cfn.common.FailureMode;
+import com.aws.cfn.common.TerminalException;
 import com.aws.cfn.metrics.MetricsPublisher;
+import com.aws.cfn.scheduler.CloudWatchScheduler;
 import com.aws.rpdk.HandlerRequest;
 import com.aws.rpdk.ProgressEvent;
 import com.aws.rpdk.RequestContext;
@@ -31,13 +25,11 @@ import java.nio.charset.Charset;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Date;
-import java.util.UUID;
-
-import static com.aws.cfn.cron.CronHelper.generateOneTimeCronExpression;
 
 public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestHandler<Request<T>, Response> {
 
     private final MetricsPublisher metricsPublisher;
+    private final CloudWatchScheduler scheduler;
     private LambdaLogger logger;
 
     /**
@@ -46,14 +38,17 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
     public LambdaWrapper() {
         final Injector injector = Guice.createInjector(new LambdaModule());
         this.metricsPublisher = injector.getInstance(MetricsPublisher.class);
+        this.scheduler = injector.getInstance(CloudWatchScheduler.class);
     }
 
     /**
      * This .ctor provided for testing
      */
     @Inject
-    public LambdaWrapper(final MetricsPublisher metricsPublisher) {
+    public LambdaWrapper(final MetricsPublisher metricsPublisher,
+                         final CloudWatchScheduler scheduler) {
         this.metricsPublisher = metricsPublisher;
+        this.scheduler = scheduler;
     }
 
     public Response handleRequest(final Request request,
@@ -63,8 +58,9 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
 
     public void handleRequest(final InputStream inputStream,
                               final OutputStream outputStream,
-                              final Context context) throws IOException {
+                              final Context context) throws IOException, TerminalException {
         this.logger = context.getLogger();
+        this.scheduler.setLogger(context.getLogger());
 
         if (inputStream == null) {
             writeResponse(
@@ -92,16 +88,16 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
         final RequestContext requestContext = request.getRequestContext();
 
         // If this invocation was triggered by a 're-invoke' CloudWatch Event, clean it up
-        this.cleanupCloudWatchEvents(
+        this.scheduler.cleanupCloudWatchEvents(
             requestContext.getCloudWatchEventsRuleName(),
             requestContext.getCloudWatchEventsTargetId());
 
         // MetricsPublisher is initialised with the resource type name for metrics namespace
-        this.metricsPublisher.setResourceTypeName(requestContext.getResourceType());
+        this.metricsPublisher.setResourceTypeName(request.getResourceType());
 
         this.metricsPublisher.publishInvocationMetric(
             Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
-            request.getAction());
+            request.getResourceRequestType());
 
         // TODO: implement decryption of request and returned callback context
         // using KMS Key accessible by the Lambda execution Role
@@ -112,8 +108,10 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
         // - Any callback context passed through from prior invocation
 
         // TODO: Remove this temporary logging
-        this.logger.log(String.format("Invocation: %s", requestContext.getInvocation()));
-        this.logger.log(request.getResourceModel().toString());
+        this.log(String.format("Invocation: %s", requestContext.getInvocation()));
+        //this.log(request.getResourceModel().toString());
+        this.log(request.getRequestData().getResourceProperties().toString());
+
 
         // TODO: implement the handler invocation inside a time check which will abort and automatically
         // reschedule a callback if the handler does not respond within the 15 minute invocation window
@@ -124,26 +122,32 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
 
         final Date startTime = Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant());
 
-        final ProgressEvent handlerResponse = invokeHandler(request, request.getAction(),
+        final ProgressEvent handlerResponse = invokeHandler(
+            request,
+            request.getResourceRequestType(),
             requestContext);
 
         final Date endTime = Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant());
 
         metricsPublisher.publishDurationMetric(
             Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
-            request.getAction(),
+            request.getResourceRequestType(),
             (endTime.getTime() - startTime.getTime()));
+
+        // ensure we got a valid response
+        if (handlerResponse == null) {
+            throw new TerminalException("Handler failed to provide a response.", FailureMode.RESOURCE_UNMODIFIED);
+        }
 
         // When the handler responses InProgress with a callback delay, we trigger a callback to re-invoke
         // the handler for the Resource type to implement stabilization checks and long-poll creation checks
         if (handlerResponse.getStatus() == ProgressStatus.InProgress &&
             handlerResponse.getCallbackDelayMinutes() > 0) {
-            final RequestContext callbackContext = new RequestContext(
-                requestContext.getInvocation() + 1,
-                handlerResponse.getCallbackContext(),
-                requestContext.getResourceType());
+            final RequestContext callbackContext = new RequestContext();
+            callbackContext.setInvocation(requestContext.getInvocation() + 1);
+            callbackContext.setCallbackContext(handlerResponse.getCallbackContext());
 
-            rescheduleAfterMinutes(
+            this.scheduler.rescheduleAfterMinutes(
                 context.getInvokedFunctionArn(),
                 handlerResponse.getCallbackDelayMinutes(),
                 callbackContext);
@@ -154,7 +158,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
 
         // The wrapper will log any context to the configured CloudWatch log group
         if (handlerResponse.getCallbackContext() != null)
-            this.logger.log(handlerResponse.getCallbackContext().toString());
+            this.log(handlerResponse.getCallbackContext().toString());
 
         // A response will be output on all paths, though CloudFormation will
         // not block on invoking the handlers, but rather listen for callbacks
@@ -162,12 +166,12 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
     }
 
     private Response createErrorResponse(final String errorMessage) {
-        this.logger.log(errorMessage);
+        this.log(errorMessage);
         return new Response(errorMessage);
     }
 
     private Response createProgressResponse(final ProgressEvent progressEvent) {
-        this.logger.log(String.format("Got progress %s (%s)\n", progressEvent.getStatus(), progressEvent.getMessage()));
+        this.log(String.format("Got progress %s (%s)\n", progressEvent.getStatus(), progressEvent.getMessage()));
         return new Response(String.format(
             "Got progress %s (%s)",
             progressEvent.getStatus(),
@@ -180,77 +184,18 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
         outputStream.close();
     }
 
-    /**
-     * TODO: this actually needs testing and such, but you get the idea
-     */
-    private void rescheduleAfterMinutes(final String functionArn,
-                                        final int minutesFromNow,
-                                        final RequestContext callbackContext) {
-
-        final String cronRule = generateOneTimeCronExpression(minutesFromNow);
-
-        final AmazonCloudWatchEvents cloudWatch = AmazonCloudWatchEventsClientBuilder.defaultClient();
-
-        final UUID rescheduleId = UUID.randomUUID();
-        final String ruleName = String.format("reinvoke-handler-%s", rescheduleId);
-        final String targetId = String.format("reinvoke-target-%s", rescheduleId);
-
-        // record the CloudWatchEvents objects for cleanup on the callback
-        callbackContext.setCloudWatchEventsRuleName(ruleName);
-        callbackContext.setCloudWatchEventsTargetId(targetId);
-
-        final String jsonContext = new Gson().toJson(callbackContext);
-
-        this.logger.log(String.format("Scheduling re-invoke at %s (%s)\n", cronRule, rescheduleId));
-        this.logger.log(String.format("Context: (%s)\n", jsonContext));
-
-        final PutRuleRequest putRuleRequest = new PutRuleRequest()
-            .withName(ruleName)
-            .withScheduleExpression(cronRule)
-            .withState(RuleState.ENABLED);
-        cloudWatch.putRule(putRuleRequest);
-
-        final Target target = new Target()
-            .withArn(functionArn)
-            .withId(targetId)
-            .withInput(jsonContext);
-        final PutTargetsRequest putTargetsRequest = new PutTargetsRequest()
-            .withTargets(target)
-            .withRule(putRuleRequest.getName());
-        cloudWatch.putTargets(putTargetsRequest);
-    }
-
-    private void cleanupCloudWatchEvents(final String cloudWatchEventsRuleName,
-                                         final String cloudWatchEventsTargetId) {
-
-        final AmazonCloudWatchEvents cloudWatch = AmazonCloudWatchEventsClientBuilder.defaultClient();
-
-        try {
-            if (!StringUtils.isNullOrEmpty(cloudWatchEventsRuleName)) {
-                final DeleteRuleRequest deleteRuleRequest = new DeleteRuleRequest()
-                    .withName(cloudWatchEventsRuleName);
-                cloudWatch.deleteRule(deleteRuleRequest);
-            }
-        } catch (final Exception e) {
-            this.logger.log(String.format("Error cleaning CloudWatchEvents (ruleName=%s): %s",
-                cloudWatchEventsRuleName,
-                e.getMessage()));
-        }
-
-        try {
-            if (!StringUtils.isNullOrEmpty(cloudWatchEventsTargetId)) {
-                final RemoveTargetsRequest removeTargetsRequest = new RemoveTargetsRequest()
-                    .withIds(cloudWatchEventsTargetId);
-                cloudWatch.removeTargets(removeTargetsRequest);
-            }
-        } catch (final Exception e) {
-            this.logger.log(String.format("Error cleaning CloudWatchEvents Target (targetId=%s): %s",
-                cloudWatchEventsTargetId,
-                e.getMessage()));
-        }
-    }
 
     public abstract ProgressEvent<T> invokeHandler(final HandlerRequest<T> request,
                                                    final Action action,
                                                    final RequestContext context);
+
+    /**
+     * null-safe logger redirect
+     * @param message A string containing the event to log.
+     */
+    private void log(final String message) {
+        if (this.logger != null) {
+            this.logger.log(message);
+        }
+    }
 }

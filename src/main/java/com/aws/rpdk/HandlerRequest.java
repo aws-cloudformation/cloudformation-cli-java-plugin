@@ -3,13 +3,15 @@ package com.aws.rpdk;
 import com.aws.cfn.Action;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * This interface describes the request object for the provisioning request
  * @param <T> Type of resource model being provisioned
  */
 @Data
-public abstract class HandlerRequest<T> {
+@NoArgsConstructor
+public class HandlerRequest<T> {
 
     private static final String AWS_ACCOUNT_ID = "awsAccountId";
     private static final String BEARER_TOKEN = "bearerToken";
@@ -23,32 +25,32 @@ public abstract class HandlerRequest<T> {
     private static final String STACK_ID = "stackId";
 
     @JsonProperty(AWS_ACCOUNT_ID)
-    private final String awsAccountId;
+    private String awsAccountId;
 
     @JsonProperty(BEARER_TOKEN)
-    private final String bearerToken;
+    private String bearerToken;
 
     @JsonProperty(CLIENT_REQUEST_TOKEN)
-    private final String clientRequestToken;
+    private String clientRequestToken;
 
     @JsonProperty(REGION)
-    private final String region;
+    private String region;
 
     @JsonProperty(RESOURCE_REQUEST_TYPE)
-    private final Action resourceRequestType;
+    private Action resourceRequestType;
 
     @JsonProperty(RESOURCE_TYPE)
-    private final String resourceType;
+    private String resourceType;
 
     @JsonProperty(RESOURCE_TYPE_VERSION)
-    private final String resourceTypeVersion;
+    private String resourceTypeVersion;
 
     @JsonProperty(REQUEST_DATA)
-    private final RequestData requestData;
+    private RequestData<T> requestData;
 
     @JsonProperty(STACK_ID)
-    private final String stackId;
+    private String stackId;
 
     @JsonProperty(REQUEST_CONTEXT)
-    private final RequestContext requestContext;
+    private RequestContext requestContext;
 }
