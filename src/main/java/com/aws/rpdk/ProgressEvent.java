@@ -6,7 +6,6 @@ import lombok.Data;
 
 @Data
 public class ProgressEvent<T> {
-
     /**
      * The status indicates whether the handler has reached a terminal state or
      * is still computing and requires more time to complete

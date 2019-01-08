@@ -5,8 +5,14 @@ import lombok.Data;
 
 @Data
 public class RequestContext {
-
+    /**
+     * The number of times the handler has been invoked (including current)
+     */
     private int invocation;
+
+    /**
+     * Custom context object to enable handlers to process re-invocation
+     */
     private JsonObject callbackContext;
 
     /**

@@ -12,6 +12,7 @@ import com.aws.rpdk.HandlerRequest;
 import com.aws.rpdk.ProgressEvent;
 import com.aws.rpdk.RequestContext;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Guice;
 import com.google.inject.Inject;
@@ -56,33 +57,48 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
         return null;
     }
 
+
     public void handleRequest(final InputStream inputStream,
                               final OutputStream outputStream,
                               final Context context) throws IOException, TerminalException {
         this.logger = context.getLogger();
         this.scheduler.setLogger(context.getLogger());
 
-        if (inputStream == null) {
-            writeResponse(
-                outputStream,
-                createErrorResponse("No request object received.")
-            );
-            return;
-        }
+        ProgressEvent handlerResponse = null;
+        HandlerRequest<T> request = null;
 
-        // decode the input request
-        final String input = IOUtils.toString(inputStream, "UTF-8");
-        final HandlerRequest<T> request =
-            new Gson().fromJson(
+        try {
+            if (inputStream == null) {
+                throw new TerminalException("No request object received", FailureMode.RESOURCE_UNMODIFIED);
+            }
+
+            // decode the input request
+            final String input = IOUtils.toString(inputStream, "UTF-8");
+            request = new Gson().fromJson(
                 input,
                 new TypeToken<HandlerRequest<T>>(){}.getType());
 
+            handlerResponse = processInvocation(request, context);
+        } catch (final Exception e) {
+            // Exceptions are wrapped as a consistent error response to the caller (i.e; CloudFormation)
+            handlerResponse = new ProgressEvent();
+            handlerResponse.setMessage(e.getMessage());
+            handlerResponse.setStatus(ProgressStatus.Failed);
+            if (request != null && request.getRequestData() != null) {
+                handlerResponse.setResourceModel(request.getRequestData().getResourceProperties());
+            }
+        } finally {
+            // A response will be output on all paths, though CloudFormation will
+            // not block on invoking the handlers, but rather listen for callbacks
+            writeResponse(outputStream, createProgressResponse(handlerResponse));
+        }
+    }
+
+    public ProgressEvent processInvocation(final HandlerRequest<T> request,
+                                           final Context context) throws IOException, TerminalException {
+
         if (request == null || request.getRequestContext() == null) {
-            writeResponse(
-                outputStream,
-                createErrorResponse(String.format("Invalid request object received (%s)", input))
-            );
-            return;
+            throw new TerminalException("Invalid request object received", FailureMode.RESOURCE_UNMODIFIED);
         }
 
         final RequestContext requestContext = request.getRequestContext();
@@ -141,8 +157,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
 
         // When the handler responses InProgress with a callback delay, we trigger a callback to re-invoke
         // the handler for the Resource type to implement stabilization checks and long-poll creation checks
-        if (handlerResponse.getStatus() == ProgressStatus.InProgress &&
-            handlerResponse.getCallbackDelayMinutes() > 0) {
+        if (handlerResponse.getStatus() == ProgressStatus.InProgress) {
             final RequestContext callbackContext = new RequestContext();
             callbackContext.setInvocation(requestContext.getInvocation() + 1);
             callbackContext.setCallbackContext(handlerResponse.getCallbackContext());
@@ -152,7 +167,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
                 handlerResponse.getCallbackDelayMinutes(),
                 callbackContext);
         }
-        
+
         // TODO: Implement callback to CloudFormation or specified callback API
         // to report the progress status when in non-terminal state (i.e; InProgress)
 
@@ -160,26 +175,28 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
         if (handlerResponse.getCallbackContext() != null)
             this.log(handlerResponse.getCallbackContext().toString());
 
-        // A response will be output on all paths, though CloudFormation will
-        // not block on invoking the handlers, but rather listen for callbacks
-        writeResponse(outputStream, createProgressResponse(handlerResponse));
-    }
-
-    private Response createErrorResponse(final String errorMessage) {
-        this.log(errorMessage);
-        return new Response(errorMessage);
+        return handlerResponse;
     }
 
     private Response createProgressResponse(final ProgressEvent progressEvent) {
         this.log(String.format("Got progress %s (%s)\n", progressEvent.getStatus(), progressEvent.getMessage()));
-        return new Response(String.format(
-            "Got progress %s (%s)",
-            progressEvent.getStatus(),
-            progressEvent.getMessage()));
+
+
+
+        final Response response = new Response();
+        response.setMessage(progressEvent.getMessage());
+        response.setStatus(progressEvent.getStatus());
+
+        if (progressEvent.getResourceModel() != null) {
+            response.setResourceModel((JsonObject) new Gson().toJsonTree(progressEvent.getResourceModel()));
+        }
+
+        return response;
     }
 
     private void writeResponse(final OutputStream outputStream,
                                final Response response) throws IOException {
+
         outputStream.write(new Gson().toJson(response).getBytes(Charset.forName("UTF-8")));
         outputStream.close();
     }
