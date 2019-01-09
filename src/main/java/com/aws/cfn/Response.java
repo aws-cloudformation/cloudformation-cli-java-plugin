@@ -1,8 +1,8 @@
 package com.aws.cfn;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.gson.JsonObject;
 import lombok.Data;
+import org.json.JSONObject;
 
 @Data
 public class Response {
@@ -30,5 +30,5 @@ public class Response {
      * and by CREATE/UPDATE/DELETE for final response validation/confirmation
      */
     @JsonProperty(RESOURCE_MODEL)
-    private JsonObject resourceModel;
+    private JSONObject resourceModel;
 }

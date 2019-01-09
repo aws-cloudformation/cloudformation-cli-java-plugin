@@ -11,13 +11,12 @@ import com.aws.cfn.scheduler.CloudWatchScheduler;
 import com.aws.rpdk.HandlerRequest;
 import com.aws.rpdk.ProgressEvent;
 import com.aws.rpdk.RequestContext;
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import org.apache.commons.io.IOUtils;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -74,9 +73,13 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
 
             // decode the input request
             final String input = IOUtils.toString(inputStream, "UTF-8");
-            request = new Gson().fromJson(
-                input,
-                new TypeToken<HandlerRequest<T>>(){}.getType());
+            final JSONObject o = new JSONObject(input);
+            final ObjectMapper m = new ObjectMapper();
+            request = m.readValue(o.toString(), HandlerRequest.class);
+
+            //new Gson().fromJson(
+            //    input,
+            //    new TypeToken<HandlerRequest<T>>(){}.getType());
 
             handlerResponse = processInvocation(request, context);
         } catch (final Exception e) {
@@ -188,7 +191,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
         response.setStatus(progressEvent.getStatus());
 
         if (progressEvent.getResourceModel() != null) {
-            response.setResourceModel((JsonObject) new Gson().toJsonTree(progressEvent.getResourceModel()));
+            response.setResourceModel(new JSONObject(progressEvent.getResourceModel()));
         }
 
         return response;
@@ -197,7 +200,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
     private void writeResponse(final OutputStream outputStream,
                                final Response response) throws IOException {
 
-        outputStream.write(new Gson().toJson(response).getBytes(Charset.forName("UTF-8")));
+        outputStream.write(new JSONObject(response).toString().getBytes(Charset.forName("UTF-8")));
         outputStream.close();
     }
 

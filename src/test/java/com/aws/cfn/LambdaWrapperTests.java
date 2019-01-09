@@ -98,7 +98,7 @@ public class LambdaWrapperTests {
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo("{\"status\":\"Failed\",\"message\":\"Handler failed to provide a response.\",\"resourceModel\":{}}"))
+            is(equalTo("{\"resourceModel\":{},\"message\":\"Handler failed to provide a response.\",\"status\":\"Failed\"}"))
         );
     }
 
@@ -163,7 +163,7 @@ public class LambdaWrapperTests {
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo("{\"status\":\"Failed\",\"message\":\"Custom Fault\"}"))
+            is(equalTo("{\"message\":\"Custom Fault\",\"status\":\"Failed\"}"))
         );
     }
 
@@ -298,7 +298,7 @@ public class LambdaWrapperTests {
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo("{\"status\":\"InProgress\",\"resourceModel\":{}}"))
+            is(equalTo("{\"resourceModel\":{},\"status\":\"InProgress\"}"))
         );
     }
 
@@ -371,7 +371,7 @@ public class LambdaWrapperTests {
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo("{\"status\":\"InProgress\",\"resourceModel\":{}}"))
+            is(equalTo("{\"resourceModel\":{},\"status\":\"InProgress\"}"))
         );
     }
 

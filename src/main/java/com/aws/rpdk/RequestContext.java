@@ -1,9 +1,11 @@
 package com.aws.rpdk;
 
-import com.google.gson.JsonObject;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.json.JSONObject;
 
 @Data
+@NoArgsConstructor
 public class RequestContext {
     /**
      * The number of times the handler has been invoked (including current)
@@ -13,7 +15,7 @@ public class RequestContext {
     /**
      * Custom context object to enable handlers to process re-invocation
      */
-    private JsonObject callbackContext;
+    private JSONObject callbackContext;
 
     /**
      * If the request was the result of a CloudWatchEvents re-invoke trigger the

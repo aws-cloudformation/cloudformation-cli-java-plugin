@@ -1,10 +1,12 @@
 package com.aws.rpdk;
 
 import com.aws.cfn.ProgressStatus;
-import com.google.gson.JsonObject;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.json.JSONObject;
 
 @Data
+@NoArgsConstructor
 public class ProgressEvent<T> {
     /**
      * The status indicates whether the handler has reached a terminal state or
@@ -25,7 +27,7 @@ public class ProgressEvent<T> {
      * or metadata between subsequent retries; for example to pass through a
      * Resource identifier which can be used to continue polling for stabilization
      */
-    private JsonObject callbackContext;
+    private JSONObject callbackContext;
 
     /**
      * A callback will be scheduled with an initial delay of no less than

@@ -11,9 +11,9 @@ import com.amazonaws.services.cloudwatchevents.model.Target;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.util.StringUtils;
 import com.aws.rpdk.RequestContext;
-import com.google.gson.Gson;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.json.JSONObject;
 
 import java.util.UUID;
 
@@ -49,7 +49,8 @@ public class CloudWatchScheduler {
         callbackContext.setCloudWatchEventsRuleName(ruleName);
         callbackContext.setCloudWatchEventsTargetId(targetId);
 
-        final String jsonContext = new Gson().toJson(callbackContext);
+        final String jsonContext = new JSONObject(callbackContext).toString();
+        //final String jsonContext = new Gson().toJson(callbackContext);
 
         this.log(String.format("Scheduling re-invoke at %s (%s)\n", cronRule, rescheduleId));
         this.log(String.format("Context: (%s)\n", jsonContext));
