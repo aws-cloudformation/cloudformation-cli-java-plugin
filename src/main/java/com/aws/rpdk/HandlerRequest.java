@@ -11,11 +11,10 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 public class HandlerRequest<T> {
+    private Action action;
     private String awsAccountId;
     private String bearerToken;
-    private String clientRequestToken;
-    private String region;
-    private Action resourceRequestType;
+    private String nextToken;
     private String resourceType;
     private String resourceTypeVersion;
     private RequestData<T> requestData;

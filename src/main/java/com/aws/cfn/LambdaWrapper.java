@@ -116,7 +116,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
 
         this.metricsPublisher.publishInvocationMetric(
             Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
-            request.getResourceRequestType());
+            request.getAction());
 
         // TODO: implement decryption of request and returned callback context
         // using KMS Key accessible by the Lambda execution Role
@@ -143,14 +143,14 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
 
         final ProgressEvent handlerResponse = invokeHandler(
             request,
-            request.getResourceRequestType(),
+            request.getAction(),
             requestContext);
 
         final Date endTime = Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant());
 
         metricsPublisher.publishDurationMetric(
             Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
-            request.getResourceRequestType(),
+            request.getAction(),
             (endTime.getTime() - startTime.getTime()));
 
         // ensure we got a valid response
