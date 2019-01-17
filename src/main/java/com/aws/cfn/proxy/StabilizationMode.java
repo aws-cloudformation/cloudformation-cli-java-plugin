@@ -1,4 +1,4 @@
-package com.aws.rpdk;
+package com.aws.cfn.proxy;
 
 public enum StabilizationMode {
     Constant,

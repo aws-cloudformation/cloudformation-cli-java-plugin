@@ -2,10 +2,16 @@ package com.aws.cfn;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
+import com.aws.cfn.common.TerminalException;
 import com.aws.cfn.metrics.MetricsPublisher;
+import com.aws.cfn.proxy.CallbackAdapter;
+import com.aws.cfn.proxy.ProgressEvent;
+import com.aws.cfn.proxy.ProgressStatus;
+import com.aws.cfn.proxy.RequestContext;
+import com.aws.cfn.resource.SchemaValidator;
+import com.aws.cfn.resource.exceptions.ValidationException;
 import com.aws.cfn.scheduler.CloudWatchScheduler;
-import com.aws.rpdk.ProgressEvent;
-import com.aws.rpdk.RequestContext;
+import org.json.JSONObject;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -18,19 +24,21 @@ import java.io.OutputStream;
 import java.util.Date;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.emptyOrNullString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class LambdaWrapperTests {
+public class LambdaWrapperTest {
 
     private static final String TEST_DATA_BASE_PATH = "src/test/java/com/aws/cfn/data/%s";
 
@@ -46,6 +54,11 @@ public class LambdaWrapperTests {
         return in;
     }
 
+    private CallbackAdapter getCallbackAdapter() {
+        final CallbackAdapter callbackAdapter = mock(CallbackAdapter.class);
+        return callbackAdapter;
+    }
+
     private MetricsPublisher getMetricsPublisher() {
         final MetricsPublisher metricsPublisher = mock(MetricsPublisher.class);
         return metricsPublisher;
@@ -54,6 +67,11 @@ public class LambdaWrapperTests {
     private CloudWatchScheduler getScheduler() {
         final CloudWatchScheduler scheduler = mock(CloudWatchScheduler.class);
         return scheduler;
+    }
+
+    private SchemaValidator getValidator() {
+        final SchemaValidator validator = mock(SchemaValidator.class);
+        return validator;
     }
 
     private Context getLambdaContext() {
@@ -68,9 +86,11 @@ public class LambdaWrapperTests {
 
     private void testInvokeHandler_NullResponse(final String requestDataPath,
                                                 final Action action) throws IOException {
+        final CallbackAdapter callbackAdapter = getCallbackAdapter();
         final MetricsPublisher metricsPublisher = getMetricsPublisher();
         final CloudWatchScheduler scheduler = getScheduler();
-        final WrapperOverride wrapper = new WrapperOverride(metricsPublisher, scheduler);
+        final SchemaValidator validator = getValidator();
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
 
         // a null response is a terminal fault
         wrapper.setInvokeHandlerResponse(null);
@@ -81,6 +101,10 @@ public class LambdaWrapperTests {
 
         wrapper.handleRequest(in, out, context);
 
+        // validation failure metric should be published for final error handling
+        verify(metricsPublisher, times(1)).publishExceptionMetric(
+            any(Date.class), any(), any(TerminalException.class));
+
         // all metrics should be published even on terminal failure
         verify(metricsPublisher, times(1)).setResourceTypeName(
             "AWS::Test::TestModel");
@@ -89,11 +113,15 @@ public class LambdaWrapperTests {
         verify(metricsPublisher, times(1)).publishDurationMetric(
             any(Date.class), eq(action), anyLong());
 
+        // verify that model validation occurred
+        verify(validator, times(1)).validateModel(
+            any(JSONObject.class), any(InputStream.class));
+
         // no re-invocation via CloudWatch should occur
         verify(scheduler, times(0)).rescheduleAfterMinutes(
             anyString(), anyInt(), any(RequestContext.class));
         verify(scheduler, times(0)).cleanupCloudWatchEvents(
-            anyString(), anyString());
+            any(), any());
 
         // verify output response
         assertThat(
@@ -130,9 +158,11 @@ public class LambdaWrapperTests {
     private void testInvokeHandler_Failed(final String requestDataPath,
                                           final Action action) throws IOException {
 
+        final CallbackAdapter callbackAdapter = getCallbackAdapter();
         final MetricsPublisher metricsPublisher = getMetricsPublisher();
         final CloudWatchScheduler scheduler = getScheduler();
-        final WrapperOverride wrapper = new WrapperOverride(metricsPublisher, scheduler);
+        final SchemaValidator validator = getValidator();
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
 
         // explicit fault response is treated as an unsuccessful synchronous completion
         final ProgressEvent<TestModel> pe = new ProgressEvent<>();
@@ -154,11 +184,19 @@ public class LambdaWrapperTests {
         verify(metricsPublisher, times(1)).publishDurationMetric(
             any(Date.class), eq(action), anyLong());
 
+        // validation failure metric should not be published
+        verify(metricsPublisher, times(0)).publishExceptionMetric(
+            any(Date.class), any(), any(Exception.class));
+
+        // verify that model validation occurred
+        verify(validator, times(1)).validateModel(
+            any(JSONObject.class), any(InputStream.class));
+
         // no re-invocation via CloudWatch should occur
         verify(scheduler, times(0)).rescheduleAfterMinutes(
             anyString(), anyInt(), any(RequestContext.class));
         verify(scheduler, times(0)).cleanupCloudWatchEvents(
-            anyString(), anyString());
+            any(), any());
 
         // verify output response
         assertThat(
@@ -195,9 +233,11 @@ public class LambdaWrapperTests {
     private void testInvokeHandler_CompleteSynchronously(final String requestDataPath,
                                                         final Action action) throws IOException {
 
+        final CallbackAdapter callbackAdapter = getCallbackAdapter();
         final MetricsPublisher metricsPublisher = getMetricsPublisher();
         final CloudWatchScheduler scheduler = getScheduler();
-        final WrapperOverride wrapper = new WrapperOverride(metricsPublisher, scheduler);
+        final SchemaValidator validator = getValidator();
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
 
         // if the handler responds Complete, this is treated as a successful synchronous completion
         final ProgressEvent<TestModel> pe = new ProgressEvent<>();
@@ -218,11 +258,19 @@ public class LambdaWrapperTests {
         verify(metricsPublisher, times(1)).publishDurationMetric(
             any(Date.class), eq(action), anyLong());
 
+        // validation failure metric should not be published
+        verify(metricsPublisher, times(0)).publishExceptionMetric(
+            any(Date.class), any(), any(Exception.class));
+
+        // verify that model validation occurred
+        verify(validator, times(1)).validateModel(
+            any(JSONObject.class), any(InputStream.class));
+
         // no re-invocation via CloudWatch should occur
         verify(scheduler, times(0)).rescheduleAfterMinutes(
             anyString(), anyInt(), any(RequestContext.class));
         verify(scheduler, times(0)).cleanupCloudWatchEvents(
-            anyString(), anyString());
+            any(), any());
 
         // verify output response
         assertThat(
@@ -259,9 +307,11 @@ public class LambdaWrapperTests {
     private void testInvokeHandler_InProgress(final String requestDataPath,
                                               final Action action) throws IOException {
 
+        final CallbackAdapter callbackAdapter = getCallbackAdapter();
         final MetricsPublisher metricsPublisher = getMetricsPublisher();
         final CloudWatchScheduler scheduler = getScheduler();
-        final WrapperOverride wrapper = new WrapperOverride(metricsPublisher, scheduler);
+        final SchemaValidator validator = getValidator();
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
 
         // an InProgress response is always re-scheduled.
         // If no explicit time is supplied, a 1-minute interval is used
@@ -284,13 +334,21 @@ public class LambdaWrapperTests {
         verify(metricsPublisher, times(1)).publishDurationMetric(
             any(Date.class), eq(action), anyLong());
 
+        // validation failure metric should not be published
+        verify(metricsPublisher, times(0)).publishExceptionMetric(
+            any(Date.class), any(), any(Exception.class));
+
+        // verify that model validation occurred
+        verify(validator, times(1)).validateModel(
+            any(JSONObject.class), any(InputStream.class));
+
         // re-invocation via CloudWatch should occur
         verify(scheduler, times(1)).rescheduleAfterMinutes(
             anyString(), eq(0), any(RequestContext.class));
 
         // this was a first invocation, so no cleanup is required
         verify(scheduler, times(0)).cleanupCloudWatchEvents(
-            anyString(), anyString());
+            any(), any());
 
         // CloudFormation should receive a callback invocation
         // TODO
@@ -330,9 +388,11 @@ public class LambdaWrapperTests {
     private void testReInvokeHandler_InProgress(final String requestDataPath,
                                                 final Action action) throws IOException {
 
+        final CallbackAdapter callbackAdapter = getCallbackAdapter();
         final MetricsPublisher metricsPublisher = getMetricsPublisher();
         final CloudWatchScheduler scheduler = getScheduler();
-        final WrapperOverride wrapper = new WrapperOverride(metricsPublisher, scheduler);
+        final SchemaValidator validator = getValidator();
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
 
         // an InProgress response is always re-scheduled.
         // If no explicit time is supplied, a 1-minute interval is used
@@ -354,6 +414,14 @@ public class LambdaWrapperTests {
             any(Date.class), eq(action));
         verify(metricsPublisher, times(1)).publishDurationMetric(
             any(Date.class), eq(action), anyLong());
+
+        // validation failure metric should not be published
+        verify(metricsPublisher, times(0)).publishExceptionMetric(
+            any(Date.class), any(), any(Exception.class));
+
+        // verify that model validation occurred
+        verify(validator, times(1)).validateModel(
+            any(JSONObject.class), any(InputStream.class));
 
         // re-invocation via CloudWatch should occur
         verify(scheduler, times(1)).rescheduleAfterMinutes(
@@ -400,6 +468,114 @@ public class LambdaWrapperTests {
     public void testReInvokeHandler_List_InProgress() throws IOException {
         // TODO: List handlers must return synchronously so this is probably a fault
         //testReInvokeHandler_InProgress("list.with-request-context.request.json", Action.List);
+    }
+
+    private void testInvokeHandler_SchemaValidationFailure(final String requestDataPath,
+                                                           final Action action) throws IOException {
+
+        final CallbackAdapter callbackAdapter = getCallbackAdapter();
+        final MetricsPublisher metricsPublisher = getMetricsPublisher();
+        final CloudWatchScheduler scheduler = getScheduler();
+        final SchemaValidator validator = getValidator();
+        doThrow(ValidationException.class)
+            .when(validator).validateModel(any(JSONObject.class), any(InputStream.class));
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
+
+        final InputStream in = loadRequestStream(requestDataPath);
+        final OutputStream out = new ByteArrayOutputStream();
+        final Context context = getLambdaContext();
+
+        wrapper.handleRequest(in, out, context);
+
+        // validation failure metric should be published but no others
+        verify(metricsPublisher, times(1)).publishExceptionMetric(
+            any(Date.class), eq(action), any(Exception.class));
+
+        // all metrics should be published, even for a single invocation
+        verify(metricsPublisher, times(1)).setResourceTypeName(
+            "AWS::Test::TestModel");
+        verify(metricsPublisher, times(1)).publishInvocationMetric(
+            any(Date.class), eq(action));
+
+        // duration metric only published when the provider handler is invoked
+        verify(metricsPublisher, times(0)).publishDurationMetric(
+            any(Date.class), eq(action), anyLong());
+
+        // verify that model validation occurred
+        verify(validator, times(1)).validateModel(
+            any(JSONObject.class), any(InputStream.class));
+
+        // no re-invocation via CloudWatch should occur
+        verify(scheduler, times(0)).rescheduleAfterMinutes(
+            anyString(), anyInt(), any(RequestContext.class));
+        verify(scheduler, times(0)).cleanupCloudWatchEvents(
+            any(), any());
+
+        // CloudFormation should receive a callback invocation
+        // TODO
+
+        // verify output response
+        assertThat(
+            out.toString(),
+            is(equalTo( "{\"resourceModel\":{},\"message\":\"Model validation failed (null)\",\"status\":\"Failed\"}"))
+        );
+    }
+
+    @Test
+    public void testInvokeHandler_Create_SchemaValidationFailure() throws IOException {
+        testInvokeHandler_SchemaValidationFailure("create.request.json", Action.Create);
+    }
+
+    @Test
+    public void testInvokeHandler_Read_SchemaValidationFailure() throws IOException {
+        // TODO: Read handlers must return synchronously so this is probably a fault
+        //testReInvokeHandler_SchemaValidationFailure("read.with-request-context.request.json", Action.Read);
+    }
+
+    @Test
+    public void testInvokeHandler_Update_SchemaValidationFailure() throws IOException {
+        testInvokeHandler_SchemaValidationFailure("update.request.json", Action.Update);
+    }
+
+    @Test
+    public void testInvokeHandler_Delete_SchemaValidationFailure() throws IOException {
+        testInvokeHandler_SchemaValidationFailure("delete.request.json", Action.Delete);
+    }
+
+    @Test
+    public void testInvokeHandler_List_SchemaValidationFailure() throws IOException {
+        // TODO: List handlers must return synchronously so this is probably a fault
+        //testInvokeHandler_SchemaValidationFailure("list.with-request-context.request.json", Action.List);
+    }
+
+    @Test
+    public void testInvokeHandler_WithMalformedRequest() throws IOException {
+        final CallbackAdapter callbackAdapter = getCallbackAdapter();
+        final MetricsPublisher metricsPublisher = getMetricsPublisher();
+        final CloudWatchScheduler scheduler = getScheduler();
+        final SchemaValidator validator = getValidator();
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
+
+        // an InProgress response is always re-scheduled.
+        // If no explicit time is supplied, a 1-minute interval is used
+        final ProgressEvent<TestModel> pe = new ProgressEvent<>();
+        pe.setStatus(ProgressStatus.Complete);
+        pe.setResourceModel(new TestModel());
+        wrapper.setInvokeHandlerResponse(pe);
+
+        // our ObjectMapper implementation will ignore extraneous fields rather than fail them
+        // this slightly loosens the coupling between caller (CloudFormation) and handlers.
+        final InputStream in = loadRequestStream("malformed.request.json");
+        final OutputStream out = new ByteArrayOutputStream();
+        final Context context = getLambdaContext();
+
+        wrapper.handleRequest(in, out, context);
+
+        // verify output response
+        assertThat(
+            out.toString(),
+            is(equalTo("{\"resourceModel\":{},\"status\":\"Complete\"}"))
+        );
     }
 }
 

@@ -1,4 +1,4 @@
-package com.aws.rpdk;
+package com.aws.cfn.proxy;
 
 import com.aws.cfn.Action;
 import lombok.Data;
@@ -15,6 +15,7 @@ public class HandlerRequest<T> {
     private String awsAccountId;
     private String bearerToken;
     private String nextToken;
+    private String region;
     private String resourceType;
     private String resourceTypeVersion;
     private RequestData<T> requestData;

@@ -4,13 +4,18 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
+import com.aws.cfn.proxy.CallbackAdapter;
+import com.aws.cfn.proxy.HandlerRequest;
+import com.aws.cfn.proxy.ProgressEvent;
+import com.aws.cfn.proxy.ProgressStatus;
 import com.aws.cfn.common.FailureMode;
 import com.aws.cfn.common.TerminalException;
 import com.aws.cfn.metrics.MetricsPublisher;
+import com.aws.cfn.proxy.RequestContext;
+import com.aws.cfn.resource.SchemaValidator;
+import com.aws.cfn.resource.exceptions.ValidationException;
 import com.aws.cfn.scheduler.CloudWatchScheduler;
-import com.aws.rpdk.HandlerRequest;
-import com.aws.rpdk.ProgressEvent;
-import com.aws.rpdk.RequestContext;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Guice;
 import com.google.inject.Inject;
@@ -28,8 +33,11 @@ import java.util.Date;
 
 public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestHandler<Request<T>, Response> {
 
+    private final CallbackAdapter callbackAdapter;
     private final MetricsPublisher metricsPublisher;
     private final CloudWatchScheduler scheduler;
+    private final SchemaValidator validator;
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private LambdaLogger logger;
 
     /**
@@ -37,18 +45,34 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
      */
     public LambdaWrapper() {
         final Injector injector = Guice.createInjector(new LambdaModule());
+        this.callbackAdapter = injector.getInstance(CallbackAdapter.class);
         this.metricsPublisher = injector.getInstance(MetricsPublisher.class);
         this.scheduler = injector.getInstance(CloudWatchScheduler.class);
+        this.validator = injector.getInstance(SchemaValidator.class);
+        configureObjectMapper(this.objectMapper);
     }
 
     /**
      * This .ctor provided for testing
      */
     @Inject
-    public LambdaWrapper(final MetricsPublisher metricsPublisher,
-                         final CloudWatchScheduler scheduler) {
+    public LambdaWrapper(final CallbackAdapter callbackAdapter,
+                         final MetricsPublisher metricsPublisher,
+                         final CloudWatchScheduler scheduler,
+                         final SchemaValidator validator) {
+        this.callbackAdapter = callbackAdapter;
         this.metricsPublisher = metricsPublisher;
         this.scheduler = scheduler;
+        this.validator = validator;
+        configureObjectMapper(this.objectMapper);
+    }
+
+    /**
+     * Configures the specified ObjectMapper with the (de)serialization behaviours we want gto enforce
+     * @param objectMapper
+     */
+    private void configureObjectMapper(final ObjectMapper objectMapper) {
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
     public Response handleRequest(final Request request,
@@ -74,16 +98,17 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
             // decode the input request
             final String input = IOUtils.toString(inputStream, "UTF-8");
             final JSONObject o = new JSONObject(input);
-            final ObjectMapper m = new ObjectMapper();
-            request = m.readValue(o.toString(), HandlerRequest.class);
-
-            //new Gson().fromJson(
-            //    input,
-            //    new TypeToken<HandlerRequest<T>>(){}.getType());
+            request = this.objectMapper.readValue(o.toString(), HandlerRequest.class);
 
             handlerResponse = processInvocation(request, context);
         } catch (final Exception e) {
             // Exceptions are wrapped as a consistent error response to the caller (i.e; CloudFormation)
+            this.log(e.getMessage());
+            this.metricsPublisher.publishExceptionMetric(
+                Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
+                request.getAction(),
+                e);
+
             handlerResponse = new ProgressEvent();
             handlerResponse.setMessage(e.getMessage());
             handlerResponse.setStatus(ProgressStatus.Failed);
@@ -107,9 +132,12 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
         final RequestContext requestContext = request.getRequestContext();
 
         // If this invocation was triggered by a 're-invoke' CloudWatch Event, clean it up
-        this.scheduler.cleanupCloudWatchEvents(
-            requestContext.getCloudWatchEventsRuleName(),
-            requestContext.getCloudWatchEventsTargetId());
+        if (requestContext.getCloudWatchEventsRuleName() != null &&
+            !requestContext.getCloudWatchEventsRuleName().isEmpty()) {
+            this.scheduler.cleanupCloudWatchEvents(
+                requestContext.getCloudWatchEventsRuleName(),
+                requestContext.getCloudWatchEventsTargetId());
+        }
 
         // MetricsPublisher is initialised with the resource type name for metrics namespace
         this.metricsPublisher.setResourceTypeName(request.getResourceType());
@@ -117,6 +145,17 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
         this.metricsPublisher.publishInvocationMetric(
             Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
             request.getAction());
+
+        // validate incoming model - any error is a terminal failure on the invocation
+        try {
+            validateModel(request.getRequestData().getResourceProperties());
+        } catch (final ValidationException e) {
+            // TODO: we'll need a better way to expose the stack of causing exceptions for user feedback
+            throw new TerminalException(
+                String.format("Model validation failed (%s)", e.getMessage()),
+                e,
+                FailureMode.RESOURCE_UNMODIFIED);
+        }
 
         // TODO: implement decryption of request and returned callback context
         // using KMS Key accessible by the Lambda execution Role
@@ -128,12 +167,12 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
 
         // TODO: Remove this temporary logging
         this.log(String.format("Invocation: %s", requestContext.getInvocation()));
-        //this.log(request.getResourceModel().toString());
         this.log(request.getRequestData().getResourceProperties().toString());
 
 
         // TODO: implement the handler invocation inside a time check which will abort and automatically
         // reschedule a callback if the handler does not respond within the 15 minute invocation window
+
 
         // TODO: ensure that any credential expiry time is also considered in the time check to
         // automatically fail a request if the handler will not be able to complete within that period,
@@ -171,8 +210,12 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
                 callbackContext);
         }
 
-        // TODO: Implement callback to CloudFormation or specified callback API
-        // to report the progress status when in non-terminal state (i.e; InProgress)
+        // report the progress status when in non-terminal state (i.e; InProgress) back to configured endpoint
+        this.callbackAdapter.reportProgress(request.getBearerToken(),
+            handlerResponse.getErrorCode(),
+            handlerResponse.getStatus(),
+            handlerResponse.getResourceModel(),
+            handlerResponse.getMessage());
 
         // The wrapper will log any context to the configured CloudWatch log group
         if (handlerResponse.getCallbackContext() != null)
@@ -183,8 +226,6 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
 
     private Response createProgressResponse(final ProgressEvent progressEvent) {
         this.log(String.format("Got progress %s (%s)\n", progressEvent.getStatus(), progressEvent.getMessage()));
-
-
 
         final Response response = new Response();
         response.setMessage(progressEvent.getMessage());
@@ -204,6 +245,24 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
         outputStream.close();
     }
 
+    private void validateModel(final T resourceModel) throws ValidationException {
+        final InputStream resourceSchema = provideResourceSchema();
+        if (resourceSchema == null) {
+            throw new ValidationException(String.format("Unable to validate incoming model for %s as no schema was provided.",
+                resourceModel.getClass()),
+                null,
+                null);
+        }
+
+        final JSONObject modelObject = new JSONObject(resourceModel);
+        this.validator.validateModel(modelObject, resourceSchema);
+    }
+
+    /**
+     * Handler implementation should implement this method to provide the schema for validation
+     * @return  An InputStream of the resource schema for the provider
+     */
+    public abstract InputStream provideResourceSchema();
 
     public abstract ProgressEvent<T> invokeHandler(final HandlerRequest<T> request,
                                                    final Action action,

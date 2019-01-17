@@ -3,13 +3,22 @@ package com.aws.cfn.metrics;
 import com.aws.cfn.Action;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 public interface MetricsPublisher {
 
     String getResourceTypeName();
     void setResourceTypeName(String resourceTypeName);
 
-    void publishInvocationMetric(Date timestamp, Action action);
+    void publishExceptionMetric(final Date timestamp,
+                                final Action action,
+                                final Exception e);
 
-    void publishDurationMetric(Date timestamp, Action action, long milliseconds);
+    void publishInvocationMetric(final Date timestamp,
+                                 final Action action);
+
+    void publishDurationMetric(final Date timestamp,
+                               final Action action,
+                               long milliseconds);
 }

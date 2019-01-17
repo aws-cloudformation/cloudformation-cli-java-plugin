@@ -1,6 +1,5 @@
-package com.aws.rpdk;
+package com.aws.cfn.proxy;
 
-import com.aws.cfn.ProgressStatus;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 

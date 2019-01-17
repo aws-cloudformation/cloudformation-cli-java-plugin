@@ -13,7 +13,7 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class CronHelperTests {
+public class CronHelperTest {
 
     @Test
     public void testGenerateOneTimeCronExpression_Simple() {

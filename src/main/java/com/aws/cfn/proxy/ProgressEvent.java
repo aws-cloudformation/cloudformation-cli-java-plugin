@@ -1,9 +1,10 @@
-package com.aws.rpdk;
+package com.aws.cfn.proxy;
 
-import com.aws.cfn.ProgressStatus;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.json.JSONObject;
+
+import java.util.Optional;
 
 @Data
 @NoArgsConstructor
@@ -13,6 +14,11 @@ public class ProgressEvent<T> {
      * is still computing and requires more time to complete
      */
     private ProgressStatus status;
+
+    /**
+     *  If ProgressStatus is Failed, an error code should be provided
+     */
+    private Optional<HandlerErrorCode> errorCode;
 
     /**
      * The handler can (and should) specify a contextual information message which

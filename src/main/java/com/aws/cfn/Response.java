@@ -1,5 +1,6 @@
 package com.aws.cfn;
 
+import com.aws.cfn.proxy.ProgressStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import org.json.JSONObject;
