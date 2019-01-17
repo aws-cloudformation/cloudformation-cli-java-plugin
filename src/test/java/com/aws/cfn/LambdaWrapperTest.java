@@ -24,7 +24,6 @@ import java.io.OutputStream;
 import java.util.Date;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -44,14 +43,13 @@ public class LambdaWrapperTest {
 
     private InputStream loadRequestStream(final String fileName) {
         final File file = new File(String.format(TEST_DATA_BASE_PATH, fileName));
-        InputStream in = null;
+
         try {
-            in = new FileInputStream(file);
+            return new FileInputStream(file);
         } catch (final FileNotFoundException e) {
             e.printStackTrace();
+            return null;
         }
-
-        return in;
     }
 
     private CallbackAdapter getCallbackAdapter() {
