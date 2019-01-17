@@ -2,7 +2,7 @@ package com.aws.cfn;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
-import com.aws.cfn.common.TerminalException;
+import com.aws.cfn.exceptions.TerminalException;
 import com.aws.cfn.metrics.MetricsPublisher;
 import com.aws.cfn.proxy.CallbackAdapter;
 import com.aws.cfn.proxy.ProgressEvent;

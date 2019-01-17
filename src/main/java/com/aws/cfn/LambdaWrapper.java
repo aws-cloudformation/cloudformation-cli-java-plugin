@@ -8,8 +8,7 @@ import com.aws.cfn.proxy.CallbackAdapter;
 import com.aws.cfn.proxy.HandlerRequest;
 import com.aws.cfn.proxy.ProgressEvent;
 import com.aws.cfn.proxy.ProgressStatus;
-import com.aws.cfn.common.FailureMode;
-import com.aws.cfn.common.TerminalException;
+import com.aws.cfn.exceptions.TerminalException;
 import com.aws.cfn.metrics.MetricsPublisher;
 import com.aws.cfn.proxy.RequestContext;
 import com.aws.cfn.resource.SchemaValidator;
@@ -92,7 +91,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
 
         try {
             if (inputStream == null) {
-                throw new TerminalException("No request object received", FailureMode.RESOURCE_UNMODIFIED);
+                throw new TerminalException("No request object received");
             }
 
             // decode the input request
@@ -126,7 +125,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
                                            final Context context) throws IOException, TerminalException {
 
         if (request == null || request.getRequestContext() == null) {
-            throw new TerminalException("Invalid request object received", FailureMode.RESOURCE_UNMODIFIED);
+            throw new TerminalException("Invalid request object received");
         }
 
         final RequestContext requestContext = request.getRequestContext();
@@ -153,8 +152,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
             // TODO: we'll need a better way to expose the stack of causing exceptions for user feedback
             throw new TerminalException(
                 String.format("Model validation failed (%s)", e.getMessage()),
-                e,
-                FailureMode.RESOURCE_UNMODIFIED);
+                e);
         }
 
         // TODO: implement decryption of request and returned callback context
@@ -164,11 +162,6 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
         // - SDK Client objects injected or via factory
         // - Required caller credentials
         // - Any callback context passed through from prior invocation
-
-        // TODO: Remove this temporary logging
-        this.log(String.format("Invocation: %s", requestContext.getInvocation()));
-        this.log(request.getRequestData().getResourceProperties().toString());
-
 
         // TODO: implement the handler invocation inside a time check which will abort and automatically
         // reschedule a callback if the handler does not respond within the 15 minute invocation window
@@ -194,7 +187,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
 
         // ensure we got a valid response
         if (handlerResponse == null) {
-            throw new TerminalException("Handler failed to provide a response.", FailureMode.RESOURCE_UNMODIFIED);
+            throw new TerminalException("Handler failed to provide a response.");
         }
 
         // When the handler responses InProgress with a callback delay, we trigger a callback to re-invoke
