@@ -158,14 +158,8 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
         // TODO: implement decryption of request and returned callback context
         // using KMS Key accessible by the Lambda execution Role
 
-        // TODO: Ensure the handler is initialised with;
-        // - SDK Client objects injected or via factory
-        // - Required caller credentials
-        // - Any callback context passed through from prior invocation
-
         // TODO: implement the handler invocation inside a time check which will abort and automatically
         // reschedule a callback if the handler does not respond within the 15 minute invocation window
-
 
         // TODO: ensure that any credential expiry time is also considered in the time check to
         // automatically fail a request if the handler will not be able to complete within that period,

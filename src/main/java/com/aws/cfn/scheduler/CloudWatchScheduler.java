@@ -1,7 +1,6 @@
 package com.aws.cfn.scheduler;
 
 import com.amazonaws.services.cloudwatchevents.AmazonCloudWatchEvents;
-import com.amazonaws.services.cloudwatchevents.AmazonCloudWatchEventsClientBuilder;
 import com.amazonaws.services.cloudwatchevents.model.DeleteRuleRequest;
 import com.amazonaws.services.cloudwatchevents.model.PutRuleRequest;
 import com.amazonaws.services.cloudwatchevents.model.PutTargetsRequest;
@@ -10,20 +9,41 @@ import com.amazonaws.services.cloudwatchevents.model.RuleState;
 import com.amazonaws.services.cloudwatchevents.model.Target;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.util.StringUtils;
+import com.aws.cfn.LambdaModule;
 import com.aws.cfn.proxy.RequestContext;
+import com.google.inject.Guice;
+import com.google.inject.Inject;
+import com.google.inject.Injector;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.json.JSONObject;
 
 import java.util.UUID;
 
-import static com.aws.cfn.cron.CronHelper.generateOneTimeCronExpression;
-
 @Data
-@NoArgsConstructor
 public class CloudWatchScheduler {
 
     private LambdaLogger logger;
+    private final CronHelper cronHelper;
+    private final AmazonCloudWatchEvents client;
+
+    /**
+     * This .ctor provided for Lambda runtime which will not automatically invoke Guice injector
+     */
+    public CloudWatchScheduler() {
+        final Injector injector = Guice.createInjector(new LambdaModule());
+        this.client = injector.getInstance(AmazonCloudWatchEvents.class);
+        this.cronHelper = new CronHelper();
+    }
+
+    /**
+     * This .ctor provided for testing
+     */
+    @Inject
+    public CloudWatchScheduler(final AmazonCloudWatchEvents client,
+                               final CronHelper cronHelper) {
+        this.client = client;
+        this.cronHelper = cronHelper;
+    }
 
     /**
      * Schedule a re-invocation of the executing handler no less than 1 minute from now
@@ -37,9 +57,7 @@ public class CloudWatchScheduler {
                                        final RequestContext callbackContext) {
 
         // generate a cron expression; minutes must be a positive integer
-        final String cronRule = generateOneTimeCronExpression(Math.max(minutesFromNow, 1));
-
-        final AmazonCloudWatchEvents cloudWatch = AmazonCloudWatchEventsClientBuilder.defaultClient();
+        final String cronRule = this.cronHelper.generateOneTimeCronExpression(Math.max(minutesFromNow, 1));
 
         final UUID rescheduleId = UUID.randomUUID();
         final String ruleName = String.format("reinvoke-handler-%s", rescheduleId);
@@ -50,16 +68,13 @@ public class CloudWatchScheduler {
         callbackContext.setCloudWatchEventsTargetId(targetId);
 
         final String jsonContext = new JSONObject(callbackContext).toString();
-        //final String jsonContext = new Gson().toJson(callbackContext);
-
         this.log(String.format("Scheduling re-invoke at %s (%s)\n", cronRule, rescheduleId));
-        this.log(String.format("Context: (%s)\n", jsonContext));
 
         final PutRuleRequest putRuleRequest = new PutRuleRequest()
             .withName(ruleName)
             .withScheduleExpression(cronRule)
             .withState(RuleState.ENABLED);
-        cloudWatch.putRule(putRuleRequest);
+        this.client.putRule(putRuleRequest);
 
         final Target target = new Target()
             .withArn(functionArn)
@@ -68,7 +83,7 @@ public class CloudWatchScheduler {
         final PutTargetsRequest putTargetsRequest = new PutTargetsRequest()
             .withTargets(target)
             .withRule(putRuleRequest.getName());
-        cloudWatch.putTargets(putTargetsRequest);
+        this.client.putTargets(putTargetsRequest);
     }
 
     /**
@@ -79,13 +94,11 @@ public class CloudWatchScheduler {
     public void cleanupCloudWatchEvents(final String cloudWatchEventsRuleName,
                                         final String cloudWatchEventsTargetId) {
 
-        final AmazonCloudWatchEvents cloudWatch = AmazonCloudWatchEventsClientBuilder.defaultClient();
-
         try {
             if (!StringUtils.isNullOrEmpty(cloudWatchEventsRuleName)) {
                 final DeleteRuleRequest deleteRuleRequest = new DeleteRuleRequest()
                     .withName(cloudWatchEventsRuleName);
-                cloudWatch.deleteRule(deleteRuleRequest);
+                this.client.deleteRule(deleteRuleRequest);
             }
         } catch (final Exception e) {
             this.log(String.format("Error cleaning CloudWatchEvents (ruleName=%s): %s",
@@ -97,7 +110,7 @@ public class CloudWatchScheduler {
             if (!StringUtils.isNullOrEmpty(cloudWatchEventsTargetId)) {
                 final RemoveTargetsRequest removeTargetsRequest = new RemoveTargetsRequest()
                     .withIds(cloudWatchEventsTargetId);
-                cloudWatch.removeTargets(removeTargetsRequest);
+                this.client.removeTargets(removeTargetsRequest);
             }
         } catch (final Exception e) {
             this.log(String.format("Error cleaning CloudWatchEvents Target (targetId=%s): %s",
