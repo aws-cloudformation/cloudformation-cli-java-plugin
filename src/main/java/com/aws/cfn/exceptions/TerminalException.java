@@ -4,9 +4,6 @@ public class TerminalException extends RuntimeException {
 
     private static final long serialVersionUID = -1646136434112354328L;
 
-    private String service;
-    private String resource;
-
     public TerminalException(final Throwable cause) {
         super(null, cause);
     }

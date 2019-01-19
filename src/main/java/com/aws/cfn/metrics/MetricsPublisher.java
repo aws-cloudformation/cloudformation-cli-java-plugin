@@ -3,8 +3,6 @@ package com.aws.cfn.metrics;
 import com.aws.cfn.Action;
 
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
 public interface MetricsPublisher {
 
