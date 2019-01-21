@@ -29,6 +29,9 @@ import java.nio.charset.Charset;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Date;
+import java.util.Map;
+
+import static com.sun.corba.se.impl.util.Utility.printStackTrace;
 
 public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestHandler<Request<T>, Response> {
 
@@ -46,7 +49,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
         final Injector injector = Guice.createInjector(new LambdaModule());
         this.callbackAdapter = injector.getInstance(CallbackAdapter.class);
         this.metricsPublisher = injector.getInstance(MetricsPublisher.class);
-        this.scheduler = injector.getInstance(CloudWatchScheduler.class);
+        this.scheduler = new CloudWatchScheduler();
         this.validator = injector.getInstance(SchemaValidator.class);
         configureObjectMapper(this.objectMapper);
     }
@@ -102,7 +105,8 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
             handlerResponse = processInvocation(request, context);
         } catch (final Exception e) {
             // Exceptions are wrapped as a consistent error response to the caller (i.e; CloudFormation)
-            this.log(e.getMessage());
+            e.printStackTrace(); // for root causing - logs to LambdaLogger by default
+
             this.metricsPublisher.publishExceptionMetric(
                 Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
                 request.getAction(),
@@ -171,6 +175,10 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
             request,
             request.getAction(),
             requestContext);
+        if (handlerResponse != null)
+            this.log(String.format("Handler returned %s", handlerResponse.getStatus()));
+        else
+            this.log("Handler returned null");
 
         final Date endTime = Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant());
 
@@ -212,8 +220,6 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
     }
 
     private Response createProgressResponse(final ProgressEvent progressEvent) {
-        this.log(String.format("Got progress %s (%s)\n", progressEvent.getStatus(), progressEvent.getMessage()));
-
         final Response response = new Response();
         response.setMessage(progressEvent.getMessage());
         response.setStatus(progressEvent.getStatus());
@@ -241,7 +247,9 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
                 null);
         }
 
-        final JSONObject modelObject = new JSONObject(resourceModel);
+        final Map propertiesMap = this.objectMapper.convertValue(resourceModel, Map.class);
+        final JSONObject modelObject = new JSONObject(propertiesMap);
+
         this.validator.validateModel(modelObject, resourceSchema);
     }
 
@@ -261,7 +269,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
      */
     private void log(final String message) {
         if (this.logger != null) {
-            this.logger.log(message);
+            this.logger.log(String.format("%s\n", message));
         }
     }
 }

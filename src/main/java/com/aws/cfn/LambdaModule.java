@@ -12,7 +12,6 @@ import com.aws.cfn.proxy.CallbackAdapter;
 import com.aws.cfn.proxy.CloudFormationCallbackAdapter;
 import com.aws.cfn.resource.SchemaValidator;
 import com.aws.cfn.resource.Validator;
-import com.aws.cfn.scheduler.CloudWatchScheduler;
 import com.google.inject.AbstractModule;
 
 public class LambdaModule extends AbstractModule {
@@ -24,7 +23,6 @@ public class LambdaModule extends AbstractModule {
         bind(AmazonCloudWatchEvents.class).to(AmazonCloudWatchEventsClient.class);
         bind(MetricsPublisher.class).to(MetricsPublisherImpl.class);
         bind(CallbackAdapter.class).to(CloudFormationCallbackAdapter.class);
-        bind(CloudWatchScheduler.class).to(CloudWatchScheduler.class);
         bind(SchemaValidator.class).to(Validator.class);
     }
 }
