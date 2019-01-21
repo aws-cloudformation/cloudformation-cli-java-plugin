@@ -119,27 +119,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-install-plugin</artifactId>
-                <version>2.5.2</version>
-                <executions>
-                    <execution>
-                        <id>install-library</id>
-                        <phase>clean</phase>
-                        <goals>
-                            <goal>install-file</goal>
-                        </goals>
-                        <configuration>
-                            <groupId>com.amazonaws</groupId>
-                            <artifactId>aws-java-sdk-cloudformation</artifactId>
-                            <version>1.11.485-PATCH</version>
-                            <packaging>jar</packaging>
-                            <file>patch/AWSCloudFormationJavaClientInternal-1.11.x.jar</file>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
 </project>
