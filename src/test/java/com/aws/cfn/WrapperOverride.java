@@ -5,12 +5,16 @@ import com.aws.cfn.proxy.CallbackAdapter;
 import com.aws.cfn.proxy.HandlerRequest;
 import com.aws.cfn.proxy.ProgressEvent;
 import com.aws.cfn.proxy.RequestContext;
+import com.aws.cfn.proxy.ResourceHandlerRequest;
 import com.aws.cfn.resource.SchemaValidator;
+import com.aws.cfn.resource.Serializer;
 import com.aws.cfn.scheduler.CloudWatchScheduler;
 import com.google.inject.Inject;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 
@@ -19,6 +23,7 @@ import java.nio.charset.Charset;
  * @param <TestModel>
  */
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class WrapperOverride<TestModel> extends LambdaWrapper<TestModel> {
 
     /**
@@ -28,8 +33,9 @@ public class WrapperOverride<TestModel> extends LambdaWrapper<TestModel> {
     public WrapperOverride(final CallbackAdapter callbackAdapter,
                            final MetricsPublisher metricsPublisher,
                            final CloudWatchScheduler scheduler,
-                           final SchemaValidator validator) {
-        super(callbackAdapter, metricsPublisher, scheduler, validator);
+                           final SchemaValidator validator,
+                           final Serializer serializer) {
+        super(callbackAdapter, metricsPublisher, scheduler, validator, serializer);
     }
 
     @Override
@@ -39,12 +45,18 @@ public class WrapperOverride<TestModel> extends LambdaWrapper<TestModel> {
     }
 
     @Override
-    public ProgressEvent<TestModel> invokeHandler(final HandlerRequest<TestModel> request,
-                                                  final Action action,
-                                                  final RequestContext context) {
+    public ProgressEvent<TestModel> invokeHandler(final ResourceHandlerRequest<TestModel> request,
+                                       final Action action,
+                                       final RequestContext context) {
         return invokeHandlerResponse;
     }
 
-
     public ProgressEvent<TestModel> invokeHandlerResponse;
+
+    @Override
+    protected ResourceHandlerRequest<TestModel> transform(final HandlerRequest request) throws IOException {
+        return transformResponse;
+    }
+
+    public ResourceHandlerRequest<TestModel> transformResponse;
 }
