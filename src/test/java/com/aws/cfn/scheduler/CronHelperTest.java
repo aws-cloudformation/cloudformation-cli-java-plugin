@@ -1,4 +1,4 @@
-package com.aws.cfn.cron;
+package com.aws.cfn.scheduler;
 
 import org.junit.Test;
 
@@ -13,7 +13,7 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class CronHelperTests {
+public class CronHelperTest {
 
     @Test
     public void testGenerateOneTimeCronExpression_Simple() {
@@ -23,8 +23,10 @@ public class CronHelperTests {
         final Clock mockClockInASock = mock(Clock.class);
         when(mockClockInASock.instant()).thenReturn(dateTime.toInstant(ZoneOffset.UTC));
 
+        final CronHelper cronHelper = new CronHelper(mockClockInASock);
+
         assertThat(
-            CronHelper.generateOneTimeCronExpression(5, mockClockInASock),
+            cronHelper.generateOneTimeCronExpression(5),
             is(equalTo("cron(45 13 30 10 ? 2018)"))
         );
     }
@@ -37,8 +39,10 @@ public class CronHelperTests {
         final Clock mockClockInASock = mock(Clock.class);
         when(mockClockInASock.instant()).thenReturn(dateTime.toInstant(ZoneOffset.UTC));
 
+        final CronHelper cronHelper = new CronHelper(mockClockInASock);
+
         assertThat(
-            CronHelper.generateOneTimeCronExpression(3, mockClockInASock),
+            cronHelper.generateOneTimeCronExpression(3),
             is(equalTo("cron(2 0 31 10 ? 2018)"))
         );
     }
@@ -51,8 +55,10 @@ public class CronHelperTests {
         final Clock mockClockInASock = mock(Clock.class);
         when(mockClockInASock.instant()).thenReturn(dateTime.toInstant(ZoneOffset.UTC));
 
+        final CronHelper cronHelper = new CronHelper(mockClockInASock);
+
         assertThat(
-            CronHelper.generateOneTimeCronExpression(5, mockClockInASock),
+            cronHelper.generateOneTimeCronExpression(5),
             is(equalTo("cron(1 0 1 1 ? 2019)"))
         );
     }

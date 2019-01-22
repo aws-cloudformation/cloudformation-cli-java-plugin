@@ -1,4 +1,4 @@
-package com.aws.cfn;
+package com.aws.cfn.proxy;
 
 public enum ProgressStatus {
     InProgress,
