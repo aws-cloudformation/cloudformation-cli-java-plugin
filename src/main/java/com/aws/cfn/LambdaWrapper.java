@@ -206,14 +206,14 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
                 context.getInvokedFunctionArn(),
                 handlerResponse.getCallbackDelayMinutes(),
                 callbackContext);
-        }
 
-        // report the progress status when in non-terminal state (i.e; InProgress) back to configured endpoint
-        this.callbackAdapter.reportProgress(request.getBearerToken(),
-            handlerResponse.getErrorCode(),
-            handlerResponse.getStatus(),
-            handlerResponse.getResourceModel(),
-            handlerResponse.getMessage());
+            // report the progress status when in non-terminal state (i.e; InProgress) back to configured endpoint
+            this.callbackAdapter.reportProgress(request.getBearerToken(),
+                handlerResponse.getErrorCode(),
+                handlerResponse.getStatus(),
+                handlerResponse.getResourceModel(),
+                handlerResponse.getMessage());
+        }
 
         // The wrapper will log any context to the configured CloudWatch log group
         if (handlerResponse.getCallbackContext() != null)
