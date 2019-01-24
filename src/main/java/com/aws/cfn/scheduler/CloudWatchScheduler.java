@@ -9,7 +9,7 @@ import com.amazonaws.services.cloudwatchevents.model.RuleState;
 import com.amazonaws.services.cloudwatchevents.model.Target;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.util.StringUtils;
-import com.aws.cfn.LambdaModule;
+import com.aws.cfn.injection.LambdaModule;
 import com.aws.cfn.proxy.RequestContext;
 import com.google.inject.Guice;
 import com.google.inject.Inject;

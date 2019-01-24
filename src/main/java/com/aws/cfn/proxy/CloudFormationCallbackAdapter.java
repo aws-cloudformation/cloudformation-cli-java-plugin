@@ -3,13 +3,11 @@ package com.aws.cfn.proxy;
 import com.amazonaws.services.cloudformation.AmazonCloudFormation;
 import com.amazonaws.services.cloudformation.model.OperationStatus;
 import com.amazonaws.services.cloudformation.model.RecordHandlerProgressRequest;
-import com.aws.cfn.LambdaModule;
+import com.aws.cfn.injection.LambdaModule;
 import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import org.json.JSONObject;
-
-import java.util.Optional;
 
 public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
 
@@ -33,7 +31,7 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
 
     @Override
     public void reportProgress(final String bearerToken,
-                               final Optional<HandlerErrorCode> errorCode,
+                               final HandlerErrorCode errorCode,
                                final ProgressStatus progressStatus,
                                final T resourceModel,
                                final String statusMessage) {
@@ -46,11 +44,12 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
             request.setResourceModel(new JSONObject(resourceModel).toString());
         }
 
-        errorCode.ifPresent(handlerErrorCode -> request.setErrorCode(translate(handlerErrorCode)));
+        if (errorCode != null) {
+            request.setErrorCode(translate(errorCode));
+        }
 
         // TODO: be far more fault tolerant, do retries, emit logs and metrics, etc.
         this.cloudFormationClient.recordHandlerProgress(request);
-
     }
 
     private com.amazonaws.services.cloudformation.model.HandlerErrorCode translate(final HandlerErrorCode errorCode) {

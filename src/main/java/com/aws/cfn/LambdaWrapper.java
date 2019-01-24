@@ -5,6 +5,7 @@ import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.aws.cfn.exceptions.TerminalException;
+import com.aws.cfn.injection.LambdaModule;
 import com.aws.cfn.metrics.MetricsPublisher;
 import com.aws.cfn.proxy.CallbackAdapter;
 import com.aws.cfn.proxy.HandlerRequest;

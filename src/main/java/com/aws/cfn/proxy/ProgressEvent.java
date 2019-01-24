@@ -4,8 +4,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.json.JSONObject;
 
-import java.util.Optional;
-
 @Data
 @NoArgsConstructor
 public class ProgressEvent<T> {
@@ -18,7 +16,7 @@ public class ProgressEvent<T> {
     /**
      *  If ProgressStatus is Failed, an error code should be provided
      */
-    private Optional<HandlerErrorCode> errorCode;
+    private HandlerErrorCode errorCode;
 
     /**
      * The handler can (and should) specify a contextual information message which

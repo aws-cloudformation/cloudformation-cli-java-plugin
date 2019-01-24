@@ -6,7 +6,7 @@ import com.amazonaws.services.cloudwatch.model.MetricDatum;
 import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
 import com.aws.cfn.Action;
-import com.aws.cfn.LambdaModule;
+import com.aws.cfn.injection.LambdaModule;
 import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
