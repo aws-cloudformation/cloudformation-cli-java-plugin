@@ -38,7 +38,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
     private final CloudWatchScheduler scheduler;
     private final SchemaValidator validator;
     protected final Serializer serializer;
-    private LambdaLogger logger;
+    protected LambdaLogger logger;
 
     /**
      * This .ctor provided for Lambda runtime which will not automatically invoke Guice injector
