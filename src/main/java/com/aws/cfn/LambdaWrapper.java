@@ -2,7 +2,6 @@ package com.aws.cfn;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
-import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.aws.cfn.exceptions.TerminalException;
 import com.aws.cfn.injection.LambdaModule;
@@ -32,7 +31,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Date;
 
-public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestHandler<Request<T>, Response> {
+public abstract class LambdaWrapper<T> implements RequestStreamHandler {
 
     private final CallbackAdapter callbackAdapter;
     private final MetricsPublisher metricsPublisher;
@@ -67,11 +66,6 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler, RequestH
         this.scheduler = scheduler;
         this.serializer = serializer;
         this.validator = validator;
-    }
-
-    public Response handleRequest(final Request request,
-                                  final Context context) {
-        return null;
     }
 
     public void handleRequest(final InputStream inputStream,
