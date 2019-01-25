@@ -4,7 +4,6 @@ import com.aws.cfn.metrics.MetricsPublisher;
 import com.aws.cfn.proxy.CallbackAdapter;
 import com.aws.cfn.proxy.HandlerRequest;
 import com.aws.cfn.proxy.ProgressEvent;
-import com.aws.cfn.proxy.RequestContext;
 import com.aws.cfn.proxy.ResourceHandlerRequest;
 import com.aws.cfn.resource.SchemaValidator;
 import com.aws.cfn.resource.Serializer;
@@ -12,6 +11,7 @@ import com.aws.cfn.scheduler.CloudWatchScheduler;
 import com.google.inject.Inject;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -47,7 +47,7 @@ public class WrapperOverride<TestModel> extends LambdaWrapper<TestModel> {
     @Override
     public ProgressEvent<TestModel> invokeHandler(final ResourceHandlerRequest<TestModel> request,
                                        final Action action,
-                                       final RequestContext context) {
+                                       final JSONObject callbackContext) {
         return invokeHandlerResponse;
     }
 

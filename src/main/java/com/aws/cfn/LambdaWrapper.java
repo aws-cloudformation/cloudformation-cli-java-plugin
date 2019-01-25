@@ -172,7 +172,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
         final ProgressEvent handlerResponse = invokeHandler(
             resourceHandlerRequest,
             request.getAction(),
-            requestContext);
+            requestContext.getCallbackContext());
         if (handlerResponse != null)
             this.log(String.format("Handler returned %s", handlerResponse.getStatus()));
         else
@@ -269,7 +269,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
      */
     public abstract ProgressEvent<T> invokeHandler(final ResourceHandlerRequest<T> request,
                                                    final Action action,
-                                                   final RequestContext context) throws IOException;
+                                                   final JSONObject callbackContext) throws IOException;
 
     /**
      * null-safe logger redirect
