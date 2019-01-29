@@ -3,7 +3,6 @@ package com.aws.cfn.proxy;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.json.JSONObject;
 
 /**
  * This interface describes the request object for the provisioning request passed to the implementor.
@@ -22,9 +21,4 @@ public class ResourceHandlerRequest<T> {
     private Credentials credentials;
     private T desiredResourceState;
     private T previousResourceState;
-
-    /**
-     * Custom context object to enable handlers to process re-invocation
-     */
-    private JSONObject callbackContext;
 }
