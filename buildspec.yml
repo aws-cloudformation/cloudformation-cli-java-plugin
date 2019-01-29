@@ -31,4 +31,4 @@ phases:
       - mvn package --batch-mode
 artifacts:
   files:
-    - target/ResourceProviderExample-1.0.jar
+    - target/ResourceProviderRuntime-1.0.jar
