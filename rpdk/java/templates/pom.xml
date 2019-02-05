@@ -22,7 +22,7 @@
         <!-- https://github.com/awslabs/aws-cloudformation-rpdk-java-plugin/ -->
         <dependency>
             <groupId>com.aws.cfn</groupId>
-            <artifactId>ResourceProviderExample</artifactId>
+            <artifactId>ResourceProviderRuntime</artifactId>
             <version>1.0</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.projectlombok/lombok -->
