@@ -1,7 +1,6 @@
 package com.aws.cfn.proxy;
 
 import com.amazonaws.services.cloudformation.AmazonCloudFormation;
-import com.amazonaws.services.cloudformation.model.OperationStatus;
 import com.amazonaws.services.cloudformation.model.RecordHandlerProgressRequest;
 import com.aws.cfn.injection.LambdaModule;
 import com.google.inject.Guice;
@@ -32,12 +31,12 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
     @Override
     public void reportProgress(final String bearerToken,
                                final HandlerErrorCode errorCode,
-                               final ProgressStatus progressStatus,
+                               final OperationStatus operationStatus,
                                final T resourceModel,
                                final String statusMessage) {
         final RecordHandlerProgressRequest request = new RecordHandlerProgressRequest()
             .withBearerToken(bearerToken)
-            .withOperationStatus(translate(progressStatus))
+            .withOperationStatus(translate(operationStatus))
             .withStatusMessage(statusMessage);
 
         if (resourceModel != null) {
@@ -86,17 +85,17 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
         }
     }
 
-    private com.amazonaws.services.cloudformation.model.OperationStatus translate(final ProgressStatus progressStatus) {
-        switch (progressStatus) {
-            case Complete:
-                return OperationStatus.COMPLETE;
-            case Failed:
-                return OperationStatus.FAILED;
-            case InProgress:
-                return OperationStatus.IN_PROGRESS;
+    private com.amazonaws.services.cloudformation.model.OperationStatus translate(final OperationStatus operationStatus) {
+        switch (operationStatus) {
+            case SUCCESS:
+                return com.amazonaws.services.cloudformation.model.OperationStatus.SUCCESS;
+            case FAILED:
+                return com.amazonaws.services.cloudformation.model.OperationStatus.FAILED;
+            case IN_PROGRESS:
+                return com.amazonaws.services.cloudformation.model.OperationStatus.IN_PROGRESS;
             default:
                 // default will be to fail on unknown status
-                return OperationStatus.FAILED;
+                return com.amazonaws.services.cloudformation.model.OperationStatus.FAILED;
         }
     }
 }

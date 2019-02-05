@@ -3,15 +3,16 @@ package com.aws.cfn;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
+import com.amazonaws.util.StringUtils;
 import com.aws.cfn.exceptions.TerminalException;
 import com.aws.cfn.injection.LambdaModule;
 import com.aws.cfn.metrics.MetricsPublisher;
 import com.aws.cfn.proxy.CallbackAdapter;
 import com.aws.cfn.proxy.HandlerRequest;
 import com.aws.cfn.proxy.ProgressEvent;
-import com.aws.cfn.proxy.ProgressStatus;
 import com.aws.cfn.proxy.RequestContext;
 import com.aws.cfn.proxy.ResourceHandlerRequest;
+import com.aws.cfn.proxy.OperationStatus;
 import com.aws.cfn.resource.SchemaValidator;
 import com.aws.cfn.resource.Serializer;
 import com.aws.cfn.resource.exceptions.ValidationException;
@@ -30,6 +31,7 @@ import java.nio.charset.Charset;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Date;
+import java.util.Map;
 
 public abstract class LambdaWrapper<T> implements RequestStreamHandler {
 
@@ -85,7 +87,6 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
             // decode the input request
             final String input = IOUtils.toString(inputStream, "UTF-8");
             request = this.serializer.deserialize(input, HandlerRequest.class);
-
             handlerResponse = processInvocation(request, context);
         } catch (final Exception e) {
             // Exceptions are wrapped as a consistent error response to the caller (i.e; CloudFormation)
@@ -98,7 +99,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
 
             handlerResponse = new ProgressEvent();
             handlerResponse.setMessage(e.getMessage());
-            handlerResponse.setStatus(ProgressStatus.Failed);
+            handlerResponse.setStatus(OperationStatus.FAILED);
             if (request.getRequestData() != null) {
                 handlerResponse.setResourceModel(
                     request.getRequestData().getResourceProperties()
@@ -114,21 +115,26 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
     public ProgressEvent processInvocation(final HandlerRequest request,
                                            final Context context) throws IOException, TerminalException {
 
-        if (request == null || request.getRequestContext() == null) {
+        if (request == null) {
             throw new TerminalException("Invalid request object received");
         }
 
         // transform the request object to pass to caller
         final ResourceHandlerRequest resourceHandlerRequest = transform(request);
 
-        final RequestContext requestContext = request.getRequestContext();
+        RequestContext requestContext = null;
+        JSONObject callbackContext = null;
 
-        // If this invocation was triggered by a 're-invoke' CloudWatch Event, clean it up
-        if (requestContext.getCloudWatchEventsRuleName() != null &&
-            !requestContext.getCloudWatchEventsRuleName().isEmpty()) {
-            this.scheduler.cleanupCloudWatchEvents(
-                requestContext.getCloudWatchEventsRuleName(),
-                requestContext.getCloudWatchEventsTargetId());
+        if (request.getRequestContext() != null) {
+            requestContext = request.getRequestContext();
+            callbackContext = requestContext.getCallbackContext();
+            // If this invocation was triggered by a 're-invoke' CloudWatch Event, clean it up
+            final String cloudWatchEventsRuleName = requestContext.getCloudWatchEventsRuleName();
+            if (!StringUtils.isNullOrEmpty(cloudWatchEventsRuleName)) {
+                this.scheduler.cleanupCloudWatchEvents(
+                    cloudWatchEventsRuleName,
+                    requestContext.getCloudWatchEventsTargetId());
+            }
         }
 
         // MetricsPublisher is initialised with the resource type name for metrics namespace
@@ -172,7 +178,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
         final ProgressEvent handlerResponse = invokeHandler(
             resourceHandlerRequest,
             request.getAction(),
-            requestContext.getCallbackContext());
+            callbackContext);
         if (handlerResponse != null)
             this.log(String.format("Handler returned %s", handlerResponse.getStatus()));
         else
@@ -190,42 +196,43 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
             throw new TerminalException("Handler failed to provide a response.");
         }
 
-        // When the handler responses InProgress with a callback delay, we trigger a callback to re-invoke
+        // When the handler responses IN_PROGRESS with a callback delay, we trigger a callback to re-invoke
         // the handler for the Resource type to implement stabilization checks and long-poll creation checks
-        if (handlerResponse.getStatus() == ProgressStatus.InProgress) {
-            final RequestContext callbackContext = new RequestContext();
-            callbackContext.setInvocation(requestContext.getInvocation() + 1);
-            callbackContext.setCallbackContext(handlerResponse.getCallbackContext());
+        if (handlerResponse.getStatus() == OperationStatus.IN_PROGRESS) {
+            final RequestContext reinvocationContext = new RequestContext();
+
+            int counter = 1;
+            if (requestContext != null) {
+                counter += requestContext.getInvocation();
+            }
+            reinvocationContext.setInvocation(counter);
+
+            reinvocationContext.setCallbackContext(handlerResponse.getCallbackContext());
+            request.setRequestContext(reinvocationContext);
 
             this.scheduler.rescheduleAfterMinutes(
                 context.getInvokedFunctionArn(),
                 handlerResponse.getCallbackDelayMinutes(),
-                callbackContext);
-
-            // report the progress status when in non-terminal state (i.e; InProgress) back to configured endpoint
-            this.callbackAdapter.reportProgress(request.getBearerToken(),
+                request);
+        }
+        // report the progress status back to configured endpoint
+        this.callbackAdapter.reportProgress(request.getBearerToken(),
                 handlerResponse.getErrorCode(),
                 handlerResponse.getStatus(),
                 handlerResponse.getResourceModel(),
                 handlerResponse.getMessage());
-        }
-
-        // The wrapper will log any context to the configured CloudWatch log group
-        if (handlerResponse.getCallbackContext() != null)
-            this.log(handlerResponse.getCallbackContext().toString());
 
         return handlerResponse;
     }
 
-    private Response<T> createProgressResponse(final ProgressEvent<T> progressEvent) throws JsonProcessingException {
+    private Response<T> createProgressResponse(final ProgressEvent<T> progressEvent) {
         final Response<T> response = new Response<>();
         response.setMessage(progressEvent.getMessage());
-        response.setStatus(progressEvent.getStatus());
-
+        response.setOperationStatus(progressEvent.getStatus());
         if (progressEvent.getResourceModel() != null) {
-            response.setResourceModel(progressEvent.getResourceModel());
+            final Map<String, Object> resourceModel = serializer.serializeToMap(progressEvent.getResourceModel());
+            response.setResourceModel(resourceModel);
         }
-
         return response;
     }
 
@@ -246,7 +253,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
                 null);
         }
 
-        this.validator.validateModel(modelObject, resourceSchema);
+        this.validator.validateObject(modelObject, resourceSchema);
     }
 
     /**

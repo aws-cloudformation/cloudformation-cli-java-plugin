@@ -7,7 +7,7 @@ public interface CallbackAdapter<T> {
 
     void reportProgress(final String bearerToken,
                         final HandlerErrorCode errorCode,
-                        final ProgressStatus progressStatus,
+                        final OperationStatus operationStatus,
                         final T resourceModel,
                         final String statusMessage);
 }
