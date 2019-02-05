@@ -8,6 +8,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Serializer {
 
@@ -38,6 +40,9 @@ public class Serializer {
         return new JSONObject(objectMapper.writeValueAsString(modelObject));
     }
 
+    public Map<String, Object> serializeToMap(final Object modelObject) throws JsonProcessingException {
+        return objectMapper.convertValue(modelObject, Map.class);
+    }
     public <T> T deserialize(final Object o,
                              final Class<T> valueType) throws IOException {
         return deserialize(objectMapper.writeValueAsString(o), valueType);

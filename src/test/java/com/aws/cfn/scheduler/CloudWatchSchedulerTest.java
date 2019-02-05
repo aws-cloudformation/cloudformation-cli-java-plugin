@@ -3,6 +3,7 @@ package com.aws.cfn.scheduler;
 import com.amazonaws.services.cloudwatchevents.AmazonCloudWatchEvents;
 import com.amazonaws.services.cloudwatchevents.model.DeleteRuleRequest;
 import com.amazonaws.services.cloudwatchevents.model.RemoveTargetsRequest;
+import com.aws.cfn.proxy.HandlerRequest;
 import com.aws.cfn.proxy.RequestContext;
 import junit.framework.TestCase;
 import org.json.JSONObject;
@@ -77,10 +78,13 @@ public class CloudWatchSchedulerTest extends TestCase {
         when(cronHelper.generateOneTimeCronExpression(1))
             .thenReturn("cron(41 14 31 10 ? 2019)");
         final CloudWatchScheduler scheduler = new CloudWatchScheduler(client, cronHelper);
+        final HandlerRequest request = new HandlerRequest();
+
         final RequestContext requestContext = mock(RequestContext.class);
+        request.setRequestContext(requestContext);
 
         // minutesFromNow will be set to a floor of '1' for cron generation
-        scheduler.rescheduleAfterMinutes(FUNCTION_ARN, 0, requestContext);
+        scheduler.rescheduleAfterMinutes(FUNCTION_ARN, 0, request);
 
         verify(requestContext, times(1)).setCloudWatchEventsRuleName(
             startsWith("reinvoke-handler-")
@@ -93,7 +97,7 @@ public class CloudWatchSchedulerTest extends TestCase {
             new TargetMatcher(
                 FUNCTION_ARN,
                 "reinvoke-target-",
-                new JSONObject(requestContext).toString())
+                new JSONObject(request).toString())
         );
         verify(client, times(1)).putTargets(
             argThat(new PutTargetsRequestMatcher(

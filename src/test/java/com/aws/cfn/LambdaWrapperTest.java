@@ -4,11 +4,7 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.aws.cfn.exceptions.TerminalException;
 import com.aws.cfn.metrics.MetricsPublisher;
-import com.aws.cfn.proxy.CallbackAdapter;
-import com.aws.cfn.proxy.ProgressEvent;
-import com.aws.cfn.proxy.ProgressStatus;
-import com.aws.cfn.proxy.RequestContext;
-import com.aws.cfn.proxy.ResourceHandlerRequest;
+import com.aws.cfn.proxy.*;
 import com.aws.cfn.resource.SchemaValidator;
 import com.aws.cfn.resource.Serializer;
 import com.aws.cfn.resource.exceptions.ValidationException;
@@ -107,15 +103,16 @@ public class LambdaWrapperTest {
 
         // no re-invocation via CloudWatch should occur
         verify(scheduler, times(0)).rescheduleAfterMinutes(
-            anyString(), anyInt(), any(RequestContext.class));
+            anyString(), anyInt(), any(HandlerRequest.class));
         verify(scheduler, times(0)).cleanupCloudWatchEvents(
             any(), any());
 
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo("{\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"},\"message\":\"Handler failed to" +
-                " provide a response.\",\"status\":\"Failed\"}"))
+            is(equalTo("{\"operationStatus\":\"FAILED\",\"responseData\":" +
+                    "{\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}}," +
+                    "\"message\":\"Handler failed to provide a response.\"}"))
         );
     }
 
@@ -158,7 +155,7 @@ public class LambdaWrapperTest {
         // explicit fault response is treated as an unsuccessful synchronous completion
         final ProgressEvent pe = new ProgressEvent();
         pe.setMessage("Custom Fault");
-        pe.setStatus(ProgressStatus.Failed);
+        pe.setStatus(OperationStatus.FAILED);
         wrapper.setInvokeHandlerResponse(pe);
 
         final ResourceHandlerRequest<TestModel> resourceHandlerRequest = mock(ResourceHandlerRequest.class);
@@ -191,14 +188,14 @@ public class LambdaWrapperTest {
 
         // no re-invocation via CloudWatch should occur
         verify(scheduler, times(0)).rescheduleAfterMinutes(
-            anyString(), anyInt(), any(RequestContext.class));
+            anyString(), anyInt(), any(HandlerRequest.class));
         verify(scheduler, times(0)).cleanupCloudWatchEvents(
             any(), any());
 
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo("{\"message\":\"Custom Fault\",\"status\":\"Failed\"}"))
+            is(equalTo("{\"operationStatus\":\"FAILED\",\"message\":\"Custom Fault\"}"))
         );
     }
 
@@ -240,7 +237,7 @@ public class LambdaWrapperTest {
 
         // if the handler responds Complete, this is treated as a successful synchronous completion
         final ProgressEvent pe = new ProgressEvent();
-        pe.setStatus(ProgressStatus.Complete);
+        pe.setStatus(OperationStatus.COMPLETE);
         wrapper.setInvokeHandlerResponse(pe);
 
         final ResourceHandlerRequest<TestModel> resourceHandlerRequest = mock(ResourceHandlerRequest.class);
@@ -273,14 +270,14 @@ public class LambdaWrapperTest {
 
         // no re-invocation via CloudWatch should occur
         verify(scheduler, times(0)).rescheduleAfterMinutes(
-            anyString(), anyInt(), any(RequestContext.class));
+            anyString(), anyInt(), any(HandlerRequest.class));
         verify(scheduler, times(0)).cleanupCloudWatchEvents(
             any(), any());
 
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo("{\"status\":\"Complete\"}"))
+            is(equalTo("{\"operationStatus\":\"COMPLETE\"}"))
         );
     }
 
@@ -323,7 +320,7 @@ public class LambdaWrapperTest {
         // an InProgress response is always re-scheduled.
         // If no explicit time is supplied, a 1-minute interval is used
         final ProgressEvent pe = new ProgressEvent();
-        pe.setStatus(ProgressStatus.InProgress);
+        pe.setStatus(OperationStatus.IN_PROGRESS);
         pe.setResourceModel(model);
         wrapper.setInvokeHandlerResponse(pe);
 
@@ -357,7 +354,7 @@ public class LambdaWrapperTest {
 
         // re-invocation via CloudWatch should occur
         verify(scheduler, times(1)).rescheduleAfterMinutes(
-            anyString(), eq(0), any(RequestContext.class));
+            anyString(), eq(0), any(HandlerRequest.class));
 
         // this was a first invocation, so no cleanup is required
         verify(scheduler, times(0)).cleanupCloudWatchEvents(
@@ -369,7 +366,7 @@ public class LambdaWrapperTest {
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo("{\"resourceModel\":{},\"status\":\"InProgress\"}"))
+            is(equalTo("{\"operationStatus\":\"IN_PROGRESS\",\"responseData\":{\"resourceModel\":{}}}"))
         );
     }
 
@@ -412,7 +409,7 @@ public class LambdaWrapperTest {
         // an InProgress response is always re-scheduled.
         // If no explicit time is supplied, a 1-minute interval is used
         final ProgressEvent pe = new ProgressEvent();
-        pe.setStatus(ProgressStatus.InProgress);
+        pe.setStatus(OperationStatus.IN_PROGRESS);
         pe.setResourceModel(model);
         wrapper.setInvokeHandlerResponse(pe);
 
@@ -446,7 +443,7 @@ public class LambdaWrapperTest {
 
         // re-invocation via CloudWatch should occur
         verify(scheduler, times(1)).rescheduleAfterMinutes(
-            anyString(), eq(0), any(RequestContext.class));
+            anyString(), eq(0), any(HandlerRequest.class));
 
         // this was a re-invocation, so a cleanup is required
         verify(scheduler, times(1)).cleanupCloudWatchEvents(
@@ -460,7 +457,7 @@ public class LambdaWrapperTest {
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo("{\"resourceModel\":{},\"status\":\"InProgress\"}"))
+            is(equalTo("{\"operationStatus\":\"IN_PROGRESS\",\"responseData\":{\"resourceModel\":{}}}"))
         );
     }
 
@@ -536,7 +533,7 @@ public class LambdaWrapperTest {
 
         // no re-invocation via CloudWatch should occur
         verify(scheduler, times(0)).rescheduleAfterMinutes(
-            anyString(), anyInt(), any(RequestContext.class));
+            anyString(), anyInt(), any(HandlerRequest.class));
         verify(scheduler, times(0)).cleanupCloudWatchEvents(
             any(), any());
 
@@ -546,7 +543,7 @@ public class LambdaWrapperTest {
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo( "{\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"},\"status\":\"Failed\"}"))
+            is(equalTo( "{\"operationStatus\":\"FAILED\",\"responseData\":{\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}}}"))
         );
     }
 
@@ -590,7 +587,7 @@ public class LambdaWrapperTest {
         // an InProgress response is always re-scheduled.
         // If no explicit time is supplied, a 1-minute interval is used
         final ProgressEvent pe = new ProgressEvent();
-        pe.setStatus(ProgressStatus.Complete);
+        pe.setStatus(OperationStatus.COMPLETE);
         pe.setResourceModel(model);
         wrapper.setInvokeHandlerResponse(pe);
 
@@ -610,7 +607,7 @@ public class LambdaWrapperTest {
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo("{\"resourceModel\":{},\"status\":\"Complete\"}"))
+            is(equalTo("{\"operationStatus\":\"COMPLETE\",\"responseData\":{\"resourceModel\":{}}}"))
         );
     }
 }

@@ -10,6 +10,7 @@ import com.amazonaws.services.cloudwatchevents.model.Target;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.util.StringUtils;
 import com.aws.cfn.injection.LambdaModule;
+import com.aws.cfn.proxy.HandlerRequest;
 import com.aws.cfn.proxy.RequestContext;
 import com.google.inject.Guice;
 import com.google.inject.Inject;
@@ -50,11 +51,11 @@ public class CloudWatchScheduler {
      * @param functionArn       the ARN oft he Lambda function to be invoked
      * @param minutesFromNow    the minimum minutes from now that the re-invocation will occur. CWE provides only
      *                          minute-granularity
-     * @param callbackContext   additional context which the handler can provide itself for re-invocation
+     * @param handlerRequest   additional context which the handler can provide itself for re-invocation
      */
     public void rescheduleAfterMinutes(final String functionArn,
                                        final int minutesFromNow,
-                                       final RequestContext callbackContext) {
+                                       final HandlerRequest handlerRequest) {
 
         // generate a cron expression; minutes must be a positive integer
         final String cronRule = this.cronHelper.generateOneTimeCronExpression(Math.max(minutesFromNow, 1));
@@ -64,10 +65,11 @@ public class CloudWatchScheduler {
         final String targetId = String.format("reinvoke-target-%s", rescheduleId);
 
         // record the CloudWatchEvents objects for cleanup on the callback
-        callbackContext.setCloudWatchEventsRuleName(ruleName);
-        callbackContext.setCloudWatchEventsTargetId(targetId);
+        RequestContext requestContext = handlerRequest.getRequestContext();
+        requestContext.setCloudWatchEventsRuleName(ruleName);
+        requestContext.setCloudWatchEventsTargetId(targetId);
 
-        final String jsonContext = new JSONObject(callbackContext).toString();
+        final String jsonRequest = new JSONObject(handlerRequest).toString();
         this.log(String.format("Scheduling re-invoke at %s (%s)\n", cronRule, rescheduleId));
 
         final PutRuleRequest putRuleRequest = new PutRuleRequest()
@@ -79,7 +81,7 @@ public class CloudWatchScheduler {
         final Target target = new Target()
             .withArn(functionArn)
             .withId(targetId)
-            .withInput(jsonContext);
+            .withInput(jsonRequest);
         final PutTargetsRequest putTargetsRequest = new PutTargetsRequest()
             .withTargets(target)
             .withRule(putRuleRequest.getName());
@@ -95,6 +97,17 @@ public class CloudWatchScheduler {
                                         final String cloudWatchEventsTargetId) {
 
         try {
+            if (!StringUtils.isNullOrEmpty(cloudWatchEventsTargetId)) {
+                final RemoveTargetsRequest removeTargetsRequest = new RemoveTargetsRequest()
+                        .withIds(cloudWatchEventsTargetId).withRule(cloudWatchEventsRuleName);
+                this.client.removeTargets(removeTargetsRequest);
+            }
+        } catch (final Exception e) {
+            this.log(String.format("Error cleaning CloudWatchEvents Target (targetId=%s): %s",
+                    cloudWatchEventsTargetId,
+                    e.getMessage()));
+        }
+        try {
             if (!StringUtils.isNullOrEmpty(cloudWatchEventsRuleName)) {
                 final DeleteRuleRequest deleteRuleRequest = new DeleteRuleRequest()
                     .withName(cloudWatchEventsRuleName);
@@ -103,18 +116,6 @@ public class CloudWatchScheduler {
         } catch (final Exception e) {
             this.log(String.format("Error cleaning CloudWatchEvents (ruleName=%s): %s",
                 cloudWatchEventsRuleName,
-                e.getMessage()));
-        }
-
-        try {
-            if (!StringUtils.isNullOrEmpty(cloudWatchEventsTargetId)) {
-                final RemoveTargetsRequest removeTargetsRequest = new RemoveTargetsRequest()
-                    .withIds(cloudWatchEventsTargetId);
-                this.client.removeTargets(removeTargetsRequest);
-            }
-        } catch (final Exception e) {
-            this.log(String.format("Error cleaning CloudWatchEvents Target (targetId=%s): %s",
-                cloudWatchEventsTargetId,
                 e.getMessage()));
         }
     }
