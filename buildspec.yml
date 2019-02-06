@@ -1,12 +1,18 @@
 version: 0.2
 phases:
+  pre_build:
+    commands:
+      - pip install --upgrade pip wheel
+      - pip install "$CODEBUILD_SRC_DIR_RPDK"
+      - pip install "$CODEBUILD_SRC_DIR"
+      - aws configure add-model --service-model "file://$CODEBUILD_SRC_DIR_RPDK/cloudformation-2010-05-15.normal.json" --service-name cloudformation
   build:
     commands:
       - cd "$CODEBUILD_SRC_DIR_SDK"
       - pwd
       - ls -la
       - >
-        mvn install:install-file --batch-mode
+        mvn org.apache.maven.plugins:maven-install-plugin:3.0.0-M1:install-file --batch-mode
         -Dfile=AWSCloudFormationJavaClientInternal-1.11.x.jar
         -DgroupId=com.amazonaws
         -DartifactId=aws-java-sdk-cloudformation
@@ -16,19 +22,18 @@ phases:
       - cd "$CODEBUILD_SRC_DIR_SCHEMA"
       - pwd
       - ls -la
-      - mvn package --batch-mode
-      - >
-        mvn install:install-file --batch-mode
-        -Dfile=target/aws-cloudformation-resource-schema-1.0.0.jar
-        -DgroupId=com.aws.cfn
-        -DartifactId=aws-cloudformation-resource-schema
-        -Dversion=1.0.0
-        -Dpackaging=jar
-        -DgeneratePom=true
+      - mvn package org.apache.maven.plugins:maven-install-plugin:3.0.0-M1:install --batch-mode
       - cd "$CODEBUILD_SRC_DIR"
       - pwd
       - ls -la
-      - mvn package --batch-mode
+      - mvn package org.apache.maven.plugins:maven-install-plugin:3.0.0-M1:install --batch-mode
+      - DIR=$(mktemp -d)
+      - cd "$DIR"
+      - pwd
+      - ls -la
+      - echo "AWS::Foo::Bar" | uluru-cli init -vv
+      - mvn package
+      - ls -la
 artifacts:
   files:
     - target/ResourceProviderRuntime-1.0.jar
