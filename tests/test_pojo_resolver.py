@@ -2,10 +2,10 @@
 # pylint: disable=redefined-outer-name,protected-access
 import pytest
 
+from java.pojo_resolver import JavaPojoResolver
 from rpdk.data_loaders import resource_json
 from rpdk.jsonutils.flattener import JsonSchemaFlattener
 
-from ..pojo_resolver import JavaPojoResolver
 from .flattened_schema import FLATTENED_SCHEMA
 
 REF_TO_CLASS_MAP = {
@@ -46,7 +46,7 @@ def test_resolver():
 
 
 def test_resolver_from_schema():
-    test_schema = resource_json("tests", "jsonutils/data/area_definition.json")
+    test_schema = resource_json(__name__, "data/area_definition.json")
     schema_map = JsonSchemaFlattener(test_schema).flatten_schema()
     resolver = JavaPojoResolver(schema_map, "areaDescription")
     expected_pojos = {

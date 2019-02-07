@@ -136,21 +136,21 @@ def base_class_from_ref(ref_path):
     """This method determines the class_name from a ref_path
     It uses json-schema heuristics to properly determine the class name
 
-    >>> base_class_from_ref(("definitions","Foo"))
+    >>> base_class_from_ref(("definitions", "Foo"))
     'Foo'
-    >>> base_class_from_ref(("properties","foo","items"))
+    >>> base_class_from_ref(("properties", "foo", "items"))
     'Foo'
-    >>> base_class_from_ref(("properties","foo","items","patternProperties","a"))
+    >>> base_class_from_ref(("properties", "foo", "items", "patternProperties", "a"))
     'Foo'
-    >>> base_class_from_ref(("properties","items"))
+    >>> base_class_from_ref(("properties", "items"))
     'Items'
-    >>> base_class_from_ref(("properties","patternProperties"))
+    >>> base_class_from_ref(("properties", "patternProperties"))
     'PatternProperties'
-    >>> base_class_from_ref(("properties","properties"))
+    >>> base_class_from_ref(("properties", "properties"))
     'Properties'
     >>> base_class_from_ref(("definitions",))
     'Definitions'
-    >>> base_class_from_ref(("definitions","properties"))
+    >>> base_class_from_ref(("definitions", "properties"))
     'Properties'
     >>> base_class_from_ref(())   # doctest: +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
