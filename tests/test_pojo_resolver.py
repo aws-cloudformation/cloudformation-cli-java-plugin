@@ -2,9 +2,9 @@
 # pylint: disable=redefined-outer-name,protected-access
 import pytest
 
-from java.pojo_resolver import JavaPojoResolver
-from rpdk.data_loaders import resource_json
-from rpdk.jsonutils.flattener import JsonSchemaFlattener
+from rpdk.core.data_loaders import resource_json
+from rpdk.core.jsonutils.flattener import JsonSchemaFlattener
+from rpdk.java.pojo_resolver import JavaPojoResolver
 
 from .flattened_schema import FLATTENED_SCHEMA
 

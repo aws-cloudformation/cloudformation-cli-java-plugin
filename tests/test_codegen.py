@@ -6,8 +6,8 @@ from unittest.mock import patch
 import pytest
 import yaml
 
-from java.codegen import JavaLanguagePlugin
-from rpdk.project import Project
+from rpdk.core.project import Project
+from rpdk.java.codegen import JavaLanguagePlugin
 
 RESOURCE = "DZQWCC"
 
@@ -16,7 +16,7 @@ RESOURCE = "DZQWCC"
 def project(tmpdir):
     project = Project(root=tmpdir)
     with patch.dict(
-        "rpdk.plugin_registry.PLUGIN_REGISTRY",
+        "rpdk.core.plugin_registry.PLUGIN_REGISTRY",
         {"test": lambda: JavaLanguagePlugin},
         clear=True,
     ):

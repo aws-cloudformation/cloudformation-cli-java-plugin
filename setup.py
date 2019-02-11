@@ -2,7 +2,7 @@
 import os.path
 import re
 
-from setuptools import find_packages, setup
+from setuptools import setup
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
@@ -23,18 +23,19 @@ def find_version(*file_paths):
 
 setup(
     name="aws-cloudformation-rpdk-java-plugin",
-    version=find_version("rpdk", "java", "__init__.py"),
+    version=find_version("python", "rpdk", "java", "__init__.py"),
     description=__doc__,
     long_description=read("README.md"),
     author="Amazon Web Services",
     url="https://aws.amazon.com/cloudformation/",
-    packages=find_packages(where="rpdk"),
-    package_dir={"": "rpdk"},
+    # https://packaging.python.org/guides/packaging-namespace-packages/
+    packages=["rpdk.java"],
+    package_dir={"": "python"},
     # package_data -> use MANIFEST.in instead
     include_package_data=True,
     zip_safe=True,
     install_requires=["aws-cloudformation-rpdk>=0.1,<0.2"],
-    entry_points={"rpdk.v1.languages": ["java = java:JavaLanguagePlugin"]},
+    entry_points={"rpdk.v1.languages": ["java = rpdk.java.codegen:JavaLanguagePlugin"]},
     license="Apache License 2.0",
     classifiers=(
         "Development Status :: 2 - Pre-Alpha",
