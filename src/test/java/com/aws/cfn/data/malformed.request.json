@@ -3,7 +3,7 @@
   "extraneousField": "notexpected",
   "bearerToken": "123456",
   "region": "us-east-1",
-  "action": "Create",
+  "action": "CREATE",
   "resourceType": "AWS::Test::TestModel",
   "resourceTypeVersion": "1.0",
   "requestContext": {},

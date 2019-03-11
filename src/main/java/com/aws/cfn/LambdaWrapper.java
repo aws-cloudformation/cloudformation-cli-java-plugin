@@ -17,7 +17,6 @@ import com.aws.cfn.resource.SchemaValidator;
 import com.aws.cfn.resource.Serializer;
 import com.aws.cfn.resource.exceptions.ValidationException;
 import com.aws.cfn.scheduler.CloudWatchScheduler;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
@@ -146,9 +145,9 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
 
         // for CUD actions, validate incoming model - any error is a terminal failure on the invocation
         try {
-            if (request.getAction() == Action.Create ||
-                request.getAction() == Action.Update ||
-                request.getAction() == Action.Delete) {
+            if (request.getAction() == Action.CREATE ||
+                request.getAction() == Action.UPDATE ||
+                request.getAction() == Action.DELETE) {
                 validateModel(this.serializer.serialize(resourceHandlerRequest.getDesiredResourceState()));
             }
         } catch (final ValidationException e) {

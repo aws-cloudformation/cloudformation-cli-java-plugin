@@ -25,7 +25,6 @@ public class Serializer {
     private void configureObjectMapper(final ObjectMapper objectMapper) {
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         objectMapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
-        objectMapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS, true);
         objectMapper.setSerializationInclusion(JsonInclude.Include.NON_ABSENT);
         objectMapper.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
         objectMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);

@@ -42,7 +42,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}> {
 
     private void initialiseHandlers() {
 {% for op in operations %}
-        handlers.put(Action.{{ op }}, new {{ op }}Handler());
+        handlers.put(Action.{{ op|upper }}, new {{ op }}Handler());
 {% endfor %}
     }
 
