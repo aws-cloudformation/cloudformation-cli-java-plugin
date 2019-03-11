@@ -10,8 +10,8 @@ public class AmazonCloudFormationProvider implements Provider<AmazonCloudFormati
     @Override
     public AmazonCloudFormation get() {
          final EndpointConfiguration endpointConfiguration = new EndpointConfiguration(
-            "https://stackbuilder.us-west-2.amazonaws.com",
-        "us-west-2");
+            "https://stackbuilder-2.amazonaws.com",
+        "eu-west-1");
 
         return AmazonCloudFormationClientBuilder.standard()
             .withEndpointConfiguration(endpointConfiguration)

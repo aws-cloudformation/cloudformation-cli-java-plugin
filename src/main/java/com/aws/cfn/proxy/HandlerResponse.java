@@ -14,7 +14,7 @@ public class HandlerResponse<T> {
     private String errorCode;
     private String message;
     private String nextToken;
-    private ProgressStatus operationStatus;
+    private OperationStatus operationStatus;
     private ResponseData<T> responseData;
     private StabilizationData stabilizationData;
 }

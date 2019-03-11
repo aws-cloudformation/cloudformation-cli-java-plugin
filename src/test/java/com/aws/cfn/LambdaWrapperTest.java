@@ -5,9 +5,9 @@ import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.aws.cfn.exceptions.TerminalException;
 import com.aws.cfn.metrics.MetricsPublisher;
 import com.aws.cfn.proxy.CallbackAdapter;
+import com.aws.cfn.proxy.HandlerRequest;
+import com.aws.cfn.proxy.OperationStatus;
 import com.aws.cfn.proxy.ProgressEvent;
-import com.aws.cfn.proxy.ProgressStatus;
-import com.aws.cfn.proxy.RequestContext;
 import com.aws.cfn.proxy.ResourceHandlerRequest;
 import com.aws.cfn.resource.SchemaValidator;
 import com.aws.cfn.resource.Serializer;
@@ -99,49 +99,49 @@ public class LambdaWrapperTest {
         verify(metricsPublisher, times(1)).publishDurationMetric(
             any(Date.class), eq(action), anyLong());
 
-        // verify that model validation occurred for Create/Update/Delete
-        if (action == Action.Create || action == Action.Update || action == Action.Delete) {
-            verify(validator, times(1)).validateModel(
+        // verify that model validation occurred for CREATE/UPDATE/DELETE
+        if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
+            verify(validator, times(1)).validateObject(
                 any(JSONObject.class), any(InputStream.class));
         }
 
         // no re-invocation via CloudWatch should occur
         verify(scheduler, times(0)).rescheduleAfterMinutes(
-            anyString(), anyInt(), any(RequestContext.class));
+            anyString(), anyInt(), any(HandlerRequest.class));
         verify(scheduler, times(0)).cleanupCloudWatchEvents(
             any(), any());
 
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo("{\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"},\"message\":\"Handler failed to" +
-                " provide a response.\",\"status\":\"Failed\"}"))
+            is(equalTo("{\"operationStatus\":\"FAILED\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}," +
+                    "\"message\":\"Handler failed to provide a response.\"}"))
         );
     }
 
     @Test
     public void testInvokeHandler_Create_NullResponse() throws IOException {
-        testInvokeHandler_NullResponse("create.request.json", Action.Create);
+        testInvokeHandler_NullResponse("create.request.json", Action.CREATE);
     }
 
     @Test
     public void testInvokeHandler_Read_NullResponse() throws IOException {
-        testInvokeHandler_NullResponse("read.request.json", Action.Read);
+        testInvokeHandler_NullResponse("read.request.json", Action.READ);
     }
 
     @Test
     public void testInvokeHandler_Update_NullResponse() throws IOException {
-        testInvokeHandler_NullResponse("update.request.json", Action.Update);
+        testInvokeHandler_NullResponse("update.request.json", Action.UPDATE);
     }
 
     @Test
     public void testInvokeHandler_Delete_NullResponse() throws IOException {
-        testInvokeHandler_NullResponse("delete.request.json", Action.Delete);
+        testInvokeHandler_NullResponse("delete.request.json", Action.DELETE);
     }
 
     @Test
     public void testInvokeHandler_List_NullResponse() throws IOException {
-        testInvokeHandler_NullResponse("list.request.json", Action.List);
+        testInvokeHandler_NullResponse("list.request.json", Action.LIST);
     }
 
     private void testInvokeHandler_Failed(final String requestDataPath,
@@ -158,7 +158,7 @@ public class LambdaWrapperTest {
         // explicit fault response is treated as an unsuccessful synchronous completion
         final ProgressEvent pe = new ProgressEvent();
         pe.setMessage("Custom Fault");
-        pe.setStatus(ProgressStatus.Failed);
+        pe.setStatus(OperationStatus.FAILED);
         wrapper.setInvokeHandlerResponse(pe);
 
         final ResourceHandlerRequest<TestModel> resourceHandlerRequest = mock(ResourceHandlerRequest.class);
@@ -183,48 +183,48 @@ public class LambdaWrapperTest {
         verify(metricsPublisher, times(0)).publishExceptionMetric(
             any(Date.class), any(), any(Exception.class));
 
-        // verify that model validation occurred for Create/Update/Delete
-        if (action == Action.Create || action == Action.Update || action == Action.Delete) {
-            verify(validator, times(1)).validateModel(
+        // verify that model validation occurred for CREATE/UPDATE/DELETE
+        if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
+            verify(validator, times(1)).validateObject(
                 any(JSONObject.class), any(InputStream.class));
         }
 
         // no re-invocation via CloudWatch should occur
         verify(scheduler, times(0)).rescheduleAfterMinutes(
-            anyString(), anyInt(), any(RequestContext.class));
+            anyString(), anyInt(), any(HandlerRequest.class));
         verify(scheduler, times(0)).cleanupCloudWatchEvents(
             any(), any());
 
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo("{\"message\":\"Custom Fault\",\"status\":\"Failed\"}"))
+            is(equalTo("{\"operationStatus\":\"FAILED\",\"message\":\"Custom Fault\"}"))
         );
     }
 
     @Test
     public void testInvokeHandler_Create_Failed() throws IOException {
-        testInvokeHandler_Failed("create.request.json", Action.Create);
+        testInvokeHandler_Failed("create.request.json", Action.CREATE);
     }
 
     @Test
     public void testInvokeHandler_Read_Failed() throws IOException {
-        testInvokeHandler_Failed("read.request.json", Action.Read);
+        testInvokeHandler_Failed("read.request.json", Action.READ);
     }
 
     @Test
     public void testInvokeHandler_Update_Failed() throws IOException {
-        testInvokeHandler_Failed("update.request.json", Action.Update);
+        testInvokeHandler_Failed("update.request.json", Action.UPDATE);
     }
 
     @Test
     public void testInvokeHandler_Delete_Failed() throws IOException {
-        testInvokeHandler_Failed("delete.request.json", Action.Delete);
+        testInvokeHandler_Failed("delete.request.json", Action.DELETE);
     }
 
     @Test
     public void testInvokeHandler_List_Failed() throws IOException {
-        testInvokeHandler_Failed("list.request.json", Action.List);
+        testInvokeHandler_Failed("list.request.json", Action.LIST);
     }
 
     private void testInvokeHandler_CompleteSynchronously(final String requestDataPath,
@@ -240,7 +240,7 @@ public class LambdaWrapperTest {
 
         // if the handler responds Complete, this is treated as a successful synchronous completion
         final ProgressEvent pe = new ProgressEvent();
-        pe.setStatus(ProgressStatus.Complete);
+        pe.setStatus(OperationStatus.SUCCESS);
         wrapper.setInvokeHandlerResponse(pe);
 
         final ResourceHandlerRequest<TestModel> resourceHandlerRequest = mock(ResourceHandlerRequest.class);
@@ -265,48 +265,48 @@ public class LambdaWrapperTest {
         verify(metricsPublisher, times(0)).publishExceptionMetric(
             any(Date.class), any(), any(Exception.class));
 
-        // verify that model validation occurred for Create/Update/Delete
-        if (action == Action.Create || action == Action.Update || action == Action.Delete) {
-            verify(validator, times(1)).validateModel(
+        // verify that model validation occurred for CREATE/UPDATE/DELETE
+        if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
+            verify(validator, times(1)).validateObject(
                 any(JSONObject.class), any(InputStream.class));
         }
 
         // no re-invocation via CloudWatch should occur
         verify(scheduler, times(0)).rescheduleAfterMinutes(
-            anyString(), anyInt(), any(RequestContext.class));
+            anyString(), anyInt(), any(HandlerRequest.class));
         verify(scheduler, times(0)).cleanupCloudWatchEvents(
             any(), any());
 
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo("{\"status\":\"Complete\"}"))
+            is(equalTo("{\"operationStatus\":\"SUCCESS\"}"))
         );
     }
 
     @Test
     public void testInvokeHandler_Create_CompleteSynchronously() throws IOException {
-        testInvokeHandler_CompleteSynchronously("create.request.json", Action.Create);
+        testInvokeHandler_CompleteSynchronously("create.request.json", Action.CREATE);
     }
 
     @Test
     public void testInvokeHandler_Read_CompleteSynchronously() throws IOException {
-        testInvokeHandler_CompleteSynchronously("read.request.json", Action.Read);
+        testInvokeHandler_CompleteSynchronously("read.request.json", Action.READ);
     }
 
     @Test
     public void testInvokeHandler_Update_CompleteSynchronously() throws IOException {
-        testInvokeHandler_CompleteSynchronously("update.request.json", Action.Update);
+        testInvokeHandler_CompleteSynchronously("update.request.json", Action.UPDATE);
     }
 
     @Test
     public void testInvokeHandler_Delete_CompleteSynchronously() throws IOException {
-        testInvokeHandler_CompleteSynchronously("delete.request.json", Action.Delete);
+        testInvokeHandler_CompleteSynchronously("delete.request.json", Action.DELETE);
     }
 
     @Test
     public void testInvokeHandler_List_CompleteSynchronously() throws IOException {
-        testInvokeHandler_CompleteSynchronously("list.request.json", Action.List);
+        testInvokeHandler_CompleteSynchronously("list.request.json", Action.LIST);
     }
 
     private void testInvokeHandler_InProgress(final String requestDataPath,
@@ -323,7 +323,7 @@ public class LambdaWrapperTest {
         // an InProgress response is always re-scheduled.
         // If no explicit time is supplied, a 1-minute interval is used
         final ProgressEvent pe = new ProgressEvent();
-        pe.setStatus(ProgressStatus.InProgress);
+        pe.setStatus(OperationStatus.IN_PROGRESS);
         pe.setResourceModel(model);
         wrapper.setInvokeHandlerResponse(pe);
 
@@ -349,15 +349,15 @@ public class LambdaWrapperTest {
         verify(metricsPublisher, times(0)).publishExceptionMetric(
             any(Date.class), any(), any(Exception.class));
 
-        // verify that model validation occurred for Create/Update/Delete
-        if (action == Action.Create || action == Action.Update || action == Action.Delete) {
-            verify(validator, times(1)).validateModel(
+        // verify that model validation occurred for CREATE/UPDATE/DELETE
+        if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
+            verify(validator, times(1)).validateObject(
                 any(JSONObject.class), any(InputStream.class));
         }
 
         // re-invocation via CloudWatch should occur
         verify(scheduler, times(1)).rescheduleAfterMinutes(
-            anyString(), eq(0), any(RequestContext.class));
+            anyString(), eq(0), any(HandlerRequest.class));
 
         // this was a first invocation, so no cleanup is required
         verify(scheduler, times(0)).cleanupCloudWatchEvents(
@@ -369,33 +369,33 @@ public class LambdaWrapperTest {
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo("{\"resourceModel\":{},\"status\":\"InProgress\"}"))
+            is(equalTo("{\"operationStatus\":\"IN_PROGRESS\",\"resourceModel\":{}}"))
         );
     }
 
     @Test
     public void testInvokeHandler_Create_InProgress() throws IOException {
-        testInvokeHandler_InProgress("create.request.json", Action.Create);
+        testInvokeHandler_InProgress("create.request.json", Action.CREATE);
     }
 
     @Test
     public void testInvokeHandler_Read_InProgress() throws IOException {
-        testInvokeHandler_InProgress("read.request.json", Action.Read);
+        testInvokeHandler_InProgress("read.request.json", Action.READ);
     }
 
     @Test
     public void testInvokeHandler_Update_InProgress() throws IOException {
-        testInvokeHandler_InProgress("update.request.json", Action.Update);
+        testInvokeHandler_InProgress("update.request.json", Action.UPDATE);
     }
 
     @Test
     public void testInvokeHandler_Delete_InProgress() throws IOException {
-        testInvokeHandler_InProgress("delete.request.json", Action.Delete);
+        testInvokeHandler_InProgress("delete.request.json", Action.DELETE);
     }
 
     @Test
     public void testInvokeHandler_List_InProgress() throws IOException {
-        testInvokeHandler_InProgress("list.request.json", Action.List);
+        testInvokeHandler_InProgress("list.request.json", Action.LIST);
     }
 
     private void testReInvokeHandler_InProgress(final String requestDataPath,
@@ -412,7 +412,7 @@ public class LambdaWrapperTest {
         // an InProgress response is always re-scheduled.
         // If no explicit time is supplied, a 1-minute interval is used
         final ProgressEvent pe = new ProgressEvent();
-        pe.setStatus(ProgressStatus.InProgress);
+        pe.setStatus(OperationStatus.IN_PROGRESS);
         pe.setResourceModel(model);
         wrapper.setInvokeHandlerResponse(pe);
 
@@ -438,15 +438,15 @@ public class LambdaWrapperTest {
         verify(metricsPublisher, times(0)).publishExceptionMetric(
             any(Date.class), any(), any(Exception.class));
 
-        // verify that model validation occurred for Create/Update/Delete
-        if (action == Action.Create || action == Action.Update || action == Action.Delete) {
-            verify(validator, times(1)).validateModel(
+        // verify that model validation occurred for CREATE/UPDATE/DELETE
+        if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
+            verify(validator, times(1)).validateObject(
                 any(JSONObject.class), any(InputStream.class));
         }
 
         // re-invocation via CloudWatch should occur
         verify(scheduler, times(1)).rescheduleAfterMinutes(
-            anyString(), eq(0), any(RequestContext.class));
+            anyString(), eq(0), any(HandlerRequest.class));
 
         // this was a re-invocation, so a cleanup is required
         verify(scheduler, times(1)).cleanupCloudWatchEvents(
@@ -460,35 +460,35 @@ public class LambdaWrapperTest {
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo("{\"resourceModel\":{},\"status\":\"InProgress\"}"))
+            is(equalTo("{\"operationStatus\":\"IN_PROGRESS\",\"resourceModel\":{}}"))
         );
     }
 
     @Test
     public void testReInvokeHandler_Create_InProgress() throws IOException {
-        testReInvokeHandler_InProgress("create.with-request-context.request.json", Action.Create);
+        testReInvokeHandler_InProgress("create.with-request-context.request.json", Action.CREATE);
     }
 
     @Test
     public void testReInvokeHandler_Read_InProgress() throws IOException {
-        // TODO: Read handlers must return synchronously so this is probably a fault
-        //testReInvokeHandler_InProgress("read.with-request-context.request.json", Action.Read);
+        // TODO: READ handlers must return synchronously so this is probably a fault
+        //testReInvokeHandler_InProgress("read.with-request-context.request.json", Action.READ);
     }
 
     @Test
     public void testReInvokeHandler_Update_InProgress() throws IOException {
-        testReInvokeHandler_InProgress("update.with-request-context.request.json", Action.Update);
+        testReInvokeHandler_InProgress("update.with-request-context.request.json", Action.UPDATE);
     }
 
     @Test
     public void testReInvokeHandler_Delete_InProgress() throws IOException {
-        testReInvokeHandler_InProgress("delete.with-request-context.request.json", Action.Delete);
+        testReInvokeHandler_InProgress("delete.with-request-context.request.json", Action.DELETE);
     }
 
     @Test
     public void testReInvokeHandler_List_InProgress() throws IOException {
-        // TODO: List handlers must return synchronously so this is probably a fault
-        //testReInvokeHandler_InProgress("list.with-request-context.request.json", Action.List);
+        // TODO: LIST handlers must return synchronously so this is probably a fault
+        //testReInvokeHandler_InProgress("list.with-request-context.request.json", Action.LIST);
     }
 
     private void testInvokeHandler_SchemaValidationFailure(final String requestDataPath,
@@ -500,7 +500,7 @@ public class LambdaWrapperTest {
         final SchemaValidator validator = mock(SchemaValidator.class);
         final Serializer serializer = new Serializer();
         doThrow(ValidationException.class)
-            .when(validator).validateModel(any(JSONObject.class), any(InputStream.class));
+            .when(validator).validateObject(any(JSONObject.class), any(InputStream.class));
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator, serializer);
         final TestModel model = new TestModel();
 
@@ -528,15 +528,15 @@ public class LambdaWrapperTest {
         verify(metricsPublisher, times(0)).publishDurationMetric(
             any(Date.class), eq(action), anyLong());
 
-        // verify that model validation occurred for Create/Update/Delete
-        if (action == Action.Create || action == Action.Update || action == Action.Delete) {
-            verify(validator, times(1)).validateModel(
+        // verify that model validation occurred for CREATE/UPDATE/DELETE
+        if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
+            verify(validator, times(1)).validateObject(
                 any(JSONObject.class), any(InputStream.class));
         }
 
         // no re-invocation via CloudWatch should occur
         verify(scheduler, times(0)).rescheduleAfterMinutes(
-            anyString(), anyInt(), any(RequestContext.class));
+            anyString(), anyInt(), any(HandlerRequest.class));
         verify(scheduler, times(0)).cleanupCloudWatchEvents(
             any(), any());
 
@@ -546,35 +546,35 @@ public class LambdaWrapperTest {
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo( "{\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"},\"status\":\"Failed\"}"))
+            is(equalTo( "{\"operationStatus\":\"FAILED\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}}"))
         );
     }
 
     @Test
     public void testInvokeHandler_Create_SchemaValidationFailure() throws IOException {
-        testInvokeHandler_SchemaValidationFailure("create.request.json", Action.Create);
+        testInvokeHandler_SchemaValidationFailure("create.request.json", Action.CREATE);
     }
 
     @Test
     public void testInvokeHandler_Read_SchemaValidationFailure() throws IOException {
-        // TODO: Read handlers must return synchronously so this is probably a fault
-        //testReInvokeHandler_SchemaValidationFailure("read.with-request-context.request.json", Action.Read);
+        // TODO: READ handlers must return synchronously so this is probably a fault
+        //testReInvokeHandler_SchemaValidationFailure("read.with-request-context.request.json", Action.READ);
     }
 
     @Test
     public void testInvokeHandler_Update_SchemaValidationFailure() throws IOException {
-        testInvokeHandler_SchemaValidationFailure("update.request.json", Action.Update);
+        testInvokeHandler_SchemaValidationFailure("update.request.json", Action.UPDATE);
     }
 
     @Test
     public void testInvokeHandler_Delete_SchemaValidationFailure() throws IOException {
-        testInvokeHandler_SchemaValidationFailure("delete.request.json", Action.Delete);
+        testInvokeHandler_SchemaValidationFailure("delete.request.json", Action.DELETE);
     }
 
     @Test
     public void testInvokeHandler_List_SchemaValidationFailure() throws IOException {
-        // TODO: List handlers must return synchronously so this is probably a fault
-        //testInvokeHandler_SchemaValidationFailure("list.with-request-context.request.json", Action.List);
+        // TODO: LIST handlers must return synchronously so this is probably a fault
+        //testInvokeHandler_SchemaValidationFailure("list.with-request-context.request.json", Action.LIST);
     }
 
     @Test
@@ -590,7 +590,7 @@ public class LambdaWrapperTest {
         // an InProgress response is always re-scheduled.
         // If no explicit time is supplied, a 1-minute interval is used
         final ProgressEvent pe = new ProgressEvent();
-        pe.setStatus(ProgressStatus.Complete);
+        pe.setStatus(OperationStatus.SUCCESS);
         pe.setResourceModel(model);
         wrapper.setInvokeHandlerResponse(pe);
 
@@ -610,7 +610,7 @@ public class LambdaWrapperTest {
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo("{\"resourceModel\":{},\"status\":\"Complete\"}"))
+            is(equalTo("{\"operationStatus\":\"SUCCESS\",\"resourceModel\":{}}"))
         );
     }
 }

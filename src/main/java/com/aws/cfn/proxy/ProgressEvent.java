@@ -11,10 +11,10 @@ public class ProgressEvent<T> {
      * The status indicates whether the handler has reached a terminal state or
      * is still computing and requires more time to complete
      */
-    private ProgressStatus status;
+    private OperationStatus status;
 
     /**
-     *  If ProgressStatus is Failed, an error code should be provided
+     *  If OperationStatus is FAILED, an error code should be provided
      */
     private HandlerErrorCode errorCode;
 
@@ -27,7 +27,7 @@ public class ProgressEvent<T> {
 
     /**
      * The callback context is an arbitrary datum which the handler can return
-     * in an InProgress event to allow the passing through of additional state
+     * in an IN_PROGRESS event to allow the passing through of additional state
      * or metadata between subsequent retries; for example to pass through a
      * Resource identifier which can be used to continue polling for stabilization
      */

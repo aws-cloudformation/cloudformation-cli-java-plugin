@@ -1,15 +1,17 @@
 package com.aws.cfn;
 
-import com.aws.cfn.proxy.ProgressStatus;
+import com.aws.cfn.proxy.OperationStatus;
 import lombok.Data;
+
+import java.util.Map;
 
 @Data
 public class Response<T> {
     /**
-     * The status indicates whether the handler has reached a terminal state or
+     * The operationStatus indicates whether the handler has reached a terminal state or
      * is still computing and requires more time to complete
      */
-    private ProgressStatus status;
+    private OperationStatus operationStatus;
 
     /**
      * The handler can (and should) specify a contextual information message which
@@ -22,5 +24,5 @@ public class Response<T> {
      * The output resource instance populated by a READ/LIST for synchronous results
      * and by CREATE/UPDATE/DELETE for final response validation/confirmation
      */
-    private T resourceModel;
+    private Map<String, Object> resourceModel;
 }

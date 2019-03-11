@@ -2,12 +2,13 @@ package com.aws.cfn.resource;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.json.JSONObject;
-
 import java.io.IOException;
+import java.util.Map;
 
 public class Serializer {
 
@@ -36,6 +37,10 @@ public class Serializer {
         }
 
         return new JSONObject(objectMapper.writeValueAsString(modelObject));
+    }
+
+    public Map<String, Object> serializeToMap(final Object modelObject) {
+        return objectMapper.convertValue(modelObject, new TypeReference<Map<String,Object>>() {});
     }
 
     public <T> T deserialize(final Object o,
