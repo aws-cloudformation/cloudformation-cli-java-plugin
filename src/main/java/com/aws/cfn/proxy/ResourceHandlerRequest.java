@@ -18,7 +18,6 @@ public class ResourceHandlerRequest<T> {
     private String region;
     private String resourceType;
     private String resourceTypeVersion;
-    private Credentials credentials;
     private T desiredResourceState;
     private T previousResourceState;
 }

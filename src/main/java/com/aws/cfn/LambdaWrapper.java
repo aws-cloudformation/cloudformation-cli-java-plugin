@@ -7,6 +7,7 @@ import com.amazonaws.util.StringUtils;
 import com.aws.cfn.exceptions.TerminalException;
 import com.aws.cfn.injection.LambdaModule;
 import com.aws.cfn.metrics.MetricsPublisher;
+import com.aws.cfn.proxy.AmazonWebServicesClientProxy;
 import com.aws.cfn.proxy.CallbackAdapter;
 import com.aws.cfn.proxy.HandlerRequest;
 import com.aws.cfn.proxy.ProgressEvent;
@@ -174,7 +175,12 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
 
         final Date startTime = Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant());
 
+        // last mile proxy creation with passed-in credentials
+        final AmazonWebServicesClientProxy awsClientProxy = new AmazonWebServicesClientProxy(
+            request.getRequestData().getCredentials());
+
         final ProgressEvent handlerResponse = invokeHandler(
+            awsClientProxy,
             resourceHandlerRequest,
             request.getAction(),
             callbackContext);
@@ -273,7 +279,8 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
     /**
      * Implemented by the handler package as the key entry point.
      */
-    public abstract ProgressEvent<T> invokeHandler(final ResourceHandlerRequest<T> request,
+    public abstract ProgressEvent<T> invokeHandler(final AmazonWebServicesClientProxy proxy,
+                                                   final ResourceHandlerRequest<T> request,
                                                    final Action action,
                                                    final JSONObject callbackContext) throws IOException;
 
