@@ -1,21 +1,23 @@
 package com.aws.cfn.proxy;
 
-import com.amazonaws.AmazonWebServiceClient;
-import com.amazonaws.AmazonWebServiceRequest;
-import com.amazonaws.AmazonWebServiceResult;
-import com.amazonaws.ResponseMetadata;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.services.cloudformation.AmazonCloudFormation;
-import com.amazonaws.services.cloudformation.AmazonCloudFormationClient;
-import com.amazonaws.services.cloudformation.AmazonCloudFormationClientBuilder;
 import com.amazonaws.services.cloudformation.model.DescribeStackEventsRequest;
 import com.amazonaws.services.cloudformation.model.DescribeStackEventsResult;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import org.junit.Test;
 
+import java.util.ArrayList;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class AmazonWebServicesClientProxyTest {
 
@@ -27,16 +29,25 @@ public class AmazonWebServicesClientProxyTest {
 
         final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(lambdaLogger, credentials);
 
-        final DescribeStackEventsRequest request = new DescribeStackEventsRequest();
+        final DescribeStackEventsRequest request = mock(DescribeStackEventsRequest.class);
 
-        final AmazonCloudFormation client = AmazonCloudFormationClientBuilder.standard().build();
+        final DescribeStackEventsResult expectedResult = new DescribeStackEventsResult();
+        expectedResult.setStackEvents(new ArrayList<>());
+
+        final AmazonCloudFormation client = mock(AmazonCloudFormation.class);
+        when(client.describeStackEvents(any(DescribeStackEventsRequest.class))).thenReturn(expectedResult);
 
         final DescribeStackEventsResult result = proxy.injectCredentialsAndInvoke(
             request,
             client::describeStackEvents);
 
-        final DescribeStackEventsResult expectedResult = new DescribeStackEventsResult();
+        // ensure credentials are injected and then removed
+        verify(request, times(1)).setRequestCredentialsProvider(
+            any(AWSStaticCredentialsProvider.class));
+        verify(request, times(1)).setRequestCredentialsProvider(
+            eq(null));
 
+        // ensure the return type matches
         assertThat(
             result,
             is(equalTo(expectedResult))
