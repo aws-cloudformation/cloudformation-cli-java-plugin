@@ -24,9 +24,9 @@ public class AmazonWebServicesClientProxy {
         this.credentialsProvider = new AWSStaticCredentialsProvider(sessionCredentials);
     }
 
-    public <R extends AmazonWebServiceRequest, O extends AmazonWebServiceResult<ResponseMetadata>> O injectCredentialsAndInvoke(
-        final R request,
-        final AmazonWebServicesRequestFunction<R, O> requestFunction) {
+    public <RequestT extends AmazonWebServiceRequest, ResultT extends AmazonWebServiceResult<ResponseMetadata>> ResultT injectCredentialsAndInvoke(
+        final RequestT request,
+        final AmazonWebServicesRequestFunction<RequestT, ResultT> requestFunction) {
 
         request.setRequestCredentialsProvider(credentialsProvider);
 

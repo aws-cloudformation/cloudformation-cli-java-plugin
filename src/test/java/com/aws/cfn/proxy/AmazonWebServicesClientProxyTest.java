@@ -42,9 +42,9 @@ public class AmazonWebServicesClientProxyTest {
             client::describeStackEvents);
 
         // ensure credentials are injected and then removed
-        verify(request, times(1)).setRequestCredentialsProvider(
+        verify(request).setRequestCredentialsProvider(
             any(AWSStaticCredentialsProvider.class));
-        verify(request, times(1)).setRequestCredentialsProvider(
+        verify(request).setRequestCredentialsProvider(
             eq(null));
 
         // ensure the return type matches
