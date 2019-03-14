@@ -1,18 +1,22 @@
 package com.aws.cfn.proxy;
 
-import com.amazonaws.AmazonWebServiceClient;
 import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.AmazonWebServiceResult;
+import com.amazonaws.ResponseMetadata;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicSessionCredentials;
-import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.services.lambda.runtime.LambdaLogger;
 
 public class AmazonWebServicesClientProxy {
 
     private final AWSCredentialsProvider credentialsProvider;
+    private final LambdaLogger logger;
 
-    public AmazonWebServicesClientProxy(final Credentials credentials) {
+    public AmazonWebServicesClientProxy(
+        final LambdaLogger logger,
+        final Credentials credentials) {
+        this.logger = logger;
         final BasicSessionCredentials sessionCredentials = new BasicSessionCredentials(
             credentials.getAccessKeyId(),
             credentials.getSecretAccessKey(),
@@ -20,20 +24,19 @@ public class AmazonWebServicesClientProxy {
         this.credentialsProvider = new AWSStaticCredentialsProvider(sessionCredentials);
     }
 
-    public AmazonWebServiceResult injectCredentialsAndInvoke(
-        final AwsClientBuilder clientBuilder,
-        final AmazonWebServiceRequest request,
-        final AmazonWebServicesRequestFunction requestFunction) {
+    public <R extends AmazonWebServiceRequest, O extends AmazonWebServiceResult<ResponseMetadata>> O injectCredentialsAndInvoke(
+        final R request,
+        final AmazonWebServicesRequestFunction<R, O> requestFunction) {
+
+        request.setRequestCredentialsProvider(credentialsProvider);
 
         try {
-            final AmazonWebServiceClient client = (AmazonWebServiceClient)clientBuilder
-                .withCredentials(credentialsProvider)
-                .build();
-            return requestFunction.apply(client, request);
+            return requestFunction.apply(request);
         } catch (final Exception e) {
-
+            logger.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
+            throw e;
+        } finally {
+            request.setRequestCredentialsProvider(null);
         }
-
-        return null;
     }
 }

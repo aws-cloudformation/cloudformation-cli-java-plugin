@@ -177,6 +177,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
 
         // last mile proxy creation with passed-in credentials
         final AmazonWebServicesClientProxy awsClientProxy = new AmazonWebServicesClientProxy(
+            this.logger,
             request.getRequestData().getCredentials());
 
         final ProgressEvent handlerResponse = invokeHandler(
