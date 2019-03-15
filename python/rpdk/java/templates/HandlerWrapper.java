@@ -4,6 +4,7 @@ package {{ package_name }};
 import com.aws.cfn.Action;
 import com.aws.cfn.LambdaWrapper;
 import com.aws.cfn.metrics.MetricsPublisher;
+import com.aws.cfn.proxy.AmazonWebServicesClientProxy;
 import com.aws.cfn.proxy.CallbackAdapter;
 import com.aws.cfn.proxy.HandlerRequest;
 import com.aws.cfn.proxy.LoggerProxy;
@@ -47,7 +48,8 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}> {
     }
 
     @Override
-    public ProgressEvent invokeHandler(final ResourceHandlerRequest<{{ pojo_name }}> request,
+    public ProgressEvent invokeHandler(final AmazonWebServicesClientProxy proxy,
+                                       final ResourceHandlerRequest<{{ pojo_name }}> request,
                                        final Action action,
                                        final JSONObject callbackContext) {
 
@@ -59,7 +61,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}> {
 
         final BaseHandler handler = handlers.get(action);
 
-        return handler.handleRequest(request, callbackContext, loggerProxy);
+        return handler.handleRequest(proxy, request, callbackContext, loggerProxy);
     }
 
     @Override
@@ -98,7 +100,6 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}> {
             request.getRegion(),
             request.getResourceType(),
             request.getResourceTypeVersion(),
-            request.getRequestData().getCredentials(),
             desiredResourceState,
             previousResourceState
         );
