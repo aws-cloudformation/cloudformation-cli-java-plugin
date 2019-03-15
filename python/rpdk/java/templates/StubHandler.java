@@ -1,5 +1,6 @@
 package {{ package_name }};
 
+import com.aws.cfn.proxy.AmazonWebServicesClientProxy;
 import com.aws.cfn.proxy.Logger;
 import com.aws.cfn.proxy.ProgressEvent;
 import com.aws.cfn.proxy.OperationStatus;
@@ -10,6 +11,7 @@ public class {{ operation }}Handler extends BaseHandler {
 
     @Override
     public ProgressEvent handleRequest(
+        final AmazonWebServicesClientProxy proxy,
         final ResourceHandlerRequest<{{ pojo_name }}> request,
         final JSONObject callbackContext,
         final Logger logger) {

@@ -1,6 +1,7 @@
 package com.aws.cfn;
 
 import com.aws.cfn.metrics.MetricsPublisher;
+import com.aws.cfn.proxy.AmazonWebServicesClientProxy;
 import com.aws.cfn.proxy.CallbackAdapter;
 import com.aws.cfn.proxy.HandlerRequest;
 import com.aws.cfn.proxy.ProgressEvent;
@@ -45,9 +46,10 @@ public class WrapperOverride<TestModel> extends LambdaWrapper<TestModel> {
     }
 
     @Override
-    public ProgressEvent<TestModel> invokeHandler(final ResourceHandlerRequest<TestModel> request,
-                                       final Action action,
-                                       final JSONObject callbackContext) {
+    public ProgressEvent<TestModel> invokeHandler(final AmazonWebServicesClientProxy awsClientProxy,
+                                                  final ResourceHandlerRequest<TestModel> request,
+                                                  final Action action,
+                                                  final JSONObject callbackContext) {
         return invokeHandlerResponse;
     }
 
