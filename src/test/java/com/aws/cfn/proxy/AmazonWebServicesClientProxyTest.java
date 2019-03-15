@@ -8,6 +8,7 @@ import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -32,7 +33,7 @@ public class AmazonWebServicesClientProxyTest {
         final DescribeStackEventsRequest request = mock(DescribeStackEventsRequest.class);
 
         final DescribeStackEventsResult expectedResult = new DescribeStackEventsResult();
-        expectedResult.setStackEvents(new ArrayList<>());
+        expectedResult.setStackEvents(Collections.emptyList());
 
         final AmazonCloudFormation client = mock(AmazonCloudFormation.class);
         when(client.describeStackEvents(any(DescribeStackEventsRequest.class))).thenReturn(expectedResult);
