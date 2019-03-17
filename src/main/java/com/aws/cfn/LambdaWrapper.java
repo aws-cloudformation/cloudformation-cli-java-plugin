@@ -3,7 +3,6 @@ package com.aws.cfn;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
-import com.amazonaws.util.StringUtils;
 import com.aws.cfn.exceptions.TerminalException;
 import com.aws.cfn.injection.LambdaModule;
 import com.aws.cfn.metrics.MetricsPublisher;
@@ -23,11 +22,13 @@ import com.google.inject.Inject;
 import com.google.inject.Injector;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
+import software.amazon.awssdk.utils.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Date;
@@ -93,7 +94,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
             e.printStackTrace(); // for root causing - logs to LambdaLogger by default
 
             this.metricsPublisher.publishExceptionMetric(
-                Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
+                Instant.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
                 request.getAction(),
                 e);
 
@@ -130,7 +131,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
             callbackContext = requestContext.getCallbackContext();
             // If this invocation was triggered by a 're-invoke' CloudWatch Event, clean it up
             final String cloudWatchEventsRuleName = requestContext.getCloudWatchEventsRuleName();
-            if (!StringUtils.isNullOrEmpty(cloudWatchEventsRuleName)) {
+            if (!StringUtils.isBlank(cloudWatchEventsRuleName)) {
                 this.scheduler.cleanupCloudWatchEvents(
                     cloudWatchEventsRuleName,
                     requestContext.getCloudWatchEventsTargetId());
@@ -141,7 +142,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
         this.metricsPublisher.setResourceTypeName(request.getResourceType());
 
         this.metricsPublisher.publishInvocationMetric(
-            Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
+            Instant.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
             request.getAction());
 
         // for CUD actions, validate incoming model - any error is a terminal failure on the invocation
@@ -193,7 +194,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
         final Date endTime = Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant());
 
         metricsPublisher.publishDurationMetric(
-            Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
+            Instant.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
             request.getAction(),
             (endTime.getTime() - startTime.getTime()));
 

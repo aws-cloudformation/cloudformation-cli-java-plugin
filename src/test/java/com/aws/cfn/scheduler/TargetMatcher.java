@@ -1,9 +1,9 @@
 package com.aws.cfn.scheduler;
 
-import com.amazonaws.services.cloudwatchevents.model.Target;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.mockito.ArgumentMatcher;
+import software.amazon.awssdk.services.cloudwatchevents.model.Target;
 
 @Data
 @AllArgsConstructor
@@ -16,8 +16,8 @@ public class TargetMatcher implements ArgumentMatcher<Target> {
     @Override
     public boolean matches(final Target argument) {
         return
-            argument.getArn().equals(arn) &&
-            argument.getId().startsWith(id) &&
-            argument.getInput().equals(input);
+            argument.arn().equals(arn) &&
+            argument.id().startsWith(id) &&
+            argument.input().equals(input);
     }
 }

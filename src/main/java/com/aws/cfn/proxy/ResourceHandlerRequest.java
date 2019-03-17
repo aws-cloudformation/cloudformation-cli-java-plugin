@@ -1,6 +1,7 @@
 package com.aws.cfn.proxy;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -12,6 +13,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder(toBuilder = true)
 public class ResourceHandlerRequest<T> {
     private String awsAccountId;
     private String nextToken;
