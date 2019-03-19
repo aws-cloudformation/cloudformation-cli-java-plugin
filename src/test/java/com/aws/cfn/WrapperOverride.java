@@ -12,12 +12,12 @@ import com.aws.cfn.scheduler.CloudWatchScheduler;
 import com.google.inject.Inject;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.util.Map;
 
 /**
  * Test class used for testing of LambdaWrapper functionality
@@ -49,7 +49,7 @@ public class WrapperOverride<TestModel> extends LambdaWrapper<TestModel> {
     public ProgressEvent<TestModel> invokeHandler(final AmazonWebServicesClientProxy awsClientProxy,
                                                   final ResourceHandlerRequest<TestModel> request,
                                                   final Action action,
-                                                  final JSONObject callbackContext) {
+                                                  final Map<String, Object> callbackContext) {
         return invokeHandlerResponse;
     }
 

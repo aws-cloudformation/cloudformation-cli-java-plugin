@@ -7,7 +7,9 @@
   "resourceTypeVersion": "1.0",
   "requestContext": {
     "invocation": 2,
-    "callbackContext": { },
+    "callbackContext": {
+      "Test": "Value"
+    },
     "cloudWatchEventsRuleName": "reinvoke-handler-4754ac8a-623b-45fe-84bc-f5394118a8be",
     "cloudWatchEventsTargetId": "reinvoke-target-4754ac8a-623b-45fe-84bc-f5394118a8be"
   },

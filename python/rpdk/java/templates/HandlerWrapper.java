@@ -15,7 +15,6 @@ import com.aws.cfn.resource.SchemaValidator;
 import com.aws.cfn.resource.Serializer;
 import com.aws.cfn.scheduler.CloudWatchScheduler;
 import com.google.inject.Inject;
-import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,7 +50,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}> {
     public ProgressEvent invokeHandler(final AmazonWebServicesClientProxy proxy,
                                        final ResourceHandlerRequest<{{ pojo_name }}> request,
                                        final Action action,
-                                       final JSONObject callbackContext) {
+                                       final Map<String, Object> callbackContext) {
 
         final String actionName = (action == null) ? "<null>" : action.toString(); // paranoia
         if (!handlers.containsKey(action))

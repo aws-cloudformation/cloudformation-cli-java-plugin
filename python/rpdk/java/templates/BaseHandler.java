@@ -5,14 +5,15 @@ import com.aws.cfn.proxy.AmazonWebServicesClientProxy;
 import com.aws.cfn.proxy.Logger;
 import com.aws.cfn.proxy.ProgressEvent;
 import com.aws.cfn.proxy.ResourceHandlerRequest;
-import org.json.JSONObject;
+
+import java.util.Map;
 
 public abstract class BaseHandler {
 
     public abstract ProgressEvent handleRequest(
         final AmazonWebServicesClientProxy proxy,
         final ResourceHandlerRequest<{{ pojo_name }}> request,
-        final JSONObject callbackContext,
+        final Map<String, Object> callbackContext,
         final Logger logger);
 
 }

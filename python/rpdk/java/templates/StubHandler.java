@@ -5,7 +5,8 @@ import com.aws.cfn.proxy.Logger;
 import com.aws.cfn.proxy.ProgressEvent;
 import com.aws.cfn.proxy.OperationStatus;
 import com.aws.cfn.proxy.ResourceHandlerRequest;
-import org.json.JSONObject;
+
+import java.util.Map;
 
 public class {{ operation }}Handler extends BaseHandler {
 
@@ -13,7 +14,7 @@ public class {{ operation }}Handler extends BaseHandler {
     public ProgressEvent handleRequest(
         final AmazonWebServicesClientProxy proxy,
         final ResourceHandlerRequest<{{ pojo_name }}> request,
-        final JSONObject callbackContext,
+        final Map<String, Object> callbackContext,
         final Logger logger) {
 
         final ResourceModel model = request.getDesiredResourceState();

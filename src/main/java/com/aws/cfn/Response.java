@@ -1,12 +1,25 @@
 package com.aws.cfn;
 
 import com.aws.cfn.proxy.OperationStatus;
+import com.aws.cfn.proxy.HandlerErrorCode;
 import lombok.Data;
 
 import java.util.Map;
 
 @Data
-public class Response<T> {
+public class Response {
+
+    /**
+     * The bearerToken is used when reporting handler operation status back to CloudFormation
+     * via the recordHandlerProgress API
+     */
+    private String bearerToken;
+
+    /**
+     * The errorCode is used to communicate specific handler errors in the response to CloudFormation.
+     */
+    private HandlerErrorCode errorCode;
+
     /**
      * The operationStatus indicates whether the handler has reached a terminal state or
      * is still computing and requires more time to complete

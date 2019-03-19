@@ -1,0 +1,11 @@
+{
+  "invocation": 2,
+  "callbackContext": {
+    "propertyObject": {
+      "nestedProperty": "testNestedValue"
+    },
+    "propertyTwo": "testValue"
+  },
+  "cloudWatchEventsRuleName": "reinvoke-handler-4754ac8a-623b-45fe-84bc-f5394118a8be",
+  "cloudWatchEventsTargetId": "reinvoke-target-4754ac8a-623b-45fe-84bc-f5394118a8be"
+}

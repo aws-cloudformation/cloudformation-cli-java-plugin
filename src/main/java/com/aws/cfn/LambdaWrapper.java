@@ -108,7 +108,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
         } finally {
             // A response will be output on all paths, though CloudFormation will
             // not block on invoking the handlers, but rather listen for callbacks
-            writeResponse(outputStream, createProgressResponse(handlerResponse));
+            writeResponse(outputStream, createProgressResponse(handlerResponse, request.getBearerToken()));
         }
     }
 
@@ -123,7 +123,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
         final ResourceHandlerRequest resourceHandlerRequest = transform(request);
 
         RequestContext requestContext = null;
-        JSONObject callbackContext = null;
+        Map<String, Object> callbackContext = null;
 
         if (request.getRequestContext() != null) {
             requestContext = request.getRequestContext();
@@ -231,10 +231,13 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
         return handlerResponse;
     }
 
-    private Response<T> createProgressResponse(final ProgressEvent<T> progressEvent) {
-        final Response<T> response = new Response<>();
+    private Response createProgressResponse(final ProgressEvent<T> progressEvent, final String bearerToken) {
+        final Response response = new Response();
+        response.setBearerToken(bearerToken);
+        response.setErrorCode(progressEvent.getErrorCode());
         response.setMessage(progressEvent.getMessage());
         response.setOperationStatus(progressEvent.getStatus());
+        response.setErrorCode(progressEvent.getErrorCode());
         if (progressEvent.getResourceModel() != null) {
             final Map<String, Object> resourceModel = serializer.serializeToMap(progressEvent.getResourceModel());
             response.setResourceModel(resourceModel);
@@ -283,7 +286,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
     public abstract ProgressEvent<T> invokeHandler(final AmazonWebServicesClientProxy proxy,
                                                    final ResourceHandlerRequest<T> request,
                                                    final Action action,
-                                                   final JSONObject callbackContext) throws IOException;
+                                                   final Map<String, Object> callbackContext) throws IOException;
 
     /**
      * null-safe logger redirect

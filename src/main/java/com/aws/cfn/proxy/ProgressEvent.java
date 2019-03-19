@@ -2,7 +2,8 @@ package com.aws.cfn.proxy;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.json.JSONObject;
+
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -31,7 +32,7 @@ public class ProgressEvent<T> {
      * or metadata between subsequent retries; for example to pass through a
      * Resource identifier which can be used to continue polling for stabilization
      */
-    private JSONObject callbackContext;
+    private Map<String, Object> callbackContext;
 
     /**
      * A callback will be scheduled with an initial delay of no less than

@@ -23,6 +23,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+
 import java.util.Date;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -43,7 +44,7 @@ public class LambdaWrapperTest {
 
     private static final String TEST_DATA_BASE_PATH = "src/test/java/com/aws/cfn/data/%s";
 
-    private InputStream loadRequestStream(final String fileName) {
+    public static InputStream loadRequestStream(final String fileName) {
         final File file = new File(String.format(TEST_DATA_BASE_PATH, fileName));
 
         try {
@@ -89,33 +90,33 @@ public class LambdaWrapperTest {
 
         // validation failure metric should be published for final error handling
         verify(metricsPublisher, times(1)).publishExceptionMetric(
-            any(Date.class), any(), any(TerminalException.class));
+                any(Date.class), any(), any(TerminalException.class));
 
         // all metrics should be published even on terminal failure
         verify(metricsPublisher, times(1)).setResourceTypeName(
-            "AWS::Test::TestModel");
+                "AWS::Test::TestModel");
         verify(metricsPublisher, times(1)).publishInvocationMetric(
-            any(Date.class), eq(action));
+                any(Date.class), eq(action));
         verify(metricsPublisher, times(1)).publishDurationMetric(
-            any(Date.class), eq(action), anyLong());
+                any(Date.class), eq(action), anyLong());
 
         // verify that model validation occurred for CREATE/UPDATE/DELETE
         if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
             verify(validator, times(1)).validateObject(
-                any(JSONObject.class), any(InputStream.class));
+                    any(JSONObject.class), any(InputStream.class));
         }
 
         // no re-invocation via CloudWatch should occur
         verify(scheduler, times(0)).rescheduleAfterMinutes(
-            anyString(), anyInt(), any(HandlerRequest.class));
+                anyString(), anyInt(), any(HandlerRequest.class));
         verify(scheduler, times(0)).cleanupCloudWatchEvents(
-            any(), any());
+                any(), any());
 
         // verify output response
         assertThat(
-            out.toString(),
-            is(equalTo("{\"operationStatus\":\"FAILED\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}," +
-                    "\"message\":\"Handler failed to provide a response.\"}"))
+                out.toString(),
+                is(equalTo("{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}," +
+                        "\"message\":\"Handler failed to provide a response.\"}"))
         );
     }
 
@@ -173,32 +174,32 @@ public class LambdaWrapperTest {
 
         // all metrics should be published, once for a single invocation
         verify(metricsPublisher, times(1)).setResourceTypeName(
-            "AWS::Test::TestModel");
+                "AWS::Test::TestModel");
         verify(metricsPublisher, times(1)).publishInvocationMetric(
-            any(Date.class), eq(action));
+                any(Date.class), eq(action));
         verify(metricsPublisher, times(1)).publishDurationMetric(
-            any(Date.class), eq(action), anyLong());
+                any(Date.class), eq(action), anyLong());
 
         // validation failure metric should not be published
         verify(metricsPublisher, times(0)).publishExceptionMetric(
-            any(Date.class), any(), any(Exception.class));
+                any(Date.class), any(), any(Exception.class));
 
         // verify that model validation occurred for CREATE/UPDATE/DELETE
         if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
             verify(validator, times(1)).validateObject(
-                any(JSONObject.class), any(InputStream.class));
+                    any(JSONObject.class), any(InputStream.class));
         }
 
         // no re-invocation via CloudWatch should occur
         verify(scheduler, times(0)).rescheduleAfterMinutes(
-            anyString(), anyInt(), any(HandlerRequest.class));
+                anyString(), anyInt(), any(HandlerRequest.class));
         verify(scheduler, times(0)).cleanupCloudWatchEvents(
-            any(), any());
+                any(), any());
 
         // verify output response
         assertThat(
-            out.toString(),
-            is(equalTo("{\"operationStatus\":\"FAILED\",\"message\":\"Custom Fault\"}"))
+                out.toString(),
+                is(equalTo("{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"message\":\"Custom Fault\"}"))
         );
     }
 
@@ -228,7 +229,7 @@ public class LambdaWrapperTest {
     }
 
     private void testInvokeHandler_CompleteSynchronously(final String requestDataPath,
-                                                        final Action action) throws IOException {
+                                                         final Action action) throws IOException {
 
         final CallbackAdapter callbackAdapter = mock(CallbackAdapter.class);
         final MetricsPublisher metricsPublisher = mock(MetricsPublisher.class);
@@ -255,32 +256,32 @@ public class LambdaWrapperTest {
 
         // all metrics should be published, once for a single invocation
         verify(metricsPublisher, times(1)).setResourceTypeName(
-            "AWS::Test::TestModel");
+                "AWS::Test::TestModel");
         verify(metricsPublisher, times(1)).publishInvocationMetric(
-            any(Date.class), eq(action));
+                any(Date.class), eq(action));
         verify(metricsPublisher, times(1)).publishDurationMetric(
-            any(Date.class), eq(action), anyLong());
+                any(Date.class), eq(action), anyLong());
 
         // validation failure metric should not be published
         verify(metricsPublisher, times(0)).publishExceptionMetric(
-            any(Date.class), any(), any(Exception.class));
+                any(Date.class), any(), any(Exception.class));
 
         // verify that model validation occurred for CREATE/UPDATE/DELETE
         if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
             verify(validator, times(1)).validateObject(
-                any(JSONObject.class), any(InputStream.class));
+                    any(JSONObject.class), any(InputStream.class));
         }
 
         // no re-invocation via CloudWatch should occur
         verify(scheduler, times(0)).rescheduleAfterMinutes(
-            anyString(), anyInt(), any(HandlerRequest.class));
+                anyString(), anyInt(), any(HandlerRequest.class));
         verify(scheduler, times(0)).cleanupCloudWatchEvents(
-            any(), any());
+                any(), any());
 
         // verify output response
         assertThat(
-            out.toString(),
-            is(equalTo("{\"operationStatus\":\"SUCCESS\"}"))
+                out.toString(),
+                is(equalTo("{\"operationStatus\":\"SUCCESS\",\"bearerToken\":\"123456\"}"))
         );
     }
 
@@ -339,37 +340,37 @@ public class LambdaWrapperTest {
 
         // all metrics should be published, once for a single invocation
         verify(metricsPublisher, times(1)).setResourceTypeName(
-            "AWS::Test::TestModel");
+                "AWS::Test::TestModel");
         verify(metricsPublisher, times(1)).publishInvocationMetric(
-            any(Date.class), eq(action));
+                any(Date.class), eq(action));
         verify(metricsPublisher, times(1)).publishDurationMetric(
-            any(Date.class), eq(action), anyLong());
+                any(Date.class), eq(action), anyLong());
 
         // validation failure metric should not be published
         verify(metricsPublisher, times(0)).publishExceptionMetric(
-            any(Date.class), any(), any(Exception.class));
+                any(Date.class), any(), any(Exception.class));
 
         // verify that model validation occurred for CREATE/UPDATE/DELETE
         if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
             verify(validator, times(1)).validateObject(
-                any(JSONObject.class), any(InputStream.class));
+                    any(JSONObject.class), any(InputStream.class));
         }
 
         // re-invocation via CloudWatch should occur
         verify(scheduler, times(1)).rescheduleAfterMinutes(
-            anyString(), eq(0), any(HandlerRequest.class));
+                anyString(), eq(0), any(HandlerRequest.class));
 
         // this was a first invocation, so no cleanup is required
         verify(scheduler, times(0)).cleanupCloudWatchEvents(
-            any(), any());
+                any(), any());
 
         // CloudFormation should receive a callback invocation
         // TODO
 
         // verify output response
         assertThat(
-            out.toString(),
-            is(equalTo("{\"operationStatus\":\"IN_PROGRESS\",\"resourceModel\":{}}"))
+                out.toString(),
+                is(equalTo("{\"operationStatus\":\"IN_PROGRESS\",\"bearerToken\":\"123456\",\"resourceModel\":{}}"))
         );
     }
 
@@ -428,30 +429,30 @@ public class LambdaWrapperTest {
 
         // all metrics should be published, once for a single invocation
         verify(metricsPublisher, times(1)).setResourceTypeName(
-            "AWS::Test::TestModel");
+                "AWS::Test::TestModel");
         verify(metricsPublisher, times(1)).publishInvocationMetric(
-            any(Date.class), eq(action));
+                any(Date.class), eq(action));
         verify(metricsPublisher, times(1)).publishDurationMetric(
-            any(Date.class), eq(action), anyLong());
+                any(Date.class), eq(action), anyLong());
 
         // validation failure metric should not be published
         verify(metricsPublisher, times(0)).publishExceptionMetric(
-            any(Date.class), any(), any(Exception.class));
+                any(Date.class), any(), any(Exception.class));
 
         // verify that model validation occurred for CREATE/UPDATE/DELETE
         if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
             verify(validator, times(1)).validateObject(
-                any(JSONObject.class), any(InputStream.class));
+                    any(JSONObject.class), any(InputStream.class));
         }
 
         // re-invocation via CloudWatch should occur
         verify(scheduler, times(1)).rescheduleAfterMinutes(
-            anyString(), eq(0), any(HandlerRequest.class));
+                anyString(), eq(0), any(HandlerRequest.class));
 
         // this was a re-invocation, so a cleanup is required
         verify(scheduler, times(1)).cleanupCloudWatchEvents(
-            eq("reinvoke-handler-4754ac8a-623b-45fe-84bc-f5394118a8be"),
-            eq("reinvoke-target-4754ac8a-623b-45fe-84bc-f5394118a8be")
+                eq("reinvoke-handler-4754ac8a-623b-45fe-84bc-f5394118a8be"),
+                eq("reinvoke-target-4754ac8a-623b-45fe-84bc-f5394118a8be")
         );
 
         // CloudFormation should receive a callback invocation
@@ -459,14 +460,15 @@ public class LambdaWrapperTest {
 
         // verify output response
         assertThat(
-            out.toString(),
-            is(equalTo("{\"operationStatus\":\"IN_PROGRESS\",\"resourceModel\":{}}"))
+                out.toString(),
+                is(equalTo("{\"operationStatus\":\"IN_PROGRESS\",\"bearerToken\":\"123456\",\"resourceModel\":{}}"))
         );
     }
 
     @Test
     public void testReInvokeHandler_Create_InProgress() throws IOException {
         testReInvokeHandler_InProgress("create.with-request-context.request.json", Action.CREATE);
+
     }
 
     @Test
@@ -500,7 +502,7 @@ public class LambdaWrapperTest {
         final SchemaValidator validator = mock(SchemaValidator.class);
         final Serializer serializer = new Serializer();
         doThrow(ValidationException.class)
-            .when(validator).validateObject(any(JSONObject.class), any(InputStream.class));
+                .when(validator).validateObject(any(JSONObject.class), any(InputStream.class));
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator, serializer);
         final TestModel model = new TestModel();
 
@@ -516,37 +518,37 @@ public class LambdaWrapperTest {
 
         // validation failure metric should be published but no others
         verify(metricsPublisher, times(1)).publishExceptionMetric(
-            any(Date.class), eq(action), any(Exception.class));
+                any(Date.class), eq(action), any(Exception.class));
 
         // all metrics should be published, even for a single invocation
         verify(metricsPublisher, times(1)).setResourceTypeName(
-            "AWS::Test::TestModel");
+                "AWS::Test::TestModel");
         verify(metricsPublisher, times(1)).publishInvocationMetric(
-            any(Date.class), eq(action));
+                any(Date.class), eq(action));
 
         // duration metric only published when the provider handler is invoked
         verify(metricsPublisher, times(0)).publishDurationMetric(
-            any(Date.class), eq(action), anyLong());
+                any(Date.class), eq(action), anyLong());
 
         // verify that model validation occurred for CREATE/UPDATE/DELETE
         if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
             verify(validator, times(1)).validateObject(
-                any(JSONObject.class), any(InputStream.class));
+                    any(JSONObject.class), any(InputStream.class));
         }
 
         // no re-invocation via CloudWatch should occur
         verify(scheduler, times(0)).rescheduleAfterMinutes(
-            anyString(), anyInt(), any(HandlerRequest.class));
+                anyString(), anyInt(), any(HandlerRequest.class));
         verify(scheduler, times(0)).cleanupCloudWatchEvents(
-            any(), any());
+                any(), any());
 
         // CloudFormation should receive a callback invocation
         // TODO
 
         // verify output response
         assertThat(
-            out.toString(),
-            is(equalTo( "{\"operationStatus\":\"FAILED\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}}"))
+                out.toString(),
+                is(equalTo("{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}}"))
         );
     }
 
@@ -609,8 +611,8 @@ public class LambdaWrapperTest {
 
         // verify output response
         assertThat(
-            out.toString(),
-            is(equalTo("{\"operationStatus\":\"SUCCESS\",\"resourceModel\":{}}"))
+                out.toString(),
+                is(equalTo("{\"operationStatus\":\"SUCCESS\",\"bearerToken\":\"123456\",\"resourceModel\":{}}"))
         );
     }
 }

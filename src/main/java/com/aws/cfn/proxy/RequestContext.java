@@ -2,7 +2,8 @@ package com.aws.cfn.proxy;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.json.JSONObject;
+
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -15,7 +16,7 @@ public class RequestContext {
     /**
      * Custom context object to enable handlers to process re-invocation
      */
-    private JSONObject callbackContext;
+    private Map<String, Object> callbackContext;
 
     /**
      * If the request was the result of a CloudWatchEvents re-invoke trigger the
