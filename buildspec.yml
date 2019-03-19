@@ -14,11 +14,6 @@ phases:
       - >
         mvn org.apache.maven.plugins:maven-install-plugin:3.0.0-M1:install-file --batch-mode
         -Dfile=cloudformation-2.5.11-SNAPSHOT.jar
-        -DgroupId=software.amazon.awssdk
-        -DartifactId=cloudformation
-        -Dversion=2.5.11-SNAPSHOT
-        -Dpackaging=jar
-        -DgeneratePom=true
       - cd "$CODEBUILD_SRC_DIR_SCHEMA"
       - pwd
       - ls -la
