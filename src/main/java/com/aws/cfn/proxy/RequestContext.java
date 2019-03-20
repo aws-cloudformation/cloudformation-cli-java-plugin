@@ -7,7 +7,7 @@ import java.util.Map;
 
 @Data
 @NoArgsConstructor
-public class RequestContext {
+public class RequestContext<CallbackT> {
     /**
      * The number of times the handler has been invoked (including current)
      */
@@ -16,7 +16,7 @@ public class RequestContext {
     /**
      * Custom context object to enable handlers to process re-invocation
      */
-    private Map<String, Object> callbackContext;
+    private CallbackT callbackContext;
 
     /**
      * If the request was the result of a CloudWatchEvents re-invoke trigger the

@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
  */
 @Data
 @NoArgsConstructor
-public class HandlerRequest {
+public class HandlerRequest<ResourceT, CallbackT> {
     private Action action;
     private String awsAccountId;
     private String bearerToken;
@@ -17,7 +17,7 @@ public class HandlerRequest {
     private String region;
     private String resourceType;
     private String resourceTypeVersion;
-    private RequestData requestData;
+    private RequestData<ResourceT> requestData;
     private String stackId;
-    private RequestContext requestContext;
+    private RequestContext<CallbackT> requestContext;
 }

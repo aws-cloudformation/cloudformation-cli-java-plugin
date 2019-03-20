@@ -16,7 +16,7 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
      * This .ctor provided for Lambda runtime which will not automatically invoke Guice injector
      */
     public CloudFormationCallbackAdapter() {
-        final Injector injector = Guice.createInjector(new LambdaModule());
+        final Injector injector = Guice.createInjector(new LambdaModule<T>());
         this.cloudFormationClient = injector.getInstance(AmazonCloudFormation.class);
     }
 
@@ -88,7 +88,7 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
     private com.amazonaws.services.cloudformation.model.OperationStatus translate(final OperationStatus operationStatus) {
         switch (operationStatus) {
             case SUCCESS:
-                return com.amazonaws.services.cloudformation.model.OperationStatus.SUCCESS;
+                return com.amazonaws.services.cloudformation.model.OperationStatus.COMPLETE;
             case FAILED:
                 return com.amazonaws.services.cloudformation.model.OperationStatus.FAILED;
             case IN_PROGRESS:

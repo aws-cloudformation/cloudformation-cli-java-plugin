@@ -27,6 +27,7 @@ public class MetricsPublisherImpl implements MetricsPublisher {
      * This .ctor provided for Lambda runtime which will not invoke Guice injector
      */
     public MetricsPublisherImpl() {
+        @SuppressWarnings("rawtypes")
         final Injector injector = Guice.createInjector(new LambdaModule());
         this.amazonCloudWatch = injector.getInstance(AmazonCloudWatch.class);
     }
