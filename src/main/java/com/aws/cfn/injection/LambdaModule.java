@@ -10,8 +10,9 @@ import com.aws.cfn.proxy.CloudFormationCallbackAdapter;
 import com.aws.cfn.resource.SchemaValidator;
 import com.aws.cfn.resource.Validator;
 import com.google.inject.AbstractModule;
+import com.google.inject.TypeLiteral;
 
-public class LambdaModule extends AbstractModule {
+public class LambdaModule<CallbackT> extends AbstractModule {
 
     @Override
     protected void configure() {
@@ -19,7 +20,8 @@ public class LambdaModule extends AbstractModule {
         bind(AmazonCloudWatch.class).toProvider(AmazonCloudWatchProvider.class);
         bind(AmazonCloudWatchEvents.class).toProvider(AmazonCloudWatchEventsProvider.class);
         bind(MetricsPublisher.class).to(MetricsPublisherImpl.class);
-        bind(CallbackAdapter.class).to(CloudFormationCallbackAdapter.class);
+        bind(new TypeLiteral<CallbackAdapter<CallbackT>>() {})
+            .to(new TypeLiteral<CloudFormationCallbackAdapter<CallbackT>>() {});
         bind(SchemaValidator.class).to(Validator.class);
     }
 }

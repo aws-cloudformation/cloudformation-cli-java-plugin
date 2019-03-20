@@ -25,7 +25,7 @@ import java.util.Map;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class WrapperOverride<TestModel> extends LambdaWrapper<TestModel> {
+public class WrapperOverride<TestModel> extends LambdaWrapper<TestModel, Object> {
 
     /**
      * This .ctor provided for testing
@@ -46,17 +46,17 @@ public class WrapperOverride<TestModel> extends LambdaWrapper<TestModel> {
     }
 
     @Override
-    public ProgressEvent<TestModel> invokeHandler(final AmazonWebServicesClientProxy awsClientProxy,
+    public ProgressEvent<TestModel, Object> invokeHandler(final AmazonWebServicesClientProxy awsClientProxy,
                                                   final ResourceHandlerRequest<TestModel> request,
                                                   final Action action,
-                                                  final Map<String, Object> callbackContext) {
+                                                  final Object callbackContext) {
         return invokeHandlerResponse;
     }
 
-    public ProgressEvent<TestModel> invokeHandlerResponse;
+    public ProgressEvent<TestModel, Object> invokeHandlerResponse;
 
     @Override
-    protected ResourceHandlerRequest<TestModel> transform(final HandlerRequest request) throws IOException {
+    protected ResourceHandlerRequest<TestModel> transform(final HandlerRequest request) {
         return transformResponse;
     }
 

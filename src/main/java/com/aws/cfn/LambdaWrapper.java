@@ -18,9 +18,12 @@ import com.aws.cfn.resource.SchemaValidator;
 import com.aws.cfn.resource.Serializer;
 import com.aws.cfn.resource.exceptions.ValidationException;
 import com.aws.cfn.scheduler.CloudWatchScheduler;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
+import com.google.inject.Key;
+import com.google.inject.TypeLiteral;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 
@@ -33,9 +36,9 @@ import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.Map;
 
-public abstract class LambdaWrapper<T> implements RequestStreamHandler {
+public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStreamHandler {
 
-    private final CallbackAdapter callbackAdapter;
+    private final CallbackAdapter<ResourceT> callbackAdapter;
     private final MetricsPublisher metricsPublisher;
     private final CloudWatchScheduler scheduler;
     private final SchemaValidator validator;
@@ -46,8 +49,8 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
      * This .ctor provided for Lambda runtime which will not automatically invoke Guice injector
      */
     public LambdaWrapper() {
-        final Injector injector = Guice.createInjector(new LambdaModule());
-        this.callbackAdapter = injector.getInstance(CallbackAdapter.class);
+        final Injector injector = Guice.createInjector(new LambdaModule<ResourceT>());
+        this.callbackAdapter = injector.getInstance(new Key<CallbackAdapter<ResourceT>>() {});
         this.metricsPublisher = injector.getInstance(MetricsPublisher.class);
         this.scheduler = new CloudWatchScheduler();
         this.serializer = new Serializer();
@@ -58,7 +61,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
      * This .ctor provided for testing
      */
     @Inject
-    public LambdaWrapper(final CallbackAdapter callbackAdapter,
+    public LambdaWrapper(final CallbackAdapter<ResourceT> callbackAdapter,
                          final MetricsPublisher metricsPublisher,
                          final CloudWatchScheduler scheduler,
                          final SchemaValidator validator,
@@ -76,8 +79,8 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
         this.logger = context.getLogger();
         this.scheduler.setLogger(context.getLogger());
 
-        ProgressEvent handlerResponse = null;
-        HandlerRequest request = null;
+        ProgressEvent<ResourceT, CallbackT> handlerResponse = null;
+        HandlerRequest<ResourceT, CallbackT> request = null;
 
         try {
             if (inputStream == null) {
@@ -86,7 +89,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
 
             // decode the input request
             final String input = IOUtils.toString(inputStream, "UTF-8");
-            request = this.serializer.deserialize(input, HandlerRequest.class);
+            request = this.serializer.deserialize(input, new TypeReference<HandlerRequest<ResourceT, CallbackT>>() {});
             handlerResponse = processInvocation(request, context);
         } catch (final Exception e) {
             // Exceptions are wrapped as a consistent error response to the caller (i.e; CloudFormation)
@@ -97,7 +100,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
                 request.getAction(),
                 e);
 
-            handlerResponse = new ProgressEvent();
+            handlerResponse = new ProgressEvent<>();
             handlerResponse.setMessage(e.getMessage());
             handlerResponse.setStatus(OperationStatus.FAILED);
             if (request.getRequestData() != null) {
@@ -112,7 +115,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
         }
     }
 
-    public ProgressEvent processInvocation(final HandlerRequest request,
+    public ProgressEvent<ResourceT, CallbackT> processInvocation(final HandlerRequest<ResourceT, CallbackT> request,
                                            final Context context) throws IOException, TerminalException {
 
         if (request == null) {
@@ -120,10 +123,10 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
         }
 
         // transform the request object to pass to caller
-        final ResourceHandlerRequest resourceHandlerRequest = transform(request);
+        final ResourceHandlerRequest<ResourceT> resourceHandlerRequest = transform(request);
 
-        RequestContext requestContext = null;
-        Map<String, Object> callbackContext = null;
+        RequestContext<CallbackT> requestContext = null;
+        CallbackT callbackContext = null;
 
         if (request.getRequestContext() != null) {
             requestContext = request.getRequestContext();
@@ -180,7 +183,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
             this.logger,
             request.getRequestData().getCredentials());
 
-        final ProgressEvent handlerResponse = invokeHandler(
+        final ProgressEvent<ResourceT, CallbackT> handlerResponse = invokeHandler(
             awsClientProxy,
             resourceHandlerRequest,
             request.getAction(),
@@ -205,7 +208,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
         // When the handler responses IN_PROGRESS with a callback delay, we trigger a callback to re-invoke
         // the handler for the Resource type to implement stabilization checks and long-poll creation checks
         if (handlerResponse.getStatus() == OperationStatus.IN_PROGRESS) {
-            final RequestContext reinvocationContext = new RequestContext();
+            final RequestContext<CallbackT> reinvocationContext = new RequestContext<>();
 
             int counter = 1;
             if (requestContext != null) {
@@ -231,7 +234,7 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
         return handlerResponse;
     }
 
-    private Response createProgressResponse(final ProgressEvent<T> progressEvent, final String bearerToken) {
+    private Response createProgressResponse(final ProgressEvent<ResourceT, CallbackT> progressEvent, final String bearerToken) {
         final Response response = new Response();
         response.setBearerToken(bearerToken);
         response.setErrorCode(progressEvent.getErrorCode());
@@ -268,11 +271,11 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
     /**
      * Transforms the incoming request to the subset of typed models which the handler implementor needs
      * @param request   The request as passed from the caller (e.g; CloudFormation) which contains
-     *                  additional contex to inform the LambdaWrapper itself, and is not needed by the
+     *                  additional context to inform the LambdaWrapper itself, and is not needed by the
      *                  handler implementations
      * @return  A converted ResourceHandlerRequest model
      */
-    protected abstract ResourceHandlerRequest<T> transform(final HandlerRequest request) throws IOException;
+    protected abstract ResourceHandlerRequest<ResourceT> transform(final HandlerRequest<ResourceT, CallbackT> request) throws IOException;
 
     /**
      * Handler implementation should implement this method to provide the schema for validation
@@ -283,10 +286,10 @@ public abstract class LambdaWrapper<T> implements RequestStreamHandler {
     /**
      * Implemented by the handler package as the key entry point.
      */
-    public abstract ProgressEvent<T> invokeHandler(final AmazonWebServicesClientProxy proxy,
-                                                   final ResourceHandlerRequest<T> request,
+    public abstract ProgressEvent<ResourceT, CallbackT> invokeHandler(final AmazonWebServicesClientProxy proxy,
+                                                   final ResourceHandlerRequest<ResourceT> request,
                                                    final Action action,
-                                                   final Map<String, Object> callbackContext) throws IOException;
+                                                   final CallbackT callbackContext) throws IOException;
 
     /**
      * null-safe logger redirect

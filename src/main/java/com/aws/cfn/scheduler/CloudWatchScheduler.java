@@ -31,6 +31,7 @@ public class CloudWatchScheduler {
      * This .ctor provided for Lambda runtime which will not automatically invoke Guice injector
      */
     public CloudWatchScheduler() {
+        @SuppressWarnings("rawtypes")
         final Injector injector = Guice.createInjector(new LambdaModule());
         this.client = injector.getInstance(AmazonCloudWatchEvents.class);
         this.cronHelper = new CronHelper();
@@ -53,9 +54,10 @@ public class CloudWatchScheduler {
      *                          minute-granularity
      * @param handlerRequest   additional context which the handler can provide itself for re-invocation
      */
-    public void rescheduleAfterMinutes(final String functionArn,
+    public <ResourceT, CallbackT> void rescheduleAfterMinutes(
+                                       final String functionArn,
                                        final int minutesFromNow,
-                                       final HandlerRequest handlerRequest) {
+                                       final HandlerRequest<ResourceT, CallbackT> handlerRequest) {
 
         // generate a cron expression; minutes must be a positive integer
         final String cronRule = this.cronHelper.generateOneTimeCronExpression(Math.max(minutesFromNow, 1));
@@ -65,7 +67,7 @@ public class CloudWatchScheduler {
         final String targetId = String.format("reinvoke-target-%s", rescheduleId);
 
         // record the CloudWatchEvents objects for cleanup on the callback
-        final RequestContext requestContext = handlerRequest.getRequestContext();
+        final RequestContext<CallbackT> requestContext = handlerRequest.getRequestContext();
         requestContext.setCloudWatchEventsRuleName(ruleName);
         requestContext.setCloudWatchEventsTargetId(targetId);
 
