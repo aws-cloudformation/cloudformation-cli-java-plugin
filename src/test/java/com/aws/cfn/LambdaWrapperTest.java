@@ -23,7 +23,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-
 import java.util.Date;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -348,7 +347,7 @@ public class LambdaWrapperTest {
 
         // validation failure metric should not be published
         verify(metricsPublisher, times(0)).publishExceptionMetric(
-                any(Date.class), any(), any(Exception.class));
+            any(Date.class), any(), any(Exception.class));
 
         // verify that model validation occurred for CREATE/UPDATE/DELETE
         if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
