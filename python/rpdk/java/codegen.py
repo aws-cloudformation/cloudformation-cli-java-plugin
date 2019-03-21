@@ -87,6 +87,12 @@ class JavaLanguagePlugin(LanguagePlugin):
             )
             project.safewrite(path, contents)
 
+        LOG.debug("Writing callback context")
+        template = self.env.get_template("CallbackContext.java")
+        path = src / "CallbackContext.java"
+        contents = template.render(package_name=self.package_name)
+        project.safewrite(path, contents)
+
         path = src / "Configuration.java"
         LOG.debug("Writing configuration: %s", path)
         template = self.env.get_template("StubConfiguration.java")

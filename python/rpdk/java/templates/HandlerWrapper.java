@@ -21,7 +21,7 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-public final class HandlerWrapper<CallbackT> extends LambdaWrapper<{{ pojo_name }}, CallbackT> {
+public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, CallbackContext> {
 
     private final Configuration configuration = new Configuration();
     private final Map<Action, BaseHandler> handlers = new HashMap<>();
@@ -50,7 +50,7 @@ public final class HandlerWrapper<CallbackT> extends LambdaWrapper<{{ pojo_name 
     public ProgressEvent invokeHandler(final AmazonWebServicesClientProxy proxy,
                                        final ResourceHandlerRequest<{{ pojo_name }}> request,
                                        final Action action,
-                                       final CallbackT callbackContext) {
+                                       final CallbackContext callbackContext) {
 
         final String actionName = (action == null) ? "<null>" : action.toString(); // paranoia
         if (!handlers.containsKey(action))

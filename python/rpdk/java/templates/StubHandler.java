@@ -8,13 +8,13 @@ import com.aws.cfn.proxy.ResourceHandlerRequest;
 
 import java.util.Map;
 
-public class {{ operation }}Handler<CallbackT> extends BaseHandler<CallbackT> {
+public class {{ operation }}Handler extends BaseHandler<CallbackContext> {
 
     @Override
     public ProgressEvent handleRequest(
         final AmazonWebServicesClientProxy proxy,
         final ResourceHandlerRequest<{{ pojo_name }}> request,
-        final CallbackT callbackContext,
+        final CallbackContext callbackContext,
         final Logger logger) {
 
         final ResourceModel model = request.getDesiredResourceState();
