@@ -88,7 +88,7 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
     private com.amazonaws.services.cloudformation.model.OperationStatus translate(final OperationStatus operationStatus) {
         switch (operationStatus) {
             case SUCCESS:
-                return com.amazonaws.services.cloudformation.model.OperationStatus.COMPLETE;
+                return com.amazonaws.services.cloudformation.model.OperationStatus.SUCCESS;
             case FAILED:
                 return com.amazonaws.services.cloudformation.model.OperationStatus.FAILED;
             case IN_PROGRESS:
