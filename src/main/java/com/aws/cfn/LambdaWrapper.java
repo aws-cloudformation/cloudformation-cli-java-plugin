@@ -19,10 +19,9 @@ import com.aws.cfn.resource.Serializer;
 import com.aws.cfn.resource.exceptions.ValidationException;
 import com.aws.cfn.scheduler.CloudWatchScheduler;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.inject.Injector;
 import com.google.inject.Guice;
 import com.google.inject.Inject;
-import com.google.inject.Injector;
-import com.google.inject.Key;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 
@@ -33,7 +32,6 @@ import java.nio.charset.Charset;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Date;
-import java.util.Map;
 
 public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStreamHandler {
 
@@ -41,20 +39,22 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     private final MetricsPublisher metricsPublisher;
     private final CloudWatchScheduler scheduler;
     private final SchemaValidator validator;
+    private final TypeReference<HandlerRequest<ResourceT, CallbackT>> typeReference;
     protected final Serializer serializer;
     protected LambdaLogger logger;
-    protected TypeReference<HandlerRequest<ResourceT, CallbackT>> typeReference;
+
 
     /**
      * This .ctor provided for Lambda runtime which will not automatically invoke Guice injector
      */
     public LambdaWrapper() {
-        final Injector injector = Guice.createInjector(new LambdaModule<ResourceT>());
-        this.callbackAdapter = injector.getInstance(new Key<CallbackAdapter<ResourceT>>() {});
+        Injector injector = Guice.createInjector(new LambdaModule());
+        this.callbackAdapter = getCallbackAdapter();
         this.metricsPublisher = injector.getInstance(MetricsPublisher.class);
         this.scheduler = new CloudWatchScheduler();
         this.serializer = new Serializer();
         this.validator = injector.getInstance(SchemaValidator.class);
+        this.typeReference = getTypeReference();
     }
 
     /**
@@ -65,12 +65,14 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                          final MetricsPublisher metricsPublisher,
                          final CloudWatchScheduler scheduler,
                          final SchemaValidator validator,
-                         final Serializer serializer) {
+                         final Serializer serializer,
+                         final TypeReference<HandlerRequest<ResourceT, CallbackT>> typeReference) {
         this.callbackAdapter = callbackAdapter;
         this.metricsPublisher = metricsPublisher;
         this.scheduler = scheduler;
         this.serializer = serializer;
         this.validator = validator;
+        this.typeReference = typeReference;
     }
 
     public void handleRequest(final InputStream inputStream,
@@ -111,7 +113,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         } finally {
             // A response will be output on all paths, though CloudFormation will
             // not block on invoking the handlers, but rather listen for callbacks
-            writeResponse(outputStream, createProgressResponse(handlerResponse, request.getBearerToken()));
+            writeResponse(outputStream, createProgressResponse(handlerResponse));
         }
     }
 
@@ -234,22 +236,16 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         return handlerResponse;
     }
 
-    private Response createProgressResponse(final ProgressEvent<ResourceT, CallbackT> progressEvent, final String bearerToken) {
-        final Response response = new Response();
-        response.setBearerToken(bearerToken);
-        response.setErrorCode(progressEvent.getErrorCode());
+    private Response<ResourceT> createProgressResponse(final ProgressEvent<ResourceT, CallbackT> progressEvent) {
+        final Response<ResourceT> response = new Response<>();
         response.setMessage(progressEvent.getMessage());
         response.setOperationStatus(progressEvent.getStatus());
-        response.setErrorCode(progressEvent.getErrorCode());
-        if (progressEvent.getResourceModel() != null) {
-            final Map<String, Object> resourceModel = serializer.serializeToMap(progressEvent.getResourceModel());
-            response.setResourceModel(resourceModel);
-        }
+        response.setResourceModel(progressEvent.getResourceModel());
         return response;
     }
 
     private void writeResponse(final OutputStream outputStream,
-                               final Response response) throws IOException {
+                               final Response<ResourceT> response) throws IOException {
 
         final JSONObject output = this.serializer.serialize(response);
         outputStream.write(output.toString().getBytes(Charset.forName("UTF-8")));
@@ -300,4 +296,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             this.logger.log(String.format("%s\n", message));
         }
     }
+
+    protected abstract CallbackAdapter<ResourceT> getCallbackAdapter();
+
+    protected abstract TypeReference<HandlerRequest<ResourceT, CallbackT>> getTypeReference();
 }

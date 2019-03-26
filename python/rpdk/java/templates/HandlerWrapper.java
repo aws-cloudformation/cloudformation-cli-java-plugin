@@ -14,7 +14,12 @@ import com.aws.cfn.proxy.ResourceHandlerRequest;
 import com.aws.cfn.resource.SchemaValidator;
 import com.aws.cfn.resource.Serializer;
 import com.aws.cfn.scheduler.CloudWatchScheduler;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.inject.Inject;
+import com.google.inject.Injector;
+import com.google.inject.Guice;
+import com.google.inject.TypeLiteral;
+import com.google.inject.Key;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,14 +36,14 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
     }
 
     @Inject
-    public HandlerWrapper(CallbackAdapter callbackAdapter,
+    public HandlerWrapper(CallbackAdapter<{{ pojo_name }}> callbackAdapter,
                           MetricsPublisher metricsPublisher,
                           CloudWatchScheduler scheduler,
                           SchemaValidator validator,
-                          Serializer serializer) {
-        super(callbackAdapter, metricsPublisher, scheduler, validator, serializer);
+                          Serializer serializer,
+                          TypeReference<HandlerRequest<{{ pojo_name }}, CallbackContext>> typeReference) {
+        super(callbackAdapter, metricsPublisher, scheduler, validator, serializer, typeReference);
         initialiseHandlers();
-        typeReference = new TypeReference<HandlerRequest<{{ pojo_name }}, CallbackContext>>() {};
     }
 
     private void initialiseHandlers() {
@@ -70,7 +75,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
     }
 
     @Override
-    protected ResourceHandlerRequest<{{ pojo_name }}> transform(final HandlerRequest request) throws IOException {
+    protected ResourceHandlerRequest<{{ pojo_name }}> transform(final HandlerRequest<{{ pojo_name }}, CallbackContext> request) throws IOException {
         final {{ pojo_name }} desiredResourceState;
         final {{ pojo_name }} previousResourceState;
 
@@ -99,5 +104,15 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
             desiredResourceState,
             previousResourceState
         );
+    }
+    @Override
+    protected CallbackAdapter<{{ pojo_name }}> getCallbackAdapter() {
+        final Injector injector = Guice.createInjector(new HandlerModule());
+        return injector.getInstance(Key.get(new TypeLiteral<CallbackAdapter<{{ pojo_name }}>>() {}));
+    }
+
+    @Override
+    protected TypeReference<HandlerRequest<{{ pojo_name }}, CallbackContext>> getTypeReference() {
+        return new TypeReference<HandlerRequest<{{ pojo_name }}, CallbackContext>>() {};
     }
 }

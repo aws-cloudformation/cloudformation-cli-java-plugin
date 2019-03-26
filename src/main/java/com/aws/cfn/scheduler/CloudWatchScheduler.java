@@ -31,7 +31,6 @@ public class CloudWatchScheduler {
      * This .ctor provided for Lambda runtime which will not automatically invoke Guice injector
      */
     public CloudWatchScheduler() {
-        @SuppressWarnings("rawtypes")
         final Injector injector = Guice.createInjector(new LambdaModule());
         this.client = injector.getInstance(AmazonCloudWatchEvents.class);
         this.cronHelper = new CronHelper();

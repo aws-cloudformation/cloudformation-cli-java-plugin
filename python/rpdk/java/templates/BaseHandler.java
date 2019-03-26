@@ -6,8 +6,6 @@ import com.aws.cfn.proxy.Logger;
 import com.aws.cfn.proxy.ProgressEvent;
 import com.aws.cfn.proxy.ResourceHandlerRequest;
 
-import java.util.Map;
-
 public abstract class BaseHandler<CallbackT> {
 
     public abstract ProgressEvent handleRequest(

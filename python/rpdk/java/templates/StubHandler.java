@@ -6,8 +6,6 @@ import com.aws.cfn.proxy.ProgressEvent;
 import com.aws.cfn.proxy.OperationStatus;
 import com.aws.cfn.proxy.ResourceHandlerRequest;
 
-import java.util.Map;
-
 public class {{ operation }}Handler extends BaseHandler<CallbackContext> {
 
     @Override
@@ -21,7 +19,7 @@ public class {{ operation }}Handler extends BaseHandler<CallbackContext> {
 
         // TODO : put your code here
 
-        final ProgressEvent pe = new ProgressEvent();
+        final ProgressEvent<{{ pojo_name }}, CallbackContext> pe = new ProgressEvent<>();
         pe.setResourceModel(model);
         pe.setStatus(OperationStatus.SUCCESS);
         return pe;

@@ -6,7 +6,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import org.json.JSONObject;
 import java.io.IOException;
 import java.util.Map;
@@ -30,7 +29,6 @@ public class Serializer {
         objectMapper.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
         objectMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
         objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        objectMapper.registerModule(new Jdk8Module());
     }
 
     public <T> JSONObject serialize(final T modelObject) throws JsonProcessingException {

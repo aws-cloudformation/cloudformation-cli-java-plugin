@@ -3,7 +3,9 @@ package com.aws.cfn;
 import com.aws.cfn.metrics.MetricsPublisher;
 import com.aws.cfn.proxy.AmazonWebServicesClientProxy;
 import com.aws.cfn.proxy.CallbackAdapter;
+import com.aws.cfn.proxy.HandlerErrorCode;
 import com.aws.cfn.proxy.HandlerRequest;
+import com.aws.cfn.proxy.OperationStatus;
 import com.aws.cfn.proxy.ProgressEvent;
 import com.aws.cfn.proxy.ResourceHandlerRequest;
 import com.aws.cfn.resource.SchemaValidator;
@@ -35,8 +37,7 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
                            final MetricsPublisher metricsPublisher,
                            final CloudWatchScheduler scheduler,
                            final SchemaValidator validator) {
-        super(callbackAdapter, metricsPublisher, scheduler, validator, new Serializer());
-        typeReference = new TypeReference<HandlerRequest<TestModel, TestContext>>() {};
+        super(callbackAdapter, metricsPublisher, scheduler, validator, new Serializer(), new TypeReference<HandlerRequest<TestModel, TestContext>>() {});
     }
 
     @Override
@@ -61,4 +62,19 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
     }
 
     public ResourceHandlerRequest<TestModel> transformResponse;
+
+    @Override
+    protected CallbackAdapter<TestModel> getCallbackAdapter() {
+        return new CallbackAdapter<TestModel>() {
+            @Override
+            public void reportProgress(String bearerToken, HandlerErrorCode errorCode, OperationStatus operationStatus, TestModel resourceModel, String statusMessage) {
+
+            }
+        };
+    }
+
+    @Override
+    protected TypeReference<HandlerRequest<TestModel, TestContext>> getTypeReference() {
+        return new TypeReference<HandlerRequest<TestModel, TestContext>>() {};
+    }
 }

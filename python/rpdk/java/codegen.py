@@ -176,6 +176,15 @@ class JavaLanguagePlugin(LanguagePlugin):
             )
             project.overwrite(path, contents)
 
+        path = src / "HandlerModule.java"
+        LOG.debug("Writing HandlerModule")
+        template = self.env.get_template("HandlerModule.java")
+        contents = template.render(
+            package_name=self.package_name,
+            pojo_name="ResourceModel"
+        )
+        project.overwrite(path, contents)
+
         LOG.debug("Generate complete")
 
     def package(self, project):

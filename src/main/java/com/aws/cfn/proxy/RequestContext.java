@@ -3,8 +3,6 @@ package com.aws.cfn.proxy;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Map;
-
 @Data
 @NoArgsConstructor
 public class RequestContext<CallbackT> {
