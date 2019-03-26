@@ -10,11 +10,14 @@ import com.aws.cfn.proxy.OperationStatus;
 import com.aws.cfn.proxy.ProgressEvent;
 import com.aws.cfn.proxy.ResourceHandlerRequest;
 import com.aws.cfn.resource.SchemaValidator;
-import com.aws.cfn.resource.Serializer;
 import com.aws.cfn.resource.exceptions.ValidationException;
 import com.aws.cfn.scheduler.CloudWatchScheduler;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.ArgumentMatchers;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -31,6 +34,7 @@ import static org.hamcrest.core.Is.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -39,9 +43,25 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 public class LambdaWrapperTest {
 
     private static final String TEST_DATA_BASE_PATH = "src/test/java/com/aws/cfn/data/%s";
+
+    @Mock
+    private CallbackAdapter<TestModel> callbackAdapter;
+
+    @Mock
+    private MetricsPublisher metricsPublisher;
+
+    @Mock
+    private CloudWatchScheduler scheduler;
+
+    @Mock
+    private SchemaValidator validator;
+
+    @Mock
+    private ResourceHandlerRequest<TestModel> resourceHandlerRequest;
 
     public static InputStream loadRequestStream(final String fileName) {
         final File file = new File(String.format(TEST_DATA_BASE_PATH, fileName));
@@ -66,18 +86,12 @@ public class LambdaWrapperTest {
 
     private void testInvokeHandler_NullResponse(final String requestDataPath,
                                                 final Action action) throws IOException {
-        final CallbackAdapter callbackAdapter = mock(CallbackAdapter.class);
-        final MetricsPublisher metricsPublisher = mock(MetricsPublisher.class);
-        final CloudWatchScheduler scheduler = mock(CloudWatchScheduler.class);
-        final SchemaValidator validator = mock(SchemaValidator.class);
-        final Serializer serializer = new Serializer();
-        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator, serializer);
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
 
         // a null response is a terminal fault
         wrapper.setInvokeHandlerResponse(null);
 
-        final ResourceHandlerRequest<TestModel> resourceHandlerRequest = mock(ResourceHandlerRequest.class);
         when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
         wrapper.setTransformResponse(resourceHandlerRequest);
 
@@ -107,7 +121,7 @@ public class LambdaWrapperTest {
 
         // no re-invocation via CloudWatch should occur
         verify(scheduler, times(0)).rescheduleAfterMinutes(
-            anyString(), anyInt(), any(HandlerRequest.class));
+            anyString(), anyInt(), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
         verify(scheduler, times(0)).cleanupCloudWatchEvents(
             any(), any());
 
@@ -146,22 +160,15 @@ public class LambdaWrapperTest {
 
     private void testInvokeHandler_Failed(final String requestDataPath,
                                           final Action action) throws IOException {
-
-        final CallbackAdapter callbackAdapter = mock(CallbackAdapter.class);
-        final MetricsPublisher metricsPublisher = mock(MetricsPublisher.class);
-        final CloudWatchScheduler scheduler = mock(CloudWatchScheduler.class);
-        final SchemaValidator validator = mock(SchemaValidator.class);
-        final Serializer serializer = new Serializer();
-        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator, serializer);
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
 
         // explicit fault response is treated as an unsuccessful synchronous completion
-        final ProgressEvent pe = new ProgressEvent();
+        final ProgressEvent<TestModel, TestContext> pe = new ProgressEvent<>();
         pe.setMessage("Custom Fault");
         pe.setStatus(OperationStatus.FAILED);
         wrapper.setInvokeHandlerResponse(pe);
 
-        final ResourceHandlerRequest<TestModel> resourceHandlerRequest = mock(ResourceHandlerRequest.class);
         when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
         wrapper.setTransformResponse(resourceHandlerRequest);
 
@@ -191,7 +198,7 @@ public class LambdaWrapperTest {
 
         // no re-invocation via CloudWatch should occur
         verify(scheduler, times(0)).rescheduleAfterMinutes(
-            anyString(), anyInt(), any(HandlerRequest.class));
+            anyString(), anyInt(), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
         verify(scheduler, times(0)).cleanupCloudWatchEvents(
             any(), any());
 
@@ -229,22 +236,16 @@ public class LambdaWrapperTest {
 
     private void testInvokeHandler_CompleteSynchronously(final String requestDataPath,
                                                          final Action action) throws IOException {
-
-        final CallbackAdapter callbackAdapter = mock(CallbackAdapter.class);
-        final MetricsPublisher metricsPublisher = mock(MetricsPublisher.class);
-        final CloudWatchScheduler scheduler = mock(CloudWatchScheduler.class);
-        final SchemaValidator validator = mock(SchemaValidator.class);
-        final Serializer serializer = new Serializer();
-        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator, serializer);
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
 
         // if the handler responds Complete, this is treated as a successful synchronous completion
-        final ProgressEvent pe = new ProgressEvent();
+        final ProgressEvent<TestModel, TestContext> pe = new ProgressEvent<>();
         pe.setStatus(OperationStatus.SUCCESS);
         wrapper.setInvokeHandlerResponse(pe);
 
-        final ResourceHandlerRequest<TestModel> resourceHandlerRequest = mock(ResourceHandlerRequest.class);
         when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
+
         wrapper.setTransformResponse(resourceHandlerRequest);
 
         final InputStream in = loadRequestStream(requestDataPath);
@@ -273,7 +274,7 @@ public class LambdaWrapperTest {
 
         // no re-invocation via CloudWatch should occur
         verify(scheduler, times(0)).rescheduleAfterMinutes(
-            anyString(), anyInt(), any(HandlerRequest.class));
+            anyString(), anyInt(), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
         verify(scheduler, times(0)).cleanupCloudWatchEvents(
             any(), any());
 
@@ -311,23 +312,16 @@ public class LambdaWrapperTest {
 
     private void testInvokeHandler_InProgress(final String requestDataPath,
                                               final Action action) throws IOException {
-
-        final CallbackAdapter callbackAdapter = mock(CallbackAdapter.class);
-        final MetricsPublisher metricsPublisher = mock(MetricsPublisher.class);
-        final CloudWatchScheduler scheduler = mock(CloudWatchScheduler.class);
-        final SchemaValidator validator = mock(SchemaValidator.class);
-        final Serializer serializer = new Serializer();
-        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator, serializer);
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
 
         // an InProgress response is always re-scheduled.
         // If no explicit time is supplied, a 1-minute interval is used
-        final ProgressEvent pe = new ProgressEvent();
+        final ProgressEvent<TestModel, TestContext> pe = new ProgressEvent<>();
         pe.setStatus(OperationStatus.IN_PROGRESS);
         pe.setResourceModel(model);
         wrapper.setInvokeHandlerResponse(pe);
 
-        final ResourceHandlerRequest<TestModel> resourceHandlerRequest = mock(ResourceHandlerRequest.class);
         when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
         wrapper.setTransformResponse(resourceHandlerRequest);
 
@@ -357,7 +351,7 @@ public class LambdaWrapperTest {
 
         // re-invocation via CloudWatch should occur
         verify(scheduler, times(1)).rescheduleAfterMinutes(
-            anyString(), eq(0), any(HandlerRequest.class));
+            anyString(), eq(0), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
 
         // this was a first invocation, so no cleanup is required
         verify(scheduler, times(0)).cleanupCloudWatchEvents(
@@ -400,23 +394,16 @@ public class LambdaWrapperTest {
 
     private void testReInvokeHandler_InProgress(final String requestDataPath,
                                                 final Action action) throws IOException {
-
-        final CallbackAdapter callbackAdapter = mock(CallbackAdapter.class);
-        final MetricsPublisher metricsPublisher = mock(MetricsPublisher.class);
-        final CloudWatchScheduler scheduler = mock(CloudWatchScheduler.class);
-        final SchemaValidator validator = mock(SchemaValidator.class);
-        final Serializer serializer = new Serializer();
-        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator, serializer);
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
 
         // an InProgress response is always re-scheduled.
         // If no explicit time is supplied, a 1-minute interval is used
-        final ProgressEvent pe = new ProgressEvent();
+        final ProgressEvent<TestModel, TestContext> pe = new ProgressEvent<>();
         pe.setStatus(OperationStatus.IN_PROGRESS);
         pe.setResourceModel(model);
         wrapper.setInvokeHandlerResponse(pe);
 
-        final ResourceHandlerRequest<TestModel> resourceHandlerRequest = mock(ResourceHandlerRequest.class);
         when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
         wrapper.setTransformResponse(resourceHandlerRequest);
 
@@ -446,7 +433,7 @@ public class LambdaWrapperTest {
 
         // re-invocation via CloudWatch should occur
         verify(scheduler, times(1)).rescheduleAfterMinutes(
-            anyString(), eq(0), any(HandlerRequest.class));
+            anyString(), eq(0), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
 
         // this was a re-invocation, so a cleanup is required
         verify(scheduler, times(1)).cleanupCloudWatchEvents(
@@ -493,18 +480,11 @@ public class LambdaWrapperTest {
 
     private void testInvokeHandler_SchemaValidationFailure(final String requestDataPath,
                                                            final Action action) throws IOException {
-
-        final CallbackAdapter callbackAdapter = mock(CallbackAdapter.class);
-        final MetricsPublisher metricsPublisher = mock(MetricsPublisher.class);
-        final CloudWatchScheduler scheduler = mock(CloudWatchScheduler.class);
-        final SchemaValidator validator = mock(SchemaValidator.class);
-        final Serializer serializer = new Serializer();
         doThrow(ValidationException.class)
                 .when(validator).validateObject(any(JSONObject.class), any(InputStream.class));
-        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator, serializer);
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
 
-        final ResourceHandlerRequest<TestModel> resourceHandlerRequest = mock(ResourceHandlerRequest.class);
         when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
         wrapper.setTransformResponse(resourceHandlerRequest);
 
@@ -536,7 +516,7 @@ public class LambdaWrapperTest {
 
         // no re-invocation via CloudWatch should occur
         verify(scheduler, times(0)).rescheduleAfterMinutes(
-            anyString(), anyInt(), any(HandlerRequest.class));
+            anyString(), anyInt(), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
         verify(scheduler, times(0)).cleanupCloudWatchEvents(
             any(), any());
 
@@ -579,22 +559,16 @@ public class LambdaWrapperTest {
 
     @Test
     public void testInvokeHandler_WithMalformedRequest() throws IOException {
-        final CallbackAdapter callbackAdapter = mock(CallbackAdapter.class);
-        final MetricsPublisher metricsPublisher = mock(MetricsPublisher.class);
-        final CloudWatchScheduler scheduler = mock(CloudWatchScheduler.class);
-        final SchemaValidator validator = mock(SchemaValidator.class);
-        final Serializer serializer = new Serializer();
-        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator, serializer);
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
 
         // an InProgress response is always re-scheduled.
         // If no explicit time is supplied, a 1-minute interval is used
-        final ProgressEvent pe = new ProgressEvent();
+        final ProgressEvent<TestModel, TestContext> pe = new ProgressEvent<>();
         pe.setStatus(OperationStatus.SUCCESS);
         pe.setResourceModel(model);
         wrapper.setInvokeHandlerResponse(pe);
 
-        final ResourceHandlerRequest<TestModel> resourceHandlerRequest = mock(ResourceHandlerRequest.class);
         when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
         wrapper.setTransformResponse(resourceHandlerRequest);
 

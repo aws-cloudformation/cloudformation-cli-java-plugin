@@ -38,6 +38,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
                           Serializer serializer) {
         super(callbackAdapter, metricsPublisher, scheduler, validator, serializer);
         initialiseHandlers();
+        typeReference = new TypeReference<HandlerRequest<{{ pojo_name }}, CallbackContext>>() {};
     }
 
     private void initialiseHandlers() {
@@ -76,9 +77,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
         if (request != null &&
             request.getRequestData() != null &&
             request.getRequestData().getResourceProperties() != null) {
-            desiredResourceState = this.serializer.deserialize(
-                request.getRequestData().getResourceProperties(),
-                {{ pojo_name }}.class);
+            desiredResourceState = request.getRequestData().getResourceProperties();
         } else {
             desiredResourceState = null;
         }
@@ -86,9 +85,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
         if (request != null &&
             request.getRequestData() != null &&
             request.getRequestData().getPreviousResourceProperties() != null) {
-            previousResourceState = this.serializer.deserialize(
-                request.getRequestData().getPreviousResourceProperties(),
-                {{ pojo_name }}.class);
+            previousResourceState = request.getRequestData().getPreviousResourceProperties();
         } else {
             previousResourceState = null;
         }

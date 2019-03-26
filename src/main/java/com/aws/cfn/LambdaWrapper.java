@@ -23,7 +23,6 @@ import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Key;
-import com.google.inject.TypeLiteral;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 
@@ -44,6 +43,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     private final SchemaValidator validator;
     protected final Serializer serializer;
     protected LambdaLogger logger;
+    protected TypeReference<HandlerRequest<ResourceT, CallbackT>> typeReference;
 
     /**
      * This .ctor provided for Lambda runtime which will not automatically invoke Guice injector
@@ -89,7 +89,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
             // decode the input request
             final String input = IOUtils.toString(inputStream, "UTF-8");
-            request = this.serializer.deserialize(input, new TypeReference<HandlerRequest<ResourceT, CallbackT>>() {});
+            request = this.serializer.deserialize(input, typeReference);
             handlerResponse = processInvocation(request, context);
         } catch (final Exception e) {
             // Exceptions are wrapped as a consistent error response to the caller (i.e; CloudFormation)
@@ -125,12 +125,11 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // transform the request object to pass to caller
         final ResourceHandlerRequest<ResourceT> resourceHandlerRequest = transform(request);
 
-        RequestContext<CallbackT> requestContext = null;
-        CallbackT callbackContext = null;
+        final RequestContext<CallbackT> requestContext = request.getRequestContext();
+        final boolean hasRequestContext = requestContext != null;
+        final CallbackT callbackContext = hasRequestContext ? requestContext.getCallbackContext() : null;
 
-        if (request.getRequestContext() != null) {
-            requestContext = request.getRequestContext();
-            callbackContext = requestContext.getCallbackContext();
+        if (hasRequestContext) {
             // If this invocation was triggered by a 're-invoke' CloudWatch Event, clean it up
             final String cloudWatchEventsRuleName = requestContext.getCloudWatchEventsRuleName();
             if (!StringUtils.isNullOrEmpty(cloudWatchEventsRuleName)) {
@@ -138,6 +137,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                     cloudWatchEventsRuleName,
                     requestContext.getCloudWatchEventsTargetId());
             }
+
         }
 
         // MetricsPublisher is initialised with the resource type name for metrics namespace
@@ -211,7 +211,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             final RequestContext<CallbackT> reinvocationContext = new RequestContext<>();
 
             int counter = 1;
-            if (requestContext != null) {
+            if (hasRequestContext) {
                 counter += requestContext.getInvocation();
             }
             reinvocationContext.setInvocation(counter);

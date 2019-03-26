@@ -9,15 +9,14 @@ import com.aws.cfn.proxy.ResourceHandlerRequest;
 import com.aws.cfn.resource.SchemaValidator;
 import com.aws.cfn.resource.Serializer;
 import com.aws.cfn.scheduler.CloudWatchScheduler;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.inject.Inject;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.util.Map;
 
 /**
  * Test class used for testing of LambdaWrapper functionality
@@ -25,18 +24,19 @@ import java.util.Map;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class WrapperOverride<TestModel> extends LambdaWrapper<TestModel, Object> {
+public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
+
 
     /**
      * This .ctor provided for testing
      */
     @Inject
-    public WrapperOverride(final CallbackAdapter callbackAdapter,
+    public WrapperOverride(final CallbackAdapter<TestModel> callbackAdapter,
                            final MetricsPublisher metricsPublisher,
                            final CloudWatchScheduler scheduler,
-                           final SchemaValidator validator,
-                           final Serializer serializer) {
-        super(callbackAdapter, metricsPublisher, scheduler, validator, serializer);
+                           final SchemaValidator validator) {
+        super(callbackAdapter, metricsPublisher, scheduler, validator, new Serializer());
+        typeReference = new TypeReference<HandlerRequest<TestModel, TestContext>>() {};
     }
 
     @Override
@@ -46,17 +46,17 @@ public class WrapperOverride<TestModel> extends LambdaWrapper<TestModel, Object>
     }
 
     @Override
-    public ProgressEvent<TestModel, Object> invokeHandler(final AmazonWebServicesClientProxy awsClientProxy,
+    public ProgressEvent<TestModel, TestContext> invokeHandler(final AmazonWebServicesClientProxy awsClientProxy,
                                                   final ResourceHandlerRequest<TestModel> request,
                                                   final Action action,
-                                                  final Object callbackContext) {
+                                                  final TestContext callbackContext) {
         return invokeHandlerResponse;
     }
 
-    public ProgressEvent<TestModel, Object> invokeHandlerResponse;
+    public ProgressEvent<TestModel, TestContext> invokeHandlerResponse;
 
     @Override
-    protected ResourceHandlerRequest<TestModel> transform(final HandlerRequest request) {
+    protected ResourceHandlerRequest<TestModel> transform(final HandlerRequest<TestModel, TestContext> request) {
         return transformResponse;
     }
 
