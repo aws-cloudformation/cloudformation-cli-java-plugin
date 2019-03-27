@@ -52,4 +52,9 @@ public class Serializer {
                              final Class<T> valueType) throws IOException {
         return this.objectMapper.readValue(s, valueType);
     }
+
+    public <T> T deserialize(final String s,
+                             final TypeReference<?> reference) throws IOException {
+        return this.objectMapper.readValue(s, reference);
+    }
 }

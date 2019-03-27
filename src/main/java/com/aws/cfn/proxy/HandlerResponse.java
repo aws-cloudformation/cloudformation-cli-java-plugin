@@ -9,12 +9,12 @@ import lombok.NoArgsConstructor;
  */
 @Data
 @NoArgsConstructor
-public class HandlerResponse<T> {
+public class HandlerResponse<ResourceT> {
     private String bearerToken;
     private String errorCode;
     private String message;
     private String nextToken;
     private OperationStatus operationStatus;
-    private ResponseData<T> responseData;
+    private ResponseData<ResourceT> responseData;
     private StabilizationData stabilizationData;
 }

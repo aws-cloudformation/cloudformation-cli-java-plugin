@@ -2,26 +2,14 @@ package com.aws.cfn.proxy;
 
 import com.amazonaws.services.cloudformation.AmazonCloudFormation;
 import com.amazonaws.services.cloudformation.model.RecordHandlerProgressRequest;
-import com.aws.cfn.injection.LambdaModule;
-import com.google.inject.Guice;
 import com.google.inject.Inject;
-import com.google.inject.Injector;
 import org.json.JSONObject;
 
 public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
 
     private final AmazonCloudFormation cloudFormationClient;
-
     /**
-     * This .ctor provided for Lambda runtime which will not automatically invoke Guice injector
-     */
-    public CloudFormationCallbackAdapter() {
-        final Injector injector = Guice.createInjector(new LambdaModule());
-        this.cloudFormationClient = injector.getInstance(AmazonCloudFormation.class);
-    }
-
-    /**
-     * This .ctor provided for testing
+     * This .ctor provided for injection
      */
     @Inject
     public CloudFormationCallbackAdapter(final AmazonCloudFormation cloudFormationClient) {

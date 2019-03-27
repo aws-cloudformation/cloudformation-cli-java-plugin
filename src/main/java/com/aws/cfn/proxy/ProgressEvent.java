@@ -2,11 +2,12 @@ package com.aws.cfn.proxy;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.json.JSONObject;
+
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
-public class ProgressEvent<T> {
+public class ProgressEvent<ResourceT, CallbackT> {
     /**
      * The status indicates whether the handler has reached a terminal state or
      * is still computing and requires more time to complete
@@ -31,7 +32,7 @@ public class ProgressEvent<T> {
      * or metadata between subsequent retries; for example to pass through a
      * Resource identifier which can be used to continue polling for stabilization
      */
-    private JSONObject callbackContext;
+    private CallbackT callbackContext;
 
     /**
      * A callback will be scheduled with an initial delay of no less than
@@ -44,5 +45,5 @@ public class ProgressEvent<T> {
      * The output resource instance populated by a READ/LIST for synchronous results
      * and by CREATE/UPDATE/DELETE for final response validation/confirmation
      */
-    private T resourceModel;
+    private ResourceT resourceModel;
 }

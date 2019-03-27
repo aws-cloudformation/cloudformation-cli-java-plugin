@@ -2,11 +2,10 @@ package com.aws.cfn.proxy;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.json.JSONObject;
 
 @Data
 @NoArgsConstructor
-public class RequestContext {
+public class RequestContext<CallbackT> {
     /**
      * The number of times the handler has been invoked (including current)
      */
@@ -15,7 +14,7 @@ public class RequestContext {
     /**
      * Custom context object to enable handlers to process re-invocation
      */
-    private JSONObject callbackContext;
+    private CallbackT callbackContext;
 
     /**
      * If the request was the result of a CloudWatchEvents re-invoke trigger the
