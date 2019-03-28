@@ -1,10 +1,15 @@
 package com.aws.cfn.scheduler;
 
+import com.aws.cfn.TestContext;
+import com.aws.cfn.TestModel;
 import com.aws.cfn.proxy.HandlerRequest;
 import com.aws.cfn.proxy.RequestContext;
 import junit.framework.TestCase;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 import software.amazon.awssdk.services.cloudwatchevents.CloudWatchEventsAsyncClient;
 import software.amazon.awssdk.services.cloudwatchevents.model.DeleteRuleRequest;
 import software.amazon.awssdk.services.cloudwatchevents.model.RemoveTargetsRequest;
@@ -21,7 +26,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 public class CloudWatchSchedulerTest extends TestCase {
+
+    @Mock
+    private RequestContext<TestContext> requestContext;
 
     private static final String FUNCTION_ARN = "arn:aws:lambda:region:account-id:function:function-name";
 
@@ -79,9 +88,8 @@ public class CloudWatchSchedulerTest extends TestCase {
         when(cronHelper.generateOneTimeCronExpression(1))
             .thenReturn("cron(41 14 31 10 ? 2019)");
         final CloudWatchScheduler scheduler = new CloudWatchScheduler(client, cronHelper);
-        final HandlerRequest request = new HandlerRequest();
+        final HandlerRequest<TestModel, TestContext> request = new HandlerRequest<>();
 
-        final RequestContext requestContext = mock(RequestContext.class);
         request.setRequestContext(requestContext);
 
         // minutesFromNow will be set to a floor of '1' for cron generation

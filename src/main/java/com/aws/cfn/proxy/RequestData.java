@@ -7,11 +7,11 @@ import java.util.Map;
 
 @Data
 @NoArgsConstructor
-public class RequestData {
+public class RequestData<ResourceT> {
     private Credentials credentials;
     private String logicalResourceId;
-    private Map<String, Object> resourceProperties;
-    private Map<String, Object> previousResourceProperties;
+    private ResourceT resourceProperties;
+    private ResourceT previousResourceProperties;
     private Map<String, String> systemTags;
     private Map<String, String> stackTags;
     private Map<String, String> previousStackTags;

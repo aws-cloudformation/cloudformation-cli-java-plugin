@@ -21,7 +21,7 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
     }
 
     /**
-     * This .ctor provided for testing
+     * This .ctor provided for injection
      */
     @Inject
     public CloudFormationCallbackAdapter(final CloudFormationAsyncClient cloudFormationClient) {
