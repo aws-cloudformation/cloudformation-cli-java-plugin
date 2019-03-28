@@ -113,7 +113,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         } finally {
             // A response will be output on all paths, though CloudFormation will
             // not block on invoking the handlers, but rather listen for callbacks
-            writeResponse(outputStream, createProgressResponse(handlerResponse));
+            writeResponse(outputStream, createProgressResponse(handlerResponse, request.getBearerToken()));
         }
     }
 
@@ -236,11 +236,12 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         return handlerResponse;
     }
 
-    private Response<ResourceT> createProgressResponse(final ProgressEvent<ResourceT, CallbackT> progressEvent) {
+    private Response<ResourceT> createProgressResponse(final ProgressEvent<ResourceT, CallbackT> progressEvent, final String bearerToken) {
         final Response<ResourceT> response = new Response<>();
         response.setMessage(progressEvent.getMessage());
         response.setOperationStatus(progressEvent.getStatus());
         response.setResourceModel(progressEvent.getResourceModel());
+        response.setBearerToken(bearerToken);
         return response;
     }
 
