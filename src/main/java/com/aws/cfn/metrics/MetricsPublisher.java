@@ -2,21 +2,21 @@ package com.aws.cfn.metrics;
 
 import com.aws.cfn.Action;
 
-import java.util.Date;
+import java.time.Instant;
 
 public interface MetricsPublisher {
 
     String getResourceTypeName();
     void setResourceTypeName(String resourceTypeName);
 
-    void publishExceptionMetric(final Date timestamp,
+    void publishExceptionMetric(final Instant timestamp,
                                 final Action action,
                                 final Exception e);
 
-    void publishInvocationMetric(final Date timestamp,
+    void publishInvocationMetric(final Instant timestamp,
                                  final Action action);
 
-    void publishDurationMetric(final Date timestamp,
+    void publishDurationMetric(final Instant timestamp,
                                final Action action,
                                long milliseconds);
 }

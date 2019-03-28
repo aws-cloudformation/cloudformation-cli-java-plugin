@@ -1,10 +1,10 @@
 package com.aws.cfn.scheduler;
 
-import com.amazonaws.services.cloudwatchevents.model.PutTargetsRequest;
-import com.amazonaws.services.cloudwatchevents.model.Target;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.mockito.ArgumentMatcher;
+import software.amazon.awssdk.services.cloudwatchevents.model.PutTargetsRequest;
+import software.amazon.awssdk.services.cloudwatchevents.model.Target;
 
 import java.util.List;
 
@@ -18,7 +18,7 @@ public class PutTargetsRequestMatcher implements ArgumentMatcher<PutTargetsReque
     @Override
     public boolean matches(final PutTargetsRequest argument) {
         return
-            argument.getRule().startsWith(rule) &&
-            targetArgumentMatcher.matches(argument.getTargets());
+            argument.rule().startsWith(rule) &&
+            targetArgumentMatcher.matches(argument.targets());
     }
 }

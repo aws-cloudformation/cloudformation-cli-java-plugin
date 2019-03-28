@@ -1,25 +1,25 @@
 package com.aws.cfn.metrics;
 
-import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
-import com.amazonaws.services.cloudwatch.model.Dimension;
-import com.amazonaws.services.cloudwatch.model.MetricDatum;
-import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
 import com.aws.cfn.Action;
 import com.aws.cfn.injection.LambdaModule;
 import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
+import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
+import software.amazon.awssdk.services.cloudwatch.model.Dimension;
+import software.amazon.awssdk.services.cloudwatch.model.MetricDatum;
+import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataRequest;
+import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
 
+import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class MetricsPublisherImpl implements MetricsPublisher {
 
-    private final AmazonCloudWatch amazonCloudWatch;
+    private final CloudWatchAsyncClient client;
     private String resourceNamespace;
     private String resourceTypeName;
 
@@ -28,16 +28,16 @@ public class MetricsPublisherImpl implements MetricsPublisher {
      */
     public MetricsPublisherImpl() {
         final Injector injector = Guice.createInjector(new LambdaModule());
-        this.amazonCloudWatch = injector.getInstance(AmazonCloudWatch.class);
+        this.client = injector.getInstance(CloudWatchAsyncClient.class);
     }
 
     /**
      * This .ctor provided for testing
-     * @param amazonCloudWatch
+     * @param client
      */
     @Inject
-    public MetricsPublisherImpl(final AmazonCloudWatch amazonCloudWatch) {
-        this.amazonCloudWatch = amazonCloudWatch;
+    public MetricsPublisherImpl(final CloudWatchAsyncClient client) {
+        this.client = client;
     }
 
     public String getResourceTypeName() {
@@ -49,7 +49,7 @@ public class MetricsPublisherImpl implements MetricsPublisher {
         this.resourceNamespace = resourceTypeName.replace("::", "/");
     }
 
-    public void publishExceptionMetric(final Date timestamp,
+    public void publishExceptionMetric(final Instant timestamp,
                                        final Action action,
                                        final Exception e) {
         final Map<String, String> dimensions = new HashMap<>();
@@ -59,12 +59,12 @@ public class MetricsPublisherImpl implements MetricsPublisher {
 
         publishMetric(Metrics.METRIC_NAME_HANDLER_EXCEPTION,
             dimensions,
-            StandardUnit.Count,
+            StandardUnit.COUNT,
             1.0,
             timestamp);
     }
 
-    public void publishInvocationMetric(final Date timestamp,
+    public void publishInvocationMetric(final Instant timestamp,
                                         final Action action) {
         final Map<String, String> dimensions = new HashMap<>();
         dimensions.put(Metrics.DIMENSION_KEY_ACTION_TYPE, action.name());
@@ -73,12 +73,12 @@ public class MetricsPublisherImpl implements MetricsPublisher {
         publishMetric(
             Metrics.METRIC_NAME_HANDLER_INVOCATION_COUNT,
             dimensions,
-            StandardUnit.Count,
+            StandardUnit.COUNT,
             1.0,
             timestamp);
     }
 
-    public void publishDurationMetric(final Date timestamp,
+    public void publishDurationMetric(final Instant timestamp,
                                       final Action action,
                                       final long milliseconds) {
         final Map<String, String> dimensions = new HashMap<>();
@@ -88,7 +88,7 @@ public class MetricsPublisherImpl implements MetricsPublisher {
         publishMetric(
             Metrics.METRIC_NAME_HANDLER_DURATION,
             dimensions,
-            StandardUnit.Milliseconds,
+            StandardUnit.MILLISECONDS,
             (double)milliseconds,
             timestamp);
     }
@@ -97,27 +97,30 @@ public class MetricsPublisherImpl implements MetricsPublisher {
                                final Map<String, String> dimensionData,
                                final StandardUnit unit,
                                final Double value,
-                               final Date timestamp) {
+                               final Instant timestamp) {
 
         final List<Dimension> dimensions = new ArrayList<>();
         for (final Map.Entry<String, String> kvp: dimensionData.entrySet()) {
-            final Dimension dimension = new Dimension()
-                .withName(kvp.getKey())
-                .withValue(kvp.getValue());
+            final Dimension dimension = Dimension.builder()
+                .name(kvp.getKey())
+                .value(kvp.getValue())
+                .build();
             dimensions.add(dimension);
         }
 
-        final MetricDatum metricDatum = new MetricDatum()
-            .withMetricName(metricName)
-            .withUnit(unit)
-            .withValue(value)
-            .withDimensions(dimensions)
-            .withTimestamp(timestamp);
+        final MetricDatum metricDatum = MetricDatum.builder()
+            .metricName(metricName)
+            .unit(unit)
+            .value(value)
+            .dimensions(dimensions)
+            .timestamp(timestamp)
+            .build();
 
-        final PutMetricDataRequest putMetricDataRequest = new PutMetricDataRequest()
-            .withNamespace(String.format("%s/%s", Metrics.METRIC_NAMESPACE_ROOT, resourceNamespace))
-            .withMetricData(metricDatum);
+        final PutMetricDataRequest putMetricDataRequest = PutMetricDataRequest.builder()
+            .namespace(String.format("%s/%s", Metrics.METRIC_NAMESPACE_ROOT, resourceNamespace))
+            .metricData(metricDatum)
+            .build();
 
-        amazonCloudWatch.putMetricData(putMetricDataRequest);
+        client.putMetricData(putMetricDataRequest);
     }
 }

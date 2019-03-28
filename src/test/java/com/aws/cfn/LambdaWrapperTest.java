@@ -26,7 +26,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Date;
+import java.time.Instant;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -103,15 +103,15 @@ public class LambdaWrapperTest {
 
         // validation failure metric should be published for final error handling
         verify(metricsPublisher, times(1)).publishExceptionMetric(
-            any(Date.class), any(), any(TerminalException.class));
+            any(Instant.class), any(), any(TerminalException.class));
 
         // all metrics should be published even on terminal failure
         verify(metricsPublisher, times(1)).setResourceTypeName(
             "AWS::Test::TestModel");
         verify(metricsPublisher, times(1)).publishInvocationMetric(
-            any(Date.class), eq(action));
+            any(Instant.class), eq(action));
         verify(metricsPublisher, times(1)).publishDurationMetric(
-            any(Date.class), eq(action), anyLong());
+            any(Instant.class), eq(action), anyLong());
 
         // verify that model validation occurred for CREATE/UPDATE/DELETE
         if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
@@ -182,13 +182,13 @@ public class LambdaWrapperTest {
         verify(metricsPublisher, times(1)).setResourceTypeName(
             "AWS::Test::TestModel");
         verify(metricsPublisher, times(1)).publishInvocationMetric(
-            any(Date.class), eq(action));
+            any(Instant.class), eq(action));
         verify(metricsPublisher, times(1)).publishDurationMetric(
-            any(Date.class), eq(action), anyLong());
+            any(Instant.class), eq(action), anyLong());
 
         // validation failure metric should not be published
         verify(metricsPublisher, times(0)).publishExceptionMetric(
-            any(Date.class), any(), any(Exception.class));
+            any(Instant.class), any(), any(Exception.class));
 
         // verify that model validation occurred for CREATE/UPDATE/DELETE
         if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
@@ -258,13 +258,13 @@ public class LambdaWrapperTest {
         verify(metricsPublisher, times(1)).setResourceTypeName(
             "AWS::Test::TestModel");
         verify(metricsPublisher, times(1)).publishInvocationMetric(
-            any(Date.class), eq(action));
+            any(Instant.class), eq(action));
         verify(metricsPublisher, times(1)).publishDurationMetric(
-            any(Date.class), eq(action), anyLong());
+            any(Instant.class), eq(action), anyLong());
 
         // validation failure metric should not be published
         verify(metricsPublisher, times(0)).publishExceptionMetric(
-            any(Date.class), any(), any(Exception.class));
+            any(Instant.class), any(), any(Exception.class));
 
         // verify that model validation occurred for CREATE/UPDATE/DELETE
         if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
@@ -335,13 +335,13 @@ public class LambdaWrapperTest {
         verify(metricsPublisher, times(1)).setResourceTypeName(
             "AWS::Test::TestModel");
         verify(metricsPublisher, times(1)).publishInvocationMetric(
-            any(Date.class), eq(action));
+            any(Instant.class), eq(action));
         verify(metricsPublisher, times(1)).publishDurationMetric(
-            any(Date.class), eq(action), anyLong());
+            any(Instant.class), eq(action), anyLong());
 
         // validation failure metric should not be published
         verify(metricsPublisher, times(0)).publishExceptionMetric(
-            any(Date.class), any(), any(Exception.class));
+            any(Instant.class), any(), any(Exception.class));
 
         // verify that model validation occurred for CREATE/UPDATE/DELETE
         if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
@@ -417,13 +417,13 @@ public class LambdaWrapperTest {
         verify(metricsPublisher, times(1)).setResourceTypeName(
             "AWS::Test::TestModel");
         verify(metricsPublisher, times(1)).publishInvocationMetric(
-            any(Date.class), eq(action));
+            any(Instant.class), eq(action));
         verify(metricsPublisher, times(1)).publishDurationMetric(
-            any(Date.class), eq(action), anyLong());
+            any(Instant.class), eq(action), anyLong());
 
         // validation failure metric should not be published
         verify(metricsPublisher, times(0)).publishExceptionMetric(
-            any(Date.class), any(), any(Exception.class));
+            any(Instant.class), any(), any(Exception.class));
 
         // verify that model validation occurred for CREATE/UPDATE/DELETE
         if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
@@ -496,17 +496,17 @@ public class LambdaWrapperTest {
 
         // validation failure metric should be published but no others
         verify(metricsPublisher, times(1)).publishExceptionMetric(
-            any(Date.class), eq(action), any(Exception.class));
+            any(Instant.class), eq(action), any(Exception.class));
 
         // all metrics should be published, even for a single invocation
         verify(metricsPublisher, times(1)).setResourceTypeName(
             "AWS::Test::TestModel");
         verify(metricsPublisher, times(1)).publishInvocationMetric(
-            any(Date.class), eq(action));
+            any(Instant.class), eq(action));
 
         // duration metric only published when the provider handler is invoked
         verify(metricsPublisher, times(0)).publishDurationMetric(
-            any(Date.class), eq(action), anyLong());
+            any(Instant.class), eq(action), anyLong());
 
         // verify that model validation occurred for CREATE/UPDATE/DELETE
         if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {

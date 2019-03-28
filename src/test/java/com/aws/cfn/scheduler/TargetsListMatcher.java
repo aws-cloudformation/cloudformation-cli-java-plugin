@@ -1,9 +1,9 @@
 package com.aws.cfn.scheduler;
 
-import com.amazonaws.services.cloudwatchevents.model.Target;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.mockito.ArgumentMatcher;
+import software.amazon.awssdk.services.cloudwatchevents.model.Target;
 
 import java.util.List;
 
