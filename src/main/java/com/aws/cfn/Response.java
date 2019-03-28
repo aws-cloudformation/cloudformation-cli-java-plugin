@@ -9,6 +9,17 @@ import java.util.Map;
 @Data
 public class Response<ResourceT> {
     /**
+     * The bearerToken is used to report progress back to CloudFormation and is passed
+     * back to CloudFormation
+     */
+    private String bearerToken;
+
+    /**
+     * The errorCode is used to report granular failures back to CloudFormation
+     */
+    private HandlerErrorCode errorCode;
+
+    /**
      * The operationStatus indicates whether the handler has reached a terminal state or
      * is still computing and requires more time to complete
      */

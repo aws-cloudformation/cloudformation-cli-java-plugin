@@ -128,7 +128,7 @@ public class LambdaWrapperTest {
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo("{\"operationStatus\":\"FAILED\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}," +
+            is(equalTo("{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}," +
                     "\"message\":\"Handler failed to provide a response.\"}"))
         );
     }
@@ -205,7 +205,7 @@ public class LambdaWrapperTest {
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo("{\"operationStatus\":\"FAILED\",\"message\":\"Custom Fault\"}"))
+            is(equalTo("{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"message\":\"Custom Fault\"}"))
         );
     }
 
@@ -281,7 +281,7 @@ public class LambdaWrapperTest {
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo("{\"operationStatus\":\"SUCCESS\"}"))
+            is(equalTo("{\"operationStatus\":\"SUCCESS\",\"bearerToken\":\"123456\"}"))
         );
     }
 
@@ -363,7 +363,7 @@ public class LambdaWrapperTest {
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo("{\"operationStatus\":\"IN_PROGRESS\",\"resourceModel\":{}}"))
+            is(equalTo("{\"operationStatus\":\"IN_PROGRESS\",\"bearerToken\":\"123456\",\"resourceModel\":{}}"))
         );
     }
 
@@ -447,7 +447,7 @@ public class LambdaWrapperTest {
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo("{\"operationStatus\":\"IN_PROGRESS\",\"resourceModel\":{}}"))
+            is(equalTo("{\"operationStatus\":\"IN_PROGRESS\",\"bearerToken\":\"123456\",\"resourceModel\":{}}"))
         );
     }
 
@@ -526,7 +526,7 @@ public class LambdaWrapperTest {
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo( "{\"operationStatus\":\"FAILED\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}}"))
+            is(equalTo( "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}}"))
         );
     }
 
@@ -584,7 +584,7 @@ public class LambdaWrapperTest {
         // verify output response
         assertThat(
             out.toString(),
-            is(equalTo("{\"operationStatus\":\"SUCCESS\",\"resourceModel\":{}}"))
+            is(equalTo("{\"operationStatus\":\"SUCCESS\",\"bearerToken\":\"123456\",\"resourceModel\":{}}"))
         );
     }
 }
