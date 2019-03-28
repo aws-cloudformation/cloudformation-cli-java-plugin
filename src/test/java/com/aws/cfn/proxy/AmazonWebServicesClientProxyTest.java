@@ -9,6 +9,7 @@ import org.junit.Test;
 import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.services.cloudformation.CloudFormationAsyncClient;
 import software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsResponse;
+import software.amazon.awssdk.services.cloudformation.model.StackEvent;
 
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
@@ -79,7 +80,7 @@ public class AmazonWebServicesClientProxyTest {
         when(request.toBuilder()).thenReturn(builder);
 
         final DescribeStackEventsResponse expectedResult = DescribeStackEventsResponse.builder()
-            .stackEvents(Collections.EMPTY_LIST)
+            .stackEvents(Collections.emptyList())
             .build();
 
         final CloudFormationAsyncClient client = mock(CloudFormationAsyncClient.class);
