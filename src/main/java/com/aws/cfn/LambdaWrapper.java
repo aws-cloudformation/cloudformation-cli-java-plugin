@@ -242,6 +242,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         response.setOperationStatus(progressEvent.getStatus());
         response.setResourceModel(progressEvent.getResourceModel());
         response.setBearerToken(bearerToken);
+        response.setErrorCode(progressEvent.getErrorCode());
         return response;
     }
 

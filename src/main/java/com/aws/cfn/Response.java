@@ -15,6 +15,11 @@ public class Response<ResourceT> {
     private String bearerToken;
 
     /**
+     * The errorCode is used to report granular failures back to CloudFormation
+     */
+    private HandlerErrorCode errorCode;
+
+    /**
      * The operationStatus indicates whether the handler has reached a terminal state or
      * is still computing and requires more time to complete
      */
