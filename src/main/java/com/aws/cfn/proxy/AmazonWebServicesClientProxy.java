@@ -66,7 +66,8 @@ public class AmazonWebServicesClientProxy {
             .credentialsProvider(v2CredentialsProvider)
             .build();
 
-        final RequestT wrappedRequest = (RequestT) request.toBuilder()
+        @SuppressWarnings("unchecked")
+        final RequestT wrappedRequest = (RequestT)request.toBuilder()
             .overrideConfiguration(overrideConfiguration)
             .build();
 
