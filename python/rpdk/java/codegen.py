@@ -3,6 +3,7 @@
 import logging
 import shutil
 
+from rpdk.core.exceptions import InternalError, SysExitRecommendedError
 from rpdk.core.jsonutils.flattener import JsonSchemaFlattener
 from rpdk.core.plugin_base import LanguagePlugin
 
@@ -13,6 +14,10 @@ LOG = logging.getLogger(__name__)
 
 OPERATIONS = ("Create", "Read", "Update", "Delete", "List")
 EXECUTABLE = "uluru-cli"
+
+
+class JavaArchiveNotFoundError(SysExitRecommendedError):
+    pass
 
 
 class JavaLanguagePlugin(LanguagePlugin):
@@ -186,5 +191,47 @@ class JavaLanguagePlugin(LanguagePlugin):
 
         LOG.debug("Generate complete")
 
-    def package(self, project):
-        pass
+    @staticmethod
+    def _find_jar(project):
+        jar_glob = list(
+            (project.root / "target").glob(
+                "{}-*-SNAPSHOT.jar".format(project.hypenated_name)
+            )
+        )
+        if not jar_glob:
+            LOG.debug("No Java ARchives match")
+            raise JavaArchiveNotFoundError(
+                "No JAR artifact was found.\n"
+                "Please run 'mvn package' or the equivalent command "
+                "in your IDE to compile and package the code."
+            )
+
+        if len(jar_glob) > 1:
+            LOG.debug(
+                "Multiple Java ARchives match: %s",
+                ", ".join(str(path) for path in jar_glob),
+            )
+            raise InternalError("Multiple JARs match")
+
+        return jar_glob[0]
+
+    def package(self, project, zip_file):
+        LOG.info("Packaging Java project")
+
+        def write_with_relative_path(path):
+            relative = path.relative_to(project.root)
+            zip_file.write(path.resolve(), str(relative))
+
+        jar = self._find_jar(project)
+        write_with_relative_path(jar)
+        write_with_relative_path(project.root / "pom.xml")
+
+        for path in (project.root / "src").rglob("*"):
+            if path.is_file():
+                write_with_relative_path(path)
+
+        # include these for completeness...
+        # we'd probably auto-gen then again, but it can't hurt
+        for path in (project.root / "target" / "generated-sources").rglob("*"):
+            if path.is_file():
+                write_with_relative_path(path)

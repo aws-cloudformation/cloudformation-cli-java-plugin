@@ -1,13 +1,14 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name,protected-access
 import xml.etree.ElementTree as ET
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 import yaml
 
+from rpdk.core.exceptions import InternalError, SysExitRecommendedError
 from rpdk.core.project import Project
-from rpdk.java.codegen import JavaLanguagePlugin
+from rpdk.java.codegen import JavaArchiveNotFoundError, JavaLanguagePlugin
 
 RESOURCE = "DZQWCC"
 
@@ -69,6 +70,48 @@ def test_generate(project):
     assert not test_file.is_file()
 
 
+def make_target(project, count):
+    target = project.root / "target"
+    target.mkdir(exist_ok=True)
+    jar_paths = []
+    for i in range(count):
+        jar_path = target / "{}-{}.0-SNAPSHOT.jar".format(project.hypenated_name, i)
+        jar_path.touch()
+        jar_paths.append(jar_path)
+    return jar_paths
+
+
+def test__find_jar_zero(project):
+    make_target(project, 0)
+    with pytest.raises(JavaArchiveNotFoundError) as excinfo:
+        project._plugin._find_jar(project)
+
+    assert isinstance(excinfo.value, SysExitRecommendedError)
+
+
+def test__find_jar_one(project):
+    jar_path, *_ = make_target(project, 1)
+    assert project._plugin._find_jar(project) == jar_path
+
+
+def test__find_jar_two(project):
+    make_target(project, 2)
+    with pytest.raises(InternalError):
+        project._plugin._find_jar(project)
+
+
 def test_package(project):
     project.load_schema()
-    project._plugin.package(project)
+    project.generate()
+    make_target(project, 1)
+
+    zip_file = Mock()
+    project._plugin.package(project, zip_file)
+
+    writes = []
+    for call in zip_file.write.call_args_list:
+        args, _kwargs = call
+        writes.append(str(args[1]))  # relative path
+
+    assert len(writes) > 10
+    assert "pom.xml" in writes
