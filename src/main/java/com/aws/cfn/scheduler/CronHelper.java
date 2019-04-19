@@ -48,4 +48,3 @@ public class CronHelper {
         return DateTimeFormatter.ofPattern("'cron('m H d M ? u')'").format(odt);
     }
 }
-
