@@ -180,8 +180,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         LOG.debug("Writing HandlerModule")
         template = self.env.get_template("HandlerModule.java")
         contents = template.render(
-            package_name=self.package_name,
-            pojo_name="ResourceModel"
+            package_name=self.package_name, pojo_name="ResourceModel"
         )
         project.overwrite(path, contents)
 

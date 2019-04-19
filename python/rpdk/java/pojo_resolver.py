@@ -152,11 +152,10 @@ def base_class_from_ref(ref_path):
     'Definitions'
     >>> base_class_from_ref(("definitions", "properties"))
     'Properties'
-    >>> base_class_from_ref(())   # doctest: +NORMALIZE_WHITESPACE
+    >>> base_class_from_ref(())
     Traceback (most recent call last):
     ...
-    java.pojo_resolver.PojoResolverError:
-    Could not create a valid class from schema at '#'
+    PojoResolverError: Could not create a valid class from schema at '#'
     """
     parent_keywords = ("properties", "definitions")
     schema_keywords = ("items", "patternProperties", "properties")
