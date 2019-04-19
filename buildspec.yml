@@ -7,7 +7,6 @@ phases:
       - mkdir "$CODEBUILD_SRC_DIR/artifacts"
   build:
     commands:
-      - pre-commit run --all-files
       # install aws-cloudformation-rpdk
       - cd "$CODEBUILD_SRC_DIR_RPDK"
       - python3 setup.py sdist bdist_wheel
@@ -35,6 +34,7 @@ phases:
       - python3 setup.py sdist bdist_wheel
       - cp dist/* "$CODEBUILD_SRC_DIR/artifacts"
       - pip install dist/*.whl
+      - pre-commit run --all-files
       # end-to-end test
       - DIR=$(mktemp -d)
       - cd "$DIR"
