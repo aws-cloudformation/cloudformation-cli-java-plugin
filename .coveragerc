@@ -1,0 +1,6 @@
+[run]
+branch = True
+omit = */contract/suite/*
+
+[report]
+fail_under = 99

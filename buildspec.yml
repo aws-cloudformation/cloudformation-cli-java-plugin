@@ -3,10 +3,11 @@ phases:
   install:
     commands:
       # make sure pip/setuptools/wheel is up to date
-      - pip install --upgrade pip setuptools wheel
+      - pip install --upgrade pip setuptools wheel -r requirements.txt
       - mkdir "$CODEBUILD_SRC_DIR/artifacts"
   build:
     commands:
+      - pre-commit run --all-files
       # install aws-cloudformation-rpdk
       - cd "$CODEBUILD_SRC_DIR_RPDK"
       - python3 setup.py sdist bdist_wheel
