@@ -11,7 +11,7 @@ from .utils import safe_reserved
 
 LOG = logging.getLogger(__name__)
 
-OPERATIONS = ("Create", "Read", "Update", "Delete", "List")
+OPERATIONS = ["Generate"]
 EXECUTABLE = "uluru-cli"
 
 
@@ -19,7 +19,7 @@ class JavaLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
     NAME = "java"
     RUNTIME = "java8"
-    ENTRY_POINT = "{}.HandlerWrapper::handleRequest"
+    ENTRY_POINT = "{}.IterationProviderHandlerWrapper::handleRequest"
     CODE_URI = "./target/{}-1.0-SNAPSHOT.jar"
 
     def __init__(self):
@@ -75,7 +75,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         project.safewrite(path, contents)
 
         LOG.debug("Writing stub handlers")
-        template = self.env.get_template("StubHandler.java")
+        template = self.env.get_template("StubIterationProviderHandler.java")
 
         for operation in OPERATIONS:
             path = src / "{}Handler.java".format(operation)
@@ -83,7 +83,7 @@ class JavaLanguagePlugin(LanguagePlugin):
             contents = template.render(
                 package_name=self.package_name,
                 operation=operation,
-                pojo_name="ResourceModel",
+                pojo_name="HandlerInputModel",
             )
             project.safewrite(path, contents)
 
@@ -132,13 +132,13 @@ class JavaLanguagePlugin(LanguagePlugin):
         LOG.debug("Making generated folder structure: %s", src)
         src.mkdir(parents=True, exist_ok=True)
 
-        path = src / "HandlerWrapper.java"
+        path = src / "IterationProviderHandlerWrapper.java"
         LOG.debug("Writing handler wrapper: %s", path)
-        template = self.env.get_template("HandlerWrapper.java")
+        template = self.env.get_template("IterationProviderHandlerWrapper.java")
         contents = template.render(
             package_name=self.package_name,
             operations=OPERATIONS,
-            pojo_name="ResourceModel",
+            pojo_name="HandlerInputModel",
         )
         project.overwrite(path, contents)
 
@@ -150,17 +150,17 @@ class JavaLanguagePlugin(LanguagePlugin):
         )
         project.overwrite(path, contents)
 
-        path = src / "BaseHandler.java"
+        path = src / "BaseIterationProviderHandler.java"
         LOG.debug("Writing base handler: %s", path)
-        template = self.env.get_template("BaseHandler.java")
+        template = self.env.get_template("BaseIterationProviderHandler.java")
         contents = template.render(
             package_name=self.package_name,
             operations=OPERATIONS,
-            pojo_name="ResourceModel",
+            pojo_name="HandlerInputModel",
         )
         project.overwrite(path, contents)
 
-        pojo_resolver = JavaPojoResolver(objects, "ResourceModel")
+        pojo_resolver = JavaPojoResolver(objects, "HandlerInputModel")
         pojos = pojo_resolver.resolve_pojos()
 
         LOG.debug("Writing %d POJOs", len(pojos))
@@ -181,7 +181,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         template = self.env.get_template("HandlerModule.java")
         contents = template.render(
             package_name=self.package_name,
-            pojo_name="ResourceModel"
+            pojo_name="HandlerInputModel"
         )
         project.overwrite(path, contents)
 

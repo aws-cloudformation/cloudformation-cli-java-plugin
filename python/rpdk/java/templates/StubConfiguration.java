@@ -8,7 +8,7 @@ class Configuration extends BaseConfiguration {
         super("{{ schema_file_name }}");
     }
 
-    public InputStream resourceSchema() {
+    public InputStream schema() {
         return this.getClass().getClassLoader().getResourceAsStream(schemaFilename);
     }
 
