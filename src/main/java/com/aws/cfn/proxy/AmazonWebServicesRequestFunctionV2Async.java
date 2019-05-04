@@ -3,14 +3,15 @@ package com.aws.cfn.proxy;
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
 
+import java.util.concurrent.CompletableFuture;
+
 @FunctionalInterface
-public interface AmazonWebServicesRequestFunctionV2<RequestT extends AwsRequest, ResultT extends AwsResponse> {
+public interface AmazonWebServicesRequestFunctionV2Async<RequestT extends AwsRequest, ResultT extends AwsResponse> {
     /**
      * Applies this function to the given arguments.
      *
      * @param request the function request argument
      * @return the function result
      */
-    ResultT apply(RequestT request);
+    CompletableFuture<ResultT> apply(RequestT request);
 }
-
