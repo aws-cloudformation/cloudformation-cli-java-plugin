@@ -13,4 +13,3 @@ public interface AmazonWebServicesRequestFunctionV2<RequestT extends AwsRequest,
      */
     ResultT apply(RequestT request);
 }
-
