@@ -1,12 +1,16 @@
 package com.aws.cfn.injection;
 
-import com.google.inject.Provider;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
 
-public class CloudWatchProvider implements Provider<CloudWatchAsyncClient> {
+public class CloudWatchProvider extends AmazonWebServicesProvider {
 
-    @Override
+    public CloudWatchProvider(final PlatformCredentialsProvider platformCredentialsProvider) {
+        super(platformCredentialsProvider);
+    }
+
     public CloudWatchAsyncClient get() {
-        return CloudWatchAsyncClient.create();
+        return CloudWatchAsyncClient.builder()
+            .credentialsProvider(this.getCredentialsProvider())
+            .build();
     }
 }

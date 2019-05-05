@@ -1,12 +1,8 @@
 package com.aws.cfn.scheduler;
 
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
-import com.aws.cfn.injection.LambdaModule;
 import com.aws.cfn.proxy.HandlerRequest;
 import com.aws.cfn.proxy.RequestContext;
-import com.google.inject.Guice;
-import com.google.inject.Inject;
-import com.google.inject.Injector;
 import lombok.Data;
 import org.json.JSONObject;
 import software.amazon.awssdk.services.cloudwatchevents.CloudWatchEventsAsyncClient;
@@ -27,19 +23,14 @@ public class CloudWatchScheduler {
     private final CronHelper cronHelper;
     private final CloudWatchEventsAsyncClient client;
 
-    /**
-     * This .ctor provided for Lambda runtime which will not automatically invoke Guice injector
-     */
-    public CloudWatchScheduler() {
-        final Injector injector = Guice.createInjector(new LambdaModule());
-        this.client = injector.getInstance(CloudWatchEventsAsyncClient.class);
+    public CloudWatchScheduler(final CloudWatchEventsAsyncClient client) {
+        this.client = client;
         this.cronHelper = new CronHelper();
     }
 
     /**
      * This .ctor provided for testing
      */
-    @Inject
     public CloudWatchScheduler(final CloudWatchEventsAsyncClient client,
                                final CronHelper cronHelper) {
         this.client = client;

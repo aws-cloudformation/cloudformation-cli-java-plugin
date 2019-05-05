@@ -3,16 +3,13 @@ package com.aws.cfn;
 import com.aws.cfn.metrics.MetricsPublisher;
 import com.aws.cfn.proxy.AmazonWebServicesClientProxy;
 import com.aws.cfn.proxy.CallbackAdapter;
-import com.aws.cfn.proxy.HandlerErrorCode;
 import com.aws.cfn.proxy.HandlerRequest;
-import com.aws.cfn.proxy.OperationStatus;
 import com.aws.cfn.proxy.ProgressEvent;
 import com.aws.cfn.proxy.ResourceHandlerRequest;
 import com.aws.cfn.resource.SchemaValidator;
 import com.aws.cfn.resource.Serializer;
 import com.aws.cfn.scheduler.CloudWatchScheduler;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.inject.Inject;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -22,17 +19,19 @@ import java.nio.charset.Charset;
 
 /**
  * Test class used for testing of LambdaWrapper functionality
- * @param <TestModel>
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
 
+    /**
+     * Invoked to test normal initialization flows
+     */
+    public WrapperOverride() { }
 
     /**
      * This .ctor provided for testing
      */
-    @Inject
     public WrapperOverride(final CallbackAdapter<TestModel> callbackAdapter,
                            final MetricsPublisher metricsPublisher,
                            final CloudWatchScheduler scheduler,
@@ -43,14 +42,14 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
     @Override
     public InputStream provideResourceSchema() {
         return new ByteArrayInputStream(
-            "{ \"properties\": { \"propertyA\": { \"type\": \"string\" } }".getBytes(Charset.forName("UTF8")));
+            "{ \"properties\": { \"propertyA\": { \"type\": \"string\" } } }".getBytes(Charset.forName("UTF8")));
     }
 
     @Override
     public ProgressEvent<TestModel, TestContext> invokeHandler(final AmazonWebServicesClientProxy awsClientProxy,
-                                                  final ResourceHandlerRequest<TestModel> request,
-                                                  final Action action,
-                                                  final TestContext callbackContext) {
+                                                               final ResourceHandlerRequest<TestModel> request,
+                                                               final Action action,
+                                                               final TestContext callbackContext) {
         return invokeHandlerResponse;
     }
 
@@ -62,16 +61,6 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
     }
 
     public ResourceHandlerRequest<TestModel> transformResponse;
-
-    @Override
-    protected CallbackAdapter<TestModel> getCallbackAdapter() {
-        return new CallbackAdapter<TestModel>() {
-            @Override
-            public void reportProgress(String bearerToken, HandlerErrorCode errorCode, OperationStatus operationStatus, TestModel resourceModel, String statusMessage) {
-
-            }
-        };
-    }
 
     @Override
     protected TypeReference<HandlerRequest<TestModel, TestContext>> getTypeReference() {
