@@ -58,18 +58,39 @@ public class AmazonWebServicesClientProxy {
         }
     }
 
-    public <RequestT extends AwsRequest, ResultT extends AwsResponse> CompletableFuture<ResultT> injectCredentialsAndInvokeV2(
-        final RequestT request,
-        final AmazonWebServicesRequestFunctionV2<RequestT, ResultT> requestFunction) {
+    public <RequestT extends AwsRequest, ResultT extends AwsResponse> ResultT injectCredentialsAndInvokeV2(
+            final RequestT request,
+            final AmazonWebServicesRequestFunctionV2<RequestT, ResultT> requestFunction) {
 
         final AwsRequestOverrideConfiguration overrideConfiguration = AwsRequestOverrideConfiguration.builder()
-            .credentialsProvider(v2CredentialsProvider)
-            .build();
+                .credentialsProvider(v2CredentialsProvider)
+                .build();
 
         @SuppressWarnings("unchecked")
         final RequestT wrappedRequest = (RequestT)request.toBuilder()
-            .overrideConfiguration(overrideConfiguration)
-            .build();
+                .overrideConfiguration(overrideConfiguration)
+                .build();
+
+        try {
+            return requestFunction.apply(wrappedRequest);
+        } catch (final Exception e) {
+            logger.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
+            throw e;
+        }
+    }
+
+    public <RequestT extends AwsRequest, ResultT extends AwsResponse> CompletableFuture<ResultT> injectCredentialsAndInvokeV2Async(
+            final RequestT request,
+            final AmazonWebServicesRequestFunctionV2Async<RequestT, ResultT> requestFunction) {
+
+        final AwsRequestOverrideConfiguration overrideConfiguration = AwsRequestOverrideConfiguration.builder()
+                .credentialsProvider(v2CredentialsProvider)
+                .build();
+
+        @SuppressWarnings("unchecked")
+        final RequestT wrappedRequest = (RequestT)request.toBuilder()
+                .overrideConfiguration(overrideConfiguration)
+                .build();
 
         try {
             return requestFunction.apply(wrappedRequest);

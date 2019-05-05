@@ -8,6 +8,7 @@ import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import org.junit.Test;
 import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.services.cloudformation.CloudFormationAsyncClient;
+import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 import software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsResponse;
 
 import java.util.Collections;
@@ -67,6 +68,51 @@ public class AmazonWebServicesClientProxyTest {
         final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(lambdaLogger, credentials);
 
         final software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest wrappedRequest =
+                mock(software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest.class);
+
+        final software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest.Builder builder =
+                mock(software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest.Builder.class);
+        when(builder.overrideConfiguration(any(AwsRequestOverrideConfiguration.class)))
+                .thenReturn(builder);
+        when(builder.build()).thenReturn(wrappedRequest);
+        final software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest request =
+                mock(software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest.class);
+        when(request.toBuilder()).thenReturn(builder);
+
+        final DescribeStackEventsResponse expectedResult = DescribeStackEventsResponse.builder()
+                .stackEvents(Collections.emptyList())
+                .build();
+
+        final CloudFormationClient client = mock(CloudFormationClient.class);
+        when(client.describeStackEvents(any(software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest.class)))
+                .thenReturn(expectedResult);
+
+        final DescribeStackEventsResponse result = proxy.injectCredentialsAndInvokeV2(
+                request,
+                client::describeStackEvents);
+
+        // verify request is rebuilt for injection
+        verify(request).toBuilder();
+
+        // verify the wrapped request is sent over the client
+        verify(client).describeStackEvents(wrappedRequest);
+
+        // ensure the return type matches
+        assertThat(
+                result,
+                is(equalTo(expectedResult))
+        );
+    }
+
+    @Test
+    public void testInjectCredentialsAndInvokeV2Async() throws ExecutionException, InterruptedException {
+
+        final LambdaLogger lambdaLogger = mock(LambdaLogger.class);
+        final Credentials credentials = new Credentials("accessKeyId", "secretAccessKey", "sessionToken");
+
+        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(lambdaLogger, credentials);
+
+        final software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest wrappedRequest =
             mock(software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest.class);
 
         final software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest.Builder builder =
@@ -86,7 +132,7 @@ public class AmazonWebServicesClientProxyTest {
         when(client.describeStackEvents(any(software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest.class)))
             .thenReturn(CompletableFuture.completedFuture(expectedResult));
 
-        final CompletableFuture<DescribeStackEventsResponse> result = proxy.injectCredentialsAndInvokeV2(
+        final CompletableFuture<DescribeStackEventsResponse> result = proxy.injectCredentialsAndInvokeV2Async(
             request,
             client::describeStackEvents);
 
