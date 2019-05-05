@@ -1,7 +1,5 @@
 package com.aws.cfn.scheduler;
 
-import com.google.inject.Inject;
-
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -12,9 +10,6 @@ public class CronHelper {
 
     private final Clock clock;
 
-    /**
-     * This .ctor provided for Lambda runtime which will not automatically invoke Guice injector
-     */
     public CronHelper() {
         this.clock = Clock.systemUTC();
     }
@@ -22,7 +17,6 @@ public class CronHelper {
     /**
      * This .ctor provided for testing
      */
-    @Inject
     public CronHelper(final Clock clock) {
         this.clock = clock;
     }

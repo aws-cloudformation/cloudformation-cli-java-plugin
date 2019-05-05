@@ -1,31 +1,15 @@
 package com.aws.cfn.proxy;
 
-import com.aws.cfn.injection.LambdaModule;
-import com.google.inject.Guice;
-import com.google.inject.Inject;
-import com.google.inject.Injector;
 import org.json.JSONObject;
 import software.amazon.awssdk.services.cloudformation.CloudFormationAsyncClient;
 import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressRequest;
 
 public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
 
-    private final CloudFormationAsyncClient cloudFormationClient;
+    private final CloudFormationAsyncClient client;
 
-    /**
-     * This .ctor provided for Lambda runtime which will not automatically invoke Guice injector
-     */
-    public CloudFormationCallbackAdapter() {
-        final Injector injector = Guice.createInjector(new LambdaModule());
-        this.cloudFormationClient = injector.getInstance(CloudFormationAsyncClient.class);
-    }
-
-    /**
-     * This .ctor provided for injection
-     */
-    @Inject
-    public CloudFormationCallbackAdapter(final CloudFormationAsyncClient cloudFormationClient) {
-        this.cloudFormationClient = cloudFormationClient;
+    public CloudFormationCallbackAdapter(final CloudFormationAsyncClient client) {
+        this.client = client;
     }
 
     @Override
@@ -48,7 +32,7 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
         }
 
         // TODO: be far more fault tolerant, do retries, emit logs and metrics, etc.
-        this.cloudFormationClient.recordHandlerProgress(requestBuilder.build());
+        this.client.recordHandlerProgress(requestBuilder.build());
     }
 
     private software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode translate(

@@ -4,23 +4,27 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.aws.cfn.exceptions.TerminalException;
-import com.aws.cfn.injection.LambdaModule;
+import com.aws.cfn.injection.CloudFormationProvider;
+import com.aws.cfn.injection.CloudWatchEventsProvider;
+import com.aws.cfn.injection.CloudWatchProvider;
+import com.aws.cfn.injection.PlatformCredentialsProvider;
 import com.aws.cfn.metrics.MetricsPublisher;
+import com.aws.cfn.metrics.MetricsPublisherImpl;
 import com.aws.cfn.proxy.AmazonWebServicesClientProxy;
 import com.aws.cfn.proxy.CallbackAdapter;
+import com.aws.cfn.proxy.CloudFormationCallbackAdapter;
+import com.aws.cfn.proxy.Credentials;
 import com.aws.cfn.proxy.HandlerRequest;
+import com.aws.cfn.proxy.OperationStatus;
 import com.aws.cfn.proxy.ProgressEvent;
 import com.aws.cfn.proxy.RequestContext;
 import com.aws.cfn.proxy.ResourceHandlerRequest;
-import com.aws.cfn.proxy.OperationStatus;
 import com.aws.cfn.resource.SchemaValidator;
 import com.aws.cfn.resource.Serializer;
+import com.aws.cfn.resource.Validator;
 import com.aws.cfn.resource.exceptions.ValidationException;
 import com.aws.cfn.scheduler.CloudWatchScheduler;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.inject.Injector;
-import com.google.inject.Guice;
-import com.google.inject.Inject;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 import software.amazon.awssdk.utils.StringUtils;
@@ -36,32 +40,28 @@ import java.util.Date;
 
 public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStreamHandler {
 
-    private final CallbackAdapter<ResourceT> callbackAdapter;
-    private final MetricsPublisher metricsPublisher;
-    private final CloudWatchScheduler scheduler;
+    private final PlatformCredentialsProvider platformCredentialsProvider = new PlatformCredentialsProvider();
+    final CloudFormationProvider cloudFormationProvider = new CloudFormationProvider(this.platformCredentialsProvider);
+    final CloudWatchProvider cloudWatchProvider = new CloudWatchProvider(this.platformCredentialsProvider);
+    final CloudWatchEventsProvider cloudWatchEventsProvider = new CloudWatchEventsProvider(this.platformCredentialsProvider);
+
+    private CallbackAdapter<ResourceT> callbackAdapter;
+    private MetricsPublisher metricsPublisher;
+    private CloudWatchScheduler scheduler;
     private final SchemaValidator validator;
     private final TypeReference<HandlerRequest<ResourceT, CallbackT>> typeReference;
     protected final Serializer serializer;
     protected LambdaLogger logger;
 
-
-    /**
-     * This .ctor provided for Lambda runtime which will not automatically invoke Guice injector
-     */
-    public LambdaWrapper() {
-        Injector injector = Guice.createInjector(new LambdaModule());
-        this.callbackAdapter = getCallbackAdapter();
-        this.metricsPublisher = injector.getInstance(MetricsPublisher.class);
-        this.scheduler = new CloudWatchScheduler();
+    protected LambdaWrapper() {
         this.serializer = new Serializer();
-        this.validator = injector.getInstance(SchemaValidator.class);
+        this.validator = new Validator();
         this.typeReference = getTypeReference();
     }
 
     /**
      * This .ctor provided for testing
      */
-    @Inject
     public LambdaWrapper(final CallbackAdapter<ResourceT> callbackAdapter,
                          final MetricsPublisher metricsPublisher,
                          final CloudWatchScheduler scheduler,
@@ -76,11 +76,29 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         this.typeReference = typeReference;
     }
 
+    /**
+     * This function initialises dependencies which are depending on credentials passed
+     * at function invoke and not available during construction
+    */
+    private void initialiseRuntime(final Credentials platformCredentials) {
+        // initialisation skipped if these dependencies were set during injection (in test)
+        this.platformCredentialsProvider.setCredentials(platformCredentials);
+        if (this.callbackAdapter == null) {
+            this.callbackAdapter = new CloudFormationCallbackAdapter<ResourceT>(this.cloudFormationProvider.get());
+        }
+        if (this.metricsPublisher == null) {
+            this.metricsPublisher = new MetricsPublisherImpl(this.cloudWatchProvider.get());
+        }
+        if (this.scheduler == null) {
+            this.scheduler = new CloudWatchScheduler(this.cloudWatchEventsProvider.get());
+            this.scheduler.setLogger(this.logger);
+        }
+    }
+
     public void handleRequest(final InputStream inputStream,
                               final OutputStream outputStream,
                               final Context context) throws IOException, TerminalException {
         this.logger = context.getLogger();
-        this.scheduler.setLogger(context.getLogger());
 
         ProgressEvent<ResourceT, CallbackT> handlerResponse = null;
         HandlerRequest<ResourceT, CallbackT> request = null;
@@ -121,9 +139,17 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     public ProgressEvent<ResourceT, CallbackT> processInvocation(final HandlerRequest<ResourceT, CallbackT> request,
                                            final Context context) throws IOException, TerminalException {
 
-        if (request == null) {
+        if (request == null || request.getRequestData() == null) {
             throw new TerminalException("Invalid request object received");
         }
+
+        // ensure required execution credentials have been passed and inject them
+        if (request.getRequestData().getPlatformCredentials() == null) {
+            throw new TerminalException("Missing required platform credentials");
+        }
+
+        // initialise dependencies with platform credentials
+        initialiseRuntime(request.getRequestData().getPlatformCredentials());
 
         // transform the request object to pass to caller
         final ResourceHandlerRequest<ResourceT> resourceHandlerRequest = transform(request);
@@ -140,7 +166,6 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                     cloudWatchEventsRuleName,
                     requestContext.getCloudWatchEventsTargetId());
             }
-
         }
 
         // MetricsPublisher is initialised with the resource type name for metrics namespace
@@ -184,7 +209,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // last mile proxy creation with passed-in credentials
         final AmazonWebServicesClientProxy awsClientProxy = new AmazonWebServicesClientProxy(
             this.logger,
-            request.getRequestData().getCredentials());
+            request.getRequestData().getCallerCredentials());
 
         final ProgressEvent<ResourceT, CallbackT> handlerResponse = invokeHandler(
             awsClientProxy,
@@ -299,8 +324,6 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             this.logger.log(String.format("%s\n", message));
         }
     }
-
-    protected abstract CallbackAdapter<ResourceT> getCallbackAdapter();
 
     protected abstract TypeReference<HandlerRequest<ResourceT, CallbackT>> getTypeReference();
 }

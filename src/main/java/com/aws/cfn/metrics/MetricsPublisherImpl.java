@@ -1,10 +1,6 @@
 package com.aws.cfn.metrics;
 
 import com.aws.cfn.Action;
-import com.aws.cfn.injection.LambdaModule;
-import com.google.inject.Guice;
-import com.google.inject.Inject;
-import com.google.inject.Injector;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.MetricDatum;
@@ -23,19 +19,6 @@ public class MetricsPublisherImpl implements MetricsPublisher {
     private String resourceNamespace;
     private String resourceTypeName;
 
-    /**
-     * This .ctor provided for Lambda runtime which will not invoke Guice injector
-     */
-    public MetricsPublisherImpl() {
-        final Injector injector = Guice.createInjector(new LambdaModule());
-        this.client = injector.getInstance(CloudWatchAsyncClient.class);
-    }
-
-    /**
-     * This .ctor provided for testing
-     * @param client
-     */
-    @Inject
     public MetricsPublisherImpl(final CloudWatchAsyncClient client) {
         this.client = client;
     }

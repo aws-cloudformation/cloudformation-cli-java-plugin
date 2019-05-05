@@ -8,7 +8,8 @@ import java.util.Map;
 @Data
 @NoArgsConstructor
 public class RequestData<ResourceT> {
-    private Credentials credentials;
+    private Credentials callerCredentials;
+    private Credentials platformCredentials;
     private String logicalResourceId;
     private ResourceT resourceProperties;
     private ResourceT previousResourceProperties;

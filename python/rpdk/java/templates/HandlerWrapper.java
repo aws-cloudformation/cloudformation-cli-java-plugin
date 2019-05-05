@@ -15,11 +15,6 @@ import com.aws.cfn.resource.SchemaValidator;
 import com.aws.cfn.resource.Serializer;
 import com.aws.cfn.scheduler.CloudWatchScheduler;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.inject.Inject;
-import com.google.inject.Injector;
-import com.google.inject.Guice;
-import com.google.inject.TypeLiteral;
-import com.google.inject.Key;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,17 +27,6 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
     private final Map<Action, BaseHandler> handlers = new HashMap<>();
 
     public HandlerWrapper() {
-        initialiseHandlers();
-    }
-
-    @Inject
-    public HandlerWrapper(CallbackAdapter<{{ pojo_name }}> callbackAdapter,
-                          MetricsPublisher metricsPublisher,
-                          CloudWatchScheduler scheduler,
-                          SchemaValidator validator,
-                          Serializer serializer,
-                          TypeReference<HandlerRequest<{{ pojo_name }}, CallbackContext>> typeReference) {
-        super(callbackAdapter, metricsPublisher, scheduler, validator, serializer, typeReference);
         initialiseHandlers();
     }
 
@@ -105,11 +89,6 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
             desiredResourceState,
             previousResourceState
         );
-    }
-    @Override
-    protected CallbackAdapter<{{ pojo_name }}> getCallbackAdapter() {
-        final Injector injector = Guice.createInjector(new HandlerModule());
-        return injector.getInstance(Key.get(new TypeLiteral<CallbackAdapter<{{ pojo_name }}>>() {}));
     }
 
     @Override
