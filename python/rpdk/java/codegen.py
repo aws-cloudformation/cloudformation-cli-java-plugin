@@ -3,6 +3,7 @@
 import logging
 import shutil
 
+from rpdk.core.data_loaders import resource_stream
 from rpdk.core.exceptions import InternalError, SysExitRecommendedError
 from rpdk.core.jsonutils.flattener import JsonSchemaFlattener
 from rpdk.core.plugin_base import LanguagePlugin
@@ -44,6 +45,12 @@ class JavaLanguagePlugin(LanguagePlugin):
         LOG.debug("Init started")
 
         self._namespace_from_project(project)
+
+        # .gitignore
+        path = project.root / ".gitignore"
+        LOG.debug("Writing .gitignore: %s", path)
+        contents = resource_stream(__name__, "data/java.gitignore").read()
+        project.safewrite(path, contents)
 
         # maven folder structure
         src = (project.root / "src" / "main" / "java").joinpath(*self.namespace)
