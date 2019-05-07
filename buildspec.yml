@@ -4,36 +4,20 @@ phases:
     commands:
       # make sure pip/setuptools/wheel is up to date, awscli for SDK patching
       - pip install --upgrade pip setuptools wheel awscli -r requirements.txt
-      - mkdir "$CODEBUILD_SRC_DIR/artifacts"
+      - aws configure add-model --service-model "file://$CODEBUILD_SRC_DIR_RPDK/cloudformation-2010-05-15.normal.json" --service-name cloudformation
   build:
     commands:
-      # install aws-cloudformation-rpdk
-      - cd "$CODEBUILD_SRC_DIR_RPDK"
-      - python3 setup.py sdist bdist_wheel
-      - cp dist/* "$CODEBUILD_SRC_DIR/artifacts/"
-      - cp "cloudformation-2010-05-15.normal.json" "$CODEBUILD_SRC_DIR/artifacts/"
-      - pip install dist/*.whl
-      # patch boto3/awscli with internal SDK (must be done after RPDK is installed, since awscli is a dep)
-      - aws configure add-model --service-model "file://$CODEBUILD_SRC_DIR_RPDK/cloudformation-2010-05-15.normal.json" --service-name cloudformation
-      # install internal SDK (Java)
-      - cd "$CODEBUILD_SRC_DIR_SDK"
-      - ls -la
+      # install internal SDK
       - >
         mvn org.apache.maven.plugins:maven-install-plugin:3.0.0-M1:install-file --batch-mode
-        -Dfile=cloudformation-2.5.11.jar
-      # install aws-cloudformation-resource-schema (Java)
+        -Dfile="$CODEBUILD_SRC_DIR_SDK/cloudformation-2.5.11.jar"
+      # install aws-cloudformation-resource-schema
       - cd "$CODEBUILD_SRC_DIR_SCHEMA"
-      - ls -la
       - mvn package org.apache.maven.plugins:maven-install-plugin:3.0.0-M1:install --batch-mode
-      # install aws-cloudformation-rpdk-java-plugin (Java)
+      # install aws-cloudformation-rpdk-java-plugin and rpdk core
       - cd "$CODEBUILD_SRC_DIR"
-      - ls -la
       - mvn package org.apache.maven.plugins:maven-install-plugin:3.0.0-M1:install --batch-mode
-      - cp "target/ResourceProviderRuntime-1.0.jar" "$CODEBUILD_SRC_DIR/artifacts"
-      # install aws-cloudformation-rpdk-java-plugin (Python)
-      - python3 setup.py sdist bdist_wheel
-      - cp dist/* "$CODEBUILD_SRC_DIR/artifacts"
-      - pip install dist/*.whl
+      - pip install "$CODEBUILD_SRC_DIR_RPDK" .
       - pre-commit run --all-files
       # end-to-end test
       - DIR=$(mktemp -d)
@@ -42,11 +26,3 @@ phases:
       - echo "AWS::Foo::Bar" | uluru-cli init -vv
       - mvn package
       - ls -la
-  post_build:
-    commands:
-      - ls -la "$CODEBUILD_SRC_DIR/artifacts"
-artifacts:
-  files:
-    - '*'
-  base-directory: artifacts
-  discard-paths: yes
