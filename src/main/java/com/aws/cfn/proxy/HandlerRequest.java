@@ -13,6 +13,7 @@ public class HandlerRequest<ResourceT, CallbackT> {
     private Action action;
     private String awsAccountId;
     private String bearerToken;
+    private String logicalResourceId;
     private String nextToken;
     private String region;
     private String resourceType;

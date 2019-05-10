@@ -17,6 +17,7 @@ import lombok.NoArgsConstructor;
 public class ResourceHandlerRequest<T> {
     private String awsAccountId;
     private String clientRequestToken;
+    private String logicalResourceId;
     private String nextToken;
     private String region;
     private String resourceType;
