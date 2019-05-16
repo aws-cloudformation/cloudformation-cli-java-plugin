@@ -1,6 +1,8 @@
 package com.aws.cfn.injection;
 
-import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.core.retry.RetryPolicy;
+import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 
 public class CloudWatchProvider extends AmazonWebServicesProvider {
 
@@ -8,9 +10,15 @@ public class CloudWatchProvider extends AmazonWebServicesProvider {
         super(platformCredentialsProvider);
     }
 
-    public CloudWatchAsyncClient get() {
-        return CloudWatchAsyncClient.builder()
+    public CloudWatchClient get() {
+        return CloudWatchClient.builder()
             .credentialsProvider(this.getCredentialsProvider())
+            .overrideConfiguration(ClientOverrideConfiguration.builder()
+                //Default Retry Condition of Retry Policy retries on Throttling and ClockSkew Exceptions
+                .retryPolicy(RetryPolicy.builder()
+                    .numRetries(16)
+                    .build())
+                .build())
             .build();
     }
 }

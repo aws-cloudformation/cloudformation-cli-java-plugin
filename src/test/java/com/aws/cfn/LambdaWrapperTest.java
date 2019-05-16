@@ -18,6 +18,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.ArgumentMatchers;
 import org.mockito.junit.MockitoJUnitRunner;
+import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -608,7 +609,7 @@ public class LambdaWrapperTest {
 
     @Test
     public void testInvokeHandler_WithDefaultInjection() throws IOException {
-        final WrapperOverride wrapper = new WrapperOverride();
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
         model.setProperty1("abc");
         model.setProperty2(123);

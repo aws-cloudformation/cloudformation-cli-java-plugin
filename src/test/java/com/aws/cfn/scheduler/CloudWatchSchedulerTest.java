@@ -10,7 +10,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import software.amazon.awssdk.services.cloudwatchevents.CloudWatchEventsAsyncClient;
+import software.amazon.awssdk.services.cloudwatchevents.CloudWatchEventsClient;
 import software.amazon.awssdk.services.cloudwatchevents.model.DeleteRuleRequest;
 import software.amazon.awssdk.services.cloudwatchevents.model.RemoveTargetsRequest;
 import software.amazon.awssdk.services.cloudwatchevents.model.RuleState;
@@ -38,13 +38,13 @@ public class CloudWatchSchedulerTest extends TestCase {
         return mock(CronHelper.class);
     }
 
-    private CloudWatchEventsAsyncClient getCloudWatchEvents() {
-        return mock(CloudWatchEventsAsyncClient.class);
+    private CloudWatchEventsClient getCloudWatchEvents() {
+        return mock(CloudWatchEventsClient.class);
     }
 
     @Test
     public void test_cleanupCloudWatchEvents_NullRuleName() {
-        final CloudWatchEventsAsyncClient client = getCloudWatchEvents();
+        final CloudWatchEventsClient client = getCloudWatchEvents();
         final CronHelper cronHelper = getCronHelper();
         final CloudWatchScheduler scheduler = new CloudWatchScheduler(client, cronHelper);
 
@@ -57,7 +57,7 @@ public class CloudWatchSchedulerTest extends TestCase {
 
     @Test
     public void test_cleanupCloudWatchEvents_NullTargetId() {
-        final CloudWatchEventsAsyncClient client = getCloudWatchEvents();
+        final CloudWatchEventsClient client = getCloudWatchEvents();
         final CronHelper cronHelper = getCronHelper();
         final CloudWatchScheduler scheduler = new CloudWatchScheduler(client, cronHelper);
 
@@ -70,7 +70,7 @@ public class CloudWatchSchedulerTest extends TestCase {
 
     @Test
     public void test_cleanupCloudWatchEvents() {
-        final CloudWatchEventsAsyncClient client = getCloudWatchEvents();
+        final CloudWatchEventsClient client = getCloudWatchEvents();
         final CronHelper cronHelper = getCronHelper();
         final CloudWatchScheduler scheduler = new CloudWatchScheduler(client, cronHelper);
 
@@ -83,7 +83,7 @@ public class CloudWatchSchedulerTest extends TestCase {
 
     @Test
     public void test_rescheduleAfterMinutes_1MinuteFloor() {
-        final CloudWatchEventsAsyncClient client = getCloudWatchEvents();
+        final CloudWatchEventsClient client = getCloudWatchEvents();
         final CronHelper cronHelper = getCronHelper();
         when(cronHelper.generateOneTimeCronExpression(1))
             .thenReturn("cron(41 14 31 10 ? 2019)");
@@ -119,6 +119,8 @@ public class CloudWatchSchedulerTest extends TestCase {
                 "cron(41 14 31 10 ? 2019)",
                 RuleState.ENABLED))
         );
-
+        verify(client, times(1)).describeRule(
+                argThat(new DescribeRuleRequestMatcher("reinvoke-handler-"))
+        );
     }
 }

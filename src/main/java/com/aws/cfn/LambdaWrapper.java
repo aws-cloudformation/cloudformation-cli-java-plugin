@@ -14,6 +14,7 @@ import com.aws.cfn.proxy.AmazonWebServicesClientProxy;
 import com.aws.cfn.proxy.CallbackAdapter;
 import com.aws.cfn.proxy.CloudFormationCallbackAdapter;
 import com.aws.cfn.proxy.Credentials;
+import com.aws.cfn.proxy.HandlerErrorCode;
 import com.aws.cfn.proxy.HandlerRequest;
 import com.aws.cfn.proxy.OperationStatus;
 import com.aws.cfn.proxy.ProgressEvent;
@@ -84,7 +85,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // initialisation skipped if these dependencies were set during injection (in test)
         this.platformCredentialsProvider.setCredentials(platformCredentials);
         if (this.callbackAdapter == null) {
-            this.callbackAdapter = new CloudFormationCallbackAdapter<ResourceT>(this.cloudFormationProvider.get());
+            this.callbackAdapter = new CloudFormationCallbackAdapter<ResourceT>(this.cloudFormationProvider.get(), this.logger);
         }
         if (this.metricsPublisher == null) {
             this.metricsPublisher = new MetricsPublisherImpl(this.cloudWatchProvider.get());
@@ -166,6 +167,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                     cloudWatchEventsRuleName,
                     requestContext.getCloudWatchEventsTargetId());
             }
+            logger.log(String.format("Cleaned up previous Request Context of Rule %s and Target %s", requestContext.getCloudWatchEventsRuleName(), requestContext.getCloudWatchEventsTargetId()));
         }
 
         // MetricsPublisher is initialised with the resource type name for metrics namespace
@@ -216,10 +218,11 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             resourceHandlerRequest,
             request.getAction(),
             callbackContext);
-        if (handlerResponse != null)
+        if (handlerResponse != null) {
             this.log(String.format("Handler returned %s", handlerResponse.getStatus()));
-        else
+        } else {
             this.log("Handler returned null");
+        }
 
         final Date endTime = Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant());
 
@@ -247,10 +250,16 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             reinvocationContext.setCallbackContext(handlerResponse.getCallbackContext());
             request.setRequestContext(reinvocationContext);
 
-            this.scheduler.rescheduleAfterMinutes(
-                context.getInvokedFunctionArn(),
-                handlerResponse.getCallbackDelayMinutes(),
-                request);
+            logger.log(String.format("Scheduling re-invoke with Context {%s}", reinvocationContext.toString()));
+            try {
+                this.scheduler.rescheduleAfterMinutes(
+                    context.getInvokedFunctionArn(),
+                    handlerResponse.getCallbackDelayMinutes(),
+                    request);
+            } catch (Exception e){
+                handlerResponse.setStatus(OperationStatus.FAILED);
+                handlerResponse.setErrorCode(HandlerErrorCode.ServiceException);
+            }
         }
         // report the progress status back to configured endpoint
         this.callbackAdapter.reportProgress(request.getBearerToken(),
