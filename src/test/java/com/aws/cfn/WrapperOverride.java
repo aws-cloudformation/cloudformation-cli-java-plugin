@@ -62,6 +62,8 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
 
     public ResourceHandlerRequest<TestModel> transformResponse;
 
+    public MetricsPublisher metricsPublisher;
+
     @Override
     protected TypeReference<HandlerRequest<TestModel, TestContext>> getTypeReference() {
         return new TypeReference<HandlerRequest<TestModel, TestContext>>() {};

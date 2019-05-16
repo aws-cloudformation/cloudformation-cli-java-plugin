@@ -1,7 +1,7 @@
 package com.aws.cfn.metrics;
 
 import com.aws.cfn.Action;
-import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
+import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.MetricDatum;
 import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataRequest;
@@ -15,11 +15,11 @@ import java.util.Map;
 
 public class MetricsPublisherImpl implements MetricsPublisher {
 
-    private final CloudWatchAsyncClient client;
+    private final CloudWatchClient client;
     private String resourceNamespace;
     private String resourceTypeName;
 
-    public MetricsPublisherImpl(final CloudWatchAsyncClient client) {
+    public MetricsPublisherImpl(final CloudWatchClient client) {
         this.client = client;
     }
 

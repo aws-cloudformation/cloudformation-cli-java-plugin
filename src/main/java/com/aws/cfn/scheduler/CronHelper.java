@@ -36,7 +36,9 @@ public class CronHelper {
      * day-of-year is not necessary when the day-of-month and month-of-year fields are supplied
      */
     public String generateOneTimeCronExpression(final int minutesFromNow) {
-        final Instant instant = Instant.now(this.clock).plusSeconds(60 * minutesFromNow);
+        //Add additional 1 minute, since rule can be created after scheduled time, like "13:40:59" -> cron(41 13 30)
+        //Todo More efficient way, like take upper bound.
+        final Instant instant = Instant.now(this.clock).plusSeconds(60 * (minutesFromNow + 1));
         final OffsetDateTime odt = instant.atOffset(ZoneOffset.UTC);
 
         return DateTimeFormatter.ofPattern("'cron('m H d M ? u')'").format(odt);

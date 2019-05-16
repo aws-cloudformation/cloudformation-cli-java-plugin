@@ -19,7 +19,7 @@ public class CronHelperTest {
     public void testGenerateOneTimeCronExpression_Simple() {
 
         final DateTimeFormatter f = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        final LocalDateTime dateTime = LocalDateTime.parse("2018-10-30 13:40:23", f);
+        final LocalDateTime dateTime = LocalDateTime.parse("2018-10-30 13:40:59", f);
         final Clock mockClockInASock = mock(Clock.class);
         when(mockClockInASock.instant()).thenReturn(dateTime.toInstant(ZoneOffset.UTC));
 
@@ -27,7 +27,7 @@ public class CronHelperTest {
 
         assertThat(
             cronHelper.generateOneTimeCronExpression(5),
-            is(equalTo("cron(45 13 30 10 ? 2018)"))
+            is(equalTo("cron(46 13 30 10 ? 2018)"))
         );
     }
 
@@ -43,7 +43,7 @@ public class CronHelperTest {
 
         assertThat(
             cronHelper.generateOneTimeCronExpression(3),
-            is(equalTo("cron(2 0 31 10 ? 2018)"))
+            is(equalTo("cron(3 0 31 10 ? 2018)"))
         );
     }
 
@@ -59,7 +59,7 @@ public class CronHelperTest {
 
         assertThat(
             cronHelper.generateOneTimeCronExpression(5),
-            is(equalTo("cron(1 0 1 1 ? 2019)"))
+            is(equalTo("cron(2 0 1 1 ? 2019)"))
         );
     }
 }

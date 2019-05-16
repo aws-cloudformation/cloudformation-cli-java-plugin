@@ -84,7 +84,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // initialisation skipped if these dependencies were set during injection (in test)
         this.platformCredentialsProvider.setCredentials(platformCredentials);
         if (this.callbackAdapter == null) {
-            this.callbackAdapter = new CloudFormationCallbackAdapter<ResourceT>(this.cloudFormationProvider.get());
+            this.callbackAdapter = new CloudFormationCallbackAdapter<ResourceT>(this.cloudFormationProvider.get(), this.logger);
         }
         if (this.metricsPublisher == null) {
             this.metricsPublisher = new MetricsPublisherImpl(this.cloudWatchProvider.get());
@@ -159,6 +159,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         final CallbackT callbackContext = hasRequestContext ? requestContext.getCallbackContext() : null;
 
         if (hasRequestContext) {
+            logger.log(String.format("Clean up previous Request Context of Rule %s and Target %s", requestContext.getCloudWatchEventsRuleName(), requestContext.getCloudWatchEventsTargetId()));
             // If this invocation was triggered by a 're-invoke' CloudWatch Event, clean it up
             final String cloudWatchEventsRuleName = requestContext.getCloudWatchEventsRuleName();
             if (!StringUtils.isBlank(cloudWatchEventsRuleName)) {
@@ -216,10 +217,11 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             resourceHandlerRequest,
             request.getAction(),
             callbackContext);
-        if (handlerResponse != null)
+        if (handlerResponse != null) {
             this.log(String.format("Handler returned %s", handlerResponse.getStatus()));
-        else
+        } else {
             this.log("Handler returned null");
+        }
 
         final Date endTime = Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant());
 
@@ -247,6 +249,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             reinvocationContext.setCallbackContext(handlerResponse.getCallbackContext());
             request.setRequestContext(reinvocationContext);
 
+            logger.log(String.format("Scheduling re-invoke with Context {%s}", reinvocationContext.toString()));
             this.scheduler.rescheduleAfterMinutes(
                 context.getInvokedFunctionArn(),
                 handlerResponse.getCallbackDelayMinutes(),

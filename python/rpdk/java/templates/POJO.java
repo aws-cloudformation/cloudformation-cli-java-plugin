@@ -8,6 +8,7 @@ import java.util.Set;
 import lombok.Setter;
 
 @Setter
+@AllArgsConstructor
 public class {{ pojo_name|uppercase_first_letter }} {
     {% for name, type in properties.items() %}
     private {{ type }} {{ name|lowercase_first_letter }};
