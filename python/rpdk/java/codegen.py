@@ -23,7 +23,6 @@ class JavaArchiveNotFoundError(SysExitRecommendedError):
 
 class JavaLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
-    NAME = "java"
     RUNTIME = "java8"
     ENTRY_POINT = "{}.HandlerWrapper::handleRequest"
     CODE_URI = "./target/{}-1.0-SNAPSHOT.jar"
