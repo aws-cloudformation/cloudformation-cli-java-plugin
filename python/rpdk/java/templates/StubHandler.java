@@ -9,7 +9,7 @@ import com.aws.cfn.proxy.ResourceHandlerRequest;
 public class {{ operation }}Handler extends BaseHandler<CallbackContext> {
 
     @Override
-    public ProgressEvent handleRequest(
+    public ProgressEvent<{{ pojo_name }}, CallbackContext> handleRequest(
         final AmazonWebServicesClientProxy proxy,
         final ResourceHandlerRequest<{{ pojo_name }}> request,
         final CallbackContext callbackContext,

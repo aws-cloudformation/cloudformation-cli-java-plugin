@@ -8,7 +8,7 @@ import com.aws.cfn.proxy.ResourceHandlerRequest;
 
 public abstract class BaseHandler<CallbackT> {
 
-    public abstract ProgressEvent handleRequest(
+    public abstract ProgressEvent<{{ pojo_name }}, CallbackT> handleRequest(
         final AmazonWebServicesClientProxy proxy,
         final ResourceHandlerRequest<{{ pojo_name }}> request,
         final CallbackT callbackContext,

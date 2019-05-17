@@ -24,7 +24,7 @@ import java.util.Map;
 public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, CallbackContext> {
 
     private final Configuration configuration = new Configuration();
-    private final Map<Action, BaseHandler> handlers = new HashMap<>();
+    private final Map<Action, BaseHandler<CallbackContext>> handlers = new HashMap<>();
 
     public HandlerWrapper() {
         initialiseHandlers();
@@ -37,10 +37,11 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
     }
 
     @Override
-    public ProgressEvent invokeHandler(final AmazonWebServicesClientProxy proxy,
-                                       final ResourceHandlerRequest<{{ pojo_name }}> request,
-                                       final Action action,
-                                       final CallbackContext callbackContext) {
+    public ProgressEvent<{{ pojo_name }}, CallbackContext> invokeHandler(
+                final AmazonWebServicesClientProxy proxy,
+                final ResourceHandlerRequest<{{ pojo_name }}> request,
+                final Action action,
+                final CallbackContext callbackContext) {
 
         final String actionName = (action == null) ? "<null>" : action.toString(); // paranoia
         if (!handlers.containsKey(action))
@@ -48,7 +49,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
 
         final LoggerProxy loggerProxy = new LoggerProxy(this.logger);
 
-        final BaseHandler handler = handlers.get(action);
+        final BaseHandler<CallbackContext> handler = handlers.get(action);
 
         return handler.handleRequest(proxy, request, callbackContext, loggerProxy);
     }
