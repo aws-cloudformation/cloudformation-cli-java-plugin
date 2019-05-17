@@ -1,6 +1,8 @@
 package com.aws.cfn.injection;
 
-import software.amazon.awssdk.services.cloudformation.CloudFormationAsyncClient;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.core.retry.RetryPolicy;
+import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 
 public class CloudFormationProvider extends AmazonWebServicesProvider {
 
@@ -8,9 +10,15 @@ public class CloudFormationProvider extends AmazonWebServicesProvider {
         super(platformCredentialsProvider);
     }
 
-    public CloudFormationAsyncClient get() {
-        return CloudFormationAsyncClient.builder()
-            .credentialsProvider(this.getCredentialsProvider())
-            .build();
+    public CloudFormationClient get() {
+        return CloudFormationClient.builder()
+                .credentialsProvider(this.getCredentialsProvider())
+                .overrideConfiguration(ClientOverrideConfiguration.builder()
+                        //Default Retry Condition of Retry Policy retries on Throttling and ClockSkew Exceptions
+                        .retryPolicy(RetryPolicy.builder()
+                                .numRetries(16)
+                                .build())
+                        .build())
+                .build();
     }
 }

@@ -85,7 +85,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // initialisation skipped if these dependencies were set during injection (in test)
         this.platformCredentialsProvider.setCredentials(platformCredentials);
         if (this.callbackAdapter == null) {
-            this.callbackAdapter = new CloudFormationCallbackAdapter<ResourceT>(this.cloudFormationProvider.get());
+            this.callbackAdapter = new CloudFormationCallbackAdapter<ResourceT>(this.cloudFormationProvider.get(), this.logger);
         }
         if (this.metricsPublisher == null) {
             this.metricsPublisher = new MetricsPublisherImpl(this.cloudWatchProvider.get());
