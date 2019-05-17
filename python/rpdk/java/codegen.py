@@ -45,6 +45,9 @@ class JavaLanguagePlugin(LanguagePlugin):
 
         self._namespace_from_project(project)
 
+        project.runtime = self.RUNTIME
+        project.entrypoint = self.ENTRY_POINT.format(self.package_name)
+
         # .gitignore
         path = project.root / ".gitignore"
         LOG.debug("Writing .gitignore: %s", path)
@@ -78,8 +81,8 @@ class JavaLanguagePlugin(LanguagePlugin):
         contents = template.render(
             resource_type=project.type_name,
             handler_params={
-                "Handler": self.ENTRY_POINT.format(self.package_name),
-                "Runtime": self.RUNTIME,
+                "Handler": project.entrypoint,
+                "Runtime": project.runtime,
                 "CodeUri": self.CODE_URI.format(artifact_id),
             },
         )
