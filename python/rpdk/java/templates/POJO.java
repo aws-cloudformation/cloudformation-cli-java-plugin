@@ -7,9 +7,11 @@ import java.util.List;
 import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
 public class {{ pojo_name|uppercase_first_letter }} {
     {% for name, type in properties.items() %}
     @JsonProperty("{{ name }}")
