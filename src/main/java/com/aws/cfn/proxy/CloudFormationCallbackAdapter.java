@@ -7,10 +7,9 @@ import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgres
 import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressResponse;
 
 public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
-
     private final CloudFormationClient client;
     private final LambdaLogger logger;
-    
+
     public CloudFormationCallbackAdapter(final CloudFormationClient client, final LambdaLogger logger) {
         this.client = client;
         this.logger = logger;
@@ -36,7 +35,6 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
         }
 
         // TODO: be far more fault tolerant, do retries, emit logs and metrics, etc.
-
         final RecordHandlerProgressResponse response = this.client.recordHandlerProgress(requestBuilder.build());
         logger.log(String.format("Record Handler Progress with Request Id %s and Request: {%s}" + response.responseMetadata().requestId(), requestBuilder.build().toString()));
     }

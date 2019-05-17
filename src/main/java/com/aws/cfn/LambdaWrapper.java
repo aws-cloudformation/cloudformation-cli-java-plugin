@@ -257,6 +257,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                     handlerResponse.getCallbackDelayMinutes(),
                     request);
             } catch (Exception e){
+                handlerResponse.setMessage(e.toString());
                 handlerResponse.setStatus(OperationStatus.FAILED);
                 handlerResponse.setErrorCode(HandlerErrorCode.ServiceException);
             }
