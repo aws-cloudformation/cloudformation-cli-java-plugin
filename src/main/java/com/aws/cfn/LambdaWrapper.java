@@ -85,7 +85,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // initialisation skipped if these dependencies were set during injection (in test)
         this.platformCredentialsProvider.setCredentials(platformCredentials);
         if (this.callbackAdapter == null) {
-            this.callbackAdapter = new CloudFormationCallbackAdapter<ResourceT>(this.cloudFormationProvider.get(), this.logger);
+            this.callbackAdapter = new CloudFormationCallbackAdapter<ResourceT>(this.cloudFormationProvider.get());
         }
         if (this.metricsPublisher == null) {
             this.metricsPublisher = new MetricsPublisherImpl(this.cloudWatchProvider.get());
@@ -257,7 +257,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                     handlerResponse.getCallbackDelayMinutes(),
                     request);
             } catch (Exception e){
-                handlerResponse.setMessage(e.toString());
+                this.log(String.format("Failed to schedule re-invoke, caused by %s", e.toString()));
+                handlerResponse.setMessage(e.getMessage());
                 handlerResponse.setStatus(OperationStatus.FAILED);
                 handlerResponse.setErrorCode(HandlerErrorCode.ServiceException);
             }

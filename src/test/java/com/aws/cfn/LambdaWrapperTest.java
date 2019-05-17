@@ -1,5 +1,6 @@
 package com.aws.cfn;
 
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.aws.cfn.exceptions.TerminalException;
@@ -18,7 +19,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.ArgumentMatchers;
 import org.mockito.junit.MockitoJUnitRunner;
-import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -634,6 +634,35 @@ public class LambdaWrapperTest {
         assertThat(
             out.toString(),
             is(equalTo("{\"operationStatus\":\"SUCCESS\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}}"))
+        );
+    }
+
+    @Test
+    public void testFailToRescheduleInvocation() throws IOException {
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
+        final TestModel model = new TestModel();
+        model.setProperty1("abc");
+        model.setProperty2(123);
+        when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
+        doThrow(new AmazonServiceException("Throttled")).when(scheduler).rescheduleAfterMinutes(anyString(), anyInt(), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
+        wrapper.setTransformResponse(resourceHandlerRequest);
+
+        // respond with in progress status to trigger callback invocation
+        final ProgressEvent<TestModel, TestContext> pe = new ProgressEvent<>();
+        pe.setStatus(OperationStatus.IN_PROGRESS);
+        pe.setResourceModel(model);
+        wrapper.setInvokeHandlerResponse(pe);
+
+        final InputStream in = loadRequestStream("create.request.json");
+        final OutputStream out = new ByteArrayOutputStream();
+        final Context context = getLambdaContext();
+
+        wrapper.handleRequest(in, out, context);
+
+        // verify output response
+        assertThat(
+                out.toString(),
+                is(equalTo("{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"},\"errorCode\":\"ServiceException\",\"message\":\"Throttled (Service: null; Status Code: 0; Error Code: null; Request ID: null)\"}"))
         );
     }
 }

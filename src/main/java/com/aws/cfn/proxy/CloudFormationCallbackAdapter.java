@@ -1,18 +1,15 @@
 package com.aws.cfn.proxy;
 
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import org.json.JSONObject;
-import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
+import software.amazon.awssdk.services.cloudformation.CloudFormationAsyncClient;
 import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressRequest;
-import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressResponse;
 
 public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
-    private final CloudFormationClient client;
-    private final LambdaLogger logger;
 
-    public CloudFormationCallbackAdapter(final CloudFormationClient client, final LambdaLogger logger) {
+    private final CloudFormationAsyncClient client;
+
+    public CloudFormationCallbackAdapter(final CloudFormationAsyncClient client) {
         this.client = client;
-        this.logger = logger;
     }
 
     @Override
@@ -35,8 +32,7 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
         }
 
         // TODO: be far more fault tolerant, do retries, emit logs and metrics, etc.
-        final RecordHandlerProgressResponse response = this.client.recordHandlerProgress(requestBuilder.build());
-        logger.log(String.format("Record Handler Progress with Request Id %s and Request: {%s}" + response.responseMetadata().requestId(), requestBuilder.build().toString()));
+        this.client.recordHandlerProgress(requestBuilder.build());
     }
 
     private software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode translate(

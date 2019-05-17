@@ -9,7 +9,6 @@ import software.amazon.awssdk.services.cloudwatchevents.CloudWatchEventsClient;
 import software.amazon.awssdk.services.cloudwatchevents.model.DeleteRuleRequest;
 import software.amazon.awssdk.services.cloudwatchevents.model.DescribeRuleRequest;
 import software.amazon.awssdk.services.cloudwatchevents.model.PutRuleRequest;
-import software.amazon.awssdk.services.cloudwatchevents.model.PutRuleResponse;
 import software.amazon.awssdk.services.cloudwatchevents.model.PutTargetsRequest;
 import software.amazon.awssdk.services.cloudwatchevents.model.RemoveTargetsRequest;
 import software.amazon.awssdk.services.cloudwatchevents.model.RuleState;
@@ -64,34 +63,30 @@ public class CloudWatchScheduler {
         requestContext.setCloudWatchEventsTargetId(targetId);
 
         final String jsonRequest = new JSONObject(handlerRequest).toString();
-        this.log(String.format("Scheduling re-invoke at %s wiht Rule: (%s)", cronRule, ruleName));
+        this.log(String.format("Scheduling re-invoke at %s (%s)\n", cronRule, rescheduleId));
 
-        try {
-            final PutRuleRequest putRuleRequest = PutRuleRequest.builder()
-                    .name(ruleName)
-                    .scheduleExpression(cronRule)
-                    .state(RuleState.ENABLED)
-                    .build();
-            this.client.putRule(putRuleRequest);
+        final PutRuleRequest putRuleRequest = PutRuleRequest.builder()
+            .name(ruleName)
+            .scheduleExpression(cronRule)
+            .state(RuleState.ENABLED)
+            .build();
+        this.client.putRule(putRuleRequest);
 
-            final Target target = Target.builder()
-                    .arn(functionArn)
-                    .id(targetId)
-                    .input(jsonRequest)
-                    .build();
-            final PutTargetsRequest putTargetsRequest = PutTargetsRequest.builder()
-                    .targets(target)
-                    .rule(putRuleRequest.name())
-                    .build();
-            this.client.putTargets(putTargetsRequest);
+        final Target target = Target.builder()
+            .arn(functionArn)
+            .id(targetId)
+            .input(jsonRequest)
+            .build();
+        final PutTargetsRequest putTargetsRequest = PutTargetsRequest.builder()
+            .targets(target)
+            .rule(putRuleRequest.name())
+            .build();
+        this.client.putTargets(putTargetsRequest);
 
-            final DescribeRuleRequest describeRuleRequest = DescribeRuleRequest.builder()
-                    .name(ruleName)
-                    .build();
-            this.client.describeRule(describeRuleRequest);
-        } catch (Exception e) {
-            this.log(String.format("Failed to schedule re-invoke, caused by %s", e.toString()));
-        }
+        final DescribeRuleRequest describeRuleRequest = DescribeRuleRequest.builder()
+            .name(ruleName)
+            .build();
+        this.client.describeRule(describeRuleRequest);
     }
 
     /**
