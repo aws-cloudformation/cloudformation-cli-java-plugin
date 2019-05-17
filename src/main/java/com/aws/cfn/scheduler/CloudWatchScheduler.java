@@ -5,8 +5,9 @@ import com.aws.cfn.proxy.HandlerRequest;
 import com.aws.cfn.proxy.RequestContext;
 import lombok.Data;
 import org.json.JSONObject;
-import software.amazon.awssdk.services.cloudwatchevents.CloudWatchEventsAsyncClient;
+import software.amazon.awssdk.services.cloudwatchevents.CloudWatchEventsClient;
 import software.amazon.awssdk.services.cloudwatchevents.model.DeleteRuleRequest;
+import software.amazon.awssdk.services.cloudwatchevents.model.DescribeRuleRequest;
 import software.amazon.awssdk.services.cloudwatchevents.model.PutRuleRequest;
 import software.amazon.awssdk.services.cloudwatchevents.model.PutTargetsRequest;
 import software.amazon.awssdk.services.cloudwatchevents.model.RemoveTargetsRequest;
@@ -21,9 +22,9 @@ public class CloudWatchScheduler {
 
     private LambdaLogger logger;
     private final CronHelper cronHelper;
-    private final CloudWatchEventsAsyncClient client;
+    private final CloudWatchEventsClient client;
 
-    public CloudWatchScheduler(final CloudWatchEventsAsyncClient client) {
+    public CloudWatchScheduler(final CloudWatchEventsClient client) {
         this.client = client;
         this.cronHelper = new CronHelper();
     }
@@ -31,7 +32,7 @@ public class CloudWatchScheduler {
     /**
      * This .ctor provided for testing
      */
-    public CloudWatchScheduler(final CloudWatchEventsAsyncClient client,
+    public CloudWatchScheduler(final CloudWatchEventsClient client,
                                final CronHelper cronHelper) {
         this.client = client;
         this.cronHelper = cronHelper;
@@ -81,6 +82,11 @@ public class CloudWatchScheduler {
             .rule(putRuleRequest.name())
             .build();
         this.client.putTargets(putTargetsRequest);
+
+        final DescribeRuleRequest describeRuleRequest = DescribeRuleRequest.builder()
+            .name(ruleName)
+            .build();
+        this.client.describeRule(describeRuleRequest);
     }
 
     /**
