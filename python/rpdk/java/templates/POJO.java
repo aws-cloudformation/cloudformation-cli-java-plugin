@@ -5,17 +5,19 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Map;
 import java.util.List;
 import java.util.Set;
-import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Setter
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class {{ pojo_name|uppercase_first_letter }} {
     {% for name, type in properties.items() %}
-    private {{ type }} {{ name|lowercase_first_letter }};
-
     @JsonProperty("{{ name }}")
-    public {{ type }} get{{ name|uppercase_first_letter }}() {
-        return this.{{ name|lowercase_first_letter }};
-    }
+    private {{ type }} {{ name|lowercase_first_letter }};
 
     {% endfor %}
 }
