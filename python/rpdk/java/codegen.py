@@ -14,7 +14,7 @@ from .utils import safe_reserved
 LOG = logging.getLogger(__name__)
 
 OPERATIONS = ("Create", "Read", "Update", "Delete", "List")
-EXECUTABLE = "uluru-cli"
+EXECUTABLE = "cfn-cli"
 
 
 class JavaArchiveNotFoundError(SysExitRecommendedError):
