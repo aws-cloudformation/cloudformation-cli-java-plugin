@@ -1,12 +1,16 @@
 package com.aws.cfn.proxy;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.Map;
 
 @Data
+@AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class ProgressEvent<ResourceT, CallbackT> {
     /**
      * The status indicates whether the handler has reached a terminal state or

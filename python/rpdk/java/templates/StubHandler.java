@@ -19,9 +19,9 @@ public class {{ operation }}Handler extends BaseHandler<CallbackContext> {
 
         // TODO : put your code here
 
-        final ProgressEvent<{{ pojo_name }}, CallbackContext> pe = new ProgressEvent<>();
-        pe.setResourceModel(model);
-        pe.setStatus(OperationStatus.SUCCESS);
-        return pe;
+        return ProgressEvent.builder()
+            .resourceModel(model)
+            .status(OperationStatus.SUCCESS)
+            .build();
     }
 }
