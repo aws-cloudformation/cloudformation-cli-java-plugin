@@ -23,6 +23,6 @@ phases:
       - DIR=$(mktemp -d)
       - cd "$DIR"
       - ls -la
-      - echo "AWS::Foo::Bar" | uluru-cli init -vv
+      - echo "AWS::Foo::Bar" | cfn-cli init -vv
       - mvn package
       - ls -la
