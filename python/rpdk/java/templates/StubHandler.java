@@ -19,7 +19,7 @@ public class {{ operation }}Handler extends BaseHandler<CallbackContext> {
 
         // TODO : put your code here
 
-        return ProgressEvent.builder()
+        return ProgressEvent.<{{ pojo_name }}, CallbackContext>builder()
             .resourceModel(model)
             .status(OperationStatus.SUCCESS)
             .build();
