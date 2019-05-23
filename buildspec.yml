@@ -25,5 +25,4 @@ phases:
       - ls -la
       - echo "AWS::Foo::Bar" | cfn-cli init -vv
       - mvn clean verify
-      - mvn package
       - ls -la
