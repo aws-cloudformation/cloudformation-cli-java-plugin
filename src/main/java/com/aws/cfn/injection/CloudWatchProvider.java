@@ -6,8 +6,8 @@ import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 
 public class CloudWatchProvider extends AmazonWebServicesProvider {
 
-    public CloudWatchProvider(final PlatformCredentialsProvider platformCredentialsProvider) {
-        super(platformCredentialsProvider);
+    public CloudWatchProvider(final CredentialsProvider credentialsProvider) {
+        super(credentialsProvider);
     }
 
     public CloudWatchClient get() {

@@ -1,5 +1,6 @@
 package com.aws.cfn;
 
+import com.aws.cfn.injection.CredentialsProvider;
 import com.aws.cfn.metrics.MetricsPublisher;
 import com.aws.cfn.proxy.AmazonWebServicesClientProxy;
 import com.aws.cfn.proxy.CallbackAdapter;
@@ -33,10 +34,18 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
      * This .ctor provided for testing
      */
     public WrapperOverride(final CallbackAdapter<TestModel> callbackAdapter,
+                           final CredentialsProvider credentialsProvider,
                            final MetricsPublisher metricsPublisher,
                            final CloudWatchScheduler scheduler,
                            final SchemaValidator validator) {
-        super(callbackAdapter, metricsPublisher, scheduler, validator, new Serializer(), new TypeReference<HandlerRequest<TestModel, TestContext>>() {});
+        super(
+            callbackAdapter,
+            credentialsProvider,
+            metricsPublisher,
+            scheduler,
+            validator,
+            new Serializer(),
+            new TypeReference<HandlerRequest<TestModel, TestContext>>() {});
     }
 
     @Override

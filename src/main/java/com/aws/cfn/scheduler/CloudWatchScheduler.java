@@ -1,6 +1,7 @@
 package com.aws.cfn.scheduler;
 
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
+import com.aws.cfn.injection.CloudWatchEventsProvider;
 import com.aws.cfn.proxy.HandlerRequest;
 import com.aws.cfn.proxy.RequestContext;
 import lombok.Data;
@@ -20,22 +21,37 @@ import java.util.UUID;
 @Data
 public class CloudWatchScheduler {
 
-    private LambdaLogger logger;
-    private final CronHelper cronHelper;
-    private final CloudWatchEventsClient client;
+    private final CloudWatchEventsProvider cloudWatchEventsProvider;
 
-    public CloudWatchScheduler(final CloudWatchEventsClient client) {
-        this.client = client;
+    private final LambdaLogger logger;
+
+    private final CronHelper cronHelper;
+    private CloudWatchEventsClient client;
+
+    public CloudWatchScheduler(final CloudWatchEventsProvider cloudWatchEventsProvider,
+                               final LambdaLogger logger) {
+        this.cloudWatchEventsProvider = cloudWatchEventsProvider;
+        this.logger = logger;
         this.cronHelper = new CronHelper();
     }
 
     /**
      * This .ctor provided for testing
      */
-    public CloudWatchScheduler(final CloudWatchEventsClient client,
+    public CloudWatchScheduler(final CloudWatchEventsProvider cloudWatchEventsProvider,
+                               final LambdaLogger logger,
                                final CronHelper cronHelper) {
-        this.client = client;
+        this.cloudWatchEventsProvider = cloudWatchEventsProvider;
+        this.logger = logger;
         this.cronHelper = cronHelper;
+    }
+
+    /**
+     * On Lambda re-invoke we need to supply a new set of client credentials so this function
+     * must be called whenever credentials are refreshed/changed in the owning entity
+     */
+    public void refreshClient() {
+        this.client = cloudWatchEventsProvider.get();
     }
 
     /**

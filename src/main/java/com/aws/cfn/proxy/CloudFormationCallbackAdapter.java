@@ -1,6 +1,7 @@
 package com.aws.cfn.proxy;
 
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
+import com.aws.cfn.injection.CloudFormationProvider;
 import org.json.JSONObject;
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressRequest;
@@ -8,13 +9,20 @@ import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgres
 
 public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
 
-    private final CloudFormationClient client;
+    private final CloudFormationProvider cloudFormationProvider;
 
     private final LambdaLogger logger;
 
-    public CloudFormationCallbackAdapter(final CloudFormationClient client, final LambdaLogger logger) {
-        this.client = client;
+    private CloudFormationClient client;
+
+    public CloudFormationCallbackAdapter(final CloudFormationProvider cloudFormationProvider,
+                                         final LambdaLogger logger) {
+        this.cloudFormationProvider = cloudFormationProvider;
         this.logger = logger;
+    }
+
+    public void refreshClient() {
+        this.client = cloudFormationProvider.get();
     }
 
     @Override

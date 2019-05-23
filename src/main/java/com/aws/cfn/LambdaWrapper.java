@@ -7,6 +7,7 @@ import com.aws.cfn.exceptions.TerminalException;
 import com.aws.cfn.injection.CloudFormationProvider;
 import com.aws.cfn.injection.CloudWatchEventsProvider;
 import com.aws.cfn.injection.CloudWatchProvider;
+import com.aws.cfn.injection.CredentialsProvider;
 import com.aws.cfn.injection.PlatformCredentialsProvider;
 import com.aws.cfn.metrics.MetricsPublisher;
 import com.aws.cfn.metrics.MetricsPublisherImpl;
@@ -41,10 +42,10 @@ import java.util.Date;
 
 public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStreamHandler {
 
-    private final PlatformCredentialsProvider platformCredentialsProvider = new PlatformCredentialsProvider();
-    final CloudFormationProvider cloudFormationProvider = new CloudFormationProvider(this.platformCredentialsProvider);
-    final CloudWatchProvider cloudWatchProvider = new CloudWatchProvider(this.platformCredentialsProvider);
-    final CloudWatchEventsProvider cloudWatchEventsProvider = new CloudWatchEventsProvider(this.platformCredentialsProvider);
+    private CredentialsProvider credentialsProvider = new PlatformCredentialsProvider();
+    private final CloudFormationProvider cloudFormationProvider = new CloudFormationProvider(this.credentialsProvider);
+    private final CloudWatchProvider cloudWatchProvider = new CloudWatchProvider(this.credentialsProvider);
+    private final CloudWatchEventsProvider cloudWatchEventsProvider = new CloudWatchEventsProvider(this.credentialsProvider);
 
     private CallbackAdapter<ResourceT> callbackAdapter;
     private MetricsPublisher metricsPublisher;
@@ -55,6 +56,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     protected LambdaLogger logger;
 
     protected LambdaWrapper() {
+        this.credentialsProvider = new PlatformCredentialsProvider();
         this.serializer = new Serializer();
         this.validator = new Validator();
         this.typeReference = getTypeReference();
@@ -64,12 +66,14 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
      * This .ctor provided for testing
      */
     public LambdaWrapper(final CallbackAdapter<ResourceT> callbackAdapter,
+                         final CredentialsProvider credentialsProvider,
                          final MetricsPublisher metricsPublisher,
                          final CloudWatchScheduler scheduler,
                          final SchemaValidator validator,
                          final Serializer serializer,
                          final TypeReference<HandlerRequest<ResourceT, CallbackT>> typeReference) {
         this.callbackAdapter = callbackAdapter;
+        this.credentialsProvider = credentialsProvider;
         this.metricsPublisher = metricsPublisher;
         this.scheduler = scheduler;
         this.serializer = serializer;
@@ -83,16 +87,21 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     */
     private void initialiseRuntime(final Credentials platformCredentials) {
         // initialisation skipped if these dependencies were set during injection (in test)
-        this.platformCredentialsProvider.setCredentials(platformCredentials);
+        this.credentialsProvider.setCredentials(platformCredentials);
         if (this.callbackAdapter == null) {
-            this.callbackAdapter = new CloudFormationCallbackAdapter<ResourceT>(this.cloudFormationProvider.get(), this.logger);
+            this.callbackAdapter = new CloudFormationCallbackAdapter<ResourceT>(this.cloudFormationProvider, this.logger);
+        } else {
+            this.callbackAdapter.refreshClient();
         }
         if (this.metricsPublisher == null) {
-            this.metricsPublisher = new MetricsPublisherImpl(this.cloudWatchProvider.get());
+            this.metricsPublisher = new MetricsPublisherImpl(this.cloudWatchProvider);
+        } else {
+            this.metricsPublisher.refreshClient();
         }
         if (this.scheduler == null) {
-            this.scheduler = new CloudWatchScheduler(this.cloudWatchEventsProvider.get());
-            this.scheduler.setLogger(this.logger);
+            this.scheduler = new CloudWatchScheduler(this.cloudWatchEventsProvider, this.logger);
+        } else {
+            this.scheduler.refreshClient();
         }
     }
 
@@ -256,7 +265,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                     context.getInvokedFunctionArn(),
                     handlerResponse.getCallbackDelayMinutes(),
                     request);
-            } catch (Exception e){
+            } catch (final Exception e){
                 this.log(String.format("Failed to schedule re-invoke, caused by %s", e.toString()));
                 handlerResponse.setMessage(e.getMessage());
                 handlerResponse.setStatus(OperationStatus.FAILED);

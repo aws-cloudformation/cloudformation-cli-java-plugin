@@ -6,8 +6,8 @@ import software.amazon.awssdk.services.cloudwatchevents.CloudWatchEventsClient;
 
 public class CloudWatchEventsProvider extends AmazonWebServicesProvider {
 
-    public CloudWatchEventsProvider(final PlatformCredentialsProvider platformCredentialsProvider) {
-        super(platformCredentialsProvider);
+    public CloudWatchEventsProvider(final CredentialsProvider credentialsProvider) {
+        super(credentialsProvider);
     }
 
     public CloudWatchEventsClient get() {
