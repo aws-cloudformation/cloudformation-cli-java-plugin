@@ -3,7 +3,7 @@ package com.aws.cfn.injection;
 import com.aws.cfn.proxy.Credentials;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 
-public class PlatformCredentialsProvider {
+public class PlatformCredentialsProvider implements CredentialsProvider {
 
     private AwsSessionCredentials awsSessionCredentials;
 

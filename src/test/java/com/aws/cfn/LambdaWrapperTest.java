@@ -4,8 +4,10 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.aws.cfn.exceptions.TerminalException;
+import com.aws.cfn.injection.CredentialsProvider;
 import com.aws.cfn.metrics.MetricsPublisher;
 import com.aws.cfn.proxy.CallbackAdapter;
+import com.aws.cfn.proxy.Credentials;
 import com.aws.cfn.proxy.HandlerRequest;
 import com.aws.cfn.proxy.OperationStatus;
 import com.aws.cfn.proxy.ProgressEvent;
@@ -53,6 +55,10 @@ public class LambdaWrapperTest {
     private CallbackAdapter<TestModel> callbackAdapter;
 
     @Mock
+    private CredentialsProvider credentialsProvider;
+
+
+    @Mock
     private MetricsPublisher metricsPublisher;
 
     @Mock
@@ -87,7 +93,7 @@ public class LambdaWrapperTest {
 
     private void testInvokeHandler_NullResponse(final String requestDataPath,
                                                 final Action action) throws IOException {
-        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
 
         // a null response is a terminal fault
@@ -161,7 +167,7 @@ public class LambdaWrapperTest {
 
     private void testInvokeHandler_Failed(final String requestDataPath,
                                           final Action action) throws IOException {
-        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
 
         // explicit fault response is treated as an unsuccessful synchronous completion
@@ -237,7 +243,7 @@ public class LambdaWrapperTest {
 
     private void testInvokeHandler_CompleteSynchronously(final String requestDataPath,
                                                          final Action action) throws IOException {
-        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
 
         // if the handler responds Complete, this is treated as a successful synchronous completion
@@ -313,7 +319,7 @@ public class LambdaWrapperTest {
 
     private void testInvokeHandler_InProgress(final String requestDataPath,
                                               final Action action) throws IOException {
-        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
 
         // an InProgress response is always re-scheduled.
@@ -395,7 +401,7 @@ public class LambdaWrapperTest {
 
     private void testReInvokeHandler_InProgress(final String requestDataPath,
                                                 final Action action) throws IOException {
-        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
 
         // an InProgress response is always re-scheduled.
@@ -483,7 +489,7 @@ public class LambdaWrapperTest {
                                                            final Action action) throws IOException {
         doThrow(ValidationException.class)
                 .when(validator).validateObject(any(JSONObject.class), any(InputStream.class));
-        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
 
         when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
@@ -560,7 +566,7 @@ public class LambdaWrapperTest {
 
     @Test
     public void testInvokeHandler_WithMalformedRequest() throws IOException {
-        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
 
         // an InProgress response is always re-scheduled.
@@ -591,7 +597,7 @@ public class LambdaWrapperTest {
 
     @Test
     public void testInvokeHandler_WithoutPlatformCredentials() throws IOException {
-        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         // without platform credentials the handler is unable to do
         // basic SDK initialization and any such request should fail fast
         final InputStream in = loadRequestStream("create.request-without-platform-credentials.json");
@@ -609,7 +615,7 @@ public class LambdaWrapperTest {
 
     @Test
     public void testInvokeHandler_WithDefaultInjection() throws IOException {
-        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
         model.setProperty1("abc");
         model.setProperty2(123);
@@ -639,7 +645,7 @@ public class LambdaWrapperTest {
 
     @Test
     public void testFailToRescheduleInvocation() throws IOException {
-        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, metricsPublisher, scheduler, validator);
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
         model.setProperty1("abc");
         model.setProperty2(123);
@@ -664,5 +670,64 @@ public class LambdaWrapperTest {
                 out.toString(),
                 is(equalTo("{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"},\"errorCode\":\"ServiceException\",\"message\":\"Throttled (Service: null; Status Code: 0; Error Code: null; Request ID: null)\"}"))
         );
+    }
+
+    @Test
+    public void testClientsRefreshedOnEveryInvoke() throws IOException {
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
+
+        InputStream in = loadRequestStream("create.request.json");
+        OutputStream out = new ByteArrayOutputStream();
+        Context context = getLambdaContext();
+
+        wrapper.handleRequest(in, out, context);
+
+        verify(callbackAdapter, times(1)).refreshClient();
+        verify(metricsPublisher, times(1)).refreshClient();
+        verify(scheduler, times(1)).refreshClient();
+
+        // invoke the same wrapper instance again to ensure client is refreshed
+        in = loadRequestStream("create.request.json");
+        out = new ByteArrayOutputStream();
+        context = getLambdaContext();
+
+        wrapper.handleRequest(in, out, context);
+
+        verify(callbackAdapter, times(2)).refreshClient();
+        verify(metricsPublisher, times(2)).refreshClient();
+        verify(scheduler, times(2)).refreshClient();
+    }
+
+    @Test
+    public void testPlatformCredentialsRefreshedOnEveryInvoke() throws IOException {
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
+
+        InputStream in = loadRequestStream("create.request.json");
+        OutputStream out = new ByteArrayOutputStream();
+        Context context = getLambdaContext();
+
+        wrapper.handleRequest(in, out, context);
+
+        final Credentials expected = new Credentials(
+            "32IEHAHFIAG538KYASAI",
+            "0O2hop/5vllVHjbA8u52hK8rLcroZpnL5NPGOi66",
+            "gqe6eIsFPHOlfhc3RKl5s5Y6Dy9PYvN1CEYsswz5TQUsE8WfHD6LPK549euXm4Vn4INBY9nMJ1cJe2mxTYFdhWHSnkOQv2SHemal"
+        );
+        verify(credentialsProvider, times(1)).setCredentials(eq(expected));
+
+        // invoke the same wrapper instance again to ensure client is refreshed
+        in = loadRequestStream("create.request.with-new-credentials.json");
+        out = new ByteArrayOutputStream();
+        context = getLambdaContext();
+
+        wrapper.handleRequest(in, out, context);
+
+        final Credentials expectedNew = new Credentials(
+            "GT530IJDHALYZQSZZ8XG",
+            "UeJEwC/dqcYEn2viFd5TjKjR5TaMOfdeHrlLXxQL",
+            "469gs8raWJCaZcItXhGJ7dt3urI13fOTcde6ibhuHJz6r6bRRCWvLYGvCsqrN8WUClYL9lxZHymrWXvZ9xN0GoI2LFdcAAinZk5t"
+        );
+
+        verify(credentialsProvider, times(1)).setCredentials(eq(expectedNew));
     }
 }
