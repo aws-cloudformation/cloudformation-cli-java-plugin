@@ -16,11 +16,11 @@ import com.aws.cfn.resource.SchemaValidator;
 import com.aws.cfn.resource.exceptions.ValidationException;
 import com.aws.cfn.scheduler.CloudWatchScheduler;
 import org.json.JSONObject;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.ArgumentMatchers;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -31,9 +31,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.Instant;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.core.Is.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -41,12 +39,13 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class LambdaWrapperTest {
 
     private static final String TEST_DATA_BASE_PATH = "src/test/java/com/aws/cfn/data/%s";
@@ -85,7 +84,7 @@ public class LambdaWrapperTest {
         final LambdaLogger lambdaLogger = mock(LambdaLogger.class);
 
         final Context context = mock(Context.class);
-        when(context.getInvokedFunctionArn()).thenReturn("arn:aws:lambda:aws-region:acct-id:function:testHandler:PROD");
+        lenient().when(context.getInvokedFunctionArn()).thenReturn("arn:aws:lambda:aws-region:acct-id:function:testHandler:PROD");
         when(context.getLogger()).thenReturn(lambdaLogger);
 
         return context;
@@ -99,7 +98,7 @@ public class LambdaWrapperTest {
         // a null response is a terminal fault
         wrapper.setInvokeHandlerResponse(null);
 
-        when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
+        lenient().when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
         wrapper.setTransformResponse(resourceHandlerRequest);
 
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
@@ -132,11 +131,9 @@ public class LambdaWrapperTest {
                 any(), any());
 
             // verify output response
-            assertThat(
-                out.toString(),
-                is(equalTo("{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}," +
-                               "\"message\":\"Handler failed to provide a response.\"}"))
-            );
+            assertThat(out.toString()).isEqualTo(
+                "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}," +
+                "\"message\":\"Handler failed to provide a response.\"}");
         }
     }
 
@@ -176,7 +173,7 @@ public class LambdaWrapperTest {
         pe.setStatus(OperationStatus.FAILED);
         wrapper.setInvokeHandlerResponse(pe);
 
-        when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
+        lenient().when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
         wrapper.setTransformResponse(resourceHandlerRequest);
 
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
@@ -209,10 +206,8 @@ public class LambdaWrapperTest {
                 any(), any());
 
             // verify output response
-            assertThat(
-                out.toString(),
-                is(equalTo("{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"message\":\"Custom Fault\"}"))
-            );
+            assertThat(out.toString()).isEqualTo(
+                "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"message\":\"Custom Fault\"}");
         }
     }
 
@@ -251,7 +246,7 @@ public class LambdaWrapperTest {
         pe.setStatus(OperationStatus.SUCCESS);
         wrapper.setInvokeHandlerResponse(pe);
 
-        when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
+        lenient().when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
 
         wrapper.setTransformResponse(resourceHandlerRequest);
 
@@ -285,10 +280,8 @@ public class LambdaWrapperTest {
                 any(), any());
 
             // verify output response
-            assertThat(
-                out.toString(),
-                is(equalTo("{\"operationStatus\":\"SUCCESS\",\"bearerToken\":\"123456\"}"))
-            );
+            assertThat(out.toString()).isEqualTo(
+                "{\"operationStatus\":\"SUCCESS\",\"bearerToken\":\"123456\"}");
         }
     }
 
@@ -329,7 +322,7 @@ public class LambdaWrapperTest {
         pe.setResourceModel(model);
         wrapper.setInvokeHandlerResponse(pe);
 
-        when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
+        lenient().when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
         wrapper.setTransformResponse(resourceHandlerRequest);
 
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
@@ -367,10 +360,8 @@ public class LambdaWrapperTest {
             // TODO
 
             // verify output response
-            assertThat(
-                out.toString(),
-                is(equalTo("{\"operationStatus\":\"IN_PROGRESS\",\"bearerToken\":\"123456\",\"resourceModel\":{}}"))
-            );
+            assertThat(out.toString()).isEqualTo(
+                "{\"operationStatus\":\"IN_PROGRESS\",\"bearerToken\":\"123456\",\"resourceModel\":{}}");
         }
     }
 
@@ -451,10 +442,8 @@ public class LambdaWrapperTest {
             // TODO
 
             // verify output response
-            assertThat(
-                out.toString(),
-                is(equalTo("{\"operationStatus\":\"IN_PROGRESS\",\"bearerToken\":\"123456\",\"resourceModel\":{}}"))
-            );
+            assertThat(out.toString()).isEqualTo(
+                "{\"operationStatus\":\"IN_PROGRESS\",\"bearerToken\":\"123456\",\"resourceModel\":{}}");
         }
     }
 
@@ -530,10 +519,8 @@ public class LambdaWrapperTest {
             // TODO
 
             // verify output response
-            assertThat(
-                out.toString(),
-                is(equalTo("{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}}"))
-            );
+            assertThat(out.toString()).isEqualTo(
+                "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}}");
         }
     }
 
@@ -588,10 +575,8 @@ public class LambdaWrapperTest {
             wrapper.handleRequest(in, out, context);
 
             // verify output response
-            assertThat(
-                out.toString(),
-                is(equalTo("{\"operationStatus\":\"SUCCESS\",\"bearerToken\":\"123456\",\"resourceModel\":{}}"))
-            );
+            assertThat(out.toString()).isEqualTo(
+                "{\"operationStatus\":\"SUCCESS\",\"bearerToken\":\"123456\",\"resourceModel\":{}}");
         }
     }
 
@@ -606,10 +591,8 @@ public class LambdaWrapperTest {
             wrapper.handleRequest(in, out, context);
 
             // verify output response
-            assertThat(
-                out.toString(),
-                is(equalTo("{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"},\"message\":\"Missing required platform credentials\"}"))
-            );
+            assertThat(out.toString()).isEqualTo(
+                "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"},\"message\":\"Missing required platform credentials\"}");
         }
     }
 
@@ -636,10 +619,8 @@ public class LambdaWrapperTest {
             wrapper.handleRequest(in, out, context);
 
             // verify output response
-            assertThat(
-                out.toString(),
-                is(equalTo("{\"operationStatus\":\"SUCCESS\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}}"))
-            );
+            assertThat(out.toString()).isEqualTo(
+                "{\"operationStatus\":\"SUCCESS\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}}");
         }
     }
 
@@ -665,10 +646,8 @@ public class LambdaWrapperTest {
             wrapper.handleRequest(in, out, context);
 
             // verify output response
-            assertThat(
-                out.toString(),
-                is(equalTo("{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"},\"errorCode\":\"ServiceException\",\"message\":\"Throttled (Service: null; Status Code: 0; Error Code: null; Request ID: null)\"}"))
-            );
+            assertThat(out.toString()).isEqualTo(
+                "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"},\"errorCode\":\"ServiceException\",\"message\":\"Throttled (Service: null; Status Code: 0; Error Code: null; Request ID: null)\"}");
         }
     }
 
@@ -714,8 +693,7 @@ public class LambdaWrapperTest {
 
         // invoke the same wrapper instance again to ensure client is refreshed
         context = getLambdaContext();
-        try (InputStream in = loadRequestStream("create.request.with-new-credentials.json"); OutputStream out = new
-                                                                                                               ByteArrayOutputStream()) {
+        try (InputStream in = loadRequestStream("create.request.with-new-credentials.json"); OutputStream out = new ByteArrayOutputStream()) {
             wrapper.handleRequest(in, out, context);
         }
 

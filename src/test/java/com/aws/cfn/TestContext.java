@@ -1,4 +1,5 @@
 package com.aws.cfn;
+
 import lombok.Data;
 
 @Data

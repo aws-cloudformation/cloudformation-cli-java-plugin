@@ -1,15 +1,13 @@
 package com.aws.cfn.scheduler;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsEqual.equalTo;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -26,9 +24,7 @@ public class CronHelperTest {
         final CronHelper cronHelper = new CronHelper(mockClockInASock);
 
         assertThat(
-            cronHelper.generateOneTimeCronExpression(5),
-            is(equalTo("cron(46 13 30 10 ? 2018)"))
-        );
+            cronHelper.generateOneTimeCronExpression(5)).isEqualTo("cron(46 13 30 10 ? 2018)");
     }
 
     @Test
@@ -42,9 +38,7 @@ public class CronHelperTest {
         final CronHelper cronHelper = new CronHelper(mockClockInASock);
 
         assertThat(
-            cronHelper.generateOneTimeCronExpression(3),
-            is(equalTo("cron(3 0 31 10 ? 2018)"))
-        );
+            cronHelper.generateOneTimeCronExpression(3)).isEqualTo("cron(3 0 31 10 ? 2018)");
     }
 
     @Test
@@ -58,8 +52,6 @@ public class CronHelperTest {
         final CronHelper cronHelper = new CronHelper(mockClockInASock);
 
         assertThat(
-            cronHelper.generateOneTimeCronExpression(5),
-            is(equalTo("cron(2 0 1 1 ? 2019)"))
-        );
+            cronHelper.generateOneTimeCronExpression(5)).isEqualTo("cron(2 0 1 1 ? 2019)");
     }
 }

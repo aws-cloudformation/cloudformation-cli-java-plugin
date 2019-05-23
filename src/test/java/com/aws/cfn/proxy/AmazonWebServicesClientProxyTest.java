@@ -5,7 +5,7 @@ import com.amazonaws.services.cloudformation.AmazonCloudFormation;
 import com.amazonaws.services.cloudformation.model.DescribeStackEventsRequest;
 import com.amazonaws.services.cloudformation.model.DescribeStackEventsResult;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.services.cloudformation.CloudFormationAsyncClient;
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
@@ -15,9 +15,7 @@ import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsEqual.equalTo;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -53,14 +51,11 @@ public class AmazonWebServicesClientProxyTest {
             eq(null));
 
         // ensure the return type matches
-        assertThat(
-            result,
-            is(equalTo(expectedResult))
-        );
+        assertThat(result).isEqualTo(expectedResult);
     }
 
     @Test
-    public void testInjectCredentialsAndInvokeV2() throws ExecutionException, InterruptedException {
+    public void testInjectCredentialsAndInvokeV2() {
 
         final LambdaLogger lambdaLogger = mock(LambdaLogger.class);
         final Credentials credentials = new Credentials("accessKeyId", "secretAccessKey", "sessionToken");
@@ -98,10 +93,7 @@ public class AmazonWebServicesClientProxyTest {
         verify(client).describeStackEvents(wrappedRequest);
 
         // ensure the return type matches
-        assertThat(
-                result,
-                is(equalTo(expectedResult))
-        );
+        assertThat(result).isEqualTo(expectedResult);
     }
 
     @Test
@@ -143,9 +135,6 @@ public class AmazonWebServicesClientProxyTest {
         verify(client).describeStackEvents(wrappedRequest);
 
         // ensure the return type matches
-        assertThat(
-            result.get(),
-            is(equalTo(expectedResult))
-        );
+        assertThat(result.get()).isEqualTo(expectedResult);
     }
 }

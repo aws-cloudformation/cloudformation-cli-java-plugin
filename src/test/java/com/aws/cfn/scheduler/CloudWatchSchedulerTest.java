@@ -6,12 +6,11 @@ import com.aws.cfn.TestModel;
 import com.aws.cfn.injection.CloudWatchEventsProvider;
 import com.aws.cfn.proxy.HandlerRequest;
 import com.aws.cfn.proxy.RequestContext;
-import junit.framework.TestCase;
 import org.json.JSONObject;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.cloudwatchevents.CloudWatchEventsClient;
 import software.amazon.awssdk.services.cloudwatchevents.model.DeleteRuleRequest;
 import software.amazon.awssdk.services.cloudwatchevents.model.RemoveTargetsRequest;
@@ -28,8 +27,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
-public class CloudWatchSchedulerTest extends TestCase {
+@ExtendWith(MockitoExtension.class)
+public class CloudWatchSchedulerTest {
 
     @Mock
     private LambdaLogger logger;
