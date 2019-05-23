@@ -42,7 +42,7 @@ import java.util.Date;
 
 public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStreamHandler {
 
-    private CredentialsProvider credentialsProvider = new PlatformCredentialsProvider();
+    private CredentialsProvider credentialsProvider;
     private final CloudFormationProvider cloudFormationProvider = new CloudFormationProvider(this.credentialsProvider);
     private final CloudWatchProvider cloudWatchProvider = new CloudWatchProvider(this.credentialsProvider);
     private final CloudWatchEventsProvider cloudWatchEventsProvider = new CloudWatchEventsProvider(this.credentialsProvider);
