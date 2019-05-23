@@ -40,7 +40,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         )
         self.package_name = ".".join(self.namespace)
 
-    def init(self, project):
+    def init(self, project):  # pylint: disable=too-many-statements
         LOG.debug("Init started")
 
         self._namespace_from_project(project)
