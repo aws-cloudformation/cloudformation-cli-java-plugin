@@ -55,4 +55,44 @@ public class ProgressEvent<ResourceT, CallbackT> {
      * The output resource instances populated by a LIST for synchronous results
      */
     private List<ResourceT> resourceModels;
+
+    /**
+     * Convenience method for constructing a FAILED response
+     */
+    public ProgressEvent<ResourceT, CallbackT> defaultFailureHandler(
+        final Exception e,
+        final HandlerErrorCode handlerErrorCode) {
+
+        return ProgressEvent.<ResourceT, CallbackT>builder()
+            .errorCode(handlerErrorCode)
+            .message(e.getMessage())
+            .status(OperationStatus.FAILED)
+            .build();
+    }
+
+    /**
+     * Convenience method for constructing a SUCCESS response
+     */
+    public ProgressEvent<ResourceT, CallbackT> defaultInProgressHandler(
+        final CallbackT callbackContext,
+        final int callbackDelayMinutes,
+        final ResourceT resourceModel) {
+        return ProgressEvent.<ResourceT, CallbackT>builder()
+            .callbackContext(callbackContext)
+            .callbackDelayMinutes(callbackDelayMinutes)
+            .resourceModel(resourceModel)
+            .status(OperationStatus.IN_PROGRESS)
+            .build();
+    }
+
+    /**
+     * Convenience method for constructing a SUCCESS response
+     */
+    public ProgressEvent<ResourceT, CallbackT> defaultSuccessHandler(
+        final ResourceT resourceModel) {
+        return ProgressEvent.<ResourceT, CallbackT>builder()
+            .resourceModel(resourceModel)
+            .status(OperationStatus.SUCCESS)
+            .build();
+    }
 }
