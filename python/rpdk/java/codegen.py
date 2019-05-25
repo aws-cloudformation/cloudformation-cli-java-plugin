@@ -40,7 +40,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         )
         self.package_name = ".".join(self.namespace)
 
-    def init(self, project):  # pylint: disable=too-many-statements
+    def init(self, project):
         LOG.debug("Init started")
 
         self._namespace_from_project(project)
@@ -95,31 +95,8 @@ class JavaLanguagePlugin(LanguagePlugin):
         )
         project.safewrite(path, contents)
 
-        LOG.debug("Writing stub handlers")
-        template = self.env.get_template("StubHandler.java")
-
-        for operation in OPERATIONS:
-            path = src / "{}Handler.java".format(operation)
-            LOG.debug("%s handler: %s", operation, path)
-            contents = template.render(
-                package_name=self.package_name,
-                operation=operation,
-                pojo_name="ResourceModel",
-            )
-            project.safewrite(path, contents)
-
-        LOG.debug("Writing stub tests")
-        template = self.env.get_template("StubHandlerTest.java")
-
-        for operation in OPERATIONS:
-            path = tst / "{}HandlerTest.java".format(operation)
-            LOG.debug("%s handler: %s", operation, path)
-            contents = template.render(
-                package_name=self.package_name,
-                operation=operation,
-                pojo_name="ResourceModel",
-            )
-            project.safewrite(path, contents)
+        LOG.debug("Writing handlers and tests")
+        self.init_handlers(project, src, tst)
 
         LOG.debug("Writing callback context")
         template = self.env.get_template("CallbackContext.java")
@@ -146,6 +123,59 @@ class JavaLanguagePlugin(LanguagePlugin):
         project.safewrite(path, contents)
 
         LOG.debug("Init complete")
+
+    def init_handlers(self, project, src, tst):
+        LOG.debug("Writing stub handlers")
+        template = self.env.get_template("StubHandler.java")
+
+        for operation in OPERATIONS:
+            if operation == "List":
+                continue
+            path = src / "{}Handler.java".format(operation)
+            LOG.debug("%s handler: %s", operation, path)
+            contents = template.render(
+                package_name=self.package_name,
+                operation=operation,
+                pojo_name="ResourceModel",
+            )
+            project.safewrite(path, contents)
+
+        template = self.env.get_template("StubListHandler.java")
+        operation = "List"
+        path = src / "{}Handler.java".format(operation)
+        LOG.debug("%s handler: %s", operation, path)
+        contents = template.render(
+            package_name=self.package_name,
+            operation=operation,
+            pojo_name="ResourceModel",
+        )
+        project.safewrite(path, contents)
+
+        LOG.debug("Writing stub tests")
+        template = self.env.get_template("StubHandlerTest.java")
+
+        for operation in OPERATIONS:
+            if operation == "List":
+                continue
+            path = tst / "{}HandlerTest.java".format(operation)
+            LOG.debug("%s handler: %s", operation, path)
+            contents = template.render(
+                package_name=self.package_name,
+                operation=operation,
+                pojo_name="ResourceModel",
+            )
+            project.safewrite(path, contents)
+
+        template = self.env.get_template("StubListHandlerTest.java")
+        operation = "List"
+        path = tst / "{}HandlerTest.java".format(operation)
+        LOG.debug("%s handler: %s", operation, path)
+        contents = template.render(
+            package_name=self.package_name,
+            operation=operation,
+            pojo_name="ResourceModel",
+        )
+        project.safewrite(path, contents)
 
     @staticmethod
     def _get_generated_root(project):
