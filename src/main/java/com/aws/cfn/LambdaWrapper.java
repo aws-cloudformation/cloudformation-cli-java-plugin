@@ -93,19 +93,18 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         this.credentialsProvider.setCredentials(platformCredentials);
         if (this.callbackAdapter == null) {
             this.callbackAdapter = new CloudFormationCallbackAdapter<ResourceT>(this.cloudFormationProvider, this.logger);
-        } else {
-            this.callbackAdapter.refreshClient();
         }
+        this.callbackAdapter.refreshClient();
+
         if (this.metricsPublisher == null) {
             this.metricsPublisher = new MetricsPublisherImpl(this.cloudWatchProvider);
-        } else {
-            this.metricsPublisher.refreshClient();
         }
+        this.metricsPublisher.refreshClient();
+
         if (this.scheduler == null) {
             this.scheduler = new CloudWatchScheduler(this.cloudWatchEventsProvider, this.logger);
-        } else {
-            this.scheduler.refreshClient();
         }
+        this.scheduler.refreshClient();
     }
 
     public void handleRequest(final InputStream inputStream,
