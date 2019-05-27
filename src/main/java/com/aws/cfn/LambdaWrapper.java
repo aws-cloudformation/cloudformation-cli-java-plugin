@@ -43,10 +43,10 @@ import java.util.Date;
 
 public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStreamHandler {
 
-    private CredentialsProvider credentialsProvider;
-    private final CloudFormationProvider cloudFormationProvider = new CloudFormationProvider(this.credentialsProvider);
-    private final CloudWatchProvider cloudWatchProvider = new CloudWatchProvider(this.credentialsProvider);
-    private final CloudWatchEventsProvider cloudWatchEventsProvider = new CloudWatchEventsProvider(this.credentialsProvider);
+    private final CredentialsProvider credentialsProvider;
+    private final CloudFormationProvider cloudFormationProvider;
+    private final CloudWatchProvider cloudWatchProvider;
+    private final CloudWatchEventsProvider cloudWatchEventsProvider;
 
     private CallbackAdapter<ResourceT> callbackAdapter;
     private MetricsPublisher metricsPublisher;
@@ -58,6 +58,9 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
     protected LambdaWrapper() {
         this.credentialsProvider = new PlatformCredentialsProvider();
+        this.cloudFormationProvider = new CloudFormationProvider(this.credentialsProvider);
+        this.cloudWatchProvider = new CloudWatchProvider(this.credentialsProvider);
+        this.cloudWatchEventsProvider = new CloudWatchEventsProvider(this.credentialsProvider);
         this.serializer = new Serializer();
         this.validator = new Validator();
         this.typeReference = getTypeReference();
@@ -75,6 +78,9 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                          final TypeReference<HandlerRequest<ResourceT, CallbackT>> typeReference) {
         this.callbackAdapter = callbackAdapter;
         this.credentialsProvider = credentialsProvider;
+        this.cloudFormationProvider = new CloudFormationProvider(this.credentialsProvider);
+        this.cloudWatchProvider = new CloudWatchProvider(this.credentialsProvider);
+        this.cloudWatchEventsProvider = new CloudWatchEventsProvider(this.credentialsProvider);
         this.metricsPublisher = metricsPublisher;
         this.scheduler = scheduler;
         this.serializer = serializer;
