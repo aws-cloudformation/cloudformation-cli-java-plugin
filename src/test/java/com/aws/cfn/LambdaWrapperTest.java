@@ -727,4 +727,36 @@ public class LambdaWrapperTest {
 
         verify(credentialsProvider, times(1)).setCredentials(eq(expectedNew));
     }
+
+    @Test
+    public void testInvokeHandler_WithNoResponseEndpoint() throws IOException {
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
+        final TestModel model = new TestModel();
+
+        // an InProgress response is always re-scheduled.
+        // If no explicit time is supplied, a 1-minute interval is used
+        final ProgressEvent<TestModel, TestContext> pe = new ProgressEvent<>();
+        pe.setStatus(OperationStatus.SUCCESS);
+        pe.setResourceModel(model);
+        wrapper.setInvokeHandlerResponse(pe);
+        wrapper.setTransformResponse(resourceHandlerRequest);
+
+        // our ObjectMapper implementation will ignore extraneous fields rather than fail them
+        // this slightly loosens the coupling between caller (CloudFormation) and handlers.
+        try (final InputStream in = loadRequestStream("no-response-endpoint.request.json"); final OutputStream out = new ByteArrayOutputStream()) {
+            final Context context = getLambdaContext();
+
+            wrapper.handleRequest(in, out, context);
+
+            // malformed input exception is published
+            verify(metricsPublisher, times(1)).publishExceptionMetric(
+                any(Instant.class), any(), any(TerminalException.class));
+
+            // verify output response
+            assertThat(
+                out.toString(),
+                is(equalTo("{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"},\"message\":\"No callback endpoint received\"}"))
+            );
+        }
+    }
 }
