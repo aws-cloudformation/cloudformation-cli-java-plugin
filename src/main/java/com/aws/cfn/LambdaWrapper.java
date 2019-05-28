@@ -34,6 +34,7 @@ import software.amazon.awssdk.utils.StringUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URI;
 import java.nio.charset.Charset;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -85,8 +86,10 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
      * This function initialises dependencies which are depending on credentials passed
      * at function invoke and not available during construction
     */
-    private void initialiseRuntime(final Credentials platformCredentials) {
+    private void initialiseRuntime(final Credentials platformCredentials,
+                                   final URI callbackEndpoint) {
         // initialisation skipped if these dependencies were set during injection (in test)
+        this.cloudFormationProvider.setCallbackEndpoint(callbackEndpoint);
         this.credentialsProvider.setCredentials(platformCredentials);
         if (this.callbackAdapter == null) {
             this.callbackAdapter = new CloudFormationCallbackAdapter<ResourceT>(this.cloudFormationProvider, this.logger);
@@ -118,9 +121,13 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                 throw new TerminalException("No request object received");
             }
 
-            // decode the input request
             final String input = IOUtils.toString(inputStream, "UTF-8");
             request = this.serializer.deserialize(input, typeReference);
+
+            if (StringUtils.isEmpty(request.getResponseEndpoint())) {
+                throw new TerminalException("No callback endpoint received");
+            }
+
             handlerResponse = processInvocation(request, context);
         } catch (final Exception e) {
             // Exceptions are wrapped as a consistent error response to the caller (i.e; CloudFormation)
@@ -159,7 +166,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         }
 
         // initialise dependencies with platform credentials
-        initialiseRuntime(request.getRequestData().getPlatformCredentials());
+        initialiseRuntime(request.getRequestData().getPlatformCredentials(), URI.create(request.getResponseEndpoint()));
 
         // transform the request object to pass to caller
         final ResourceHandlerRequest<ResourceT> resourceHandlerRequest = transform(request);
