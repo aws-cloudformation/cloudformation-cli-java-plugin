@@ -126,11 +126,11 @@ class JavaLanguagePlugin(LanguagePlugin):
 
     def init_handlers(self, project, src, tst):
         LOG.debug("Writing stub handlers")
-        template = self.env.get_template("StubHandler.java")
-
         for operation in OPERATIONS:
             if operation == "List":
-                continue
+                template = self.env.get_template("StubListHandler.java")
+            else:
+                template = self.env.get_template("StubHandler.java")
             path = src / "{}Handler.java".format(operation)
             LOG.debug("%s handler: %s", operation, path)
             contents = template.render(
@@ -140,23 +140,13 @@ class JavaLanguagePlugin(LanguagePlugin):
             )
             project.safewrite(path, contents)
 
-        template = self.env.get_template("StubListHandler.java")
-        operation = "List"
-        path = src / "{}Handler.java".format(operation)
-        LOG.debug("%s handler: %s", operation, path)
-        contents = template.render(
-            package_name=self.package_name,
-            operation=operation,
-            pojo_name="ResourceModel",
-        )
-        project.safewrite(path, contents)
-
         LOG.debug("Writing stub tests")
-        template = self.env.get_template("StubHandlerTest.java")
-
         for operation in OPERATIONS:
             if operation == "List":
-                continue
+                template = self.env.get_template("StubListHandlerTest.java")
+            else:
+                template = self.env.get_template("StubHandlerTest.java")
+
             path = tst / "{}HandlerTest.java".format(operation)
             LOG.debug("%s handler: %s", operation, path)
             contents = template.render(
@@ -165,17 +155,6 @@ class JavaLanguagePlugin(LanguagePlugin):
                 pojo_name="ResourceModel",
             )
             project.safewrite(path, contents)
-
-        template = self.env.get_template("StubListHandlerTest.java")
-        operation = "List"
-        path = tst / "{}HandlerTest.java".format(operation)
-        LOG.debug("%s handler: %s", operation, path)
-        contents = template.render(
-            package_name=self.package_name,
-            operation=operation,
-            pojo_name="ResourceModel",
-        )
-        project.safewrite(path, contents)
 
     @staticmethod
     def _get_generated_root(project):
