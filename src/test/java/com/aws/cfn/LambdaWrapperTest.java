@@ -171,9 +171,10 @@ public class LambdaWrapperTest {
         final TestModel model = new TestModel();
 
         // explicit fault response is treated as an unsuccessful synchronous completion
-        final ProgressEvent<TestModel, TestContext> pe = new ProgressEvent<>();
-        pe.setMessage("Custom Fault");
-        pe.setStatus(OperationStatus.FAILED);
+        final ProgressEvent<TestModel, TestContext> pe = ProgressEvent.<TestModel, TestContext>builder()
+            .status(OperationStatus.FAILED)
+            .message("Custom Fault")
+            .build();
         wrapper.setInvokeHandlerResponse(pe);
 
         when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
@@ -247,8 +248,9 @@ public class LambdaWrapperTest {
         final TestModel model = new TestModel();
 
         // if the handler responds Complete, this is treated as a successful synchronous completion
-        final ProgressEvent<TestModel, TestContext> pe = new ProgressEvent<>();
-        pe.setStatus(OperationStatus.SUCCESS);
+        final ProgressEvent<TestModel, TestContext> pe = ProgressEvent.<TestModel, TestContext>builder()
+            .status(OperationStatus.SUCCESS)
+            .build();
         wrapper.setInvokeHandlerResponse(pe);
 
         when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
@@ -324,9 +326,10 @@ public class LambdaWrapperTest {
 
         // an InProgress response is always re-scheduled.
         // If no explicit time is supplied, a 1-minute interval is used
-        final ProgressEvent<TestModel, TestContext> pe = new ProgressEvent<>();
-        pe.setStatus(OperationStatus.IN_PROGRESS);
-        pe.setResourceModel(model);
+        final ProgressEvent<TestModel, TestContext> pe = ProgressEvent.<TestModel, TestContext>builder()
+            .status(OperationStatus.IN_PROGRESS)
+            .resourceModel(model)
+            .build();
         wrapper.setInvokeHandlerResponse(pe);
 
         when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
@@ -406,9 +409,10 @@ public class LambdaWrapperTest {
 
         // an InProgress response is always re-scheduled.
         // If no explicit time is supplied, a 1-minute interval is used
-        final ProgressEvent<TestModel, TestContext> pe = new ProgressEvent<>();
-        pe.setStatus(OperationStatus.IN_PROGRESS);
-        pe.setResourceModel(model);
+        final ProgressEvent<TestModel, TestContext> pe = ProgressEvent.<TestModel, TestContext>builder()
+            .status(OperationStatus.IN_PROGRESS)
+            .resourceModel(model)
+            .build();
         wrapper.setInvokeHandlerResponse(pe);
 
         when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
@@ -571,9 +575,10 @@ public class LambdaWrapperTest {
 
         // an InProgress response is always re-scheduled.
         // If no explicit time is supplied, a 1-minute interval is used
-        final ProgressEvent<TestModel, TestContext> pe = new ProgressEvent<>();
-        pe.setStatus(OperationStatus.SUCCESS);
-        pe.setResourceModel(model);
+        final ProgressEvent<TestModel, TestContext> pe = ProgressEvent.<TestModel, TestContext>builder()
+            .status(OperationStatus.SUCCESS)
+            .resourceModel(model)
+            .build();
         wrapper.setInvokeHandlerResponse(pe);
 
         when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
@@ -623,9 +628,10 @@ public class LambdaWrapperTest {
         wrapper.setTransformResponse(resourceHandlerRequest);
 
         // respond with immediate success to avoid callback invocation
-        final ProgressEvent<TestModel, TestContext> pe = new ProgressEvent<>();
-        pe.setStatus(OperationStatus.SUCCESS);
-        pe.setResourceModel(model);
+        final ProgressEvent<TestModel, TestContext> pe = ProgressEvent.<TestModel, TestContext>builder()
+            .status(OperationStatus.SUCCESS)
+            .resourceModel(model)
+            .build();
         wrapper.setInvokeHandlerResponse(pe);
 
         // without platform credentials the handler is unable to do
@@ -654,9 +660,10 @@ public class LambdaWrapperTest {
         wrapper.setTransformResponse(resourceHandlerRequest);
 
         // respond with in progress status to trigger callback invocation
-        final ProgressEvent<TestModel, TestContext> pe = new ProgressEvent<>();
-        pe.setStatus(OperationStatus.IN_PROGRESS);
-        pe.setResourceModel(model);
+        final ProgressEvent<TestModel, TestContext> pe = ProgressEvent.<TestModel, TestContext>builder()
+            .status(OperationStatus.IN_PROGRESS)
+            .resourceModel(model)
+            .build();
         wrapper.setInvokeHandlerResponse(pe);
 
         try (final InputStream in = loadRequestStream("create.request.json"); final OutputStream out = new ByteArrayOutputStream()) {
@@ -735,9 +742,10 @@ public class LambdaWrapperTest {
 
         // an InProgress response is always re-scheduled.
         // If no explicit time is supplied, a 1-minute interval is used
-        final ProgressEvent<TestModel, TestContext> pe = new ProgressEvent<>();
-        pe.setStatus(OperationStatus.SUCCESS);
-        pe.setResourceModel(model);
+        final ProgressEvent<TestModel, TestContext> pe = ProgressEvent.<TestModel, TestContext>builder()
+            .status(OperationStatus.SUCCESS)
+            .resourceModel(model)
+            .build();
         wrapper.setInvokeHandlerResponse(pe);
         wrapper.setTransformResponse(resourceHandlerRequest);
 
