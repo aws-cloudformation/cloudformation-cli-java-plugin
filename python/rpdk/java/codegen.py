@@ -40,7 +40,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         )
         self.package_name = ".".join(self.namespace)
 
-    def init(self, project):
+    def init(self, project):  # pylint: disable=too-many-statements
         LOG.debug("Init started")
 
         self._namespace_from_project(project)
@@ -71,7 +71,14 @@ class JavaLanguagePlugin(LanguagePlugin):
             artifact_id=artifact_id,
             executable=EXECUTABLE,
             schema_file_name=project.schema_filename,
+            package_name=self.package_name,
         )
+        project.safewrite(path, contents)
+
+        path = project.root / "lombok.config"
+        LOG.debug("Writing Lombok Config: %s", path)
+        template = self.env.get_template("lombok.config")
+        contents = template.render()
         project.safewrite(path, contents)
 
         # CloudFormation/SAM template for handler lambda
@@ -93,6 +100,19 @@ class JavaLanguagePlugin(LanguagePlugin):
 
         for operation in OPERATIONS:
             path = src / "{}Handler.java".format(operation)
+            LOG.debug("%s handler: %s", operation, path)
+            contents = template.render(
+                package_name=self.package_name,
+                operation=operation,
+                pojo_name="ResourceModel",
+            )
+            project.safewrite(path, contents)
+
+        LOG.debug("Writing stub tests")
+        template = self.env.get_template("StubHandlerTest.java")
+
+        for operation in OPERATIONS:
+            path = tst / "{}HandlerTest.java".format(operation)
             LOG.debug("%s handler: %s", operation, path)
             contents = template.render(
                 package_name=self.package_name,
