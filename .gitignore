@@ -119,3 +119,7 @@ out/
 # IntelliJ
 .settings
 .project
+
+.factorypath
+aws-cloudformation-resource-schema-1.0.0.jar
+aws-sdk-java-v2/

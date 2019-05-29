@@ -739,10 +739,7 @@ public class LambdaWrapperTest {
                 any(Instant.class), any(), any(TerminalException.class));
 
             // verify output response
-            assertThat(
-                out.toString(),
-                is(equalTo("{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"},\"message\":\"No callback endpoint received\"}"))
-            );
+            assertThat(out.toString()).isEqualTo("{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"},\"message\":\"No callback endpoint received\"}");
         }
     }
 }
