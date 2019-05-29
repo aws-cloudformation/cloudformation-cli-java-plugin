@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Map;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -46,8 +46,13 @@ public class ProgressEvent<ResourceT, CallbackT> {
     private int callbackDelayMinutes;
 
     /**
-     * The output resource instance populated by a READ/LIST for synchronous results
+     * The output resource instance populated by a READ for synchronous results
      * and by CREATE/UPDATE/DELETE for final response validation/confirmation
      */
     private ResourceT resourceModel;
+
+    /**
+     * The output resource instances populated by a LIST for synchronous results
+     */
+    private List<ResourceT> resourceModels;
 }

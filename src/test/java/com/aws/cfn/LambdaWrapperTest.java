@@ -56,7 +56,6 @@ public class LambdaWrapperTest {
     @Mock
     private CredentialsProvider credentialsProvider;
 
-
     @Mock
     private MetricsPublisher metricsPublisher;
 

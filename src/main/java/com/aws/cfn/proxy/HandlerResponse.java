@@ -5,7 +5,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * This interface describes the response object for the provisioning request
- * @param <T> Type of resource model being provisioned
+ * @param <ResourceT> Type of resource model being provisioned
  */
 @Data
 @NoArgsConstructor
