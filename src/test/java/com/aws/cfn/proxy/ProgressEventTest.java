@@ -12,7 +12,7 @@ public class ProgressEventTest {
     @Test
     public void testDefaultFailedHandler() {
         final ProgressEvent<TestModel, TestContext> progressEvent =
-            new ProgressEvent<TestModel, TestContext>().defaultFailureHandler(
+            ProgressEvent.defaultFailureHandler(
                 new RuntimeException("test error"),
                 HandlerErrorCode.InternalFailure);
 
@@ -35,7 +35,7 @@ public class ProgressEventTest {
             .contextPropertyA("def")
             .build();
         final ProgressEvent<TestModel, TestContext> progressEvent =
-            new ProgressEvent<TestModel, TestContext>().defaultInProgressHandler(
+            ProgressEvent.defaultInProgressHandler(
                 callbackContet,
                 3,
                 model);
@@ -56,7 +56,7 @@ public class ProgressEventTest {
             .property2(123)
             .build();
         final ProgressEvent<TestModel, TestContext> progressEvent =
-            new ProgressEvent<TestModel, TestContext>().defaultSuccessHandler(
+            ProgressEvent.defaultSuccessHandler(
                 model);
 
         assertThat(progressEvent.getCallbackContext()).isNull();

@@ -59,7 +59,7 @@ public class ProgressEvent<ResourceT, CallbackT> {
     /**
      * Convenience method for constructing a FAILED response
      */
-    public ProgressEvent<ResourceT, CallbackT> defaultFailureHandler(
+    public static <ResourceT, CallbackT> ProgressEvent<ResourceT, CallbackT> defaultFailureHandler(
         final Exception e,
         final HandlerErrorCode handlerErrorCode) {
 
@@ -73,10 +73,11 @@ public class ProgressEvent<ResourceT, CallbackT> {
     /**
      * Convenience method for constructing a SUCCESS response
      */
-    public ProgressEvent<ResourceT, CallbackT> defaultInProgressHandler(
+    public static <ResourceT, CallbackT> ProgressEvent<ResourceT, CallbackT> defaultInProgressHandler(
         final CallbackT callbackContext,
         final int callbackDelayMinutes,
         final ResourceT resourceModel) {
+
         return ProgressEvent.<ResourceT, CallbackT>builder()
             .callbackContext(callbackContext)
             .callbackDelayMinutes(callbackDelayMinutes)
@@ -88,8 +89,9 @@ public class ProgressEvent<ResourceT, CallbackT> {
     /**
      * Convenience method for constructing a SUCCESS response
      */
-    public ProgressEvent<ResourceT, CallbackT> defaultSuccessHandler(
+    public static <ResourceT, CallbackT> ProgressEvent<ResourceT, CallbackT> defaultSuccessHandler(
         final ResourceT resourceModel) {
+
         return ProgressEvent.<ResourceT, CallbackT>builder()
             .resourceModel(resourceModel)
             .status(OperationStatus.SUCCESS)
