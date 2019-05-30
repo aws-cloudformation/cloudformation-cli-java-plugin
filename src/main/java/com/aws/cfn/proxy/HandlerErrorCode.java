@@ -18,7 +18,7 @@ public enum HandlerErrorCode {
     InvalidCredentials,
 
     /**
-     * the handler completed without making any modifying API calls (only applicable to Update handler)
+     * the handler completed without making any modifying API calls (only applicable to UpdateHandler)
      */
     NoOperationToPerform,
 
@@ -67,6 +67,11 @@ public enum HandlerErrorCode {
     /**
      * an unexpected error occurred within the handler, such as an NPE, etc.
      */
-    InternalFailure
+    InternalFailure,
 
+    /**
+     * a resource create request failed for an existing entity (only applicable to CreateHandler)
+     * Handlers MUST return this error when duplicate creation requests are received.
+     */
+    AlreadyExists
 }
