@@ -1,6 +1,6 @@
-package com.aws.cfn.metrics;
+package com.amazonaws.cloudformation.metrics;
 
-import com.aws.cfn.Action;
+import com.amazonaws.cloudformation.Action;
 
 import java.time.Instant;
 

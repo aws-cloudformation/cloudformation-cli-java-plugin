@@ -1,4 +1,4 @@
-package com.aws.cfn;
+package com.amazonaws.cloudformation;
 
 public enum Action {
     CREATE,

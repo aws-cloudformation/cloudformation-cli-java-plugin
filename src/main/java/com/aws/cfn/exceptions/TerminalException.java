@@ -1,4 +1,4 @@
-package com.aws.cfn.exceptions;
+package com.amazonaws.cloudformation.exceptions;
 
 public class TerminalException extends RuntimeException {
 

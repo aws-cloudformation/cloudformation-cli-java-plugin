@@ -1,4 +1,4 @@
-package com.aws.cfn.injection;
+package com.amazonaws.cloudformation.injection;
 
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.core.retry.RetryPolicy;

@@ -1,4 +1,4 @@
-package com.aws.cfn.resource;
+package com.amazonaws.cloudformation.resource;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;

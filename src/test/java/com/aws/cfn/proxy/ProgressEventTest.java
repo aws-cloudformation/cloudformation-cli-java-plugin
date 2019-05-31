@@ -1,7 +1,7 @@
-package com.aws.cfn.proxy;
+package com.amazonaws.cloudformation.proxy;
 
-import com.aws.cfn.TestContext;
-import com.aws.cfn.TestModel;
+import com.amazonaws.cloudformation.TestContext;
+import com.amazonaws.cloudformation.TestModel;
 
 import org.junit.jupiter.api.Test;
 

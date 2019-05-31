@@ -1,4 +1,4 @@
-package com.aws.cfn.metrics;
+package com.amazonaws.cloudformation.metrics;
 
 public class Metrics {
 

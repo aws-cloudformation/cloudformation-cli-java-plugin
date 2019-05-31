@@ -1,6 +1,6 @@
-package com.aws.cfn.proxy;
+package com.amazonaws.cloudformation.proxy;
 
-import com.aws.cfn.Action;
+import com.amazonaws.cloudformation.Action;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 

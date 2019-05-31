@@ -1,9 +1,9 @@
-package com.aws.cfn.scheduler;
+package com.amazonaws.cloudformation.scheduler;
 
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
-import com.aws.cfn.injection.CloudWatchEventsProvider;
-import com.aws.cfn.proxy.HandlerRequest;
-import com.aws.cfn.proxy.RequestContext;
+import com.amazonaws.cloudformation.injection.CloudWatchEventsProvider;
+import com.amazonaws.cloudformation.proxy.HandlerRequest;
+import com.amazonaws.cloudformation.proxy.RequestContext;
 import lombok.Data;
 import org.json.JSONObject;
 import software.amazon.awssdk.services.cloudwatchevents.CloudWatchEventsClient;

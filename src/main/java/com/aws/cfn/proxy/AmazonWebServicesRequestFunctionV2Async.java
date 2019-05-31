@@ -1,4 +1,4 @@
-package com.aws.cfn.proxy;
+package com.amazonaws.cloudformation.proxy;
 
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;

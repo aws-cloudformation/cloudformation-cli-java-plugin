@@ -1,4 +1,4 @@
-package com.aws.cfn.scheduler;
+package com.amazonaws.cloudformation.scheduler;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

@@ -1,7 +1,7 @@
-package com.aws.cfn.metrics;
+package com.amazonaws.cloudformation.metrics;
 
-import com.aws.cfn.Action;
-import com.aws.cfn.injection.CloudWatchProvider;
+import com.amazonaws.cloudformation.Action;
+import com.amazonaws.cloudformation.injection.CloudWatchProvider;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.MetricDatum;

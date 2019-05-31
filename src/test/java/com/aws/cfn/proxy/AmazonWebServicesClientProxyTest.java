@@ -1,4 +1,4 @@
-package com.aws.cfn.proxy;
+package com.amazonaws.cloudformation.proxy;
 
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.services.cloudformation.AmazonCloudFormation;

@@ -1,4 +1,4 @@
-package com.aws.cfn.proxy;
+package com.amazonaws.cloudformation.proxy;
 
 public enum OperationStatus {
     IN_PROGRESS,

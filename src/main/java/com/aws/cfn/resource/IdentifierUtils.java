@@ -1,4 +1,4 @@
-package com.aws.cfn.resource;
+package com.amazonaws.cloudformation.resource;
 
 import org.apache.commons.lang3.RandomStringUtils;
 

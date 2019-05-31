@@ -1,4 +1,4 @@
-package com.aws.cfn.proxy;
+package com.amazonaws.cloudformation.proxy;
 
 /**
  * Interface used to abstract the function of reporting back provisioning progress to the handler caller

@@ -1,4 +1,4 @@
-package com.aws.cfn.injection;
+package com.amazonaws.cloudformation.injection;
 
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;

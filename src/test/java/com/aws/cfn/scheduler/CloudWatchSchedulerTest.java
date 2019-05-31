@@ -1,11 +1,11 @@
-package com.aws.cfn.scheduler;
+package com.amazonaws.cloudformation.scheduler;
 
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
-import com.aws.cfn.TestContext;
-import com.aws.cfn.TestModel;
-import com.aws.cfn.injection.CloudWatchEventsProvider;
-import com.aws.cfn.proxy.HandlerRequest;
-import com.aws.cfn.proxy.RequestContext;
+import com.amazonaws.cloudformation.TestContext;
+import com.amazonaws.cloudformation.TestModel;
+import com.amazonaws.cloudformation.injection.CloudWatchEventsProvider;
+import com.amazonaws.cloudformation.proxy.HandlerRequest;
+import com.amazonaws.cloudformation.proxy.RequestContext;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

@@ -1,7 +1,7 @@
-package com.aws.cfn;
+package com.amazonaws.cloudformation;
 
-import com.aws.cfn.proxy.OperationStatus;
-import com.aws.cfn.proxy.HandlerErrorCode;
+import com.amazonaws.cloudformation.proxy.OperationStatus;
+import com.amazonaws.cloudformation.proxy.HandlerErrorCode;
 import lombok.Data;
 
 import java.util.Map;

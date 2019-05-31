@@ -1,10 +1,10 @@
 // This is a generated file. Modifications will be overwritten.
 package {{ package_name }};
 
-import com.aws.cfn.proxy.AmazonWebServicesClientProxy;
-import com.aws.cfn.proxy.Logger;
-import com.aws.cfn.proxy.ProgressEvent;
-import com.aws.cfn.proxy.ResourceHandlerRequest;
+import com.amazonaws.cloudformation.proxy.AmazonWebServicesClientProxy;
+import com.amazonaws.cloudformation.proxy.Logger;
+import com.amazonaws.cloudformation.proxy.ProgressEvent;
+import com.amazonaws.cloudformation.proxy.ResourceHandlerRequest;
 
 public abstract class BaseHandler<CallbackT> {
 

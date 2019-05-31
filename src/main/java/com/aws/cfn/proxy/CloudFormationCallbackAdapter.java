@@ -1,7 +1,7 @@
-package com.aws.cfn.proxy;
+package com.amazonaws.cloudformation.proxy;
 
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
-import com.aws.cfn.injection.CloudFormationProvider;
+import com.amazonaws.cloudformation.injection.CloudFormationProvider;
 import org.json.JSONObject;
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressRequest;

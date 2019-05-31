@@ -1,15 +1,15 @@
-package com.aws.cfn;
+package com.amazonaws.cloudformation;
 
-import com.aws.cfn.injection.CredentialsProvider;
-import com.aws.cfn.metrics.MetricsPublisher;
-import com.aws.cfn.proxy.AmazonWebServicesClientProxy;
-import com.aws.cfn.proxy.CallbackAdapter;
-import com.aws.cfn.proxy.HandlerRequest;
-import com.aws.cfn.proxy.ProgressEvent;
-import com.aws.cfn.proxy.ResourceHandlerRequest;
-import com.aws.cfn.resource.SchemaValidator;
-import com.aws.cfn.resource.Serializer;
-import com.aws.cfn.scheduler.CloudWatchScheduler;
+import com.amazonaws.cloudformation.injection.CredentialsProvider;
+import com.amazonaws.cloudformation.metrics.MetricsPublisher;
+import com.amazonaws.cloudformation.proxy.AmazonWebServicesClientProxy;
+import com.amazonaws.cloudformation.proxy.CallbackAdapter;
+import com.amazonaws.cloudformation.proxy.HandlerRequest;
+import com.amazonaws.cloudformation.proxy.ProgressEvent;
+import com.amazonaws.cloudformation.proxy.ResourceHandlerRequest;
+import com.amazonaws.cloudformation.resource.SchemaValidator;
+import com.amazonaws.cloudformation.resource.Serializer;
+import com.amazonaws.cloudformation.scheduler.CloudWatchScheduler;
 import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

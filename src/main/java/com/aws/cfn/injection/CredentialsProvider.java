@@ -1,6 +1,6 @@
-package com.aws.cfn.injection;
+package com.amazonaws.cloudformation.injection;
 
-import com.aws.cfn.proxy.Credentials;
+import com.amazonaws.cloudformation.proxy.Credentials;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 
 public interface CredentialsProvider {

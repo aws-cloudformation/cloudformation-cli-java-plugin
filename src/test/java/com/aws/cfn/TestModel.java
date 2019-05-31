@@ -1,4 +1,4 @@
-package com.aws.cfn;
+package com.amazonaws.cloudformation;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
