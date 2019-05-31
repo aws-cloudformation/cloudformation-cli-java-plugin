@@ -48,7 +48,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 public class LambdaWrapperTest {
 
-    private static final String TEST_DATA_BASE_PATH = "src/test/java/com/aws/cfn/data/%s";
+    private static final String TEST_DATA_BASE_PATH = "src/test/java/com/amazonaws/cloudformation/data/%s";
 
     @Mock
     private CallbackAdapter<TestModel> callbackAdapter;
