@@ -83,6 +83,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
         return new ResourceHandlerRequest<>(
             request.getAwsAccountId(),
             request.getBearerToken(),
+            request.getLogicalResourceIdentifier(),
             request.getNextToken(),
             request.getRegion(),
             request.getResourceType(),
