@@ -103,7 +103,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         this.callbackAdapter.refreshClient();
 
         if (this.metricsPublisher == null) {
-            this.metricsPublisher = new MetricsPublisherImpl(this.cloudWatchProvider);
+            this.metricsPublisher = new MetricsPublisherImpl(this.cloudWatchProvider, this.logger);
         }
         this.metricsPublisher.refreshClient();
 

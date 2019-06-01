@@ -2,6 +2,7 @@ package com.amazonaws.cloudformation.metrics;
 
 import com.amazonaws.cloudformation.Action;
 import com.amazonaws.cloudformation.injection.CloudWatchProvider;
+import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.MetricDatum;
@@ -18,13 +19,17 @@ public class MetricsPublisherImpl implements MetricsPublisher {
 
     private final CloudWatchProvider cloudWatchProvider;
 
+    private final LambdaLogger logger;
+
     private CloudWatchClient client;
 
     private String resourceNamespace;
     private String resourceTypeName;
 
-    public MetricsPublisherImpl(final CloudWatchProvider cloudWatchProvider) {
+    public MetricsPublisherImpl(final CloudWatchProvider cloudWatchProvider,
+                                final LambdaLogger logger) {
         this.cloudWatchProvider = cloudWatchProvider;
+        this.logger = logger;
     }
 
     public void refreshClient() {
@@ -112,6 +117,10 @@ public class MetricsPublisherImpl implements MetricsPublisher {
             .metricData(metricDatum)
             .build();
 
-        client.putMetricData(putMetricDataRequest);
+        try {
+            client.putMetricData(putMetricDataRequest);
+        } catch (final Exception e) {
+            logger.log(String.format("An error occurred while publishing metrics: %s", e.getMessage()));
+        }
     }
 }
