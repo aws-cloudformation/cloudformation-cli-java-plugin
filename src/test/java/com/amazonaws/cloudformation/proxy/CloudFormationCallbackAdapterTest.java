@@ -1,8 +1,11 @@
 package com.aws.cfn.proxy;
 
+import com.amazonaws.cloudformation.TestModel;
+import com.amazonaws.cloudformation.injection.CloudFormationProvider;
+import com.amazonaws.cloudformation.proxy.CloudFormationCallbackAdapter;
+import com.amazonaws.cloudformation.proxy.HandlerErrorCode;
+import com.amazonaws.cloudformation.proxy.OperationStatus;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
-import com.aws.cfn.TestModel;
-import com.aws.cfn.injection.CloudFormationProvider;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;

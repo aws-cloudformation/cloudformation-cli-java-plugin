@@ -29,6 +29,7 @@ import com.amazonaws.cloudformation.scheduler.CloudWatchScheduler;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
+import org.json.JSONTokener;
 import software.amazon.awssdk.utils.StringUtils;
 
 import java.io.IOException;
@@ -127,13 +128,12 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             }
 
             final String input = IOUtils.toString(inputStream, "UTF-8");
+            final JSONObject rawInput = new JSONObject(new JSONTokener(input));
+
+            // deserialize incoming payload to modelled request
             request = this.serializer.deserialize(input, typeReference);
 
-            if (StringUtils.isEmpty(request.getResponseEndpoint())) {
-                throw new TerminalException("No callback endpoint received");
-            }
-
-            handlerResponse = processInvocation(request, context);
+            handlerResponse = processInvocation(rawInput, request, context);
         } catch (final Exception e) {
             // Exceptions are wrapped as a consistent error response to the caller (i.e; CloudFormation)
             e.printStackTrace(); // for root causing - logs to LambdaLogger by default
@@ -158,11 +158,25 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         }
     }
 
-    public ProgressEvent<ResourceT, CallbackT> processInvocation(final HandlerRequest<ResourceT, CallbackT> request,
-                                           final Context context) throws IOException, TerminalException {
+    public ProgressEvent<ResourceT, CallbackT> processInvocation(
+        final JSONObject rawRequest,
+        final HandlerRequest<ResourceT, CallbackT> request,
+        final Context context) throws IOException, TerminalException {
 
         if (request == null || request.getRequestData() == null) {
             throw new TerminalException("Invalid request object received");
+        }
+
+        if (request.getAction() == Action.CREATE ||
+            request.getAction() == Action.UPDATE ||
+            request.getAction() == Action.DELETE) {
+            if (request.getRequestData().getResourceProperties() == null) {
+                throw new TerminalException("Invalid resource properties object received");
+            }
+        }
+
+        if (StringUtils.isEmpty(request.getResponseEndpoint())) {
+            throw new TerminalException("No callback endpoint received");
         }
 
         // ensure required execution credentials have been passed and inject them
@@ -199,20 +213,32 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             request.getAction());
 
         // for CUD actions, validate incoming model - any error is a terminal failure on the invocation
+        // NOTE: we validate the raw pre-deserialized payload to account for lenient serialization.
+        // Here, we want to surface ALL input validation errors to the caller.
         try {
             if (request.getAction() == Action.CREATE ||
                 request.getAction() == Action.UPDATE ||
                 request.getAction() == Action.DELETE) {
-                validateModel(this.serializer.serialize(resourceHandlerRequest.getDesiredResourceState()));
+                // validate entire incoming payload, including extraneous fields which
+                // are stripped by the Serializer (due to FAIL_ON_UNKNOWN_PROPERTIES setting)
+                final JSONObject rawModelObject =
+                    rawRequest.getJSONObject("requestData").getJSONObject("resourceProperties");
+                validateModel(rawModelObject);
             }
         } catch (final ValidationException e) {
             // TODO: we'll need a better way to expose the stack of causing exceptions for user feedback
             final StringBuilder validationMessageBuilder = new StringBuilder();
-            validationMessageBuilder.append(String.format("Model validation failed (%s)\n", e.getMessage()));
-            for (final ValidationException cause : e.getCausingExceptions()) {
-                validationMessageBuilder.append(String.format("%s (%s)",
-                    cause.getMessage(),
-                    cause.getSchemaLocation()));
+            if (!StringUtils.isEmpty(e.getMessage())) {
+                validationMessageBuilder.append(String.format("Model validation failed (%s)\n", e.getMessage()));
+            } else {
+                validationMessageBuilder.append(String.format("Model validation failed\n"));
+            }
+            if (e.getCausingExceptions() != null) {
+                for (final ValidationException cause : e.getCausingExceptions()) {
+                    validationMessageBuilder.append(String.format("%s (%s)",
+                        cause.getMessage(),
+                        cause.getSchemaLocation()));
+                }
             }
             throw new TerminalException(validationMessageBuilder.toString(), e);
         }
