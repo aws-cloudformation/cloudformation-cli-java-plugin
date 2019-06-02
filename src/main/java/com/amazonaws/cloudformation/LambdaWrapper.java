@@ -271,6 +271,9 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             reinvocationContext.setCallbackContext(handlerResponse.getCallbackContext());
             request.setRequestContext(reinvocationContext);
 
+            // update request payload in case of injected properties (e.g. auto-generated names)
+            request.getRequestData().setResourceProperties(handlerResponse.getResourceModel());
+
             logger.log(String.format("Scheduling re-invoke with Context {%s}", reinvocationContext.toString()));
             try {
                 this.scheduler.rescheduleAfterMinutes(
