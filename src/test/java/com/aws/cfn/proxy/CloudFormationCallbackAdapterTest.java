@@ -1,8 +1,11 @@
 package com.aws.cfn.proxy;
 
+import com.amazonaws.cloudformation.TestModel;
+import com.amazonaws.cloudformation.injection.CloudFormationProvider;
+import com.amazonaws.cloudformation.proxy.CloudFormationCallbackAdapter;
+import com.amazonaws.cloudformation.proxy.HandlerErrorCode;
+import com.amazonaws.cloudformation.proxy.OperationStatus;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
-import com.aws.cfn.TestModel;
-import com.aws.cfn.injection.CloudFormationProvider;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -17,9 +20,9 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.INVALID_REQUEST;
 import static software.amazon.awssdk.services.cloudformation.model.OperationStatus.FAILED;
 
@@ -38,15 +41,16 @@ public class CloudFormationCallbackAdapterTest {
 
         final RecordHandlerProgressResponse response = mock(RecordHandlerProgressResponse.class);
         final CloudFormationResponseMetadata responseMetadata = mock(CloudFormationResponseMetadata.class);
-        lenient().when(responseMetadata.requestId()).thenReturn(UUID.randomUUID().toString());
-        lenient().when(response.responseMetadata()).thenReturn(responseMetadata);
+        when(responseMetadata.requestId()).thenReturn(UUID.randomUUID().toString());
+        when(response.responseMetadata()).thenReturn(responseMetadata);
 
-        lenient().when(cloudFormationProvider.get()).thenReturn(client);
+        when(cloudFormationProvider.get()).thenReturn(client);
 
-        lenient().when(client.recordHandlerProgress(any(RecordHandlerProgressRequest.class)))
+        when(client.recordHandlerProgress(any(RecordHandlerProgressRequest.class)))
             .thenReturn(response);
 
-        final CloudFormationCallbackAdapter<TestModel> adapter = new CloudFormationCallbackAdapter<>(cloudFormationProvider, lambdaLogger);
+        final CloudFormationCallbackAdapter<TestModel> adapter =
+            new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, lambdaLogger);
         adapter.refreshClient();
 
         adapter.reportProgress(
