@@ -1,6 +1,7 @@
 package com.amazonaws.cloudformation;
 
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.cloudformation.resource.Validator;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.cloudformation.exceptions.TerminalException;
@@ -38,6 +39,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -314,7 +316,7 @@ public class LambdaWrapperTest {
     private void testInvokeHandler_InProgress(final String requestDataPath,
                                               final Action action) throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
-        final TestModel model = new TestModel();
+        final TestModel model = TestModel.builder().property1("abc").property2(123).build();
 
         // an InProgress response is always re-scheduled.
         // If no explicit time is supplied, a 1-minute interval is used
@@ -359,11 +361,17 @@ public class LambdaWrapperTest {
                 any(), any());
 
             // CloudFormation should receive a callback invocation
-            // TODO
+            verify(callbackAdapter, times(1)).reportProgress(
+                eq("123456"),
+                isNull(),
+                eq(OperationStatus.IN_PROGRESS),
+                eq(TestModel.builder().property1("abc").property2(123).build()),
+                isNull()
+            );
 
             // verify output response
             assertThat(out.toString()).isEqualTo(
-                "{\"operationStatus\":\"IN_PROGRESS\",\"bearerToken\":\"123456\",\"resourceModel\":{}}");
+                "{\"operationStatus\":\"IN_PROGRESS\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}}");
         }
     }
 
@@ -395,7 +403,7 @@ public class LambdaWrapperTest {
     private void testReInvokeHandler_InProgress(final String requestDataPath,
                                                 final Action action) throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
-        final TestModel model = new TestModel();
+        final TestModel model = TestModel.builder().property1("abc").property2(123).build();
 
         // an InProgress response is always re-scheduled.
         // If no explicit time is supplied, a 1-minute interval is used
@@ -405,7 +413,6 @@ public class LambdaWrapperTest {
             .build();
         wrapper.setInvokeHandlerResponse(pe);
 
-        when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
         wrapper.setTransformResponse(resourceHandlerRequest);
 
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
@@ -442,11 +449,17 @@ public class LambdaWrapperTest {
             );
 
             // CloudFormation should receive a callback invocation
-            // TODO
+            verify(callbackAdapter, times(1)).reportProgress(
+                eq("123456"),
+                isNull(),
+                eq(OperationStatus.IN_PROGRESS),
+                eq(TestModel.builder().property1("abc").property2(123).build()),
+                isNull()
+            );
 
             // verify output response
             assertThat(out.toString()).isEqualTo(
-                "{\"operationStatus\":\"IN_PROGRESS\",\"bearerToken\":\"123456\",\"resourceModel\":{}}");
+                "{\"operationStatus\":\"IN_PROGRESS\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}}");
         }
     }
 
@@ -480,11 +493,9 @@ public class LambdaWrapperTest {
     private void testInvokeHandler_SchemaValidationFailure(final String requestDataPath,
                                                            final Action action) throws IOException {
         doThrow(ValidationException.class)
-                .when(validator).validateObject(any(JSONObject.class), any(InputStream.class));
+            .when(validator).validateObject(any(JSONObject.class), any(InputStream.class));
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
-        final TestModel model = new TestModel();
 
-        when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
         wrapper.setTransformResponse(resourceHandlerRequest);
 
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
@@ -518,12 +529,14 @@ public class LambdaWrapperTest {
             verify(scheduler, times(0)).cleanupCloudWatchEvents(
                 any(), any());
 
-            // CloudFormation should receive a callback invocation
-            // TODO
+            // CloudFormation should NOT receive a callback invocation
+            verify(callbackAdapter, times(0)).reportProgress(
+                any(), any(), any(), any(), any()
+            );
 
             // verify output response
             assertThat(out.toString()).isEqualTo(
-                "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}}");
+                "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"},\"message\":\"Model validation failed\\n\"}");
         }
     }
 
@@ -555,6 +568,46 @@ public class LambdaWrapperTest {
     }
 
     @Test
+    public void testInvokeHandler_ExtraneousModelFields_SchemaValidationFailure() throws IOException {
+        // use actual validator to verify behaviour
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, new Validator() {
+        });
+
+        wrapper.setTransformResponse(resourceHandlerRequest);
+
+        try (final InputStream in = loadRequestStream("create.request.with-extraneous-model-fields.json"); final OutputStream out = new ByteArrayOutputStream()) {
+            final Context context = getLambdaContext();
+
+            wrapper.handleRequest(in, out, context);
+
+            // validation failure metric should be published but no others
+            verify(metricsPublisher, times(1)).publishExceptionMetric(
+                any(Instant.class), eq(Action.CREATE), any(Exception.class));
+
+            // all metrics should be published, even for a single invocation
+            verify(metricsPublisher, times(1)).setResourceTypeName(
+                "AWS::Test::TestModel");
+            verify(metricsPublisher, times(1)).publishInvocationMetric(
+                any(Instant.class), eq(Action.CREATE));
+
+            // no re-invocation via CloudWatch should occur
+            verify(scheduler, times(0)).rescheduleAfterMinutes(
+                anyString(), anyInt(), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
+            verify(scheduler, times(0)).cleanupCloudWatchEvents(
+                any(), any());
+
+            // CloudFormation should NOT receive a callback invocation
+            verify(callbackAdapter, times(0)).reportProgress(
+                any(), any(), any(), any(), any()
+            );
+
+            // verify output response
+            assertThat(out.toString()).isEqualTo(
+                "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"},\"message\":\"Model validation failed (#: extraneous key [fieldCausesValidationError] is not permitted)\\n\"}");
+        }
+    }
+
+    @Test
     public void testInvokeHandler_WithMalformedRequest() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
@@ -567,9 +620,7 @@ public class LambdaWrapperTest {
             .build();
         wrapper.setInvokeHandlerResponse(pe);
 
-        when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
         wrapper.setTransformResponse(resourceHandlerRequest);
-
 
         // our ObjectMapper implementation will ignore extraneous fields rather than fail them
         // this slightly loosens the coupling between caller (CloudFormation) and handlers.
@@ -606,7 +657,6 @@ public class LambdaWrapperTest {
         final TestModel model = new TestModel();
         model.setProperty1("abc");
         model.setProperty2(123);
-        when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
         wrapper.setTransformResponse(resourceHandlerRequest);
 
         // respond with immediate success to avoid callback invocation
@@ -635,7 +685,6 @@ public class LambdaWrapperTest {
         final TestModel model = new TestModel();
         model.setProperty1("abc");
         model.setProperty2(123);
-        when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
         doThrow(new AmazonServiceException("Throttled")).when(scheduler).rescheduleAfterMinutes(anyString(), anyInt(), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
         wrapper.setTransformResponse(resourceHandlerRequest);
 
