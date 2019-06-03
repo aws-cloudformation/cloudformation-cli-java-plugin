@@ -1,4 +1,4 @@
-package com.aws.cfn.proxy;
+package com.amazonaws.cloudformation.proxy;
 
 import com.amazonaws.cloudformation.TestModel;
 import com.amazonaws.cloudformation.injection.CloudFormationProvider;
