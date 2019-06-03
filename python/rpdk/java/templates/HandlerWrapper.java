@@ -1,19 +1,19 @@
 // This is a generated file. Modifications will be overwritten.
 package {{ package_name }};
 
-import com.aws.cfn.Action;
-import com.aws.cfn.LambdaWrapper;
-import com.aws.cfn.metrics.MetricsPublisher;
-import com.aws.cfn.proxy.AmazonWebServicesClientProxy;
-import com.aws.cfn.proxy.CallbackAdapter;
-import com.aws.cfn.proxy.HandlerRequest;
-import com.aws.cfn.proxy.LoggerProxy;
-import com.aws.cfn.proxy.ProgressEvent;
-import com.aws.cfn.proxy.RequestContext;
-import com.aws.cfn.proxy.ResourceHandlerRequest;
-import com.aws.cfn.resource.SchemaValidator;
-import com.aws.cfn.resource.Serializer;
-import com.aws.cfn.scheduler.CloudWatchScheduler;
+import com.amazonaws.cloudformation.Action;
+import com.amazonaws.cloudformation.LambdaWrapper;
+import com.amazonaws.cloudformation.metrics.MetricsPublisher;
+import com.amazonaws.cloudformation.proxy.AmazonWebServicesClientProxy;
+import com.amazonaws.cloudformation.proxy.CallbackAdapter;
+import com.amazonaws.cloudformation.proxy.HandlerRequest;
+import com.amazonaws.cloudformation.proxy.LoggerProxy;
+import com.amazonaws.cloudformation.proxy.ProgressEvent;
+import com.amazonaws.cloudformation.proxy.RequestContext;
+import com.amazonaws.cloudformation.proxy.ResourceHandlerRequest;
+import com.amazonaws.cloudformation.resource.SchemaValidator;
+import com.amazonaws.cloudformation.resource.Serializer;
+import com.amazonaws.cloudformation.scheduler.CloudWatchScheduler;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.io.IOException;
@@ -80,9 +80,10 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
             previousResourceState = null;
         }
 
-        return new ResourceHandlerRequest<>(
+        return new ResourceHandlerRequest<{{ pojo_name }}>(
             request.getAwsAccountId(),
             request.getBearerToken(),
+            request.getRequestData().getLogicalResourceId(),
             request.getNextToken(),
             request.getRegion(),
             request.getResourceType(),
