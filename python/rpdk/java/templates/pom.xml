@@ -28,8 +28,8 @@
     <dependencies>
         <!-- https://github.com/awslabs/aws-cloudformation-rpdk-java-plugin/ -->
         <dependency>
-            <groupId>com.aws.cfn</groupId>
-            <artifactId>ResourceProviderRuntime</artifactId>
+            <groupId>com.amazonaws.cloudformation</groupId>
+            <artifactId>aws-cloudformation-rpdk-java-plugin</artifactId>
             <version>1.0</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.projectlombok/lombok -->
