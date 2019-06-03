@@ -82,6 +82,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                          final SchemaValidator validator,
                          final Serializer serializer,
                          final TypeReference<HandlerRequest<ResourceT, CallbackT>> typeReference) {
+
         this.callbackAdapter = callbackAdapter;
         this.credentialsProvider = credentialsProvider;
         this.cloudFormationProvider = new CloudFormationProvider(this.credentialsProvider);
@@ -100,6 +101,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     */
     private void initialiseRuntime(final Credentials platformCredentials,
                                    final URI callbackEndpoint) {
+
         // initialisation skipped if these dependencies were set during injection (in test)
         this.cloudFormationProvider.setCallbackEndpoint(callbackEndpoint);
         this.credentialsProvider.setCredentials(platformCredentials);
@@ -122,6 +124,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     public void handleRequest(final InputStream inputStream,
                               final OutputStream outputStream,
                               final Context context) throws IOException, TerminalException {
+
         this.logger = context.getLogger();
 
         ProgressEvent<ResourceT, CallbackT> handlerResponse = null;
@@ -324,18 +327,23 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         return handlerResponse;
     }
 
-    private Response<ResourceT> createProgressResponse(final ProgressEvent<ResourceT, CallbackT> progressEvent, final String bearerToken) {
+    private Response<ResourceT> createProgressResponse(
+        final ProgressEvent<ResourceT, CallbackT> progressEvent,
+        final String bearerToken) {
+
         final Response<ResourceT> response = new Response<>();
         response.setMessage(progressEvent.getMessage());
         response.setOperationStatus(progressEvent.getStatus());
         response.setResourceModel(progressEvent.getResourceModel());
         response.setBearerToken(bearerToken);
         response.setErrorCode(progressEvent.getErrorCode());
+
         return response;
     }
 
-    private void writeResponse(final OutputStream outputStream,
-                               final Response<ResourceT> response) throws IOException {
+    private void writeResponse(
+        final OutputStream outputStream,
+        final Response<ResourceT> response) throws IOException {
 
         final JSONObject output = this.serializer.serialize(response);
         outputStream.write(output.toString().getBytes(Charset.forName("UTF-8")));
@@ -361,7 +369,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
      *                  handler implementations
      * @return  A converted ResourceHandlerRequest model
      */
-    protected abstract ResourceHandlerRequest<ResourceT> transform(final HandlerRequest<ResourceT, CallbackT> request) throws IOException;
+    protected abstract ResourceHandlerRequest<ResourceT> transform(
+        final HandlerRequest<ResourceT, CallbackT> request) throws IOException;
 
     /**
      * Handler implementation should implement this method to provide the schema for validation
@@ -372,10 +381,11 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     /**
      * Implemented by the handler package as the key entry point.
      */
-    public abstract ProgressEvent<ResourceT, CallbackT> invokeHandler(final AmazonWebServicesClientProxy proxy,
-                                                   final ResourceHandlerRequest<ResourceT> request,
-                                                   final Action action,
-                                                   final CallbackT callbackContext) throws IOException;
+    public abstract ProgressEvent<ResourceT, CallbackT> invokeHandler(
+        final AmazonWebServicesClientProxy proxy,
+        final ResourceHandlerRequest<ResourceT> request,
+        final Action action,
+        final CallbackT callbackContext) throws IOException;
 
     /**
      * null-safe logger redirect
