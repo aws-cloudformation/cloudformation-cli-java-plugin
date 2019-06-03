@@ -43,6 +43,9 @@ import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStreamHandler {
 
@@ -196,11 +199,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // transform the request object to pass to caller
         final ResourceHandlerRequest<ResourceT> resourceHandlerRequest = transform(request);
 
-        final RequestContext<CallbackT> requestContext = request.getRequestContext();
-        final boolean hasRequestContext = requestContext != null;
-        final CallbackT callbackContext = hasRequestContext ? requestContext.getCallbackContext() : null;
-
-        if (hasRequestContext) {
+        RequestContext<CallbackT> requestContext = request.getRequestContext();
+        if (requestContext != null) {
             // If this invocation was triggered by a 're-invoke' CloudWatch Event, clean it up
             final String cloudWatchEventsRuleName = requestContext.getCloudWatchEventsRuleName();
             if (!StringUtils.isBlank(cloudWatchEventsRuleName)) {
@@ -264,65 +264,48 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             this.logger,
             request.getRequestData().getCallerCredentials());
 
-        final ProgressEvent<ResourceT, CallbackT> handlerResponse = invokeHandler(
-            awsClientProxy,
-            resourceHandlerRequest,
-            request.getAction(),
-            callbackContext);
-        if (handlerResponse != null) {
-            this.log(String.format("Handler returned %s", handlerResponse.getStatus()));
-        } else {
-            this.log("Handler returned null");
-        }
+        boolean computeLocally = true;
+        ProgressEvent<ResourceT, CallbackT> handlerResponse = null;
 
-        final Date endTime = Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant());
+        while (computeLocally) {
+            // rebuild callback context on each invocation cycle
+            requestContext = request.getRequestContext();
+            final CallbackT callbackContext = (requestContext != null) ? requestContext.getCallbackContext() : null;
 
-        metricsPublisher.publishDurationMetric(
-            Instant.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
-            request.getAction(),
-            (endTime.getTime() - startTime.getTime()));
-
-        // ensure we got a valid response
-        if (handlerResponse == null) {
-            throw new TerminalException("Handler failed to provide a response.");
-        }
-
-        // When the handler responses IN_PROGRESS with a callback delay, we trigger a callback to re-invoke
-        // the handler for the Resource type to implement stabilization checks and long-poll creation checks
-        if (handlerResponse.getStatus() == OperationStatus.IN_PROGRESS) {
-            final RequestContext<CallbackT> reinvocationContext = new RequestContext<>();
-
-            int counter = 1;
-            if (hasRequestContext) {
-                counter += requestContext.getInvocation();
+            handlerResponse = invokeHandler(
+                awsClientProxy,
+                resourceHandlerRequest,
+                request.getAction(),
+                callbackContext);
+            if (handlerResponse != null) {
+                this.log(String.format("Handler returned %s", handlerResponse.getStatus()));
+            } else {
+                this.log("Handler returned null");
             }
-            reinvocationContext.setInvocation(counter);
 
-            reinvocationContext.setCallbackContext(handlerResponse.getCallbackContext());
-            request.setRequestContext(reinvocationContext);
+            final Date endTime = Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant());
 
-            // update request payload in case of injected properties (e.g. auto-generated names)
-            request.getRequestData().setResourceProperties(handlerResponse.getResourceModel());
+            metricsPublisher.publishDurationMetric(
+                Instant.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
+                request.getAction(),
+                (endTime.getTime() - startTime.getTime()));
 
-            logger.log(String.format("Scheduling re-invoke with Context {%s}", reinvocationContext.toString()));
-            try {
-                this.scheduler.rescheduleAfterMinutes(
-                    context.getInvokedFunctionArn(),
-                    handlerResponse.getCallbackDelayMinutes(),
-                    request);
-            } catch (final Exception e){
-                this.log(String.format("Failed to schedule re-invoke, caused by %s", e.toString()));
-                handlerResponse.setMessage(e.getMessage());
-                handlerResponse.setStatus(OperationStatus.FAILED);
-                handlerResponse.setErrorCode(HandlerErrorCode.ServiceException);
+            // ensure we got a valid response
+            if (handlerResponse == null) {
+                throw new TerminalException("Handler failed to provide a response.");
             }
-        }
-        // report the progress status back to configured endpoint
-        this.callbackAdapter.reportProgress(request.getBearerToken(),
+
+            // When the handler responses IN_PROGRESS with a callback delay, we trigger a callback to re-invoke
+            // the handler for the Resource type to implement stabilization checks and long-poll creation checks
+            computeLocally = scheduleReinvocation(request, handlerResponse, context);
+
+            // report the progress status back to configured endpoint
+            this.callbackAdapter.reportProgress(request.getBearerToken(),
                 handlerResponse.getErrorCode(),
                 handlerResponse.getStatus(),
                 handlerResponse.getResourceModel(),
                 handlerResponse.getMessage());
+        }
 
         return handlerResponse;
     }
@@ -360,6 +343,63 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         }
 
         this.validator.validateObject(modelObject, resourceSchema);
+    }
+
+    /**
+     * Managed scheduling of handler re-invocations.
+     * @param request           the original request to the function
+     * @param handlerResponse   the previous response from handler
+     * @param context           LambdaContext granting runtime metadata
+     * @return                  boolean indicating whether to continue invoking locally, or exit for async reinvoke
+     */
+    private boolean scheduleReinvocation(
+        final HandlerRequest<ResourceT, CallbackT> request,
+        final ProgressEvent<ResourceT, CallbackT> handlerResponse,
+        final Context context) {
+
+        if (handlerResponse.getStatus() != OperationStatus.IN_PROGRESS) {
+            // no reinvoke required
+            return false;
+        }
+
+        final RequestContext<CallbackT> reinvocationContext = new RequestContext<>();
+        final RequestContext<CallbackT>requestContext = request.getRequestContext();
+        int counter = 1;
+        if (requestContext != null) {
+            counter += requestContext.getInvocation();
+        }
+        reinvocationContext.setInvocation(counter);
+
+        reinvocationContext.setCallbackContext(handlerResponse.getCallbackContext());
+        request.setRequestContext(reinvocationContext);
+
+        // when a handler requests a sub-minute callback delay, and if the lambda invocation
+        // has enough runtime (with 20% buffer), we can reschedule from a thread wait
+        // otherwise we re-invoke through CloudWatchEvents which have a granularity of minutes
+        if ((handlerResponse.getCallbackDelaySeconds() < 60) &&
+            (context.getRemainingTimeInMillis() / 1000) > handlerResponse.getCallbackDelaySeconds() * 1.2) {
+            logger.log(String.format("Scheduling re-invoke locally after %s seconds, with Context {%s}",
+                handlerResponse.getCallbackDelaySeconds(),
+                reinvocationContext.toString()));
+            sleepUninterruptibly(handlerResponse.getCallbackDelaySeconds(), TimeUnit.SECONDS);
+            return true;
+        }
+
+        logger.log(String.format("Scheduling re-invoke with Context {%s}", reinvocationContext.toString()));
+        try {
+            final int callbackDelayMinutes = handlerResponse.getCallbackDelaySeconds() / 60;
+            this.scheduler.rescheduleAfterMinutes(
+                context.getInvokedFunctionArn(),
+                callbackDelayMinutes,
+                request);
+        } catch (final Exception e) {
+            this.log(String.format("Failed to schedule re-invoke, caused by %s", e.toString()));
+            handlerResponse.setMessage(e.getMessage());
+            handlerResponse.setStatus(OperationStatus.FAILED);
+            handlerResponse.setErrorCode(HandlerErrorCode.ServiceException);
+        }
+
+        return false;
     }
 
     /**

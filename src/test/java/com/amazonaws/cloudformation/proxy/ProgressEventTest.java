@@ -17,7 +17,7 @@ public class ProgressEventTest {
                 HandlerErrorCode.InternalFailure);
 
         assertThat(progressEvent.getCallbackContext()).isNull();
-        assertThat(progressEvent.getCallbackDelayMinutes()).isEqualTo(0);
+        assertThat(progressEvent.getCallbackDelaySeconds()).isEqualTo(0);
         assertThat(progressEvent.getErrorCode()).isEqualTo(HandlerErrorCode.InternalFailure);
         assertThat(progressEvent.getMessage()).isEqualTo("test error");
         assertThat(progressEvent.getResourceModel()).isNull();
@@ -41,7 +41,7 @@ public class ProgressEventTest {
                 model);
 
         assertThat(progressEvent.getCallbackContext()).isEqualTo(callbackContet);
-        assertThat(progressEvent.getCallbackDelayMinutes()).isEqualTo(3);
+        assertThat(progressEvent.getCallbackDelaySeconds()).isEqualTo(3);
         assertThat(progressEvent.getErrorCode()).isNull();
         assertThat(progressEvent.getMessage()).isNull();
         assertThat(progressEvent.getResourceModel()).isEqualTo(model);
@@ -60,7 +60,7 @@ public class ProgressEventTest {
                 model);
 
         assertThat(progressEvent.getCallbackContext()).isNull();
-        assertThat(progressEvent.getCallbackDelayMinutes()).isEqualTo(0);
+        assertThat(progressEvent.getCallbackDelaySeconds()).isEqualTo(0);
         assertThat(progressEvent.getErrorCode()).isNull();
         assertThat(progressEvent.getMessage()).isNull();
         assertThat(progressEvent.getResourceModel()).isEqualTo(model);

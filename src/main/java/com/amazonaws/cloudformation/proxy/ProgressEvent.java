@@ -40,10 +40,10 @@ public class ProgressEvent<ResourceT, CallbackT> {
 
     /**
      * A callback will be scheduled with an initial delay of no less than
-     * the number of minutes specified in the progress event. Set this
+     * the number of seconds specified in the progress event. Set this
      * value to <= 0 to indicate no callback should be made.
      */
-    private int callbackDelayMinutes;
+    private int callbackDelaySeconds;
 
     /**
      * The output resource instance populated by a READ for synchronous results
@@ -75,12 +75,12 @@ public class ProgressEvent<ResourceT, CallbackT> {
      */
     public static <ResourceT, CallbackT> ProgressEvent<ResourceT, CallbackT> defaultInProgressHandler(
         final CallbackT callbackContext,
-        final int callbackDelayMinutes,
+        final int callbackDelaySeconds,
         final ResourceT resourceModel) {
 
         return ProgressEvent.<ResourceT, CallbackT>builder()
             .callbackContext(callbackContext)
-            .callbackDelayMinutes(callbackDelayMinutes)
+            .callbackDelaySeconds(callbackDelaySeconds)
             .resourceModel(resourceModel)
             .status(OperationStatus.IN_PROGRESS)
             .build();

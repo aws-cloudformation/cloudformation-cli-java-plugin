@@ -1,6 +1,7 @@
 package com.amazonaws.cloudformation;
 
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.cloudformation.proxy.HandlerErrorCode;
 import com.amazonaws.cloudformation.resource.Validator;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
@@ -19,6 +20,7 @@ import com.amazonaws.cloudformation.scheduler.CloudWatchScheduler;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.ArgumentMatchers;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -31,6 +33,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -134,7 +138,7 @@ public class LambdaWrapperTest {
             // verify output response
             assertThat(out.toString()).isEqualTo(
                 "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}," +
-                "\"message\":\"Handler failed to provide a response.\"}");
+                    "\"message\":\"Handler failed to provide a response.\"}");
         }
     }
 
@@ -406,9 +410,11 @@ public class LambdaWrapperTest {
         final TestModel model = TestModel.builder().property1("abc").property2(123).build();
 
         // an InProgress response is always re-scheduled.
-        // If no explicit time is supplied, a 1-minute interval is used
+        // If no explicit time is supplied, a 1-minute interval is used, and any interval >= 1 minute is scheduled
+        // against CloudWatch. Shorter intervals are able to run locally within same function context if runtime permits
         final ProgressEvent<TestModel, TestContext> pe = ProgressEvent.<TestModel, TestContext>builder()
             .status(OperationStatus.IN_PROGRESS)
+            .callbackDelaySeconds(60)
             .resourceModel(model)
             .build();
         wrapper.setInvokeHandlerResponse(pe);
@@ -440,7 +446,7 @@ public class LambdaWrapperTest {
 
             // re-invocation via CloudWatch should occur
             verify(scheduler, times(1)).rescheduleAfterMinutes(
-                anyString(), eq(0), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
+                anyString(), eq(1), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
 
             // this was a re-invocation, so a cleanup is required
             verify(scheduler, times(1)).cleanupCloudWatchEvents(
@@ -570,8 +576,7 @@ public class LambdaWrapperTest {
     @Test
     public void testInvokeHandler_ExtraneousModelFields_SchemaValidationFailure() throws IOException {
         // use actual validator to verify behaviour
-        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, new Validator() {
-        });
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, new Validator() { });
 
         wrapper.setTransformResponse(resourceHandlerRequest);
 
@@ -788,6 +793,186 @@ public class LambdaWrapperTest {
 
             // verify output response
             assertThat(out.toString()).isEqualTo("{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"},\"message\":\"No callback endpoint received\"}");
+        }
+    }
+
+    @Test
+    public void testLocalReinvoke_SufficientRemainingTime() throws IOException {
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
+        final TestModel model = TestModel.builder().property1("abc").property2(123).build();
+
+        // an InProgress response is always re-scheduled.
+        // If no explicit time is supplied, a 1-minute interval is used
+        final ProgressEvent<TestModel, TestContext> pe1 = ProgressEvent.<TestModel, TestContext>builder()
+            .status(OperationStatus.IN_PROGRESS) // iterate locally once
+            .callbackDelaySeconds(5)
+            .resourceModel(model)
+            .build();
+        final ProgressEvent<TestModel, TestContext> pe2 = ProgressEvent.<TestModel, TestContext>builder()
+            .status(OperationStatus.SUCCESS) // then exit loop
+            .resourceModel(model)
+            .build();
+        wrapper.enqueueResponses(Arrays.asList(pe1, pe2));
+
+        wrapper.setTransformResponse(resourceHandlerRequest);
+
+        try (final InputStream in = loadRequestStream("create.with-request-context.request.json");
+             final OutputStream out = new ByteArrayOutputStream()) {
+
+            final Context context = getLambdaContext();
+            when(context.getRemainingTimeInMillis()).thenReturn(60000); // ~1 minute
+
+            wrapper.handleRequest(in, out, context);
+
+            // all metrics should be published, once for a single invocation
+            verify(metricsPublisher, times(1)).setResourceTypeName(
+                "AWS::Test::TestModel");
+            verify(metricsPublisher, times(1)).publishInvocationMetric(
+                any(Instant.class), eq(Action.CREATE));
+            verify(metricsPublisher, times(2)).publishDurationMetric(
+                any(Instant.class), eq(Action.CREATE), anyLong());
+
+            // validation failure metric should not be published
+            verify(metricsPublisher, times(0)).publishExceptionMetric(
+                any(Instant.class), any(), any(Exception.class));
+
+            // verify that model validation occurred for CREATE/UPDATE/DELETE
+            verify(validator, times(1)).validateObject(
+                any(JSONObject.class), any(InputStream.class));
+
+            // re-invocation via CloudWatch should NOT occur for <60 when Lambda remaining time allows
+            verify(scheduler, times(0)).rescheduleAfterMinutes(
+                anyString(), anyInt(), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
+
+            // this was a re-invocation, so a cleanup is required
+            verify(scheduler, times(1)).cleanupCloudWatchEvents(
+                eq("reinvoke-handler-4754ac8a-623b-45fe-84bc-f5394118a8be"),
+                eq("reinvoke-target-4754ac8a-623b-45fe-84bc-f5394118a8be")
+            );
+
+            final ArgumentCaptor<String> bearerTokenCaptor = ArgumentCaptor.forClass(String.class);
+            final ArgumentCaptor<HandlerErrorCode> errorCodeCaptor = ArgumentCaptor.forClass(HandlerErrorCode.class);
+            final ArgumentCaptor<OperationStatus> operationStatusCaptor = ArgumentCaptor.forClass(OperationStatus.class);
+            final ArgumentCaptor<TestModel> resourceModelCaptor = ArgumentCaptor.forClass(TestModel.class);
+            final ArgumentCaptor<String> statusMessageCaptor = ArgumentCaptor.forClass(String.class);
+
+            verify(callbackAdapter, times(2)).reportProgress(
+                bearerTokenCaptor.capture(),
+                errorCodeCaptor.capture(),
+                operationStatusCaptor.capture(),
+                resourceModelCaptor.capture(),
+                statusMessageCaptor.capture()
+            );
+
+            final List<String> bearerTokens = bearerTokenCaptor.getAllValues();
+            final List<HandlerErrorCode> errorCodes = errorCodeCaptor.getAllValues();
+            final List<OperationStatus> operationStatuses = operationStatusCaptor.getAllValues();
+            final List<TestModel> resourceModels = resourceModelCaptor.getAllValues();
+            final List<String> statusMessages = statusMessageCaptor.getAllValues();
+
+            // CloudFormation should receive 2 callback invocation; once for IN_PROGRESS, once for COMPLETION
+            bearerTokens.forEach(o -> assertThat(o).isEqualTo("123456"));
+            errorCodes.forEach(o -> assertThat(o).isNull());
+            resourceModels.forEach(o -> assertThat(o).isEqualTo(TestModel.builder().property1("abc").property2(123).build()));
+            statusMessages.forEach(o -> assertThat(o).isNull());
+            assertThat(operationStatuses.get(0)).isEqualTo(OperationStatus.IN_PROGRESS);
+            assertThat(operationStatuses.get(1)).isEqualTo(OperationStatus.SUCCESS);
+
+            // verify final output response is for success response
+            assertThat(out.toString()).isEqualTo(
+                "{\"operationStatus\":\"SUCCESS\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}}");
+        }
+    }
+
+    @Test
+    public void testLocalReinvoke_SufficientRemainingTime_ForFirstIterationOnly() throws IOException {
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
+        final TestModel model = TestModel.builder().property1("abc").property2(123).build();
+
+        // an InProgress response is always re-scheduled.
+        // If no explicit time is supplied, a 1-minute interval is used
+        final ProgressEvent<TestModel, TestContext> pe1 = ProgressEvent.<TestModel, TestContext>builder()
+            .status(OperationStatus.IN_PROGRESS) // iterate locally once
+            .callbackDelaySeconds(5)
+            .resourceModel(model)
+            .build();
+        final ProgressEvent<TestModel, TestContext> pe2 = ProgressEvent.<TestModel, TestContext>builder()
+            .status(OperationStatus.IN_PROGRESS) // second iteration will exceed runtime
+            .callbackDelaySeconds(5)
+            .resourceModel(model)
+            .build();
+        wrapper.enqueueResponses(Arrays.asList(pe1, pe2));
+
+        wrapper.setTransformResponse(resourceHandlerRequest);
+
+        try (final InputStream in = loadRequestStream("create.with-request-context.request.json");
+             final OutputStream out = new ByteArrayOutputStream()) {
+
+            final Context context = getLambdaContext();
+            when(context.getRemainingTimeInMillis())
+                .thenReturn(
+                    60000, // 60 seconds
+                    6000); // 6 seconds is <= 1.2 * 5 seconds requested, causes CWE reinvoke
+
+            wrapper.handleRequest(in, out, context);
+
+            // all metrics should be published, once for a single invocation
+            verify(metricsPublisher, times(1)).setResourceTypeName(
+                "AWS::Test::TestModel");
+            verify(metricsPublisher, times(1)).publishInvocationMetric(
+                any(Instant.class), eq(Action.CREATE));
+            verify(metricsPublisher, times(2)).publishDurationMetric(
+                any(Instant.class), eq(Action.CREATE), anyLong());
+
+            // validation failure metric should not be published
+            verify(metricsPublisher, times(0)).publishExceptionMetric(
+                any(Instant.class), any(), any(Exception.class));
+
+            // verify that model validation occurred for CREATE/UPDATE/DELETE
+            verify(validator, times(1)).validateObject(
+                any(JSONObject.class), any(InputStream.class));
+
+            // re-invocation via CloudWatch should occur for the second iteration
+            verify(scheduler, times(1)).rescheduleAfterMinutes(
+                anyString(), eq(0), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
+
+            // this was a re-invocation, so a cleanup is required
+            verify(scheduler, times(1)).cleanupCloudWatchEvents(
+                eq("reinvoke-handler-4754ac8a-623b-45fe-84bc-f5394118a8be"),
+                eq("reinvoke-target-4754ac8a-623b-45fe-84bc-f5394118a8be")
+            );
+
+            final ArgumentCaptor<String> bearerTokenCaptor = ArgumentCaptor.forClass(String.class);
+            final ArgumentCaptor<HandlerErrorCode> errorCodeCaptor = ArgumentCaptor.forClass(HandlerErrorCode.class);
+            final ArgumentCaptor<OperationStatus> operationStatusCaptor = ArgumentCaptor.forClass(OperationStatus.class);
+            final ArgumentCaptor<TestModel> resourceModelCaptor = ArgumentCaptor.forClass(TestModel.class);
+            final ArgumentCaptor<String> statusMessageCaptor = ArgumentCaptor.forClass(String.class);
+
+            verify(callbackAdapter, times(2)).reportProgress(
+                bearerTokenCaptor.capture(),
+                errorCodeCaptor.capture(),
+                operationStatusCaptor.capture(),
+                resourceModelCaptor.capture(),
+                statusMessageCaptor.capture()
+            );
+
+            final List<String> bearerTokens = bearerTokenCaptor.getAllValues();
+            final List<HandlerErrorCode> errorCodes = errorCodeCaptor.getAllValues();
+            final List<OperationStatus> operationStatuses = operationStatusCaptor.getAllValues();
+            final List<TestModel> resourceModels = resourceModelCaptor.getAllValues();
+            final List<String> statusMessages = statusMessageCaptor.getAllValues();
+
+            // CloudFormation should receive 2 callback invocation; both for IN_PROGRESS
+            bearerTokens.forEach(o -> assertThat(o).isEqualTo("123456"));
+            errorCodes.forEach(o -> assertThat(o).isNull());
+            resourceModels.forEach(o -> assertThat(o).isEqualTo(TestModel.builder().property1("abc").property2(123).build()));
+            statusMessages.forEach(o -> assertThat(o).isNull());
+            assertThat(operationStatuses.get(0)).isEqualTo(OperationStatus.IN_PROGRESS);
+            assertThat(operationStatuses.get(1)).isEqualTo(OperationStatus.IN_PROGRESS);
+
+            // verify final output response is for second IN_PROGRESS response
+            assertThat(out.toString()).isEqualTo(
+                "{\"operationStatus\":\"IN_PROGRESS\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}}");
         }
     }
 }
