@@ -325,7 +325,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                 Instant.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
                 request.getAction(),
                 e);
-            this.logger.log("A downstream error occurred creating an SES Configuration Set: " + e.toString());
+            this.logger.log(String.format("A downstream service error occurred in a %s action on a %s: %s",
+                request.getAction(), request.getResourceType(), e.toString()));
             return ProgressEvent.defaultFailureHandler(
                 e,
                 HandlerErrorCode.ServiceException);
@@ -334,7 +335,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                 Instant.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
                 request.getAction(),
                 e);
-            this.logger.log("An unknown error occurred creating an SES Configuration Set: " + e.toString());
+            this.logger.log(String.format("An unknown error occurred in a %s action on a %s: %s",
+                request.getAction(), request.getResourceType(), e.toString()));
             return ProgressEvent.defaultFailureHandler(
                 e,
                 HandlerErrorCode.InternalFailure);
