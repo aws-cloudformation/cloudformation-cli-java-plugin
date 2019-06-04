@@ -17,8 +17,6 @@ import lombok.EqualsAndHashCode;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -63,13 +61,18 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
     public ProgressEvent<TestModel, TestContext> invokeHandler(final AmazonWebServicesClientProxy awsClientProxy,
                                                                final ResourceHandlerRequest<TestModel> request,
                                                                final Action action,
-                                                               final TestContext callbackContext) {
-        if (invokeHandlerResponses == null) {
+                                                               final TestContext callbackContext) throws Exception {
+        if (invokeHandlerException != null) {
+            throw invokeHandlerException;
+        } else if (invokeHandlerResponses == null) {
             return invokeHandlerResponse;
         } else {
             return invokeHandlerResponses.remove();
         }
     }
+
+    // allows test to have the invoke throw an exception
+    public Exception invokeHandlerException;
 
     // for single mocked response
     public ProgressEvent<TestModel, TestContext> invokeHandlerResponse;
