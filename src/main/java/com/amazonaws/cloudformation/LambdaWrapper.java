@@ -40,7 +40,9 @@ import java.nio.charset.Charset;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStreamHandler {
 
@@ -56,6 +58,9 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     private final TypeReference<HandlerRequest<ResourceT, CallbackT>> typeReference;
     protected final Serializer serializer;
     protected LambdaLogger logger;
+
+    private final static List<Action> MUTATING_ACTIONS =
+        Arrays.asList(Action.CREATE, Action.DELETE, Action.UPDATE);
 
     protected LambdaWrapper() {
         this.credentialsProvider = new PlatformCredentialsProvider();
@@ -167,9 +172,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             throw new TerminalException("Invalid request object received");
         }
 
-        if (request.getAction() == Action.CREATE ||
-            request.getAction() == Action.UPDATE ||
-            request.getAction() == Action.DELETE) {
+        if (MUTATING_ACTIONS.contains(request.getAction())) {
             if (request.getRequestData().getResourceProperties() == null) {
                 throw new TerminalException("Invalid resource properties object received");
             }
@@ -216,9 +219,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // NOTE: we validate the raw pre-deserialized payload to account for lenient serialization.
         // Here, we want to surface ALL input validation errors to the caller.
         try {
-            if (request.getAction() == Action.CREATE ||
-                request.getAction() == Action.UPDATE ||
-                request.getAction() == Action.DELETE) {
+            if (MUTATING_ACTIONS.contains(request.getAction())) {
                 // validate entire incoming payload, including extraneous fields which
                 // are stripped by the Serializer (due to FAIL_ON_UNKNOWN_PROPERTIES setting)
                 final JSONObject rawModelObject =
