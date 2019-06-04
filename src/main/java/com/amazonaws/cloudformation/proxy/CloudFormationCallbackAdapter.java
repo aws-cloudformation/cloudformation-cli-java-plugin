@@ -49,7 +49,7 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
         logger.log(String.format("Record Handler Progress with Request Id %s and Request: {%s}", response.responseMetadata().requestId(), requestBuilder.build().toString()));
     }
 
-    private software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode translate(
+    static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode translate(
         final HandlerErrorCode errorCode) {
         switch (errorCode) {
             case AccessDenied:
