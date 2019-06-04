@@ -1,5 +1,6 @@
 package com.amazonaws.cloudformation;
 
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
@@ -257,7 +258,6 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // automatically fail a request if the handler will not be able to complete within that period,
         // such as before a FAS token expires
 
-        final Date startTime = Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant());
 
         // last mile proxy creation with passed-in credentials
         final AmazonWebServicesClientProxy awsClientProxy = new AmazonWebServicesClientProxy(
@@ -272,28 +272,11 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             requestContext = request.getRequestContext();
             final CallbackT callbackContext = (requestContext != null) ? requestContext.getCallbackContext() : null;
 
-            handlerResponse = invokeHandler(
+            handlerResponse = wrapInvocationAndHandleErrors(
                 awsClientProxy,
                 resourceHandlerRequest,
-                request.getAction(),
+                request,
                 callbackContext);
-            if (handlerResponse != null) {
-                this.log(String.format("Handler returned %s", handlerResponse.getStatus()));
-            } else {
-                this.log("Handler returned null");
-            }
-
-            final Date endTime = Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant());
-
-            metricsPublisher.publishDurationMetric(
-                Instant.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
-                request.getAction(),
-                (endTime.getTime() - startTime.getTime()));
-
-            // ensure we got a valid response
-            if (handlerResponse == null) {
-                throw new TerminalException("Handler failed to provide a response.");
-            }
 
             // When the handler responses IN_PROGRESS with a callback delay, we trigger a callback to re-invoke
             // the handler for the Resource type to implement stabilization checks and long-poll creation checks
@@ -308,6 +291,64 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         }
 
         return handlerResponse;
+    }
+
+    /**
+     * Invokes the handler implementation for the request, and wraps with try-catch to consistently
+     * handle certain classes of errors and correctly map those to the appropriate HandlerErrorCode
+     * Also wraps the invocation in last-mile timing metrics
+     */
+    private ProgressEvent<ResourceT, CallbackT> wrapInvocationAndHandleErrors(
+        final AmazonWebServicesClientProxy awsClientProxy,
+        final ResourceHandlerRequest<ResourceT> resourceHandlerRequest,
+        final HandlerRequest<ResourceT, CallbackT> request,
+        final CallbackT callbackContext) {
+
+        final Date startTime = Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant());
+        try {
+            final ProgressEvent<ResourceT, CallbackT> handlerResponse = invokeHandler(
+                awsClientProxy,
+                resourceHandlerRequest,
+                request.getAction(),
+                callbackContext);
+            if (handlerResponse != null) {
+                this.log(String.format("Handler returned %s", handlerResponse.getStatus()));
+            } else {
+                this.log("Handler returned null");
+                throw new TerminalException("Handler failed to provide a response.");
+            }
+
+            return handlerResponse;
+
+        } catch (final AmazonServiceException e) {
+            this.metricsPublisher.publishExceptionMetric(
+                Instant.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
+                request.getAction(),
+                e);
+            this.logger.log(String.format("A downstream service error occurred in a %s action on a %s: %s",
+                request.getAction(), request.getResourceType(), e.toString()));
+            return ProgressEvent.defaultFailureHandler(
+                e,
+                HandlerErrorCode.ServiceException);
+        } catch (final Exception e) {
+            this.metricsPublisher.publishExceptionMetric(
+                Instant.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
+                request.getAction(),
+                e);
+            this.logger.log(String.format("An unknown error occurred in a %s action on a %s: %s",
+                request.getAction(), request.getResourceType(), e.toString()));
+            return ProgressEvent.defaultFailureHandler(
+                e,
+                HandlerErrorCode.InternalFailure);
+        } finally {
+            final Date endTime = Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant());
+
+            metricsPublisher.publishDurationMetric(
+                Instant.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
+                request.getAction(),
+                (endTime.getTime() - startTime.getTime()));
+        }
+
     }
 
     private Response<ResourceT> createProgressResponse(
@@ -425,7 +466,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         final AmazonWebServicesClientProxy proxy,
         final ResourceHandlerRequest<ResourceT> request,
         final Action action,
-        final CallbackT callbackContext) throws IOException;
+        final CallbackT callbackContext) throws Exception;
 
     /**
      * null-safe logger redirect

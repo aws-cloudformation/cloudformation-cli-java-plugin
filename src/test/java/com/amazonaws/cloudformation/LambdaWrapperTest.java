@@ -138,7 +138,7 @@ public class LambdaWrapperTest {
 
             // verify output response
             assertThat(out.toString()).isEqualTo(
-                "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}," +
+                "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"errorCode\":\"InternalFailure\"," +
                     "\"message\":\"Handler failed to provide a response.\"}");
         }
     }
@@ -976,6 +976,50 @@ public class LambdaWrapperTest {
             // verify final output response is for second IN_PROGRESS response
             assertThat(out.toString()).isEqualTo(
                 "{\"operationStatus\":\"IN_PROGRESS\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}}");
+        }
+    }
+
+    @Test
+    public void testInvokeHandler_ThrowsAmazonServiceException() throws IOException {
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
+        final TestModel model = new TestModel();
+
+        // exceptions are caught consistently by LambdaWrapper
+        wrapper.setInvokeHandlerException(new AmazonServiceException("some error"));
+
+        lenient().when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
+        wrapper.setTransformResponse(resourceHandlerRequest);
+
+        try (final InputStream in = loadRequestStream("create.request.json"); final OutputStream out = new ByteArrayOutputStream()) {
+            final Context context = getLambdaContext();
+
+            wrapper.handleRequest(in, out, context);
+
+            // all metrics should be published, once for a single invocation
+            verify(metricsPublisher, times(1)).setResourceTypeName(
+                "AWS::Test::TestModel");
+            verify(metricsPublisher, times(1)).publishInvocationMetric(
+                any(Instant.class), eq(Action.CREATE));
+            verify(metricsPublisher, times(1)).publishDurationMetric(
+                any(Instant.class), eq(Action.CREATE), anyLong());
+
+            // failure metric should be published
+            verify(metricsPublisher, times(1)).publishExceptionMetric(
+                any(Instant.class), any(), any(AmazonServiceException.class));
+
+            // verify that model validation occurred for CREATE/UPDATE/DELETE
+            verify(validator, times(1)).validateObject(
+                any(JSONObject.class), any(InputStream.class));
+
+            // no re-invocation via CloudWatch should occur
+            verify(scheduler, times(0)).rescheduleAfterMinutes(
+                anyString(), anyInt(), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
+            verify(scheduler, times(0)).cleanupCloudWatchEvents(
+                any(), any());
+
+            // verify output response
+            assertThat(out.toString()).isEqualTo(
+                "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"errorCode\":\"ServiceException\",\"message\":\"some error (Service: null; Status Code: 0; Error Code: null; Request ID: null)\"}");
         }
     }
 }
