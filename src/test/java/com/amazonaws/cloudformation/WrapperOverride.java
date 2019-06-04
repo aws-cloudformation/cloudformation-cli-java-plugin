@@ -17,6 +17,11 @@ import lombok.EqualsAndHashCode;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
 
 /**
  * Test class used for testing of LambdaWrapper functionality
@@ -59,10 +64,26 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
                                                                final ResourceHandlerRequest<TestModel> request,
                                                                final Action action,
                                                                final TestContext callbackContext) {
-        return invokeHandlerResponse;
+        if (invokeHandlerResponses == null) {
+            return invokeHandlerResponse;
+        } else {
+            return invokeHandlerResponses.remove();
+        }
     }
 
+    // for single mocked response
     public ProgressEvent<TestModel, TestContext> invokeHandlerResponse;
+
+    // for series of mocked responses; call EnqueueResponses to add items
+    private Queue<ProgressEvent<TestModel, TestContext>> invokeHandlerResponses;
+
+    public void enqueueResponses(final List<ProgressEvent<TestModel, TestContext>> responses) {
+        if (invokeHandlerResponses == null) {
+            invokeHandlerResponses = new LinkedList<>();
+        }
+
+        invokeHandlerResponses.addAll(responses);
+    }
 
     @Override
     protected ResourceHandlerRequest<TestModel> transform(final HandlerRequest<TestModel, TestContext> request) {

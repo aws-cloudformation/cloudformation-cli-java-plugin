@@ -42,7 +42,7 @@ public class {{ operation }}HandlerTest {
         assertThat(response, is(not(nullValue())));
         assertThat(response.getStatus(), is(equalTo(OperationStatus.SUCCESS)));
         assertThat(response.getCallbackContext(), is(nullValue()));
-        assertThat(response.getCallbackDelayMinutes(), is(equalTo(0)));
+        assertThat(response.getCallbackDelaySeconds(), is(equalTo(0)));
         assertThat(response.getResourceModel(), is(nullValue()));
         assertThat(response.getResourceModels(), is(not(nullValue())));
         assertThat(response.getMessage(), is(nullValue()));
