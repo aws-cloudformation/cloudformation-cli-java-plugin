@@ -49,6 +49,7 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -871,12 +872,13 @@ public class LambdaWrapperTest {
             final List<String> statusMessages = statusMessageCaptor.getAllValues();
 
             // CloudFormation should receive 2 callback invocation; once for IN_PROGRESS, once for COMPLETION
-            bearerTokens.forEach(o -> assertThat(o).isEqualTo("123456"));
-            errorCodes.forEach(o -> assertThat(o).isNull());
-            resourceModels.forEach(o -> assertThat(o).isEqualTo(TestModel.builder().property1("abc").property2(123).build()));
-            statusMessages.forEach(o -> assertThat(o).isNull());
-            assertThat(operationStatuses.get(0)).isEqualTo(OperationStatus.IN_PROGRESS);
-            assertThat(operationStatuses.get(1)).isEqualTo(OperationStatus.SUCCESS);
+            assertThat(bearerTokens).containsExactly("123456", "123456");
+            assertThat(errorCodes).containsExactly(null, null);
+            assertThat(resourceModels).containsExactly(
+                TestModel.builder().property1("abc").property2(123).build(),
+                TestModel.builder().property1("abc").property2(123).build());
+            assertThat(statusMessages).containsExactly(null, null);
+            assertThat(operationStatuses).containsExactly(OperationStatus.IN_PROGRESS, OperationStatus.SUCCESS);
 
             // verify final output response is for success response
             assertThat(out.toString()).isEqualTo(
@@ -963,12 +965,13 @@ public class LambdaWrapperTest {
             final List<String> statusMessages = statusMessageCaptor.getAllValues();
 
             // CloudFormation should receive 2 callback invocation; both for IN_PROGRESS
-            bearerTokens.forEach(o -> assertThat(o).isEqualTo("123456"));
-            errorCodes.forEach(o -> assertThat(o).isNull());
-            resourceModels.forEach(o -> assertThat(o).isEqualTo(TestModel.builder().property1("abc").property2(123).build()));
-            statusMessages.forEach(o -> assertThat(o).isNull());
-            assertThat(operationStatuses.get(0)).isEqualTo(OperationStatus.IN_PROGRESS);
-            assertThat(operationStatuses.get(1)).isEqualTo(OperationStatus.IN_PROGRESS);
+            assertThat(bearerTokens).containsExactly("123456", "123456");
+            assertThat(errorCodes).containsExactly(null, null);
+            assertThat(resourceModels).containsExactly(
+                TestModel.builder().property1("abc").property2(123).build(),
+                TestModel.builder().property1("abc").property2(123).build());
+            assertThat(statusMessages).containsExactly(null, null);
+            assertThat(operationStatuses).containsExactly(OperationStatus.IN_PROGRESS, OperationStatus.IN_PROGRESS);
 
             // verify final output response is for second IN_PROGRESS response
             assertThat(out.toString()).isEqualTo(
