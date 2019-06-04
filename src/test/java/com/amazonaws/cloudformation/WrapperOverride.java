@@ -51,7 +51,7 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
     @Override
     public InputStream provideResourceSchema() {
         return new ByteArrayInputStream(
-            "{ \"properties\": { \"propertyA\": { \"type\": \"string\" } } }".getBytes(Charset.forName("UTF8")));
+            "{ \"properties\": { \"property1\": { \"type\": \"string\" }, \"property2\": { \"type\": \"integer\" } }, \"additionalProperties\": false }".getBytes(Charset.forName("UTF8")));
     }
 
     @Override
