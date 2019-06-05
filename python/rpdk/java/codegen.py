@@ -213,6 +213,7 @@ class JavaLanguagePlugin(LanguagePlugin):
             path = src / "{}.java".format(pojo_name)
             LOG.debug("%s POJO: %s", pojo_name, path)
             contents = template.render(
+                type_name=project.type_name,
                 package_name=self.package_name,
                 pojo_name=pojo_name,
                 properties=properties,
