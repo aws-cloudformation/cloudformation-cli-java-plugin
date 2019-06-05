@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class {{ pojo_name|uppercase_first_letter }} {
 
-    public static String TYPE_NAME = "{{ type_name }}";
+    public static final String TYPE_NAME = "{{ type_name }}";
 
     {% for name, type in properties.items() %}
     @JsonProperty("{{ name }}")
