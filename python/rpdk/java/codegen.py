@@ -108,9 +108,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         LOG.debug("Writing configuration: %s", path)
         template = self.env.get_template("StubConfiguration.java")
         contents = template.render(
-            resource_type=project.type_name,
-            package_name=self.package_name,
-            schema_file_name=project.schema_filename,
+            package_name=self.package_name, schema_file_name=project.schema_filename
         )
         project.safewrite(path, contents)
 
@@ -118,7 +116,9 @@ class JavaLanguagePlugin(LanguagePlugin):
         LOG.debug("Writing README: %s", path)
         template = self.env.get_template("README.md")
         contents = template.render(
-            schema_path=project.schema_path, executable=EXECUTABLE
+            type_name=project.type_name,
+            schema_path=project.schema_path,
+            executable=EXECUTABLE,
         )
         project.safewrite(path, contents)
 
