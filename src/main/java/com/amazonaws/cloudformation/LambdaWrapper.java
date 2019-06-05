@@ -1,6 +1,7 @@
 package com.amazonaws.cloudformation;
 
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.cloudformation.exceptions.ResourceAlreadyExistsException;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
@@ -320,6 +321,16 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
             return handlerResponse;
 
+        } catch (final ResourceAlreadyExistsException e) {
+            this.metricsPublisher.publishExceptionMetric(
+                Instant.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
+                request.getAction(),
+                e);
+            this.logger.log(String.format("An existing resource was found in a %s action on a $s: %s" +
+                request.getAction(), request.getResourceType(), e.toString()));
+            return ProgressEvent.defaultFailureHandler(
+                e,
+                HandlerErrorCode.AlreadyExists);
         } catch (final AmazonServiceException e) {
             this.metricsPublisher.publishExceptionMetric(
                 Instant.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),

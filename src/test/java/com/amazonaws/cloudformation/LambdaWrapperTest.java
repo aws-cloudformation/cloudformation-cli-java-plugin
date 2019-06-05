@@ -1,6 +1,7 @@
 package com.amazonaws.cloudformation;
 
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.cloudformation.exceptions.ResourceAlreadyExistsException;
 import com.amazonaws.cloudformation.proxy.HandlerErrorCode;
 import com.amazonaws.cloudformation.resource.Validator;
 import com.amazonaws.services.lambda.runtime.Context;
@@ -1019,7 +1020,53 @@ public class LambdaWrapperTest {
 
             // verify output response
             assertThat(out.toString()).isEqualTo(
-                "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"errorCode\":\"ServiceException\",\"message\":\"some error (Service: null; Status Code: 0; Error Code: null; Request ID: null)\"}");
+                "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"errorCode\":\"ServiceException\"," +
+                    "\"message\":\"some error (Service: null; Status Code: 0; Error Code: null; Request ID: null)\"}");
+        }
+    }
+
+    @Test
+    public void testInvokeHandler_ThrowsResourceAlreadyExistsException() throws IOException {
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
+        final TestModel model = new TestModel();
+
+        // exceptions are caught consistently by LambdaWrapper
+        wrapper.setInvokeHandlerException(new ResourceAlreadyExistsException("AWS::Test::TestModel", "id-1234"));
+
+        lenient().when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
+        wrapper.setTransformResponse(resourceHandlerRequest);
+
+        try (final InputStream in = loadRequestStream("create.request.json"); final OutputStream out = new ByteArrayOutputStream()) {
+            final Context context = getLambdaContext();
+
+            wrapper.handleRequest(in, out, context);
+
+            // all metrics should be published, once for a single invocation
+            verify(metricsPublisher, times(1)).setResourceTypeName(
+                "AWS::Test::TestModel");
+            verify(metricsPublisher, times(1)).publishInvocationMetric(
+                any(Instant.class), eq(Action.CREATE));
+            verify(metricsPublisher, times(1)).publishDurationMetric(
+                any(Instant.class), eq(Action.CREATE), anyLong());
+
+            // failure metric should be published
+            verify(metricsPublisher, times(1)).publishExceptionMetric(
+                any(Instant.class), any(), any(ResourceAlreadyExistsException.class));
+
+            // verify that model validation occurred for CREATE/UPDATE/DELETE
+            verify(validator, times(1)).validateObject(
+                any(JSONObject.class), any(InputStream.class));
+
+            // no re-invocation via CloudWatch should occur
+            verify(scheduler, times(0)).rescheduleAfterMinutes(
+                anyString(), anyInt(), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
+            verify(scheduler, times(0)).cleanupCloudWatchEvents(
+                any(), any());
+
+            // verify output response
+            assertThat(out.toString()).isEqualTo(
+                "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"errorCode\":\"AlreadyExists\"," +
+                    "\"message\":\"Resource of type 'AWS::Test::TestModel' with identifier 'id-1234' already exists" + ".\"}");
         }
     }
 }
