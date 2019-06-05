@@ -2,7 +2,7 @@ package com.amazonaws.cloudformation.exceptions;
 
 public class ResourceAlreadyExistsException extends RuntimeException {
 
-    private static final long serialVersionUID = -1645136435474574108L;
+    private static final long serialVersionUID = -1646136434112354328L;
 
     public ResourceAlreadyExistsException(final Throwable cause) {
         super(null, cause);
