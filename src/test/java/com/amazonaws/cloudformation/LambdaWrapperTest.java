@@ -97,7 +97,7 @@ public class LambdaWrapperTest {
         return context;
     }
 
-    private void testInvokeHandler_NullResponse(final String requestDataPath,
+    private void invokeHandler_nullResponse_returnsFailure(final String requestDataPath,
                                                 final Action action) throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
@@ -145,31 +145,31 @@ public class LambdaWrapperTest {
     }
 
     @Test
-    public void testInvokeHandler_Create_NullResponse() throws IOException {
-        testInvokeHandler_NullResponse("create.request.json", Action.CREATE);
+    public void invokeHandlerForCreate_nullResponse_returnsFailure() throws IOException {
+        invokeHandler_nullResponse_returnsFailure("create.request.json", Action.CREATE);
     }
 
     @Test
-    public void testInvokeHandler_Read_NullResponse() throws IOException {
-        testInvokeHandler_NullResponse("read.request.json", Action.READ);
+    public void invokeHandlerForRead_nullResponse_returnsFailure() throws IOException {
+        invokeHandler_nullResponse_returnsFailure("read.request.json", Action.READ);
     }
 
     @Test
-    public void testInvokeHandler_Update_NullResponse() throws IOException {
-        testInvokeHandler_NullResponse("update.request.json", Action.UPDATE);
+    public void invokeHandlerForUpdate_nullResponse_returnsFailure() throws IOException {
+        invokeHandler_nullResponse_returnsFailure("update.request.json", Action.UPDATE);
     }
 
     @Test
-    public void testInvokeHandler_Delete_NullResponse() throws IOException {
-        testInvokeHandler_NullResponse("delete.request.json", Action.DELETE);
+    public void invokeHandlerForDelete_nullResponse_returnsFailure() throws IOException {
+        invokeHandler_nullResponse_returnsFailure("delete.request.json", Action.DELETE);
     }
 
     @Test
-    public void testInvokeHandler_List_NullResponse() throws IOException {
-        testInvokeHandler_NullResponse("list.request.json", Action.LIST);
+    public void invokeHandlerForList_nullResponse_returnsFailure() throws IOException {
+        invokeHandler_nullResponse_returnsFailure("list.request.json", Action.LIST);
     }
 
-    private void testInvokeHandler_Failed(final String requestDataPath,
+    private void invokeHandler_handlerFailed_returnsFailure(final String requestDataPath,
                                           final Action action) throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
@@ -181,7 +181,6 @@ public class LambdaWrapperTest {
             .build();
         wrapper.setInvokeHandlerResponse(pe);
 
-        lenient().when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
         wrapper.setTransformResponse(resourceHandlerRequest);
 
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
@@ -220,31 +219,31 @@ public class LambdaWrapperTest {
     }
 
     @Test
-    public void testInvokeHandler_Create_Failed() throws IOException {
-        testInvokeHandler_Failed("create.request.json", Action.CREATE);
+    public void invokeHandlerForCreate_handlerFailed_returnsFailure() throws IOException {
+        invokeHandler_handlerFailed_returnsFailure("create.request.json", Action.CREATE);
     }
 
     @Test
-    public void testInvokeHandler_Read_Failed() throws IOException {
-        testInvokeHandler_Failed("read.request.json", Action.READ);
+    public void invokeHandlerForRead_handlerFailed_returnsFailure() throws IOException {
+        invokeHandler_handlerFailed_returnsFailure("read.request.json", Action.READ);
     }
 
     @Test
-    public void testInvokeHandler_Update_Failed() throws IOException {
-        testInvokeHandler_Failed("update.request.json", Action.UPDATE);
+    public void invokeHandlerForUpdeate_handlerFailed_returnsFailure() throws IOException {
+        invokeHandler_handlerFailed_returnsFailure("update.request.json", Action.UPDATE);
     }
 
     @Test
-    public void testInvokeHandler_Delete_Failed() throws IOException {
-        testInvokeHandler_Failed("delete.request.json", Action.DELETE);
+    public void invokeHandlerForDelete_handlerFailed_returnsFailure() throws IOException {
+        invokeHandler_handlerFailed_returnsFailure("delete.request.json", Action.DELETE);
     }
 
     @Test
-    public void testInvokeHandler_List_Failed() throws IOException {
-        testInvokeHandler_Failed("list.request.json", Action.LIST);
+    public void invokeHandlerForList_handlerFailed_returnsFailure() throws IOException {
+        invokeHandler_handlerFailed_returnsFailure("list.request.json", Action.LIST);
     }
 
-    private void testInvokeHandler_CompleteSynchronously(final String requestDataPath,
+    private void invokeHandler_CompleteSynchronously_returnsSuccess(final String requestDataPath,
                                                          final Action action) throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
@@ -295,31 +294,31 @@ public class LambdaWrapperTest {
     }
 
     @Test
-    public void testInvokeHandler_Create_CompleteSynchronously() throws IOException {
-        testInvokeHandler_CompleteSynchronously("create.request.json", Action.CREATE);
+    public void invokeHandlerForCreate_CompleteSynchronously_returnsSuccess() throws IOException {
+        invokeHandler_CompleteSynchronously_returnsSuccess("create.request.json", Action.CREATE);
     }
 
     @Test
-    public void testInvokeHandler_Read_CompleteSynchronously() throws IOException {
-        testInvokeHandler_CompleteSynchronously("read.request.json", Action.READ);
+    public void invokeHandlerForRead_CompleteSynchronously_returnsSuccess() throws IOException {
+        invokeHandler_CompleteSynchronously_returnsSuccess("read.request.json", Action.READ);
     }
 
     @Test
-    public void testInvokeHandler_Update_CompleteSynchronously() throws IOException {
-        testInvokeHandler_CompleteSynchronously("update.request.json", Action.UPDATE);
+    public void invokeHandlerForUpdate_CompleteSynchronously_returnsSuccess() throws IOException {
+        invokeHandler_CompleteSynchronously_returnsSuccess("update.request.json", Action.UPDATE);
     }
 
     @Test
-    public void testInvokeHandler_Delete_CompleteSynchronously() throws IOException {
-        testInvokeHandler_CompleteSynchronously("delete.request.json", Action.DELETE);
+    public void invokeHandlerForDelete_CompleteSynchronously_returnsSuccess() throws IOException {
+        invokeHandler_CompleteSynchronously_returnsSuccess("delete.request.json", Action.DELETE);
     }
 
     @Test
-    public void testInvokeHandler_List_CompleteSynchronously() throws IOException {
-        testInvokeHandler_CompleteSynchronously("list.request.json", Action.LIST);
+    public void invokeHandlerForList_CompleteSynchronously_returnsSuccess() throws IOException {
+        invokeHandler_CompleteSynchronously_returnsSuccess("list.request.json", Action.LIST);
     }
 
-    private void testInvokeHandler_InProgress(final String requestDataPath,
+    private void invokeHandler_InProgress_returnsInProgress(final String requestDataPath,
                                               final Action action) throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         final TestModel model = TestModel.builder().property1("abc").property2(123).build();
@@ -382,32 +381,32 @@ public class LambdaWrapperTest {
     }
 
     @Test
-    public void testInvokeHandler_Create_InProgress() throws IOException {
-        testInvokeHandler_InProgress("create.request.json", Action.CREATE);
+    public void invokeHandlerForCreate_InProgress_returnsInProgress() throws IOException {
+        invokeHandler_InProgress_returnsInProgress("create.request.json", Action.CREATE);
     }
 
     @Test
-    public void testInvokeHandler_Read_InProgress() throws IOException {
-        testInvokeHandler_InProgress("read.request.json", Action.READ);
+    public void invokeHandlerForRead_InProgress_returnsInProgress() throws IOException {
+        invokeHandler_InProgress_returnsInProgress("read.request.json", Action.READ);
     }
 
     @Test
-    public void testInvokeHandler_Update_InProgress() throws IOException {
-        testInvokeHandler_InProgress("update.request.json", Action.UPDATE);
+    public void invokeHandlerForUpdate_InProgress_returnsInProgress() throws IOException {
+        invokeHandler_InProgress_returnsInProgress("update.request.json", Action.UPDATE);
     }
 
     @Test
-    public void testInvokeHandler_Delete_InProgress() throws IOException {
-        testInvokeHandler_InProgress("delete.request.json", Action.DELETE);
+    public void invokeHandlerForDelete_InProgress_returnsInProgress() throws IOException {
+        invokeHandler_InProgress_returnsInProgress("delete.request.json", Action.DELETE);
     }
 
     @Test
-    public void testInvokeHandler_List_InProgress() throws IOException {
-        testInvokeHandler_InProgress("list.request.json", Action.LIST);
+    public void invokeHandlerForList_InProgress_returnsInProgress() throws IOException {
+        invokeHandler_InProgress_returnsInProgress("list.request.json", Action.LIST);
     }
 
-    private void testReInvokeHandler_InProgress(final String requestDataPath,
-                                                final Action action) throws IOException {
+    private void reInvokeHandler_InProgress_returnsInProgress(final String requestDataPath,
+                                            final Action action) throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         final TestModel model = TestModel.builder().property1("abc").property2(123).build();
 
@@ -472,33 +471,33 @@ public class LambdaWrapperTest {
     }
 
     @Test
-    public void testReInvokeHandler_Create_InProgress() throws IOException {
-        testReInvokeHandler_InProgress("create.with-request-context.request.json", Action.CREATE);
+    public void reInvokeHandlerForCreate_InProgress_returnsInProgress() throws IOException {
+        reInvokeHandler_InProgress_returnsInProgress("create.with-request-context.request.json", Action.CREATE);
     }
 
     @Test
-    public void testReInvokeHandler_Read_InProgress() throws IOException {
+    public void reInvokeHandlerForRead_InProgress_returnsInProgress() throws IOException {
         // TODO: READ handlers must return synchronously so this is probably a fault
-        //testReInvokeHandler_InProgress("read.with-request-context.request.json", Action.READ);
+        //reInvokeHandler_InProgress_returnsInProgress("read.with-request-context.request.json", Action.READ);
     }
 
     @Test
-    public void testReInvokeHandler_Update_InProgress() throws IOException {
-        testReInvokeHandler_InProgress("update.with-request-context.request.json", Action.UPDATE);
+    public void reInvokeHandlerForUpdate_InProgress_returnsInProgress() throws IOException {
+        reInvokeHandler_InProgress_returnsInProgress("update.with-request-context.request.json", Action.UPDATE);
     }
 
     @Test
-    public void testReInvokeHandler_Delete_InProgress() throws IOException {
-        testReInvokeHandler_InProgress("delete.with-request-context.request.json", Action.DELETE);
+    public void reInvokeHandlerForDelete_InProgress_returnsInProgress() throws IOException {
+        reInvokeHandler_InProgress_returnsInProgress("delete.with-request-context.request.json", Action.DELETE);
     }
 
     @Test
-    public void testReInvokeHandler_List_InProgress() throws IOException {
+    public void reInvokeHandlerForList_InProgress_returnsInProgress() throws IOException {
         // TODO: LIST handlers must return synchronously so this is probably a fault
-        //testReInvokeHandler_InProgress("list.with-request-context.request.json", Action.LIST);
+        //reInvokeHandler_InProgress_returnsInProgress("list.with-request-context.request.json", Action.LIST);
     }
 
-    private void testInvokeHandler_SchemaValidationFailure(final String requestDataPath,
+    private void invokeHandler_SchemaValidationFailure(final String requestDataPath,
                                                            final Action action) throws IOException {
         doThrow(ValidationException.class)
             .when(validator).validateObject(any(JSONObject.class), any(InputStream.class));
@@ -549,34 +548,34 @@ public class LambdaWrapperTest {
     }
 
     @Test
-    public void testInvokeHandler_Create_SchemaValidationFailure() throws IOException {
-        testInvokeHandler_SchemaValidationFailure("create.request.json", Action.CREATE);
+    public void invokeHandlerForSchema_SchemaValidationFailure() throws IOException {
+        invokeHandler_SchemaValidationFailure("create.request.json", Action.CREATE);
     }
 
     @Test
-    public void testInvokeHandler_Read_SchemaValidationFailure() throws IOException {
+    public void invokeHandlerForRead_SchemaValidationFailure() throws IOException {
         // TODO: READ handlers must return synchronously so this is probably a fault
-        //testReInvokeHandler_SchemaValidationFailure("read.with-request-context.request.json", Action.READ);
+        //invokeHandler_SchemaValidationFailure("read.with-request-context.request.json", Action.READ);
     }
 
     @Test
-    public void testInvokeHandler_Update_SchemaValidationFailure() throws IOException {
-        testInvokeHandler_SchemaValidationFailure("update.request.json", Action.UPDATE);
+    public void invokeHandlerForUpdate_SchemaValidationFailure() throws IOException {
+        invokeHandler_SchemaValidationFailure("update.request.json", Action.UPDATE);
     }
 
     @Test
-    public void testInvokeHandler_Delete_SchemaValidationFailure() throws IOException {
-        testInvokeHandler_SchemaValidationFailure("delete.request.json", Action.DELETE);
+    public void invokeHandlerForDelete_SchemaValidationFailure() throws IOException {
+        invokeHandler_SchemaValidationFailure("delete.request.json", Action.DELETE);
     }
 
     @Test
-    public void testInvokeHandler_List_SchemaValidationFailure() throws IOException {
+    public void invokeHandlerForList_SchemaValidationFailure() throws IOException {
         // TODO: LIST handlers must return synchronously so this is probably a fault
-        //testInvokeHandler_SchemaValidationFailure("list.with-request-context.request.json", Action.LIST);
+        //invokeHandler_SchemaValidationFailure("list.with-request-context.request.json", Action.LIST);
     }
 
     @Test
-    public void testInvokeHandler_ExtraneousModelFields_SchemaValidationFailure() throws IOException {
+    public void invokeHandler_extraneousModelFields_causesSchemaValidationFailure() throws IOException {
         // use actual validator to verify behaviour
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, new Validator() { });
 
@@ -615,7 +614,7 @@ public class LambdaWrapperTest {
     }
 
     @Test
-    public void testInvokeHandler_WithMalformedRequest() throws IOException {
+    public void invokeHandler_withMalformedRequest_causesSchemaValidationFailure() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
 
@@ -643,7 +642,7 @@ public class LambdaWrapperTest {
     }
 
     @Test
-    public void testInvokeHandler_WithoutPlatformCredentials() throws IOException {
+    public void invokeHandler_withoutPlatformCredentials_returnsFailure() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         // without platform credentials the handler is unable to do
         // basic SDK initialization and any such request should fail fast
@@ -659,7 +658,7 @@ public class LambdaWrapperTest {
     }
 
     @Test
-    public void testInvokeHandler_WithDefaultInjection() throws IOException {
+    public void invokeHandler_withDefaultInjection_returnsSuccess() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
         model.setProperty1("abc");
@@ -687,7 +686,7 @@ public class LambdaWrapperTest {
     }
 
     @Test
-    public void testFailToRescheduleInvocation() throws IOException {
+    public void invokeHandler_failToRescheduleInvocation() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
         model.setProperty1("abc");
@@ -714,7 +713,7 @@ public class LambdaWrapperTest {
     }
 
     @Test
-    public void testClientsRefreshedOnEveryInvoke() throws IOException {
+    public void invokeHandler_clientsRefreshedOnEveryInvoke() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
 
         Context context = getLambdaContext();
@@ -738,7 +737,7 @@ public class LambdaWrapperTest {
     }
 
     @Test
-    public void testPlatformCredentialsRefreshedOnEveryInvoke() throws IOException {
+    public void invokeHandler_platformCredentialsRefreshedOnEveryInvoke() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
 
         Context context = getLambdaContext();
@@ -769,7 +768,7 @@ public class LambdaWrapperTest {
     }
 
     @Test
-    public void testInvokeHandler_WithNoResponseEndpoint() throws IOException {
+    public void invokeHandler_withNoResponseEndpoint_returnsFailure() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
 
@@ -799,7 +798,7 @@ public class LambdaWrapperTest {
     }
 
     @Test
-    public void testLocalReinvoke_SufficientRemainingTime() throws IOException {
+    public void invokeHandler_localReinvokeWithSufficientRemainingTime() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         final TestModel model = TestModel.builder().property1("abc").property2(123).build();
 
@@ -888,7 +887,7 @@ public class LambdaWrapperTest {
     }
 
     @Test
-    public void testLocalReinvoke_SufficientRemainingTime_ForFirstIterationOnly() throws IOException {
+    public void invokeHandler_localReinvokeWithSufficientRemainingTimeForFirstIterationOnly_SchedulesViaCloudWatch() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         final TestModel model = TestModel.builder().property1("abc").property2(123).build();
 
@@ -981,7 +980,7 @@ public class LambdaWrapperTest {
     }
 
     @Test
-    public void testInvokeHandler_ThrowsAmazonServiceException() throws IOException {
+    public void invokeHandler_throwsAmazonServiceException_returnsServiceException() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
 
@@ -1025,7 +1024,7 @@ public class LambdaWrapperTest {
     }
 
     @Test
-    public void testInvokeHandler_ThrowsResourceAlreadyExistsException() throws IOException {
+    public void invokeHandler_throwsResourceAlreadyExistsException_returnsAlreadyExists() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
 
@@ -1069,7 +1068,7 @@ public class LambdaWrapperTest {
     }
 
     @Test
-    public void testInvokeHandler_ThrowsResourceNotFoundException() throws IOException {
+    public void invokeHandler_throwsResourceNotFoundException_returnsNotFound() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
 
