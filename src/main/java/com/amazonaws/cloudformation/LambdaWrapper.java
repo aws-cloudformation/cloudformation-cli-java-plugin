@@ -41,8 +41,6 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -152,10 +150,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             // Exceptions are wrapped as a consistent error response to the caller (i.e; CloudFormation)
             e.printStackTrace(); // for root causing - logs to LambdaLogger by default
 
-            this.metricsPublisher.publishExceptionMetric(
-                Instant.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
-                request.getAction(),
-                e);
+            this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
 
             handlerResponse = new ProgressEvent<>();
             handlerResponse.setMessage(e.getMessage());
@@ -217,9 +212,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // MetricsPublisher is initialised with the resource type name for metrics namespace
         this.metricsPublisher.setResourceTypeName(request.getResourceType());
 
-        this.metricsPublisher.publishInvocationMetric(
-            Instant.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
-            request.getAction());
+        this.metricsPublisher.publishInvocationMetric(Instant.now(), request.getAction());
 
         // for CUD actions, validate incoming model - any error is a terminal failure on the invocation
         // NOTE: we validate the raw pre-deserialized payload to account for lenient serialization.
@@ -306,7 +299,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         final HandlerRequest<ResourceT, CallbackT> request,
         final CallbackT callbackContext) {
 
-        final Date startTime = Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant());
+        final Date startTime = Date.from(Instant.now());
         try {
             final ProgressEvent<ResourceT, CallbackT> handlerResponse = invokeHandler(
                 awsClientProxy,
@@ -323,52 +316,37 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             return handlerResponse;
 
         } catch (final ResourceAlreadyExistsException e) {
-            this.metricsPublisher.publishExceptionMetric(
-                Instant.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
-                request.getAction(),
-                e);
+            this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
             this.logger.log(String.format("An existing resource was found in a %s action on a $s: %s" +
-                                              request.getAction(), request.getResourceType(), e.toString()));
+                request.getAction(), request.getResourceType(), e.toString()));
             return ProgressEvent.defaultFailureHandler(
                 e,
                 HandlerErrorCode.AlreadyExists);
         } catch (final ResourceNotFoundException e) {
-            this.metricsPublisher.publishExceptionMetric(
-                Instant.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
-                request.getAction(),
-                e);
+            this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
             this.logger.log(String.format("A requested resource was not found in a %s action on a $s: %s" +
                 request.getAction(), request.getResourceType(), e.toString()));
             return ProgressEvent.defaultFailureHandler(
                 e,
                 HandlerErrorCode.NotFound);
         } catch (final AmazonServiceException e) {
-            this.metricsPublisher.publishExceptionMetric(
-                Instant.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
-                request.getAction(),
-                e);
+            this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
             this.logger.log(String.format("A downstream service error occurred in a %s action on a %s: %s",
                 request.getAction(), request.getResourceType(), e.toString()));
             return ProgressEvent.defaultFailureHandler(
                 e,
                 HandlerErrorCode.ServiceException);
         } catch (final Exception e) {
-            this.metricsPublisher.publishExceptionMetric(
-                Instant.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
-                request.getAction(),
-                e);
+            this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
             this.logger.log(String.format("An unknown error occurred in a %s action on a %s: %s",
                 request.getAction(), request.getResourceType(), e.toString()));
             return ProgressEvent.defaultFailureHandler(
                 e,
                 HandlerErrorCode.InternalFailure);
         } finally {
-            final Date endTime = Date.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant());
-
+            final Date endTime = Date.from(Instant.now());
             metricsPublisher.publishDurationMetric(
-                Instant.from(OffsetDateTime.now(ZoneOffset.UTC).toInstant()),
-                request.getAction(),
-                (endTime.getTime() - startTime.getTime()));
+                Instant.now(), request.getAction(), (endTime.getTime() - startTime.getTime()));
         }
 
     }

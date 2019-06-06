@@ -988,7 +988,6 @@ public class LambdaWrapperTest {
         // exceptions are caught consistently by LambdaWrapper
         wrapper.setInvokeHandlerException(new AmazonServiceException("some error"));
 
-        lenient().when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
         wrapper.setTransformResponse(resourceHandlerRequest);
 
         try (final InputStream in = loadRequestStream("create.request.json"); final OutputStream out = new ByteArrayOutputStream()) {
@@ -1033,7 +1032,6 @@ public class LambdaWrapperTest {
         // exceptions are caught consistently by LambdaWrapper
         wrapper.setInvokeHandlerException(new ResourceAlreadyExistsException("AWS::Test::TestModel", "id-1234"));
 
-        lenient().when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
         wrapper.setTransformResponse(resourceHandlerRequest);
 
         try (final InputStream in = loadRequestStream("create.request.json"); final OutputStream out = new ByteArrayOutputStream()) {
@@ -1078,7 +1076,6 @@ public class LambdaWrapperTest {
         // exceptions are caught consistently by LambdaWrapper
         wrapper.setInvokeHandlerException(new ResourceNotFoundException("AWS::Test::TestModel", "id-1234"));
 
-        lenient().when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
         wrapper.setTransformResponse(resourceHandlerRequest);
 
         try (final InputStream in = loadRequestStream("create.request.json"); final OutputStream out = new ByteArrayOutputStream()) {
