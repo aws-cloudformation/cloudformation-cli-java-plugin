@@ -4,6 +4,8 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.cloudformation.exceptions.ResourceAlreadyExistsException;
 import com.amazonaws.cloudformation.exceptions.ResourceNotFoundException;
 import com.amazonaws.cloudformation.proxy.HandlerErrorCode;
+import com.amazonaws.cloudformation.proxy.HandlerResponse;
+import com.amazonaws.cloudformation.resource.Serializer;
 import com.amazonaws.cloudformation.resource.Validator;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
@@ -19,6 +21,7 @@ import com.amazonaws.cloudformation.proxy.ResourceHandlerRequest;
 import com.amazonaws.cloudformation.resource.SchemaValidator;
 import com.amazonaws.cloudformation.resource.exceptions.ValidationException;
 import com.amazonaws.cloudformation.scheduler.CloudWatchScheduler;
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -105,6 +108,21 @@ public class LambdaWrapperTest {
         verify(scheduler).refreshClient();
     }
 
+    private void verifyHandlerResponse(final OutputStream out,
+                                       final HandlerResponse<TestModel> expected) throws IOException {
+        final Serializer serializer = new Serializer();
+        final HandlerResponse<TestModel> handlerResponse =
+            serializer.deserialize(out.toString(), new TypeReference<HandlerResponse<TestModel>>(){});
+
+        assertThat(handlerResponse.getBearerToken()).isEqualTo(expected.getBearerToken());
+        assertThat(handlerResponse.getErrorCode()).isEqualTo(expected.getErrorCode());
+        assertThat(handlerResponse.getMessage()).isEqualTo(expected.getMessage());
+        assertThat(handlerResponse.getNextToken()).isEqualTo(expected.getNextToken());
+        assertThat(handlerResponse.getOperationStatus()).isEqualTo(expected.getOperationStatus());
+        assertThat(handlerResponse.getStabilizationData()).isEqualTo(expected.getStabilizationData());
+        assertThat(handlerResponse.getResourceModel()).isEqualTo(expected.getResourceModel());
+    }
+
     private void invokeHandler_nullResponse_returnsFailure(final String requestDataPath,
                                                 final Action action) throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
@@ -146,9 +164,13 @@ public class LambdaWrapperTest {
             verifyNoMoreInteractions(scheduler);
 
             // verify output response
-            assertThat(out.toString()).isEqualTo(
-                "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"errorCode\":\"InternalFailure\"," +
-                    "\"message\":\"Handler failed to provide a response.\"}");
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder()
+                .bearerToken("123456")
+                .errorCode("InternalFailure")
+                .operationStatus(OperationStatus.FAILED)
+                .message("Handler failed to provide a response.")
+                .build()
+            );
         }
     }
 
@@ -185,6 +207,7 @@ public class LambdaWrapperTest {
         // explicit fault response is treated as an unsuccessful synchronous completion
         final ProgressEvent<TestModel, TestContext> pe = ProgressEvent.<TestModel, TestContext>builder()
             .status(OperationStatus.FAILED)
+            .errorCode(HandlerErrorCode.InternalFailure)
             .message("Custom Fault")
             .build();
         wrapper.setInvokeHandlerResponse(pe);
@@ -220,8 +243,13 @@ public class LambdaWrapperTest {
             verifyNoMoreInteractions(scheduler);
 
             // verify output response
-            assertThat(out.toString()).isEqualTo(
-                "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"message\":\"Custom Fault\"}");
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder()
+                .bearerToken("123456")
+                .errorCode("InternalFailure")
+                .operationStatus(OperationStatus.FAILED)
+                .message("Custom Fault")
+                .build()
+            );
         }
     }
 
@@ -294,8 +322,11 @@ public class LambdaWrapperTest {
             verifyNoMoreInteractions(scheduler);
 
             // verify output response
-            assertThat(out.toString()).isEqualTo(
-                "{\"operationStatus\":\"SUCCESS\",\"bearerToken\":\"123456\"}");
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder()
+                .bearerToken("123456")
+                .operationStatus(OperationStatus.SUCCESS)
+                .build()
+            );
         }
     }
 
@@ -382,8 +413,12 @@ public class LambdaWrapperTest {
             );
 
             // verify output response
-            assertThat(out.toString()).isEqualTo(
-                "{\"operationStatus\":\"IN_PROGRESS\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}}");
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder()
+                .bearerToken("123456")
+                .operationStatus(OperationStatus.IN_PROGRESS)
+                .resourceModel(TestModel.builder().property1("abc").property2(123).build())
+                .build()
+            );
         }
     }
 
@@ -474,8 +509,12 @@ public class LambdaWrapperTest {
             );
 
             // verify output response
-            assertThat(out.toString()).isEqualTo(
-                "{\"operationStatus\":\"IN_PROGRESS\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}}");
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder()
+                .bearerToken("123456")
+                .operationStatus(OperationStatus.IN_PROGRESS)
+                .resourceModel(TestModel.builder().property1("abc").property2(123).build())
+                .build()
+            );
         }
     }
 
@@ -548,8 +587,13 @@ public class LambdaWrapperTest {
             verifyNoMoreInteractions(callbackAdapter);
 
             // verify output response
-            assertThat(out.toString()).isEqualTo(
-                "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"},\"message\":\"Model validation failed\\n\"}");
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder()
+                .bearerToken("123456")
+                .errorCode("InvalidRequest")
+                .operationStatus(OperationStatus.FAILED)
+                .message("Model validation failed")
+                .build()
+            );
         }
     }
 
@@ -612,8 +656,13 @@ public class LambdaWrapperTest {
             verifyNoMoreInteractions(callbackAdapter);
 
             // verify output response
-            assertThat(out.toString()).isEqualTo(
-                "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"},\"message\":\"Model validation failed (#: extraneous key [fieldCausesValidationError] is not permitted)\\n\"}");
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder()
+                .bearerToken("123456")
+                .errorCode("InvalidRequest")
+                .operationStatus(OperationStatus.FAILED)
+                .message("Model validation failed (#: extraneous key [fieldCausesValidationError] is not permitted)")
+                .build()
+            );
         }
     }
 
@@ -640,8 +689,12 @@ public class LambdaWrapperTest {
             wrapper.handleRequest(in, out, context);
 
             // verify output response
-            assertThat(out.toString()).isEqualTo(
-                "{\"operationStatus\":\"SUCCESS\",\"bearerToken\":\"123456\",\"resourceModel\":{}}");
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder()
+                .bearerToken("123456")
+                .operationStatus(OperationStatus.SUCCESS)
+                .resourceModel(TestModel.builder().build())
+                .build()
+            );
         }
     }
 
@@ -656,8 +709,14 @@ public class LambdaWrapperTest {
             wrapper.handleRequest(in, out, context);
 
             // verify output response
-            assertThat(out.toString()).isEqualTo(
-                "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"},\"message\":\"Missing required platform credentials\"}");
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder()
+                .bearerToken("123456")
+                .errorCode("InternalFailure")
+                .operationStatus(OperationStatus.FAILED)
+                .message("Missing required platform credentials")
+                .resourceModel(TestModel.builder().property1("abc").property2(123).build())
+                .build()
+            );
         }
     }
 
@@ -684,8 +743,12 @@ public class LambdaWrapperTest {
             wrapper.handleRequest(in, out, context);
 
             // verify output response
-            assertThat(out.toString()).isEqualTo(
-                "{\"operationStatus\":\"SUCCESS\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}}");
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder()
+                .bearerToken("123456")
+                .operationStatus(OperationStatus.SUCCESS)
+                .resourceModel(TestModel.builder().property1("abc").property2(123).build())
+                .build()
+            );
         }
     }
 
@@ -695,7 +758,8 @@ public class LambdaWrapperTest {
         final TestModel model = new TestModel();
         model.setProperty1("abc");
         model.setProperty2(123);
-        doThrow(new AmazonServiceException("Throttled")).when(scheduler).rescheduleAfterMinutes(anyString(), anyInt(), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
+        doThrow(new AmazonServiceException("some error")).when(scheduler).rescheduleAfterMinutes(anyString(),
+            anyInt(), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
         wrapper.setTransformResponse(resourceHandlerRequest);
 
         // respond with in progress status to trigger callback invocation
@@ -711,8 +775,14 @@ public class LambdaWrapperTest {
             wrapper.handleRequest(in, out, context);
 
             // verify output response
-            assertThat(out.toString()).isEqualTo(
-                "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"},\"errorCode\":\"ServiceException\",\"message\":\"Throttled (Service: null; Status Code: 0; Error Code: null; Request ID: null)\"}");
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder()
+                .bearerToken("123456")
+                .errorCode("ServiceException")
+                .operationStatus(OperationStatus.FAILED)
+                .message("some error (Service: null; Status Code: 0; Error Code: null; Request ID: null)")
+                .resourceModel(TestModel.builder().property1("abc").property2(123).build())
+                .build()
+            );
         }
     }
 
@@ -797,7 +867,14 @@ public class LambdaWrapperTest {
                 any(Instant.class), any(), any(TerminalException.class));
 
             // verify output response
-            assertThat(out.toString()).isEqualTo("{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"},\"message\":\"No callback endpoint received\"}");
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder()
+                .bearerToken("123456")
+                .errorCode("InternalFailure")
+                .operationStatus(OperationStatus.FAILED)
+                .message("No callback endpoint received")
+                .resourceModel(TestModel.builder().property1("abc").property2(123).build())
+                .build()
+            );
         }
     }
 
@@ -886,8 +963,12 @@ public class LambdaWrapperTest {
             assertThat(operationStatuses).containsExactly(OperationStatus.IN_PROGRESS, OperationStatus.SUCCESS);
 
             // verify final output response is for success response
-            assertThat(out.toString()).isEqualTo(
-                "{\"operationStatus\":\"SUCCESS\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}}");
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder()
+                .bearerToken("123456")
+                .operationStatus(OperationStatus.SUCCESS)
+                .resourceModel(TestModel.builder().property1("abc").property2(123).build())
+                .build()
+            );
         }
     }
 
@@ -981,8 +1062,12 @@ public class LambdaWrapperTest {
             assertThat(operationStatuses).containsExactly(OperationStatus.IN_PROGRESS, OperationStatus.IN_PROGRESS);
 
             // verify final output response is for second IN_PROGRESS response
-            assertThat(out.toString()).isEqualTo(
-                "{\"operationStatus\":\"IN_PROGRESS\",\"bearerToken\":\"123456\",\"resourceModel\":{\"property2\":123,\"property1\":\"abc\"}}");
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder()
+                .bearerToken("123456")
+                .operationStatus(OperationStatus.IN_PROGRESS)
+                .resourceModel(TestModel.builder().property1("abc").property2(123).build())
+                .build()
+            );
         }
     }
 
@@ -1024,9 +1109,13 @@ public class LambdaWrapperTest {
             verifyNoMoreInteractions(scheduler);
 
             // verify output response
-            assertThat(out.toString()).isEqualTo(
-                "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"errorCode\":\"ServiceException\"," +
-                    "\"message\":\"some error (Service: null; Status Code: 0; Error Code: null; Request ID: null)\"}");
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder()
+                .bearerToken("123456")
+                .errorCode("ServiceException")
+                .operationStatus(OperationStatus.FAILED)
+                .message("some error (Service: null; Status Code: 0; Error Code: null; Request ID: null)")
+                .build()
+            );
         }
     }
 
@@ -1068,9 +1157,13 @@ public class LambdaWrapperTest {
             verifyNoMoreInteractions(scheduler);
 
             // verify output response
-            assertThat(out.toString()).isEqualTo(
-                "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"errorCode\":\"AlreadyExists\"," +
-                    "\"message\":\"Resource of type 'AWS::Test::TestModel' with identifier 'id-1234' already exists" + ".\"}");
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder()
+                .bearerToken("123456")
+                .errorCode("AlreadyExists")
+                .operationStatus(OperationStatus.FAILED)
+                .message("Resource of type 'AWS::Test::TestModel' with identifier 'id-1234' already exists.")
+                .build()
+            );
         }
     }
 
@@ -1112,11 +1205,13 @@ public class LambdaWrapperTest {
             verifyNoMoreInteractions(scheduler);
 
             // verify output response
-            assertThat(out.toString()).isEqualTo(
-                "{\"operationStatus\":\"FAILED\",\"bearerToken\":\"123456\",\"errorCode\":\"NotFound\"," +
-                    "\"message\":\"Resource of type 'AWS::Test::TestModel' with identifier 'id-1234' was not found" +
-                    "" +
-                    ".\"}");
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder()
+                .bearerToken("123456")
+                .errorCode("NotFound")
+                .operationStatus(OperationStatus.FAILED)
+                .message("Resource of type 'AWS::Test::TestModel' with identifier 'id-1234' was not found.")
+                .build()
+            );
         }
     }
 }
