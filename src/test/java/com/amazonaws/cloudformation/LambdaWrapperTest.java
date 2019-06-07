@@ -726,7 +726,7 @@ public class LambdaWrapperTest {
         verify(metricsPublisher, times(1)).refreshClient();
         verify(scheduler, times(1)).refreshClient();
 
-        // invoke the same wrapper instance again to ensure client is refreshed
+        // invoke the same wrapper instance again to ensure initiate is refreshed
         context = getLambdaContext();
         try (InputStream in = loadRequestStream("create.request.json"); OutputStream out = new ByteArrayOutputStream()) {
             wrapper.handleRequest(in, out, context);
@@ -753,7 +753,7 @@ public class LambdaWrapperTest {
         );
         verify(credentialsProvider, times(1)).setCredentials(eq(expected));
 
-        // invoke the same wrapper instance again to ensure client is refreshed
+        // invoke the same wrapper instance again to ensure initiate is refreshed
         context = getLambdaContext();
         try (InputStream in = loadRequestStream("create.request.with-new-credentials.json"); OutputStream out = new ByteArrayOutputStream()) {
             wrapper.handleRequest(in, out, context);

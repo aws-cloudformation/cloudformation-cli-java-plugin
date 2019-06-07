@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.function.Function;
 
 @Data
 @AllArgsConstructor
@@ -96,5 +97,47 @@ public class ProgressEvent<ResourceT, CallbackT> {
             .resourceModel(resourceModel)
             .status(OperationStatus.SUCCESS)
             .build();
+    }
+
+    public static <ResourceU, CallbackU> ProgressEvent<ResourceU, CallbackU>
+    success(ResourceU model, CallbackU cxt) {
+        ProgressEvent<ResourceU, CallbackU> event = progress(model, cxt);
+        event.setStatus(OperationStatus.SUCCESS);
+        return event;
+    }
+
+    public static <ResourceU, CallbackU> ProgressEvent<ResourceU, CallbackU>
+    progress(ResourceU model, CallbackU cxt) {
+        return ProgressEvent.<ResourceU, CallbackU>builder()
+            .status(OperationStatus.IN_PROGRESS)
+            .callbackContext(cxt)
+            .resourceModel(model).build();
+    }
+
+    public static <ResourceU, CallbackU> ProgressEvent<ResourceU, CallbackU>
+    failed(ResourceU model, CallbackU cxt, HandlerErrorCode code, String message) {
+        ProgressEvent<ResourceU, CallbackU> event = progress(model, cxt);
+        event.setStatus(OperationStatus.FAILED);
+        event.setErrorCode(code);
+        event.setMessage(message);
+        return event;
+    }
+
+    public ProgressEvent<ResourceT, CallbackT>
+        onSuccess(Function<ProgressEvent<ResourceT, CallbackT>, ProgressEvent<ResourceT, CallbackT>> func) {
+        return (status != null && status == OperationStatus.SUCCESS) ?
+            func.apply(this) : this;
+    }
+
+    public boolean isFailed() {
+        return status == OperationStatus.FAILED;
+    }
+
+    public boolean inProgress() {
+        return status == OperationStatus.IN_PROGRESS;
+    }
+
+    public boolean isSuccess() {
+        return status == OperationStatus.SUCCESS;
     }
 }

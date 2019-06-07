@@ -89,7 +89,7 @@ public class AmazonWebServicesClientProxyTest {
         // verify request is rebuilt for injection
         verify(request).toBuilder();
 
-        // verify the wrapped request is sent over the client
+        // verify the wrapped request is sent over the initiate
         verify(client).describeStackEvents(wrappedRequest);
 
         // ensure the return type matches
@@ -131,7 +131,7 @@ public class AmazonWebServicesClientProxyTest {
         // verify request is rebuilt for injection
         verify(request).toBuilder();
 
-        // verify the wrapped request is sent over the client
+        // verify the wrapped request is sent over the initiate
         verify(client).describeStackEvents(wrappedRequest);
 
         // ensure the return type matches
