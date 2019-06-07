@@ -51,6 +51,7 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -97,6 +98,13 @@ public class LambdaWrapperTest {
         return context;
     }
 
+    private void verifyInitialiseRuntime() {
+        verify(credentialsProvider).setCredentials(any(Credentials.class));
+        verify(callbackAdapter).refreshClient();
+        verify(metricsPublisher).refreshClient();
+        verify(scheduler).refreshClient();
+    }
+
     private void invokeHandler_nullResponse_returnsFailure(final String requestDataPath,
                                                 final Action action) throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
@@ -112,6 +120,9 @@ public class LambdaWrapperTest {
             final Context context = getLambdaContext();
 
             wrapper.handleRequest(in, out, context);
+
+            // verify initialiseRuntime was called and initialised dependencies
+            verifyInitialiseRuntime();
 
             // validation failure metric should be published for final error handling
             verify(metricsPublisher, times(1)).publishExceptionMetric(
@@ -132,10 +143,7 @@ public class LambdaWrapperTest {
             }
 
             // no re-invocation via CloudWatch should occur
-            verify(scheduler, times(0)).rescheduleAfterMinutes(
-                anyString(), anyInt(), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
-            verify(scheduler, times(0)).cleanupCloudWatchEvents(
-                any(), any());
+            verifyNoMoreInteractions(scheduler);
 
             // verify output response
             assertThat(out.toString()).isEqualTo(
@@ -188,6 +196,9 @@ public class LambdaWrapperTest {
 
             wrapper.handleRequest(in, out, context);
 
+            // verify initialiseRuntime was called and initialised dependencies
+            verifyInitialiseRuntime();
+
             // all metrics should be published, once for a single invocation
             verify(metricsPublisher, times(1)).setResourceTypeName(
                 "AWS::Test::TestModel");
@@ -197,8 +208,7 @@ public class LambdaWrapperTest {
                 any(Instant.class), eq(action), anyLong());
 
             // validation failure metric should not be published
-            verify(metricsPublisher, times(0)).publishExceptionMetric(
-                any(Instant.class), any(), any(Exception.class));
+            verifyNoMoreInteractions(metricsPublisher);
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
@@ -207,10 +217,7 @@ public class LambdaWrapperTest {
             }
 
             // no re-invocation via CloudWatch should occur
-            verify(scheduler, times(0)).rescheduleAfterMinutes(
-                anyString(), anyInt(), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
-            verify(scheduler, times(0)).cleanupCloudWatchEvents(
-                any(), any());
+            verifyNoMoreInteractions(scheduler);
 
             // verify output response
             assertThat(out.toString()).isEqualTo(
@@ -263,6 +270,9 @@ public class LambdaWrapperTest {
 
             wrapper.handleRequest(in, out, context);
 
+            // verify initialiseRuntime was called and initialised dependencies
+            verifyInitialiseRuntime();
+
             // all metrics should be published, once for a single invocation
             verify(metricsPublisher, times(1)).setResourceTypeName(
                 "AWS::Test::TestModel");
@@ -272,8 +282,7 @@ public class LambdaWrapperTest {
                 any(Instant.class), eq(action), anyLong());
 
             // validation failure metric should not be published
-            verify(metricsPublisher, times(0)).publishExceptionMetric(
-                any(Instant.class), any(), any(Exception.class));
+            verifyNoMoreInteractions(metricsPublisher);
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
@@ -282,10 +291,7 @@ public class LambdaWrapperTest {
             }
 
             // no re-invocation via CloudWatch should occur
-            verify(scheduler, times(0)).rescheduleAfterMinutes(
-                anyString(), anyInt(), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
-            verify(scheduler, times(0)).cleanupCloudWatchEvents(
-                any(), any());
+            verifyNoMoreInteractions(scheduler);
 
             // verify output response
             assertThat(out.toString()).isEqualTo(
@@ -339,6 +345,9 @@ public class LambdaWrapperTest {
 
             wrapper.handleRequest(in, out, context);
 
+            // verify initialiseRuntime was called and initialised dependencies
+            verifyInitialiseRuntime();
+
             // all metrics should be published, once for a single invocation
             verify(metricsPublisher, times(1)).setResourceTypeName(
                 "AWS::Test::TestModel");
@@ -348,8 +357,7 @@ public class LambdaWrapperTest {
                 any(Instant.class), eq(action), anyLong());
 
             // validation failure metric should not be published
-            verify(metricsPublisher, times(0)).publishExceptionMetric(
-                any(Instant.class), any(), any(Exception.class));
+            verifyNoMoreInteractions(metricsPublisher);
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
@@ -362,8 +370,7 @@ public class LambdaWrapperTest {
                 anyString(), eq(0), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
 
             // this was a first invocation, so no cleanup is required
-            verify(scheduler, times(0)).cleanupCloudWatchEvents(
-                any(), any());
+            verifyNoMoreInteractions(scheduler);
 
             // CloudFormation should receive a callback invocation
             verify(callbackAdapter, times(1)).reportProgress(
@@ -427,6 +434,9 @@ public class LambdaWrapperTest {
 
             wrapper.handleRequest(in, out, context);
 
+            // verify initialiseRuntime was called and initialised dependencies
+            verifyInitialiseRuntime();
+
             // all metrics should be published, once for a single invocation
             verify(metricsPublisher, times(1)).setResourceTypeName(
                 "AWS::Test::TestModel");
@@ -436,8 +446,7 @@ public class LambdaWrapperTest {
                 any(Instant.class), eq(action), anyLong());
 
             // validation failure metric should not be published
-            verify(metricsPublisher, times(0)).publishExceptionMetric(
-                any(Instant.class), any(), any(Exception.class));
+            verifyNoMoreInteractions(metricsPublisher);
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
@@ -510,6 +519,9 @@ public class LambdaWrapperTest {
 
             wrapper.handleRequest(in, out, context);
 
+            // verify initialiseRuntime was called and initialised dependencies
+            verifyInitialiseRuntime();
+
             // validation failure metric should be published but no others
             verify(metricsPublisher, times(1)).publishExceptionMetric(
                 any(Instant.class), eq(action), any(Exception.class));
@@ -521,8 +533,7 @@ public class LambdaWrapperTest {
                 any(Instant.class), eq(action));
 
             // duration metric only published when the provider handler is invoked
-            verify(metricsPublisher, times(0)).publishDurationMetric(
-                any(Instant.class), eq(action), anyLong());
+            verifyNoMoreInteractions(metricsPublisher);
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
@@ -531,15 +542,10 @@ public class LambdaWrapperTest {
             }
 
             // no re-invocation via CloudWatch should occur
-            verify(scheduler, times(0)).rescheduleAfterMinutes(
-                anyString(), anyInt(), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
-            verify(scheduler, times(0)).cleanupCloudWatchEvents(
-                any(), any());
+            verifyNoMoreInteractions(scheduler);
 
             // CloudFormation should NOT receive a callback invocation
-            verify(callbackAdapter, times(0)).reportProgress(
-                any(), any(), any(), any(), any()
-            );
+            verifyNoMoreInteractions(callbackAdapter);
 
             // verify output response
             assertThat(out.toString()).isEqualTo(
@@ -596,16 +602,14 @@ public class LambdaWrapperTest {
             verify(metricsPublisher, times(1)).publishInvocationMetric(
                 any(Instant.class), eq(Action.CREATE));
 
+            // verify initialiseRuntime was called and initialised dependencies
+            verifyInitialiseRuntime();
+
             // no re-invocation via CloudWatch should occur
-            verify(scheduler, times(0)).rescheduleAfterMinutes(
-                anyString(), anyInt(), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
-            verify(scheduler, times(0)).cleanupCloudWatchEvents(
-                any(), any());
+            verifyNoMoreInteractions(scheduler);
 
             // CloudFormation should NOT receive a callback invocation
-            verify(callbackAdapter, times(0)).reportProgress(
-                any(), any(), any(), any(), any()
-            );
+            verifyNoMoreInteractions(callbackAdapter);
 
             // verify output response
             assertThat(out.toString()).isEqualTo(
@@ -825,6 +829,9 @@ public class LambdaWrapperTest {
 
             wrapper.handleRequest(in, out, context);
 
+            // verify initialiseRuntime was called and initialised dependencies
+            verifyInitialiseRuntime();
+
             // all metrics should be published, once for a single invocation
             verify(metricsPublisher, times(1)).setResourceTypeName(
                 "AWS::Test::TestModel");
@@ -834,22 +841,20 @@ public class LambdaWrapperTest {
                 any(Instant.class), eq(Action.CREATE), anyLong());
 
             // validation failure metric should not be published
-            verify(metricsPublisher, times(0)).publishExceptionMetric(
-                any(Instant.class), any(), any(Exception.class));
+            verifyNoMoreInteractions(metricsPublisher);
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             verify(validator, times(1)).validateObject(
                 any(JSONObject.class), any(InputStream.class));
-
-            // re-invocation via CloudWatch should NOT occur for <60 when Lambda remaining time allows
-            verify(scheduler, times(0)).rescheduleAfterMinutes(
-                anyString(), anyInt(), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
 
             // this was a re-invocation, so a cleanup is required
             verify(scheduler, times(1)).cleanupCloudWatchEvents(
                 eq("reinvoke-handler-4754ac8a-623b-45fe-84bc-f5394118a8be"),
                 eq("reinvoke-target-4754ac8a-623b-45fe-84bc-f5394118a8be")
             );
+
+            // re-invocation via CloudWatch should NOT occur for <60 when Lambda remaining time allows
+            verifyNoMoreInteractions(scheduler);
 
             final ArgumentCaptor<String> bearerTokenCaptor = ArgumentCaptor.forClass(String.class);
             final ArgumentCaptor<HandlerErrorCode> errorCodeCaptor = ArgumentCaptor.forClass(HandlerErrorCode.class);
@@ -918,6 +923,9 @@ public class LambdaWrapperTest {
 
             wrapper.handleRequest(in, out, context);
 
+            // verify initialiseRuntime was called and initialised dependencies
+            verifyInitialiseRuntime();
+
             // all metrics should be published, once for a single invocation
             verify(metricsPublisher, times(1)).setResourceTypeName(
                 "AWS::Test::TestModel");
@@ -927,8 +935,7 @@ public class LambdaWrapperTest {
                 any(Instant.class), eq(Action.CREATE), anyLong());
 
             // validation failure metric should not be published
-            verify(metricsPublisher, times(0)).publishExceptionMetric(
-                any(Instant.class), any(), any(Exception.class));
+            verifyNoMoreInteractions(metricsPublisher);
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             verify(validator, times(1)).validateObject(
@@ -994,6 +1001,9 @@ public class LambdaWrapperTest {
 
             wrapper.handleRequest(in, out, context);
 
+            // verify initialiseRuntime was called and initialised dependencies
+            verifyInitialiseRuntime();
+
             // all metrics should be published, once for a single invocation
             verify(metricsPublisher, times(1)).setResourceTypeName(
                 "AWS::Test::TestModel");
@@ -1011,10 +1021,7 @@ public class LambdaWrapperTest {
                 any(JSONObject.class), any(InputStream.class));
 
             // no re-invocation via CloudWatch should occur
-            verify(scheduler, times(0)).rescheduleAfterMinutes(
-                anyString(), anyInt(), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
-            verify(scheduler, times(0)).cleanupCloudWatchEvents(
-                any(), any());
+            verifyNoMoreInteractions(scheduler);
 
             // verify output response
             assertThat(out.toString()).isEqualTo(
@@ -1038,6 +1045,9 @@ public class LambdaWrapperTest {
 
             wrapper.handleRequest(in, out, context);
 
+            // verify initialiseRuntime was called and initialised dependencies
+            verifyInitialiseRuntime();
+
             // all metrics should be published, once for a single invocation
             verify(metricsPublisher, times(1)).setResourceTypeName(
                 "AWS::Test::TestModel");
@@ -1055,10 +1065,7 @@ public class LambdaWrapperTest {
                 any(JSONObject.class), any(InputStream.class));
 
             // no re-invocation via CloudWatch should occur
-            verify(scheduler, times(0)).rescheduleAfterMinutes(
-                anyString(), anyInt(), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
-            verify(scheduler, times(0)).cleanupCloudWatchEvents(
-                any(), any());
+            verifyNoMoreInteractions(scheduler);
 
             // verify output response
             assertThat(out.toString()).isEqualTo(
@@ -1082,6 +1089,9 @@ public class LambdaWrapperTest {
 
             wrapper.handleRequest(in, out, context);
 
+            // verify initialiseRuntime was called and initialised dependencies
+            verifyInitialiseRuntime();
+
             // all metrics should be published, once for a single invocation
             verify(metricsPublisher, times(1)).setResourceTypeName(
                 "AWS::Test::TestModel");
@@ -1099,10 +1109,7 @@ public class LambdaWrapperTest {
                 any(JSONObject.class), any(InputStream.class));
 
             // no re-invocation via CloudWatch should occur
-            verify(scheduler, times(0)).rescheduleAfterMinutes(
-                anyString(), anyInt(), ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
-            verify(scheduler, times(0)).cleanupCloudWatchEvents(
-                any(), any());
+            verifyNoMoreInteractions(scheduler);
 
             // verify output response
             assertThat(out.toString()).isEqualTo(
