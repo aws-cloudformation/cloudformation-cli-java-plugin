@@ -32,7 +32,7 @@ def test_resolver():
             "coordinates": "List<Coordinate>",
             "surroundingStates": "Map<String, Location>",
         },
-        "Coordinate": {"lat": "Float", "long": "Float"},
+        "Coordinate": {"lat": "Double", "long": "Double"},
         "Location": {"country": "String", "stateNumber": "Integer"},
     }
 
@@ -68,7 +68,7 @@ def test_resolver_from_schema():
             "east": "Coordinate",
             "west": "Coordinate",
         },
-        "Coordinate": {"latitude": "Float", "longitude": "Float"},
+        "Coordinate": {"latitude": "Double", "longitude": "Double"},
         "City": {
             "cityName": "String",
             "neighborhoods": "List<Map<String, Neighborhoods>>",
@@ -76,7 +76,7 @@ def test_resolver_from_schema():
         "Neighborhoods": {
             "street": "String",
             "charter": "Map<String, Object>",
-            "houses": "Map<String, Float>",
+            "houses": "Map<String, Double>",
         },
     }
     assert resolver.resolve_pojos() == expected_pojos
@@ -88,7 +88,7 @@ def test_resolver_from_schema():
         ({"type": "string"}, "String"),
         ({"type": "integer"}, "Integer"),
         ({"type": "boolean"}, "Boolean"),
-        ({"type": "number"}, "Float"),
+        ({"type": "number"}, "Double"),
         ({"$ref": ("definitions", "Id")}, "Id"),
         ({"$ref": ("definitions", "Test")}, "Test"),
         ({"$ref": ("definitions", "Test", "Test")}, "Test_"),
@@ -97,7 +97,7 @@ def test_resolver_from_schema():
         ({"type": "array", "items": {"type": "string"}}, "List<String>"),
         ({"type": "array", "items": {"type": "integer"}}, "List<Integer>"),
         ({"type": "array", "items": {"type": "boolean"}}, "List<Boolean>"),
-        ({"type": "array", "items": {"type": "number"}}, "List<Float>"),
+        ({"type": "array", "items": {"type": "number"}}, "List<Double>"),
         ({"type": "object"}, "Map<String, Object>"),
         ({"patternProperties": {"[A-Z]+": {"type": "string"}}}, "Map<String, String>"),
         (
@@ -108,7 +108,7 @@ def test_resolver_from_schema():
             {"patternProperties": {"[A-Z]+": {"type": "boolean"}}},
             "Map<String, Boolean>",
         ),
-        ({"patternProperties": {"[A-Z]+": {"type": "number"}}}, "Map<String, Float>"),
+        ({"patternProperties": {"[A-Z]+": {"type": "number"}}}, "Map<String, Double>"),
         ({"patternProperties": {}}, "Map<String, Object>"),
         ({"patternProperties": {"a-z": {}, "A-Z": {}}}, "Map<String, Object>"),
     ),

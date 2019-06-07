@@ -82,7 +82,7 @@ class JavaPojoResolver:
             "string": "String",
             "integer": "Integer",
             "boolean": "Boolean",
-            "number": "Float",
+            "number": "Double",
         }
 
         return primitive_types_map[json_type]
