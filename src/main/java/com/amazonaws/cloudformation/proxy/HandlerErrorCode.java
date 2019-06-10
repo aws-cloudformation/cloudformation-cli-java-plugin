@@ -3,75 +3,74 @@ package com.amazonaws.cloudformation.proxy;
 public enum HandlerErrorCode {
 
     /**
-     * a generic exception caused by invalid input from the customer
-     */
-    InvalidRequest,
-
-    /**
-     * the customer has insufficient permissions to perform this action
-     */
-    AccessDenied,
-
-    /**
-     * the customer's provided credentials were invalid
-     */
-    InvalidCredentials,
-
-    /**
-     * the handler completed without making any modifying API calls (only applicable to UpdateHandler)
-     */
-    NoOperationToPerform,
-
-    /**
-     * the customer tried perform an update to a property that is not updatable (only applicable to UpdateHandler)
+     * the customer tried perform an update to a property that is CreateOnly. Only applicable to Update Handler (Terminal)
      */
     NotUpdatable,
 
     /**
-     * the specified resource does not exist, or is in a terminal, inoperable, and irrecoverable state
+     * a generic exception caused by invalid input from the customer (Terminal)
+     */
+    InvalidRequest,
+
+    /**
+     * the customer has insufficient permissions to perform this action (Terminal)
+     */
+    AccessDenied,
+
+    /**
+     * the customer's provided credentials were invalid (Terminal)
+     */
+    InvalidCredentials,
+
+    /**
+     * the specified resource already existed prior to the execution of the handler. Only applicable to Create Handler (Terminal)
+     * Handlers MUST return this error when duplicate creation requests are received.
+     */
+    AlreadyExists,
+
+    /**
+     * the specified resource does not exist, or is in a terminal, inoperable, and irrecoverable state (Terminal)
      */
     NotFound,
 
     /**
-     * the resource is temporarily in an inoperable state
+     * the resource is temporarily unable to be acted upon; for example, if the resource is currently undergoing an operation and cannot be acted upon until that operation is finished (Retriable)
      */
-    NotReady,
+    ResourceConflict,
 
     /**
-     * the request was throttled by the downstream service.
-     * Handlers SHOULD retry on service throttling using exponential backoff in order to be resilient to transient throttling.
+     * the request was throttled by the downstream service (Retriable)
      */
     Throttling,
 
     /**
-     * a non-transient resource limit was reached on the service side
+     * a non-transient resource limit was reached on the service side (Terminal)
      */
     ServiceLimitExceeded,
 
     /**
-     * the handler timed out waiting for the downstream service to perform an operation
+     * the downstream resource failed to complete all of its ready state checks (Retriable)
      */
-    ServiceTimeout,
+    NotStabilized,
 
     /**
-     * a generic exception from the downstream service
+     * an exception from the downstream service that does not map to any other error codes (Terminal)
      */
-    ServiceException,
+    GeneralServiceException,
 
     /**
-     * the request was unable to be completed due to networking issues, such as failure to receive a response from the server.
-     * Handlers SHOULD retry on network failures using exponential backoff in order to be resilient to transient issues.
+     * the downstream service returned an internal error, typically with a 5XX HTTP Status code (Retriable)
+     */
+    ServiceInternalError,
+
+    /**
+     * the request was unable to be completed due to networking issues, such as failure to receive a response from the server (Retriable)
      */
     NetworkFailure,
 
     /**
-     * an unexpected error occurred within the handler, such as an NPE, etc.
+     * an unexpected error occurred within the handler, such as an NPE, etc. (Terminal)
      */
-    InternalFailure,
+    InternalFailure
 
-    /**
-     * a resource create request failed for an existing entity (only applicable to CreateHandler)
-     * Handlers MUST return this error when duplicate creation requests are received.
-     */
-    AlreadyExists
 }
