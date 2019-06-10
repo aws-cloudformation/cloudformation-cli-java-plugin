@@ -146,15 +146,33 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             request = this.serializer.deserialize(input, typeReference);
 
             handlerResponse = processInvocation(rawInput, request, context);
+        } catch (final ValidationException e) {
+            // TODO: we'll need a better way to expose the stack of causing exceptions for user feedback
+            final StringBuilder validationMessageBuilder = new StringBuilder();
+            if (!StringUtils.isEmpty(e.getMessage())) {
+                validationMessageBuilder.append(String.format("Model validation failed (%s)", e.getMessage()));
+            } else {
+                validationMessageBuilder.append(String.format("Model validation failed"));
+            }
+            if (e.getCausingExceptions() != null) {
+                for (final ValidationException cause : e.getCausingExceptions()) {
+                    validationMessageBuilder.append(String.format("\n%s (%s)",
+                        cause.getMessage(),
+                        cause.getSchemaLocation()));
+                }
+            }
+            this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
+            handlerResponse = ProgressEvent.defaultFailureHandler(
+                new TerminalException(validationMessageBuilder.toString(), e),
+                HandlerErrorCode.InvalidRequest);
         } catch (final Exception e) {
             // Exceptions are wrapped as a consistent error response to the caller (i.e; CloudFormation)
             e.printStackTrace(); // for root causing - logs to LambdaLogger by default
-
             this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
-
-            handlerResponse = new ProgressEvent<>();
-            handlerResponse.setMessage(e.getMessage());
-            handlerResponse.setStatus(OperationStatus.FAILED);
+            handlerResponse = ProgressEvent.defaultFailureHandler(
+                e,
+                HandlerErrorCode.InternalFailure
+            );
             if (request.getRequestData() != null) {
                 handlerResponse.setResourceModel(
                     request.getRequestData().getResourceProperties()
@@ -217,30 +235,12 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // for CUD actions, validate incoming model - any error is a terminal failure on the invocation
         // NOTE: we validate the raw pre-deserialized payload to account for lenient serialization.
         // Here, we want to surface ALL input validation errors to the caller.
-        try {
-            if (MUTATING_ACTIONS.contains(request.getAction())) {
-                // validate entire incoming payload, including extraneous fields which
-                // are stripped by the Serializer (due to FAIL_ON_UNKNOWN_PROPERTIES setting)
-                final JSONObject rawModelObject =
-                    rawRequest.getJSONObject("requestData").getJSONObject("resourceProperties");
-                validateModel(rawModelObject);
-            }
-        } catch (final ValidationException e) {
-            // TODO: we'll need a better way to expose the stack of causing exceptions for user feedback
-            final StringBuilder validationMessageBuilder = new StringBuilder();
-            if (!StringUtils.isEmpty(e.getMessage())) {
-                validationMessageBuilder.append(String.format("Model validation failed (%s)\n", e.getMessage()));
-            } else {
-                validationMessageBuilder.append(String.format("Model validation failed\n"));
-            }
-            if (e.getCausingExceptions() != null) {
-                for (final ValidationException cause : e.getCausingExceptions()) {
-                    validationMessageBuilder.append(String.format("%s (%s)",
-                        cause.getMessage(),
-                        cause.getSchemaLocation()));
-                }
-            }
-            throw new TerminalException(validationMessageBuilder.toString(), e);
+        if (MUTATING_ACTIONS.contains(request.getAction())) {
+            // validate entire incoming payload, including extraneous fields which
+            // are stripped by the Serializer (due to FAIL_ON_UNKNOWN_PROPERTIES setting)
+            final JSONObject rawModelObject =
+                rawRequest.getJSONObject("requestData").getJSONObject("resourceProperties");
+            validateModel(rawModelObject);
         }
 
         // TODO: implement decryption of request and returned callback context
