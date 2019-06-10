@@ -27,7 +27,7 @@ public class {{ operation }}HandlerTest {
     }
 
     @Test
-    public void test_HandleRequest_SimpleSuccess() {
+    public void handleRequest_SimpleSuccess() {
         final {{ operation }}Handler handler = new {{ operation }}Handler();
 
         final {{ pojo_name }} model = {{ pojo_name }}.builder().build();
