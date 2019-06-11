@@ -1,6 +1,7 @@
 package com.amazonaws.cloudformation.proxy;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
 
 import java.util.concurrent.TimeUnit;
 
@@ -51,7 +52,7 @@ public interface Delay {
 
         @Override
         public long nextDelay(int attempt) {
-            if (attempt < maxAttempts) {
+            if (attempt <= maxAttempts) {
                 return delay;
             }
             return -1L;
@@ -100,10 +101,10 @@ public interface Delay {
         public long nextDelay(int attempt) {
             long nextValue = minDelay;
             if (isPowerOf2) {
-                nextValue = 1L << (attempt - 1);
+                nextValue = 1L << attempt;
             }
             else {
-                double next = Math.pow(powerBy, attempt - 1);
+                double next = Math.pow(powerBy, attempt);
                 nextValue = Math.round(next);
             }
             if (nextValue < minDelay) {

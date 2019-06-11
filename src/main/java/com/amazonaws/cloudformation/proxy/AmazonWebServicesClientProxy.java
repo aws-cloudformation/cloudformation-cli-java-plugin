@@ -8,6 +8,7 @@ import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicSessionCredentials;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.google.common.base.Preconditions;
+import com.google.common.util.concurrent.Uninterruptibles;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -19,14 +20,25 @@ import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.exception.NonRetryableException;
 
 import javax.annotation.Nonnull;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
+/**
+ * This implements the proxying mechanism to inject appropriate scoped credentials
+ * into a service call when making AWS Webservice calls.
+ *
+ * @see CallChain
+ * @see ProxyClient
+ */
 public class AmazonWebServicesClientProxy implements CallChain {
 
-    public <ClientT> ProxyClient<ClientT> newProxy(@Nonnull ClientT client) {
+    public <ClientT> ProxyClient<ClientT> newProxy(@Nonnull Supplier<ClientT> client) {
         return new ProxyClient<ClientT>() {
             @Override
             public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
@@ -44,10 +56,19 @@ public class AmazonWebServicesClientProxy implements CallChain {
 
             @Override
             public ClientT client() {
-                return client;
+                return client.get();
             }
         };
     }
+
+    private enum WaitExceededReason {
+        CONTINUE_WAIT,
+        DELAY_DONE,
+        AWS_LAMBDA_RUNTIME_EXCEEDED
+    }
+
+    private static Duration AWS_LAMBDA_DEFAULT_MAX = Duration.ofMinutes(4);
+
 
     @Override
     public <ClientT, ModelT, CallbackT extends StdCallbackContext> RequestMaker<ClientT, ModelT, CallbackT>
@@ -62,6 +83,11 @@ public class AmazonWebServicesClientProxy implements CallChain {
         private final ProxyClient<ClientT> client;
         private final ModelT model;
         private final CallbackT context;
+        //
+        // Default delay context and retries for all web service calls when
+        // handling errors, throttles and more. The handler can influence this
+        // using retry method.
+        //
         private Delay delay = new Delay.Fixed(3, 5, TimeUnit.SECONDS);
         CallContext(String callGraph, ProxyClient<ClientT> client, ModelT model, CallbackT context) {
             this.callGraph = Preconditions.checkNotNull(callGraph);
@@ -86,6 +112,20 @@ public class AmazonWebServicesClientProxy implements CallChain {
                     return new Stabilizer<RequestT, ResponseT, ClientT, ModelT, CallbackT>() {
 
                         private Callback<RequestT, ResponseT, ClientT, ModelT, CallbackT, Boolean> waitFor;
+                        // default exception handler, reports failure.
+                        private Callback<RequestT, Exception, ClientT, ModelT, CallbackT, ProgressEvent<ModelT, CallbackT>> defaultHandler =
+                            (request, exception, client1, model1, context1) -> {
+                                String errMsg;
+                                if (exception instanceof AwsServiceException) {
+                                    AwsErrorDetails details = ((AwsServiceException)exception).awsErrorDetails();
+                                    errMsg = "Code(" + details.errorCode() + "),  "  + details.errorMessage();
+                                }
+                                else {
+                                    errMsg = exception.getMessage();
+                                }
+                                return ProgressEvent.failed(
+                                    model1, context1, HandlerErrorCode.ServiceException, errMsg);
+                            };
                         private Callback<RequestT, Exception, ClientT, ModelT, CallbackT, ProgressEvent<ModelT, CallbackT>> exceptHandler;
 
                         @Override
@@ -103,7 +143,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
                                     if (handler.invoke(request, exception, client1, model1, context1)) {
                                         return ProgressEvent.progress(model1, context1);
                                     }
-                                    return ProgressEvent.failed(model1, context1, HandlerErrorCode.ServiceException, exception.getMessage());
+                                    return defaultHandler.invoke(request, exception, client1, model1, context1);
                                 });
                         }
 
@@ -117,16 +157,23 @@ public class AmazonWebServicesClientProxy implements CallChain {
                         @Override
                         public ProgressEvent<ModelT, CallbackT>
                             done(Callback<RequestT, ResponseT, ClientT, ModelT, CallbackT, ProgressEvent<ModelT, CallbackT>> callback) {
+                            //
+                            // StdCallbackContext memoization wrappers for request, response, and stabilization
+                            // lambdas. This ensures that we call demux as necessary.
+                            //
                             Function<ModelT, RequestT> reqMaker = context.request(callGraph, maker);
                             BiFunction<RequestT, ProxyClient<ClientT>, ResponseT> resMaker = context.response(callGraph, caller);
                             if (waitFor != null) {
-                                waitFor = context.wait(callGraph, waitFor);
+                                waitFor = context.stabilize(callGraph, waitFor);
                             }
+                            Callback<RequestT, Exception, ClientT, ModelT, CallbackT, ProgressEvent<ModelT, CallbackT>> exceptHandler =
+                                this.exceptHandler != null ? this.exceptHandler : this.defaultHandler;
                             RequestT req = null;
                             ResponseT res = null;
-                            int attempt = 1;
-                            do {
-                                try {
+                            int attempt = context.attempts(callGraph);
+                            for(;;) {
+                                Instant now = Instant.now();
+                                wait: try {
                                     req = req == null ? reqMaker.apply(model) : req;
                                     res = res == null ? resMaker.apply(req, client) : res;
                                     if (waitFor != null) {
@@ -174,30 +221,53 @@ public class AmazonWebServicesClientProxy implements CallChain {
                                                 return ProgressEvent.failed(model, context, HandlerErrorCode.NotFound,
                                                     details.errorCode() + ": " + details.errorMessage());
 
-                                            case 500:
+                                            case 503:
                                                 //
                                                 // Often retries help here as well. IMP to remember here that
                                                 // there are retries with the SDK Client itself for these. Verify
                                                 // what we add extra over the default ones
                                                 //
-                                            case 503:
                                             case 504:
                                             case 429: // Throttle, TOO many requests
                                                 AmazonWebServicesClientProxy.this.logger.log(
                                                     "Retrying " + callGraph + " for error " + details.errorMessage());
-                                                continue;
+                                                break wait;
                                         }
                                     }
 
-                                    if (exceptHandler != null) {
-                                        ProgressEvent<ModelT, CallbackT> handled = exceptHandler.invoke(req, e, client, model, context);
-                                        if (handled.isFailed()) {
-                                            return handled;
-                                        }
+                                    ProgressEvent<ModelT, CallbackT> handled = exceptHandler.invoke(req, e, client, model, context);
+                                    if (handled.isFailed()) {
+                                        return handled;
                                     }
                                 }
-                            } while (waitForNext(delay, attempt++));
-                            return null;
+                                //
+                                // The logic to wait is if next delay + 2 * time to run the operation sequence + 100ms
+                                // is less than time remaining time to run inside Lambda then we locally wait
+                                // else we bail out. Assuming 3 DAYS for a DB to restore, that would be total of
+                                // 3 x 24 x 60 x 60 x 1000 ms, fits in 32 bit int.
+                                //
+                                Instant opTime = Instant.now();
+                                long elapsed = ChronoUnit.MILLIS.between(now, opTime);
+                                long next = delay.nextDelay(attempt++);
+                                context.attempts(callGraph, attempt);
+                                if (next < 0) {
+                                    return ProgressEvent.failed(model, context,
+                                        HandlerErrorCode.ServiceException, "Exceeded attempts to wait");
+                                }
+                                long remainingTime = getRemainingTimeInMillis();
+                                long localWait = delay.unit().toMillis(next) + 2 * elapsed + 100;
+                                if (remainingTime > localWait) {
+                                    Uninterruptibles.sleepUninterruptibly(localWait, TimeUnit.MILLISECONDS);
+                                    continue;
+                                }
+                                return ProgressEvent.<ModelT, CallbackT>builder()
+                                    .status(OperationStatus.IN_PROGRESS)
+                                    .callbackContext(context)
+                                    .resourceModel(model)
+                                    // TODO fix this to be long
+                                    .callbackDelaySeconds((int)TimeUnit.MILLISECONDS.toSeconds(next))
+                                    .build();
+                            }
                         }
 
                         @Override
@@ -209,28 +279,19 @@ public class AmazonWebServicesClientProxy implements CallChain {
             };
         }
 
-        private boolean waitForNext(Delay delay, int attempt) {
-            long waitTime = delay.nextDelay(attempt);
-            try {
-                delay.unit().wait(waitTime);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return false;
-            }
-            return true;
-        }
     }
 
     private final AWSCredentialsProvider v1CredentialsProvider;
-
     private final AwsCredentialsProvider v2CredentialsProvider;
-
     private final LambdaLogger logger;
+    private final Supplier<Integer> remainingTimeInMillis;
 
     public AmazonWebServicesClientProxy(
         final LambdaLogger logger,
-        final Credentials credentials) {
+        final Credentials credentials,
+        final Supplier<Integer> remainingTimeToExecute) {
         this.logger = logger;
+        this.remainingTimeInMillis = remainingTimeToExecute;
 
         final BasicSessionCredentials basicSessionCredentials = new BasicSessionCredentials(
             credentials.getAccessKeyId(),
@@ -243,6 +304,10 @@ public class AmazonWebServicesClientProxy implements CallChain {
             credentials.getSecretAccessKey(),
             credentials.getSessionToken());
         this.v2CredentialsProvider = StaticCredentialsProvider.create(awsSessionCredentials);
+    }
+
+    public final long getRemainingTimeInMillis() {
+        return (long) remainingTimeInMillis.get();
     }
 
     public <RequestT extends AmazonWebServiceRequest, ResultT extends AmazonWebServiceResult<ResponseMetadata>> ResultT injectCredentialsAndInvoke(

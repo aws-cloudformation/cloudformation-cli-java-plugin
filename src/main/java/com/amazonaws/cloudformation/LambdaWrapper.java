@@ -257,7 +257,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // last mile proxy creation with passed-in credentials
         final AmazonWebServicesClientProxy awsClientProxy = new AmazonWebServicesClientProxy(
             this.logger,
-            request.getRequestData().getCallerCredentials());
+            request.getRequestData().getCallerCredentials(),
+            context::getRemainingTimeInMillis);
 
         boolean computeLocally = true;
         ProgressEvent<ResourceT, CallbackT> handlerResponse = null;

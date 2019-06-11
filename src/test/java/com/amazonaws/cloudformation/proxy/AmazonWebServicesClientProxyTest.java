@@ -30,7 +30,7 @@ public class AmazonWebServicesClientProxyTest {
         final LambdaLogger lambdaLogger = mock(LambdaLogger.class);
         final Credentials credentials = new Credentials("accessKeyId", "secretAccessKey", "sessionToken");
 
-        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(lambdaLogger, credentials);
+        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(lambdaLogger, credentials, () -> 1000);
 
         final DescribeStackEventsRequest request = mock(DescribeStackEventsRequest.class);
 
@@ -60,7 +60,7 @@ public class AmazonWebServicesClientProxyTest {
         final LambdaLogger lambdaLogger = mock(LambdaLogger.class);
         final Credentials credentials = new Credentials("accessKeyId", "secretAccessKey", "sessionToken");
 
-        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(lambdaLogger, credentials);
+        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(lambdaLogger, credentials, () -> 1000);
 
         final software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest wrappedRequest =
                 mock(software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest.class);
@@ -102,7 +102,7 @@ public class AmazonWebServicesClientProxyTest {
         final LambdaLogger lambdaLogger = mock(LambdaLogger.class);
         final Credentials credentials = new Credentials("accessKeyId", "secretAccessKey", "sessionToken");
 
-        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(lambdaLogger, credentials);
+        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(lambdaLogger, credentials, () -> 1000);
 
         final software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest wrappedRequest =
             mock(software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest.class);
