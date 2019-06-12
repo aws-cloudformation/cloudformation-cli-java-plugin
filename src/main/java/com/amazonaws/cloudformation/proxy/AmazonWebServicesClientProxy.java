@@ -61,18 +61,13 @@ public class AmazonWebServicesClientProxy implements CallChain {
         };
     }
 
-    private enum WaitExceededReason {
-        CONTINUE_WAIT,
-        DELAY_DONE,
-        AWS_LAMBDA_RUNTIME_EXCEEDED
-    }
-
-    private static Duration AWS_LAMBDA_DEFAULT_MAX = Duration.ofMinutes(4);
-
-
     @Override
     public <ClientT, ModelT, CallbackT extends StdCallbackContext> RequestMaker<ClientT, ModelT, CallbackT>
         initiate(String callGraph, ProxyClient<ClientT> client, ModelT model, CallbackT cxt) {
+        Preconditions.checkNotNull(callGraph, "callGraph must be specified");
+        Preconditions.checkNotNull(client, "ProxyClient can not be null");
+        Preconditions.checkNotNull(model, "Resource Model can not be null");
+        Preconditions.checkNotNull(cxt, "cxt can not be null");
         return new CallContext<>(callGraph, client, model, cxt);
     }
 
@@ -257,7 +252,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
                                 long remainingTime = getRemainingTimeInMillis();
                                 long localWait = delay.unit().toMillis(next) + 2 * elapsed + 100;
                                 if (remainingTime > localWait) {
-                                    Uninterruptibles.sleepUninterruptibly(localWait, TimeUnit.MILLISECONDS);
+                                    Uninterruptibles.sleepUninterruptibly(next, delay.unit());
                                     continue;
                                 }
                                 return ProgressEvent.<ModelT, CallbackT>builder()
@@ -265,7 +260,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
                                     .callbackContext(context)
                                     .resourceModel(model)
                                     // TODO fix this to be long
-                                    .callbackDelaySeconds((int)TimeUnit.MILLISECONDS.toSeconds(next))
+                                    .callbackDelaySeconds((int)delay.unit().toSeconds(next))
                                     .build();
                             }
                         }

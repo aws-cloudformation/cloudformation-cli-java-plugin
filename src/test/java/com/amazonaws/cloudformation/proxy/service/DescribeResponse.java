@@ -5,6 +5,7 @@ import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.core.SdkField;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 @lombok.Getter
@@ -13,7 +14,7 @@ import java.util.List;
 public class DescribeResponse extends AwsResponse {
     private final String repoName;
     private final String repoArn;
-    private final DateTime createdWhen;
+    private final Date createdWhen;
     private DescribeResponse(Builder b) {
         super(b);
         repoName = b.repoName;
@@ -34,7 +35,7 @@ public class DescribeResponse extends AwsResponse {
     public static class Builder extends BuilderImpl {
         private String repoName;
         private String repoArn;
-        private DateTime createdWhen;
+        private Date createdWhen;
 
         @Override
         public DescribeResponse build() {
@@ -51,7 +52,7 @@ public class DescribeResponse extends AwsResponse {
             return this;
         }
 
-        public Builder createdWhen(DateTime when) {
+        public Builder createdWhen(Date when) {
             createdWhen = when;
             return this;
         }

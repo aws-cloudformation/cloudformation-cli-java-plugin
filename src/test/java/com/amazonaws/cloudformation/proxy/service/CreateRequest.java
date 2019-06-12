@@ -9,7 +9,7 @@ import java.util.List;
 @lombok.Getter
 @lombok.EqualsAndHashCode(callSuper = true)
 @lombok.ToString
-public class CreateRequest extends AwsRequest {
+public class CreateRequest extends BaseRequest {
 
     private final String repoName;
     private final String userName;
@@ -21,7 +21,8 @@ public class CreateRequest extends AwsRequest {
 
     @Override
     public Builder toBuilder() {
-        return new Builder().userName(userName).repoName(repoName);
+        Builder b = new Builder();
+        return build(b).userName(userName).repoName(repoName);
     }
 
     @Override
@@ -29,7 +30,7 @@ public class CreateRequest extends AwsRequest {
         return Collections.emptyList();
     }
 
-    public static class Builder extends BuilderImpl {
+    public static class Builder extends BaseRequest.BaseRequestBuilder {
         private String repoName;
         private String userName;
         @Override

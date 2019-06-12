@@ -64,15 +64,25 @@ public class ProgressEvent<ResourceT, CallbackT> {
         final Exception e,
         final HandlerErrorCode handlerErrorCode) {
 
-        return ProgressEvent.<ResourceT, CallbackT>builder()
-            .errorCode(handlerErrorCode)
-            .message(e.getMessage())
-            .status(OperationStatus.FAILED)
-            .build();
+        return failed(null, null, handlerErrorCode, e.getMessage());
     }
 
+    public static <ResourceU, CallbackU> ProgressEvent<ResourceU, CallbackU> failed(
+        ResourceU model,
+        CallbackU cxt,
+        HandlerErrorCode code,
+        String message) {
+
+        ProgressEvent<ResourceU, CallbackU> event = progress(model, cxt);
+        event.setStatus(OperationStatus.FAILED);
+        event.setErrorCode(code);
+        event.setMessage(message);
+        return event;
+    }
+
+
     /**
-     * Convenience method for constructing a SUCCESS response
+     * Convenience method for constructing a IN_PROGRESS response
      */
     public static <ResourceT, CallbackT> ProgressEvent<ResourceT, CallbackT> defaultInProgressHandler(
         final CallbackT callbackContext,
@@ -87,41 +97,35 @@ public class ProgressEvent<ResourceT, CallbackT> {
             .build();
     }
 
+    public static <ResourceU, CallbackU> ProgressEvent<ResourceU, CallbackU> progress(
+        ResourceU model, CallbackU cxt) {
+
+        return ProgressEvent.<ResourceU, CallbackU>builder()
+            .callbackContext(cxt)
+            .resourceModel(model)
+            .status(OperationStatus.IN_PROGRESS)
+            .build();
+    }
+
+
     /**
      * Convenience method for constructing a SUCCESS response
      */
     public static <ResourceT, CallbackT> ProgressEvent<ResourceT, CallbackT> defaultSuccessHandler(
         final ResourceT resourceModel) {
 
-        return ProgressEvent.<ResourceT, CallbackT>builder()
-            .resourceModel(resourceModel)
-            .status(OperationStatus.SUCCESS)
-            .build();
+        return success(resourceModel, null);
     }
 
-    public static <ResourceU, CallbackU> ProgressEvent<ResourceU, CallbackU>
-    success(ResourceU model, CallbackU cxt) {
+    public static <ResourceU, CallbackU> ProgressEvent<ResourceU, CallbackU> success(
+        ResourceU model,
+        CallbackU cxt) {
+
         ProgressEvent<ResourceU, CallbackU> event = progress(model, cxt);
         event.setStatus(OperationStatus.SUCCESS);
         return event;
     }
 
-    public static <ResourceU, CallbackU> ProgressEvent<ResourceU, CallbackU>
-    progress(ResourceU model, CallbackU cxt) {
-        return ProgressEvent.<ResourceU, CallbackU>builder()
-            .status(OperationStatus.IN_PROGRESS)
-            .callbackContext(cxt)
-            .resourceModel(model).build();
-    }
-
-    public static <ResourceU, CallbackU> ProgressEvent<ResourceU, CallbackU>
-    failed(ResourceU model, CallbackU cxt, HandlerErrorCode code, String message) {
-        ProgressEvent<ResourceU, CallbackU> event = progress(model, cxt);
-        event.setStatus(OperationStatus.FAILED);
-        event.setErrorCode(code);
-        event.setMessage(message);
-        return event;
-    }
 
     public ProgressEvent<ResourceT, CallbackT>
         onSuccess(Function<ProgressEvent<ResourceT, CallbackT>, ProgressEvent<ResourceT, CallbackT>> func) {
@@ -133,7 +137,7 @@ public class ProgressEvent<ResourceT, CallbackT> {
         return status == OperationStatus.FAILED;
     }
 
-    public boolean inProgress() {
+    public boolean isInProgress() {
         return status == OperationStatus.IN_PROGRESS;
     }
 

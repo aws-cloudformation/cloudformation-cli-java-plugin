@@ -23,11 +23,17 @@ public class ReadHandler {
         final Logger logger) {
 
         final Model model = request.getDesiredResourceState();
-
+        final StdCallbackContext cxt = context == null ? new StdCallbackContext() : context;
         ProxyClient<ServiceClient> client = proxy.newProxy(() -> this.client);
-        return proxy.initiate("client:readRepository", client, model, context)
-            .request(m -> new DescribeRequest.Builder().repoName(m.getRepoName()).build())
-            .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::describeRespository))
+        return proxy.initiate("client:readRepository", client, model, cxt)
+            .request(m -> {
+                DescribeRequest.Builder builder = new DescribeRequest.Builder();
+                builder.repoName(m.getRepoName());
+                builder.throwAccessDenied(m.getAccessDenied() != null && m.getAccessDenied());
+                builder.throwThrottleException(m.getThrottle() != null && m.getThrottle());
+                return builder.build();
+            })
+            .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::describeRepository))
             .done(r -> {
                 model.setRepoName(r.getRepoName());
                 model.setArn(r.getRepoArn());

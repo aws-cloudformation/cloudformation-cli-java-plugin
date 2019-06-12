@@ -18,6 +18,14 @@
     "Created": {
       "type": "string",
       "format": "date-time"
+    },
+    "AccessDenied": {
+      "type": "boolean",
+      "default": false
+    },
+    "Throttle": {
+      "type": "boolean",
+      "default": false
     }
   },
   "required" : [ "RepoName" ],

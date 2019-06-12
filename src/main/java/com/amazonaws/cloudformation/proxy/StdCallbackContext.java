@@ -1,6 +1,8 @@
 package com.amazonaws.cloudformation.proxy;
 
 import javax.annotation.concurrent.ThreadSafe;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiFunction;
@@ -41,6 +43,10 @@ public class StdCallbackContext {
         return (r, c) ->
             (RT) callGraphContexts.computeIfAbsent(
                 callGraph + ".response", (ign) -> func.apply(r, c));
+    }
+
+    public Map<String, Object> getCallGraphs() {
+        return Collections.unmodifiableMap(callGraphContexts);
     }
 
     <RequestT, ResponseT, ClientT, ModelT, CallbackT extends StdCallbackContext>

@@ -1,6 +1,5 @@
 package com.amazonaws.cloudformation.proxy.service;
 
-import com.amazonaws.cloudformation.proxy.ExistsException;
 import org.joda.time.DateTime;
 import org.junit.jupiter.api.Assertions;
 import org.mockito.Mockito;
@@ -23,18 +22,24 @@ public class ServiceClient {
         new HashMap<>(10);
     private final AwsServiceException.Builder builder = Mockito.mock(AwsServiceException.Builder.class);
 
-    public CreateResponse createRepository(CreateRequest r) {
+    public synchronized CreateResponse createRepository(CreateRequest r) {
+        assertCredentials(r);
         if (respositories.containsKey(r.getRepoName())) {
             throw new ExistsException(builder);
         }
 
-        assertCredentials(r);
+        if (r.isThrowAccessDenied()) {
+            throw new AccessDenied(builder);
+        }
 
+        if (r.isThrowThrottleException()) {
+            throw new ThrottleException(builder);
+        }
         Repository repo = new Repository();
         repo.setRepoName(r.getRepoName());
         String arn = r.getRepoName() + "-" + UUID.randomUUID().toString();
         repo.setArn(arn);
-        repo.setCreated(DateTime.now());
+        repo.setCreated(DateTime.now().toDate());
         Set<String> users = new HashSet<>();
         users.add(r.getUserName());
         repo.setUsers(users);
@@ -43,12 +48,20 @@ public class ServiceClient {
         return new CreateResponse.Builder().repoName(r.getRepoName()).build();
     }
 
-    public DescribeResponse describeRespository(DescribeRequest r) {
+    public synchronized DescribeResponse describeRepository(DescribeRequest r) {
+        assertCredentials(r);
         Repository repo = respositories.get(r.getRepoName());
         if (repo == null) {
             throw new NotFoundException(builder);
         }
-        assertCredentials(r);
+        if (r.isThrowAccessDenied()) {
+            throw new AccessDenied(builder);
+        }
+
+        if (r.isThrowThrottleException()) {
+            throw new ThrottleException(builder);
+        }
+
         return new DescribeResponse.Builder().createdWhen(repo.getCreated())
             .repoArn(repo.getArn()).repoName(repo.getRepoName()).build();
     }

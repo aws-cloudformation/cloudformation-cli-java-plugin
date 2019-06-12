@@ -9,13 +9,11 @@ import java.util.List;
 @lombok.Getter
 @lombok.EqualsAndHashCode(callSuper = true)
 @lombok.ToString
-public class DescribeRequest extends AwsRequest {
+public class DescribeRequest extends BaseRequest {
     private final String repoName;
-    private final Boolean failWithAccessDenied;
     private DescribeRequest(Builder b) {
         super(b);
         repoName = b.repoName;
-        failWithAccessDenied = b.fail;
     }
 
     @Override
@@ -25,10 +23,11 @@ public class DescribeRequest extends AwsRequest {
 
     @Override
     public Builder toBuilder() {
-        return new Builder().repoName(repoName);
+        Builder b = new Builder();
+        return build(b).repoName(repoName);
     }
 
-    public static class Builder extends BuilderImpl {
+    public static class Builder extends BaseRequest.BaseRequestBuilder {
         private String repoName;
         private Boolean fail;
         @Override
@@ -38,11 +37,6 @@ public class DescribeRequest extends AwsRequest {
 
         public Builder repoName(String name) {
             this.repoName = name;
-            return this;
-        }
-
-        public Builder fail() {
-            this.fail = true;
             return this;
         }
     }

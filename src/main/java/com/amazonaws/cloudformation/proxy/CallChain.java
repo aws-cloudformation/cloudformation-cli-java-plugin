@@ -11,53 +11,54 @@ import java.util.function.Function;
  * steps is followed for making a service call.
  *
  * {@code
- * public class CreateHandler extends BaseHandler<CallbackContext> {
+ *     public class CreateHandler extends BaseHandler<CallbackContext> {
  *
- *    @Override
- *    public ProgressEvent<ResourceModel, CallbackContext> handleRequest(
- *        final AmazonWebServicesClientProxy proxy,
- *        final ResourceHandlerRequest<ResourceModel> request,
- *        final CallbackContext callbackContext,
- *        final Logger logger) {
+ *        @Override
+ *        public ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+ *            final AmazonWebServicesClientProxy proxy,
+ *            final ResourceHandlerRequest<ResourceModel> request,
+ *            final CallbackContext callbackContext,
+ *            final Logger logger) {
  *
- *        final ProxyClient<KinesisClient> client = proxy.newProxy(KinesisClient::create);
- *        final ResourceModel model = request.getDesiredResourceState();
- *        ProgressEvent<ResourceModel, CallbackContext> created = proxy.initiate(
- *            "kinesis:CreateStream",
- *            client,
- *            model,
- *            callbackContext)
+ *            final ProxyClient<KinesisClient> client = proxy.newProxy(KinesisClient::create);
+ *            final ResourceModel model = request.getDesiredResourceState();
+ *            ProgressEvent<ResourceModel, CallbackContext> created = proxy.initiate(
+ *                "kinesis:CreateStream",
+ *                client,
+ *                model,
+ *                callbackContext)
  *
- *            //
- *            // create request for a new stream
- *            //
- *            .request(
- *                (m) -> CreateStreamRequest.builder()
- *                      .streamName(m.getName())
- *                      .shardCount(m.getShardCount()).build()
- *            )
+ *                //
+ *                // create request for a new stream
+ *                //
+ *                .request(
+ *                    (m) -> CreateStreamRequest.builder()
+ *                          .streamName(m.getName())
+ *                          .shardCount(m.getShardCount()).build()
+ *                )
  *
- *            //
- *            // Making the call via injection of credentials to make scoped credentials work
- *            //
- *            .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createStream))
+ *                //
+ *                // Making the call via injection of credentials to make scoped credentials work
+ *                //
+ *                .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createStream))
  *
- *            //
- *            // Currently any failure to stabilize will be propagated over as failure to create. This means that
- *            // there is a likely hood that the stream could have been created but we timed out. Any attempt to re-create
- *            // this resource will fail with an already exists stream name. The stabiliserCreate provides the
- *            // ARN in the model (side effect, maybe change model later to be functional) from the describe calls.
- *            // So exceptions during stabilizes with report event with FAILED, but the model has the ARN to
- *            // indicate successful creation. So CFN can call us back with DELETE correctly.
- *            // IMP: if we do not have read permissions during create, this will fail causing the resources to
- *            // leak.
- *            //
- *            .stabilize(
- *                new Delay.Exponential(2, 2^5, TimeUnit.SECONDS),
- *                this::stabilizeCreate)
- *            .done(CallChain.Callback.progress());
+ *                //
+ *                // Currently any failure to stabilize will be propagated over as failure to create. This means that
+ *                // there is a likely hood that the stream could have been created but we timed out. Any attempt to re-create
+ *                // this resource will fail with an already exists stream name. The stabiliserCreate provides the
+ *                // ARN in the model (side effect, maybe change model later to be functional) from the describe calls.
+ *                // So exceptions during stabilizes with report event with FAILED, but the model has the ARN to
+ *                // indicate successful creation. So CFN can call us back with DELETE correctly.
+ *                // IMP: if we do not have read permissions during create, this will fail causing the resources to
+ *                // leak.
+ *                //
+ *                .stabilize(
+ *                    new Delay.Exponential(2, 2^5, TimeUnit.SECONDS),
+ *                    this::stabilizeCreate)
+ *                .done(CallChain.Callback.progress());
  *
- *      }
+ *          }
+ *     }
  * }
  *
  * Any service call should use {@link AmazonWebServicesClientProxy}. Here is the minimum sequence for the calls.
