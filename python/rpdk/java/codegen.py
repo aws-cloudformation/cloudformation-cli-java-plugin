@@ -217,10 +217,30 @@ class JavaLanguagePlugin(LanguagePlugin):
                 package_name=self.package_name,
                 pojo_name=pojo_name,
                 properties=properties,
+                primaryIdentifier=self._get_primary_identifier(project.schema)
+                if pojo_name == "ResourceModel"
+                else None,
+                additionalIdentifiers=self._get_additional_identifiers(project.schema)
+                if pojo_name == "ResourceModel"
+                else None,
             )
             project.overwrite(path, contents)
 
         LOG.debug("Generate complete")
+
+    @staticmethod
+    def _get_primary_identifier(schema):
+        try:
+            return schema["primaryIdentifier"]
+        except KeyError:
+            return []
+
+    @staticmethod
+    def _get_additional_identifiers(schema):
+        try:
+            return schema["additionalIdentifiers"]
+        except KeyError:
+            return []
 
     @staticmethod
     def _find_jar(project):
