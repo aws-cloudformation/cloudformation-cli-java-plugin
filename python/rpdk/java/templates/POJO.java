@@ -26,7 +26,6 @@ public class {{ pojo_name|uppercase_first_letter }} {
     private {{ type }} {{ name|lowercase_first_letter }};
 
     {% endfor %}
-
     {% if primaryIdentifier is not none %}
     public JSONObject getPrimaryIdentifier(){
         final JSONObject identifier = new JSONObject();
