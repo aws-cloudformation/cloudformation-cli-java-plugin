@@ -50,7 +50,7 @@ public class AmazonWebServicesClientProxy {
 
         try {
             return requestFunction.apply(request);
-        } catch (final Exception e) {
+        } catch (final Throwable e) {
             logger.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
             throw e;
         } finally {
@@ -73,7 +73,7 @@ public class AmazonWebServicesClientProxy {
 
         try {
             return requestFunction.apply(wrappedRequest);
-        } catch (final Exception e) {
+        } catch (final Throwable e) {
             logger.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
             throw e;
         }
@@ -94,7 +94,7 @@ public class AmazonWebServicesClientProxy {
 
         try {
             return requestFunction.apply(wrappedRequest);
-        } catch (final Exception e) {
+        } catch (final Throwable e) {
             logger.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
             throw e;
         }
