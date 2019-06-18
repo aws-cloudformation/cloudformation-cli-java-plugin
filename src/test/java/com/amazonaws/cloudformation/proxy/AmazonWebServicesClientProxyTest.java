@@ -19,6 +19,7 @@ import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.exception.NonRetryableException;
 import software.amazon.awssdk.services.cloudformation.CloudFormationAsyncClient;
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 import software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsResponse;
@@ -332,4 +333,56 @@ public class AmazonWebServicesClientProxyTest {
 
         assertEquals(OperationStatus.SUCCESS, result.getStatus());
     }
+
+    @Test
+    public void throwNotRetryableException() {
+        AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(
+            mock(LambdaLogger.class),
+            MOCK,
+            () -> (int)Duration.ofSeconds(1).toMillis() // signal we have only 1s left.
+        );
+        AwsServiceException.Builder builder = mock(AwsServiceException.Builder.class);
+        Model model = new Model();
+        model.setRepoName("NewRepo");
+        StdCallbackContext context = new StdCallbackContext();
+        ServiceClient client = new ServiceClient();
+        ProxyClient<ServiceClient> svcClient = proxy.newProxy(() -> client);
+        ProgressEvent<Model, StdCallbackContext> result =
+            proxy.initiate("client:createRepository", svcClient, model, context)
+                .request(m ->
+                    new CreateRequest.Builder().repoName(m.getRepoName()).build())
+                .call((r, g) -> {
+                    NonRetryableException e = NonRetryableException.builder().build();
+                    throw e;
+                }).success();
+        assertEquals(OperationStatus.FAILED, result.getStatus());
+
+    }
+
+    @Test
+    public void throwOtherExcpetion() {
+        AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(
+            mock(LambdaLogger.class),
+            MOCK,
+            () -> (int)Duration.ofSeconds(1).toMillis() // signal we have only 1s left.
+        );
+        AwsServiceException.Builder builder = mock(AwsServiceException.Builder.class);
+        Model model = new Model();
+        model.setRepoName("NewRepo");
+        StdCallbackContext context = new StdCallbackContext();
+        ServiceClient client = new ServiceClient();
+        ProxyClient<ServiceClient> svcClient = proxy.newProxy(() -> client);
+        ProgressEvent<Model, StdCallbackContext> result =
+            proxy.initiate("client:createRepository", svcClient, model, context)
+                .request(m ->
+                    new CreateRequest.Builder().repoName(m.getRepoName()).build())
+                .call((r, g) -> {
+                    throw new RuntimeException("Fail");
+                }).success();
+        assertEquals(OperationStatus.FAILED, result.getStatus());
+
+    }
+
+
+
 }

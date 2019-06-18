@@ -109,17 +109,63 @@ public class AmazonWebServicesClientProxy implements CallChain {
                         private Callback<RequestT, ResponseT, ClientT, ModelT, CallbackT, Boolean> waitFor;
                         // default exception handler, reports failure.
                         private Callback<RequestT, Exception, ClientT, ModelT, CallbackT, ProgressEvent<ModelT, CallbackT>> defaultHandler =
-                            (request, exception, client1, model1, context1) -> {
-                                String errMsg;
-                                if (exception instanceof AwsServiceException) {
-                                    AwsErrorDetails details = ((AwsServiceException)exception).awsErrorDetails();
-                                    errMsg = "Code(" + details.errorCode() + "),  "  + details.errorMessage();
+                            (request, e, client1, model1, context1) -> {
+                                //
+                                // Client side exception, mapping this to InvalidRequest at the moment
+                                //
+                                if (e instanceof NonRetryableException) {
+                                    return ProgressEvent.failed(model, context, HandlerErrorCode.InvalidRequest,
+                                        e.getMessage());
                                 }
-                                else {
-                                    errMsg = exception.getMessage();
+
+                                if (e instanceof AwsServiceException) {
+                                    AwsServiceException sdkException = (AwsServiceException) e;
+                                    AwsErrorDetails details = sdkException.awsErrorDetails();
+                                    String errMsg = "Code(" + details.errorCode() + "),  "  + details.errorMessage();
+                                    switch (details.sdkHttpResponse().statusCode()) {
+                                        case 400:
+                                            //
+                                            // BadRequest, wrong values in the request
+                                            //
+                                            return ProgressEvent.failed(model, context, HandlerErrorCode.InvalidRequest,
+                                                details.errorCode() + ": " + details.errorMessage());
+
+                                        case 401:
+                                        case 403:
+                                        case 511: // Network Auth Required, just in case
+                                            //
+                                            // Access Denied, AuthN/Z problems
+                                            //
+                                            return ProgressEvent.failed(model, context, HandlerErrorCode.AccessDenied,
+                                                details.errorCode() + ": " + details.errorMessage());
+
+                                        case 404:
+                                        case 410:
+                                            //
+                                            // Resource that we are trying READ/UPDATE/DELETE is not found
+                                            //
+                                            return ProgressEvent.failed(model, context, HandlerErrorCode.NotFound,
+                                                details.errorCode() + ": " + details.errorMessage());
+
+                                        case 503:
+                                            //
+                                            // Often retries help here as well. IMP to remember here that
+                                            // there are retries with the SDK Client itself for these. Verify
+                                            // what we add extra over the default ones
+                                            //
+                                        case 504:
+                                        case 429: // Throttle, TOO many requests
+                                            AmazonWebServicesClientProxy.this.logger.log(
+                                                "Retrying " + callGraph + " for error " + details.errorMessage());
+                                            return ProgressEvent.progress(model1, context1);
+
+                                        default:
+                                            return ProgressEvent.failed(model, context, HandlerErrorCode.ServiceException,
+                                                details.errorCode() + ": " + details.errorMessage());
+                                    }
                                 }
                                 return ProgressEvent.failed(
-                                    model1, context1, HandlerErrorCode.ServiceException, errMsg);
+                                    model, context, HandlerErrorCode.ServiceException, e.getMessage());
                             };
                         private Callback<RequestT, Exception, ClientT, ModelT, CallbackT, ProgressEvent<ModelT, CallbackT>> exceptHandler;
 
@@ -168,68 +214,19 @@ public class AmazonWebServicesClientProxy implements CallChain {
                             int attempt = context.attempts(callGraph);
                             for(;;) {
                                 Instant now = Instant.now();
-                                wait: try {
+                                try {
                                     req = req == null ? reqMaker.apply(model) : req;
                                     res = res == null ? resMaker.apply(req, client) : res;
                                     if (waitFor != null) {
                                         if (waitFor.invoke(req, res, client, model, context)) {
                                             return callback.invoke(req, res, client, model, context);
                                         }
-                                        continue;
                                     }
-                                    return callback.invoke(req, res, client, model, context);
+                                    else {
+                                        return callback.invoke(req, res, client, model, context);
+                                    }
                                 }
                                 catch (Exception e) {
-                                    //
-                                    // Client side exception, mapping this to InvalidRequest at the moment
-                                    //
-                                    if (e instanceof NonRetryableException) {
-                                        return ProgressEvent.failed(model, context, HandlerErrorCode.InvalidRequest,
-                                            e.getMessage());
-                                    }
-
-                                    if (e instanceof AwsServiceException) {
-                                        AwsServiceException sdkException = (AwsServiceException) e;
-                                        AwsErrorDetails details = sdkException.awsErrorDetails();
-                                        switch (details.sdkHttpResponse().statusCode()) {
-                                            case 400:
-                                                //
-                                                // BadRequest, wrong values in the request
-                                                //
-                                                return ProgressEvent.failed(model, context, HandlerErrorCode.InvalidRequest,
-                                                    details.errorCode() + ": " + details.errorMessage());
-
-                                            case 401:
-                                            case 403:
-                                            case 511: // Network Auth Required, just in case
-                                                //
-                                                // Access Denied, AuthN/Z problems
-                                                //
-                                                return ProgressEvent.failed(model, context, HandlerErrorCode.AccessDenied,
-                                                    details.errorCode() + ": " + details.errorMessage());
-
-                                            case 404:
-                                            case 410:
-                                                //
-                                                // Resource that we are trying READ/UPDATE/DELETE is not found
-                                                //
-                                                return ProgressEvent.failed(model, context, HandlerErrorCode.NotFound,
-                                                    details.errorCode() + ": " + details.errorMessage());
-
-                                            case 503:
-                                                //
-                                                // Often retries help here as well. IMP to remember here that
-                                                // there are retries with the SDK Client itself for these. Verify
-                                                // what we add extra over the default ones
-                                                //
-                                            case 504:
-                                            case 429: // Throttle, TOO many requests
-                                                AmazonWebServicesClientProxy.this.logger.log(
-                                                    "Retrying " + callGraph + " for error " + details.errorMessage());
-                                                break wait;
-                                        }
-                                    }
-
                                     ProgressEvent<ModelT, CallbackT> handled = exceptHandler.invoke(req, e, client, model, context);
                                     if (handled.isFailed()) {
                                         return handled;
@@ -255,13 +252,8 @@ public class AmazonWebServicesClientProxy implements CallChain {
                                     Uninterruptibles.sleepUninterruptibly(next, delay.unit());
                                     continue;
                                 }
-                                return ProgressEvent.<ModelT, CallbackT>builder()
-                                    .status(OperationStatus.IN_PROGRESS)
-                                    .callbackContext(context)
-                                    .resourceModel(model)
-                                    // TODO fix this to be long
-                                    .callbackDelaySeconds((int)delay.unit().toSeconds(next))
-                                    .build();
+                                return ProgressEvent.defaultInProgressHandler(
+                                    context, (int)delay.unit().toSeconds(next), model);
                             }
                         }
 

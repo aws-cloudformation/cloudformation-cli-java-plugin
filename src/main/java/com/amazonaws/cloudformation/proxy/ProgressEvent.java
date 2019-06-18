@@ -144,4 +144,9 @@ public class ProgressEvent<ResourceT, CallbackT> {
     public boolean isSuccess() {
         return status == OperationStatus.SUCCESS;
     }
+
+    public boolean isInProgressCallbackDelay() {
+        return isInProgress() && callbackDelaySeconds > 0;
+    }
+
 }

@@ -225,12 +225,13 @@ public interface CallChain {
      * retention period.
      *
      * {@code
-     *     private Boolean
-     *         stabilizeCreate(CreateStreamRequest req,
-     *                         CreateStreamResponse res,
-     *                         ProxyClient<KinesisClient> client,
-     *                         ResourceModel model,
-     *                         CallbackContext cxt) {
+     *     private Boolean isStreamActive(
+     *         CreateStreamRequest req,
+     *         CreateStreamResponse res,
+     *         ProxyClient<KinesisClient> client,
+     *         ResourceModel model,
+     *         CallbackContext cxt) {
+     *
      *         DescribeStreamRequest r =
      *                 DescribeStreamRequest.builder().streamName(req.streamName()).build();
      *         DescribeStreamResponse dr = client.injectCredentialsAndInvokeV2(
@@ -288,6 +289,31 @@ public interface CallChain {
          */
         ProgressEvent<ModelT, CallbackT>
             done(Callback<RequestT, ResponseT, ClientT, ModelT, CallbackT, ProgressEvent<ModelT, CallbackT>> callback);
+
+        /**
+         * Helper function that provides a {@link OperationStatus#SUCCESS} status when the callchain is done
+         */
+        default ProgressEvent<ModelT, CallbackT> success() {
+            return done(
+                (request, response, client, model, context) -> ProgressEvent.success(model, context));
+        }
+
+        /**
+         * Helper function that provides a {@link OperationStatus#IN_PROGRESS} status when the callchain is done
+         */
+        default ProgressEvent<ModelT, CallbackT> progress() {
+            return progress(0);
+        }
+
+        /**
+         * Helper function that provides a {@link OperationStatus#IN_PROGRESS} status when the callchain is done
+         */
+        default ProgressEvent<ModelT, CallbackT> progress(int callbackDelay) {
+            return done(
+                (request, response, client, model, context) -> ProgressEvent.defaultInProgressHandler(
+                    context, callbackDelay, model)
+            );
+        }
     }
 
 }
