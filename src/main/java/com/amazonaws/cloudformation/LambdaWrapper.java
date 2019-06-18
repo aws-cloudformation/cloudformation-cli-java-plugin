@@ -165,7 +165,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             handlerResponse = ProgressEvent.defaultFailureHandler(
                 new TerminalException(validationMessageBuilder.toString(), e),
                 HandlerErrorCode.InvalidRequest);
-        } catch (final Exception e) {
+        } catch (final Throwable e) {
             // Exceptions are wrapped as a consistent error response to the caller (i.e; CloudFormation)
             e.printStackTrace(); // for root causing - logs to LambdaLogger by default
             this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
@@ -336,7 +336,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             return ProgressEvent.defaultFailureHandler(
                 e,
                 HandlerErrorCode.ServiceException);
-        } catch (final Exception e) {
+        } catch (final Throwable e) {
             this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
             this.logger.log(String.format("An unknown error occurred in a %s action on a %s: %s",
                 request.getAction(), request.getResourceType(), e.toString()));
@@ -433,7 +433,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                 context.getInvokedFunctionArn(),
                 callbackDelayMinutes,
                 request);
-        } catch (final Exception e) {
+        } catch (final Throwable e) {
             this.log(String.format("Failed to schedule re-invoke, caused by %s", e.toString()));
             handlerResponse.setMessage(e.getMessage());
             handlerResponse.setStatus(OperationStatus.FAILED);

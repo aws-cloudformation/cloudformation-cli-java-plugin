@@ -47,7 +47,7 @@ public class MetricsPublisherImpl implements MetricsPublisher {
 
     public void publishExceptionMetric(final Instant timestamp,
                                        final Action action,
-                                       final Exception e) {
+                                       final Throwable e) {
         final Map<String, String> dimensions = new HashMap<>();
         dimensions.put(Metrics.DIMENSION_KEY_ACTION_TYPE, action.name());
         dimensions.put(Metrics.DIMENSION_KEY_EXCEPTION_TYPE, e.getClass().toString());
@@ -119,7 +119,7 @@ public class MetricsPublisherImpl implements MetricsPublisher {
 
         try {
             client.putMetricData(putMetricDataRequest);
-        } catch (final Exception e) {
+        } catch (final Throwable e) {
             logger.log(String.format("An error occurred while publishing metrics: %s", e.getMessage()));
         }
     }
