@@ -119,7 +119,7 @@ public class MetricsPublisherImpl implements MetricsPublisher {
 
         try {
             client.putMetricData(putMetricDataRequest);
-        } catch (final Throwable e) {
+        } catch (final Exception e) {
             logger.log(String.format("An error occurred while publishing metrics: %s", e.getMessage()));
         }
     }

@@ -168,7 +168,6 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         } catch (final Throwable e) {
             // Exceptions are wrapped as a consistent error response to the caller (i.e; CloudFormation)
             e.printStackTrace(); // for root causing - logs to LambdaLogger by default
-            this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
             handlerResponse = ProgressEvent.defaultFailureHandler(
                 e,
                 HandlerErrorCode.InternalFailure
@@ -178,6 +177,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                     request.getRequestData().getResourceProperties()
                 );
             }
+            this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
         } finally {
             // A response will be output on all paths, though CloudFormation will
             // not block on invoking the handlers, but rather listen for callbacks
