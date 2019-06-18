@@ -61,7 +61,7 @@ public class ProgressEvent<ResourceT, CallbackT> {
      * Convenience method for constructing a FAILED response
      */
     public static <ResourceT, CallbackT> ProgressEvent<ResourceT, CallbackT> defaultFailureHandler(
-        final Exception e,
+        final Throwable e,
         final HandlerErrorCode handlerErrorCode) {
 
         return failed(null, null, handlerErrorCode, e.getMessage());

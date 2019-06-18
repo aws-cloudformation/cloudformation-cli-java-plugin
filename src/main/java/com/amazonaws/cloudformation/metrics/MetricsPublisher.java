@@ -17,7 +17,7 @@ public interface MetricsPublisher {
 
     void publishExceptionMetric(final Instant timestamp,
                                 final Action action,
-                                final Exception e);
+                                final Throwable e);
 
     void publishInvocationMetric(final Instant timestamp,
                                  final Action action);
