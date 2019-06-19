@@ -203,7 +203,7 @@ public interface CallChain {
          *          propagate error/fault.
          */
         Completed<RequestT, ResponseT, ClientT, ModelT, CallbackT>
-            exceptFilter(Callback<RequestT, Exception, ClientT, ModelT, CallbackT, Boolean> handler);
+            exceptFilter(Callback<? super RequestT, Exception, ClientT, ModelT, CallbackT, Boolean> handler);
 
         /**
          * @param handler, a lambda expression that take the web request, response,
@@ -213,7 +213,7 @@ public interface CallChain {
          *          we will attempt another retry. Otherwise failure is propagated.
          */
         Completed<RequestT, ResponseT, ClientT, ModelT, CallbackT>
-            exceptHandler(Callback<RequestT, Exception, ClientT, ModelT, CallbackT, ProgressEvent<ModelT, CallbackT>> handler);
+            exceptHandler(Callback<? super RequestT, Exception, ClientT, ModelT, CallbackT, ProgressEvent<ModelT, CallbackT>> handler);
     }
 
     /**
