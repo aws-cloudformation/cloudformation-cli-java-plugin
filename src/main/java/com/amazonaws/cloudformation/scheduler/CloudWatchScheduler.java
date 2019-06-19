@@ -1,5 +1,6 @@
 package com.amazonaws.cloudformation.scheduler;
 
+import com.amazonaws.cloudformation.logs.LogPublisher;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.cloudformation.injection.CloudWatchEventsProvider;
 import com.amazonaws.cloudformation.proxy.HandlerRequest;
@@ -23,15 +24,18 @@ public class CloudWatchScheduler {
 
     private final CloudWatchEventsProvider cloudWatchEventsProvider;
 
-    private final LambdaLogger logger;
+    private final LambdaLogger platformLambdaLogger;
+    private final LogPublisher resourceOwnerEventsLogger;
 
     private final CronHelper cronHelper;
     private CloudWatchEventsClient client;
 
     public CloudWatchScheduler(final CloudWatchEventsProvider cloudWatchEventsProvider,
-                               final LambdaLogger logger) {
+                               final LogPublisher resourceOwnerEventsLogger,
+                               final LambdaLogger platformLambdaLogger) {
         this.cloudWatchEventsProvider = cloudWatchEventsProvider;
-        this.logger = logger;
+        this.resourceOwnerEventsLogger = resourceOwnerEventsLogger;
+        this.platformLambdaLogger = platformLambdaLogger;
         this.cronHelper = new CronHelper();
     }
 
@@ -39,10 +43,12 @@ public class CloudWatchScheduler {
      * This .ctor provided for testing
      */
     public CloudWatchScheduler(final CloudWatchEventsProvider cloudWatchEventsProvider,
-                               final LambdaLogger logger,
+                               final LambdaLogger platformLambdaLogger,
+                               final LogPublisher resourceOwnerEventsLogger,
                                final CronHelper cronHelper) {
         this.cloudWatchEventsProvider = cloudWatchEventsProvider;
-        this.logger = logger;
+        this.resourceOwnerEventsLogger = resourceOwnerEventsLogger;
+        this.platformLambdaLogger = platformLambdaLogger;
         this.cronHelper = cronHelper;
     }
 
@@ -56,7 +62,7 @@ public class CloudWatchScheduler {
 
     /**
      * Schedule a re-invocation of the executing handler no less than 1 minute from now
-     * @param functionArn       the ARN oft he Lambda function to be invoked
+     * @param functionArn       the ARN of the Lambda function to be invoked
      * @param minutesFromNow    the minimum minutes from now that the re-invocation will occur. CWE provides only
      *                          minute-granularity
      * @param handlerRequest   additional context which the handler can provide itself for re-invocation
@@ -141,12 +147,15 @@ public class CloudWatchScheduler {
     }
 
     /**
-     * null-safe logger redirect
+     * null-safe platformLambdaLogger redirect
      * @param message A string containing the event to log.
      */
     private void log(final String message) {
-        if (this.logger != null) {
-            this.logger.log(message);
+        if (this.resourceOwnerEventsLogger != null) {
+            resourceOwnerEventsLogger.publishLogEvent(message);
+        }
+        if (this.platformLambdaLogger != null) {
+            this.platformLambdaLogger.log(message);
         }
     }
 }

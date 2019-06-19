@@ -1,5 +1,6 @@
 package com.amazonaws.cloudformation.proxy;
 
+import com.amazonaws.cloudformation.logs.LogPublisher;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 
 /**
@@ -7,14 +8,18 @@ import com.amazonaws.services.lambda.runtime.LambdaLogger;
  */
 public final class LoggerProxy implements Logger {
 
-    private final LambdaLogger lambdaLogger;
+    private final LambdaLogger platformLambdaLogger;
+    private final LogPublisher resourceOwnerEventsLogger;
 
-    public LoggerProxy(final LambdaLogger lambdaLogger) {
-        this.lambdaLogger = lambdaLogger;
+    public LoggerProxy(final LambdaLogger lambdaLogger, final LogPublisher resourceOwnerEventsLogger) {
+        this.platformLambdaLogger = lambdaLogger;
+        this.resourceOwnerEventsLogger = resourceOwnerEventsLogger;
     }
 
     @Override
     public void log(final String message) {
-        lambdaLogger.log(message);
+        platformLambdaLogger.log(message);
+        //NOTE: Exceptions might be thrown are handled inside LogPublisher.
+        resourceOwnerEventsLogger.publishLogEvent(message);
     }
 }

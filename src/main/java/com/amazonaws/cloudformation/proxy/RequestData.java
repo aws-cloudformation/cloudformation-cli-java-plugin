@@ -10,6 +10,8 @@ import java.util.Map;
 public class RequestData<ResourceT> {
     private Credentials callerCredentials;
     private Credentials platformCredentials;
+    private Credentials resourceOwnerLoggingCredentials;
+    private String resourceOwnerLoggingLogGroupName;
     private String logicalResourceId;
     private ResourceT resourceProperties;
     private ResourceT previousResourceProperties;
