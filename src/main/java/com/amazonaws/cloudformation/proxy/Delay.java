@@ -1,17 +1,18 @@
 package com.amazonaws.cloudformation.proxy;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
  * This interface defines the {@link Delay} that you needed between invocations
  * of the a lambda. Provides a simple interface to define different types of delay
- * implementations like {@link Fixed}, {@link Exponential}.
+ * implementations like {@link Constant}, {@link Exponential}.
  *
- * {@link Fixed}, provides the {@link Fixed#nextDelay(int)} that waves constantly
- * for the next attempt. When it exceeds {@link Fixed#maxAttempts} it return -1 to
+ * {@link Constant}, provides the {@link Constant#nextDelay(int)} that waves constantly
+ * for the next attempt. When it exceeds {@link Constant#maxDelay} it return -1 to
  * indicate end of delay.
  *
  * {@link Exponential}, provide exponential values between
@@ -34,33 +35,110 @@ public interface Delay {
     TimeUnit unit();
 
     /**
-     * Provides constant fixed delay seconds for each attempt until {@link #maxAttempts}
+     * Provides constant fixed delay seconds for each attempt until {@link #maxDelay}
      * has been reached. After which it will return -1
+     *
+     * {@code
+     *     final Delay delay = new Delay.Fixed(10, 5*10, TimeUnit.SECONDS);
+     *     long next = 0L, accured = 0L;
+     *     int attempt = 1;
+     *     while ((next = fixed.nextDelay(attempt++)) > 0) {
+     *         accured += next;
+     *     }
+     *     Assertions.assertEquals(5*10, accured);
+     * }
      */
-    class Fixed implements Delay {
+    class Constant implements Delay {
 
-        private final int maxAttempts;
-        private final int delay;
-        private final TimeUnit unit;
-        public Fixed(int maxAttempts,
-                     int delay,
-                     TimeUnit unit) {
-            this.maxAttempts = maxAttempts;
+        final long maxDelay;
+        final long delay;
+        final TimeUnit unit;
+        public Constant(long delay,
+                        long maxDelay,
+                        TimeUnit unit) {
+            this.maxDelay = maxDelay;
             this.delay = delay;
             this.unit = unit;
         }
 
         @Override
         public long nextDelay(int attempt) {
-            if (attempt <= maxAttempts) {
-                return delay;
-            }
-            return -1L;
+            return delay * attempt <= maxDelay ? delay : -1L;
         }
 
         @Override
         public TimeUnit unit() {
             return unit;
+        }
+    }
+
+    /**
+     * Provides blended delay of seconds for each attempt until all
+     * delays in the order start to return -1. This is useful to model
+     * blends in the delays where on can be quick for the first set of
+     * delays using {@link Constant} and then become {@link MultipleOf}
+     * or {@link Exponential} there after.
+     *
+     * {@code
+     *
+     *     final Delay delay =
+     *         new Blended(
+     *           new Constant(5, 20, TimeUnit.Seconds),
+     *           new MultipleOf(10, 220, 2, TimeUnit.Seconds));
+     * }
+     *
+     * The above delay provides the following set of 5, 10, 15, 20, 40, 90, 150, 220
+     */
+    class Blended implements Delay {
+
+        private final List<Delay> inOrder;
+        private int index = 0;
+        public Blended(Delay... delays) {
+            inOrder = Arrays.asList(delays);
+        }
+
+        @Override
+        public long nextDelay(int attempt) {
+            long next = -1L;
+            while (index < inOrder.size()) {
+                next = inOrder.get(index).nextDelay(attempt);
+                if (next > 0) {
+                    break;
+                }
+                ++index;
+            }
+            return next;
+        }
+
+        @Override
+        public TimeUnit unit() {
+            return inOrder.get(index).unit();
+        }
+    }
+
+    /**
+     * Provides constant fixed delay seconds which is a multiple of the delay for each
+     * attempt until {@link #maxDelay} has been reached. After which it will return -1
+     * Fixed is the same as multiple = 1;
+     *
+     */
+    class MultipleOf extends Constant {
+        private final int multiple;
+        private long previous;
+        public MultipleOf(long delay,
+                          long maxDelay,
+                          int multiple,
+                          TimeUnit unit) {
+            super(delay, maxDelay, unit);
+            Preconditions.checkArgument(multiple > 1, "multiple must be > 1");
+            this.multiple = multiple;
+        }
+
+        @Override
+        public long nextDelay(int attempt) {
+            if (attempt < 2) return (previous = delay);
+            previous = previous + delay * (attempt - 1) * multiple;
+            return previous <= maxDelay ? previous : -1L;
         }
     }
 
@@ -74,6 +152,7 @@ public interface Delay {
         private final TimeUnit unit;
         private final int powerBy;
         private final boolean isPowerOf2;
+        private long accured = 0L;
 
         public Exponential(long start,
                            long maxDelay,
@@ -110,7 +189,8 @@ public interface Delay {
             if (nextValue < minDelay) {
                 nextValue = minDelay;
             }
-            return nextValue <= maxDelay ? nextValue : -1L;
+            accured += nextValue;
+            return accured <= maxDelay ? nextValue : -1L;
         }
 
         @Override

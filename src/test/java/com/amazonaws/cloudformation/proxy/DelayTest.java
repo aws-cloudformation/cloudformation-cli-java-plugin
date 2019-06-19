@@ -11,7 +11,7 @@ public class DelayTest {
 
     @Test
     public void fixedDelay() {
-        final Delay fixed = new Delay.Fixed(5, 50, TimeUnit.MILLISECONDS);
+        final Delay fixed = new Delay.Constant(50, 5*50, TimeUnit.MILLISECONDS);
         int[] attempt = {1};
         final Executable fn = () -> {
             long next = 0L;
@@ -32,7 +32,7 @@ public class DelayTest {
 
     @Test
     public void fixedDelayIter() {
-        final Delay fixed = new Delay.Fixed(5, 50, TimeUnit.MILLISECONDS);
+        final Delay fixed = new Delay.Constant(50, 5*50, TimeUnit.MILLISECONDS);
         try {
             int attempt = 1;
             long next = 0L, accured = 0L, jitter = 2L;
@@ -54,15 +54,44 @@ public class DelayTest {
 
     @Test
     public void fixedDelays() {
-        final Delay fixed = new Delay.Fixed(5, 10, TimeUnit.MILLISECONDS);
+        final Delay fixed = new Delay.Constant(5, 50, TimeUnit.MILLISECONDS);
         long next = 0L, accured = 0L;
         int attempt = 1;
         while ((next = fixed.nextDelay(attempt++)) > 0) {
-            Assertions.assertEquals(10, next);
+            Assertions.assertEquals(5, next);
             accured += next;
         }
         Assertions.assertEquals(5*10, accured);
     }
+
+    @Test
+    public void multipleOfDelay() {
+        final Delay fixed = new Delay.MultipleOf(5, 105, 2, TimeUnit.SECONDS);
+        long next = 0L, accured = 0L;
+        int attempt = 1;
+        while ((next = fixed.nextDelay(attempt)) > 0) {
+            attempt++;
+            accured += next;
+        }
+        Assertions.assertEquals(5+15+35+65+105, accured);
+        Assertions.assertEquals(6, attempt);
+    }
+
+    @Test
+    public void blendedDelay() {
+        final Delay delay = new Delay.Blended(
+            new Delay.Constant(5, 20, TimeUnit.SECONDS),
+            new Delay.MultipleOf(5, 220, 2, TimeUnit.SECONDS));
+        long next = 0L, accured = 0L;
+        int attempt = 1;
+        while ((next = delay.nextDelay(attempt)) > 0) {
+            attempt++;
+            accured += next;
+        }
+        Assertions.assertEquals(5*4+40+90+150+220, accured);
+        Assertions.assertEquals(9, attempt);
+    }
+
 
     @Test
     public void exponentialDelays() {
@@ -74,16 +103,17 @@ public class DelayTest {
             attempt++;
             accured += next;
         }
-        Assertions.assertEquals(10, attempt);
+        Assertions.assertEquals(9, attempt);
 
         final Delay delay = new Delay.Exponential(10, Math.round(Math.pow(10, 9)), TimeUnit.SECONDS, 10);
         attempt = 1;
+        accured = 0L;
         while ((next = delay.nextDelay(attempt)) > 0) {
             Assertions.assertEquals(Math.round(Math.pow(10, attempt)), next);
             attempt++;
             accured += next;
         }
-        Assertions.assertEquals(10, attempt);
+        Assertions.assertEquals(9, attempt);
 
     }
 }

@@ -20,7 +20,6 @@ import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.exception.NonRetryableException;
 
 import javax.annotation.Nonnull;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.CompletableFuture;
@@ -83,7 +82,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
         // handling errors, throttles and more. The handler can influence this
         // using retry method.
         //
-        private Delay delay = new Delay.Fixed(3, 5, TimeUnit.SECONDS);
+        private Delay delay = new Delay.Constant(3, 5, TimeUnit.SECONDS);
         CallContext(String callGraph, ProxyClient<ClientT> client, ModelT model, CallbackT context) {
             this.callGraph = Preconditions.checkNotNull(callGraph);
             this.client = Preconditions.checkNotNull(client);
