@@ -2,6 +2,7 @@ package com.amazonaws.cloudformation.metrics;
 
 import com.amazonaws.cloudformation.Action;
 import com.amazonaws.cloudformation.injection.CloudWatchProvider;
+import com.amazonaws.cloudformation.logs.LogPublisher;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,8 +19,6 @@ import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataResponse;
 import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -32,30 +31,44 @@ import static org.mockito.Mockito.when;
 public class MetricsPublisherImplTest {
 
     @Mock
-    private LambdaLogger logger;
+    private LambdaLogger platformLambdaLogger;
 
     @Mock
-    private CloudWatchProvider cloudWatchProvider;
+    private CloudWatchProvider platformCloudWatchProvider;
 
     @Mock
-    private CloudWatchClient cloudWatchClient;
+    private CloudWatchProvider resourceOwnerCloudWatchProvider;
+
+    @Mock
+    private CloudWatchClient platformCloudWatchClient;
+
+    @Mock
+    private CloudWatchClient resourceOwnerCloudWatchClient;
+
+    @Mock
+    private LogPublisher resourceOwnerEventsLogger;
 
     @BeforeEach
     public void beforeEach() {
-        when(cloudWatchProvider.get()).thenReturn(cloudWatchClient);
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class)))
-            .thenReturn(mock(PutMetricDataResponse.class));
+        when(platformCloudWatchProvider.get()).thenReturn(platformCloudWatchClient);
+        when(platformCloudWatchClient.putMetricData(any(PutMetricDataRequest.class)))
+                .thenReturn(mock(PutMetricDataResponse.class));
+        when(resourceOwnerCloudWatchProvider.get()).thenReturn(resourceOwnerCloudWatchClient);
+        when(resourceOwnerCloudWatchClient.putMetricData(any(PutMetricDataRequest.class)))
+                .thenReturn(mock(PutMetricDataResponse.class));
     }
 
     @AfterEach
     public void afterEach() {
-        verifyNoMoreInteractions(cloudWatchProvider);
-        verifyNoMoreInteractions(cloudWatchClient);
+        verifyNoMoreInteractions(platformCloudWatchProvider);
+        verifyNoMoreInteractions(platformCloudWatchClient);
+        verifyNoMoreInteractions(resourceOwnerCloudWatchProvider);
+        verifyNoMoreInteractions(resourceOwnerCloudWatchClient);
     }
 
     @Test
     public void testPublishDurationMetric() {
-        final MetricsPublisherImpl o = new MetricsPublisherImpl(cloudWatchProvider, logger);
+        final MetricsPublisherImpl o = new MetricsPublisherImpl(platformCloudWatchProvider, resourceOwnerCloudWatchProvider, resourceOwnerEventsLogger, platformLambdaLogger);
         o.setResourceTypeName("AWS::Test::TestModel");
         o.refreshClient();
 
@@ -63,8 +76,9 @@ public class MetricsPublisherImplTest {
         o.publishDurationMetric(instant, Action.UPDATE, 123456);
 
         final ArgumentCaptor<PutMetricDataRequest> argument =
-            ArgumentCaptor.forClass(PutMetricDataRequest.class);
-        verify(cloudWatchClient).putMetricData(argument.capture());
+                ArgumentCaptor.forClass(PutMetricDataRequest.class);
+        verify(platformCloudWatchClient).putMetricData(argument.capture());
+        verify(resourceOwnerCloudWatchClient).putMetricData(argument.capture());
 
         final PutMetricDataRequest request = argument.getValue();
         assertThat(request.namespace()).isEqualTo("AWS_TMP/CloudFormation/AWS/Test/TestModel");
@@ -76,14 +90,14 @@ public class MetricsPublisherImplTest {
         assertThat(metricDatum.value()).isEqualTo(123456);
         assertThat(metricDatum.timestamp()).isEqualTo(Instant.parse("2019-06-04T17:50:00Z"));
         assertThat(metricDatum.dimensions()).containsExactlyInAnyOrder(
-            Dimension.builder().name("Action").value("UPDATE").build(),
-            Dimension.builder().name("ResourceType").value("AWS::Test::TestModel").build()
+                Dimension.builder().name("Action").value("UPDATE").build(),
+                Dimension.builder().name("ResourceType").value("AWS::Test::TestModel").build()
         );
     }
 
     @Test
     public void testPublishExceptionMetric() {
-        final MetricsPublisherImpl o = new MetricsPublisherImpl(cloudWatchProvider, logger);
+        final MetricsPublisherImpl o = new MetricsPublisherImpl(platformCloudWatchProvider, resourceOwnerCloudWatchProvider, resourceOwnerEventsLogger, platformLambdaLogger);
         o.setResourceTypeName("AWS::Test::TestModel");
         o.refreshClient();
 
@@ -92,8 +106,9 @@ public class MetricsPublisherImplTest {
         o.publishExceptionMetric(instant, Action.CREATE, e);
 
         final ArgumentCaptor<PutMetricDataRequest> argument =
-            ArgumentCaptor.forClass(PutMetricDataRequest.class);
-        verify(cloudWatchClient).putMetricData(argument.capture());
+                ArgumentCaptor.forClass(PutMetricDataRequest.class);
+        verify(platformCloudWatchClient).putMetricData(argument.capture());
+        verify(resourceOwnerCloudWatchClient).putMetricData(argument.capture());
 
         final PutMetricDataRequest request = argument.getValue();
         assertThat(request.namespace()).isEqualTo("AWS_TMP/CloudFormation/AWS/Test/TestModel");
@@ -105,15 +120,15 @@ public class MetricsPublisherImplTest {
         assertThat(metricDatum.value()).isEqualTo(1.0);
         assertThat(metricDatum.timestamp()).isEqualTo(Instant.parse("2019-06-03T17:50:00Z"));
         assertThat(metricDatum.dimensions()).containsExactlyInAnyOrder(
-            Dimension.builder().name("Action").value("CREATE").build(),
-            Dimension.builder().name("ExceptionType").value("class java.lang.RuntimeException").build(),
-            Dimension.builder().name("ResourceType").value("AWS::Test::TestModel").build()
+                Dimension.builder().name("Action").value("CREATE").build(),
+                Dimension.builder().name("ExceptionType").value("class java.lang.RuntimeException").build(),
+                Dimension.builder().name("ResourceType").value("AWS::Test::TestModel").build()
         );
     }
 
     @Test
     public void testPublishInvocationMetric() {
-        final MetricsPublisherImpl o = new MetricsPublisherImpl(cloudWatchProvider, logger);
+        final MetricsPublisherImpl o = new MetricsPublisherImpl(platformCloudWatchProvider, resourceOwnerCloudWatchProvider, resourceOwnerEventsLogger, platformLambdaLogger);
         o.setResourceTypeName("AWS::Test::TestModel");
         o.refreshClient();
 
@@ -121,8 +136,9 @@ public class MetricsPublisherImplTest {
         o.publishInvocationMetric(instant, Action.UPDATE);
 
         final ArgumentCaptor<PutMetricDataRequest> argument =
-            ArgumentCaptor.forClass(PutMetricDataRequest.class);
-        verify(cloudWatchClient).putMetricData(argument.capture());
+                ArgumentCaptor.forClass(PutMetricDataRequest.class);
+        verify(platformCloudWatchClient).putMetricData(argument.capture());
+        verify(resourceOwnerCloudWatchClient).putMetricData(argument.capture());
 
         final PutMetricDataRequest request = argument.getValue();
         assertThat(request.namespace()).isEqualTo("AWS_TMP/CloudFormation/AWS/Test/TestModel");
@@ -134,8 +150,8 @@ public class MetricsPublisherImplTest {
         assertThat(metricDatum.value()).isEqualTo(1.0);
         assertThat(metricDatum.timestamp()).isEqualTo(Instant.parse("2019-06-04T17:50:00Z"));
         assertThat(metricDatum.dimensions()).containsExactlyInAnyOrder(
-            Dimension.builder().name("Action").value("UPDATE").build(),
-            Dimension.builder().name("ResourceType").value("AWS::Test::TestModel").build()
+                Dimension.builder().name("Action").value("UPDATE").build(),
+                Dimension.builder().name("ResourceType").value("AWS::Test::TestModel").build()
         );
     }
 }

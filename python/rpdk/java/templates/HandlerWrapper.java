@@ -47,7 +47,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
         if (!handlers.containsKey(action))
             throw new RuntimeException("Unknown action " + actionName);
 
-        final LoggerProxy loggerProxy = new LoggerProxy(this.logger);
+        final LoggerProxy loggerProxy = new LoggerProxy(this.platformLambdaLogger, this.resourceOwnerEventsLogger);
 
         final BaseHandler<CallbackContext> handler = handlers.get(action);
 
