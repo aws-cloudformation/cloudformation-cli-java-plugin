@@ -31,6 +31,7 @@ import com.amazonaws.cloudformation.resource.exceptions.ValidationException;
 import com.amazonaws.cloudformation.scheduler.CloudWatchScheduler;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import software.amazon.awssdk.utils.StringUtils;
@@ -338,8 +339,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                 HandlerErrorCode.ServiceException);
         } catch (final Throwable e) {
             this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
-            this.logger.log(String.format("An unknown error occurred in a %s action on a %s: %s",
-                request.getAction(), request.getResourceType(), e.toString()));
+            this.logger.log(String.format("An unknown error occurred in a %s action on a %s: %s\n%s",
+                request.getAction(), request.getResourceType(), e.toString(), ExceptionUtils.getStackTrace(e)));
             return ProgressEvent.defaultFailureHandler(
                 e,
                 HandlerErrorCode.InternalFailure);
