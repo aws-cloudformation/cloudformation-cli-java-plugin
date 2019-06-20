@@ -90,8 +90,8 @@ public class MetricsPublisherImplTest {
         assertThat(metricDatum.value()).isEqualTo(123456);
         assertThat(metricDatum.timestamp()).isEqualTo(Instant.parse("2019-06-04T17:50:00Z"));
         assertThat(metricDatum.dimensions()).containsExactlyInAnyOrder(
-                Dimension.builder().name("Action").value("UPDATE").build(),
-                Dimension.builder().name("ResourceType").value("AWS::Test::TestModel").build()
+             Dimension.builder().name("Action").value("UPDATE").build(),
+             Dimension.builder().name("ResourceType").value("AWS::Test::TestModel").build()
         );
     }
 
@@ -120,9 +120,9 @@ public class MetricsPublisherImplTest {
         assertThat(metricDatum.value()).isEqualTo(1.0);
         assertThat(metricDatum.timestamp()).isEqualTo(Instant.parse("2019-06-03T17:50:00Z"));
         assertThat(metricDatum.dimensions()).containsExactlyInAnyOrder(
-                Dimension.builder().name("Action").value("CREATE").build(),
-                Dimension.builder().name("ExceptionType").value("class java.lang.RuntimeException").build(),
-                Dimension.builder().name("ResourceType").value("AWS::Test::TestModel").build()
+            Dimension.builder().name("Action").value("CREATE").build(),
+            Dimension.builder().name("ExceptionType").value("class java.lang.RuntimeException").build(),
+            Dimension.builder().name("ResourceType").value("AWS::Test::TestModel").build()
         );
     }
 
@@ -150,8 +150,8 @@ public class MetricsPublisherImplTest {
         assertThat(metricDatum.value()).isEqualTo(1.0);
         assertThat(metricDatum.timestamp()).isEqualTo(Instant.parse("2019-06-04T17:50:00Z"));
         assertThat(metricDatum.dimensions()).containsExactlyInAnyOrder(
-                Dimension.builder().name("Action").value("UPDATE").build(),
-                Dimension.builder().name("ResourceType").value("AWS::Test::TestModel").build()
+            Dimension.builder().name("Action").value("UPDATE").build(),
+            Dimension.builder().name("ResourceType").value("AWS::Test::TestModel").build()
         );
     }
 }

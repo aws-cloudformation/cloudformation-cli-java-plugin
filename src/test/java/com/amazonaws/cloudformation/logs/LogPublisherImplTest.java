@@ -57,9 +57,6 @@ public class LogPublisherImplTest {
 
     @BeforeEach
     public void beforeEach() {
-//        when(platformCloudWatchProvider.get()).thenReturn(platformCloudWatchClient);
-//        when(platformCloudWatchClient.putMetricData(any(PutMetricDataRequest.class)))
-//                .thenReturn(mock(PutMetricDataResponse.class));
         when(cloudWatchEventsLogProvider.get()).thenReturn(cloudWatchLogsClient);
     }
 

@@ -3,6 +3,7 @@ package com.amazonaws.cloudformation.scheduler;
 import com.amazonaws.cloudformation.TestContext;
 import com.amazonaws.cloudformation.TestModel;
 import com.amazonaws.cloudformation.injection.CloudWatchEventsProvider;
+import com.amazonaws.cloudformation.logs.LogPublisher;
 import com.amazonaws.cloudformation.proxy.HandlerRequest;
 import com.amazonaws.cloudformation.proxy.RequestContext;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
@@ -34,6 +35,9 @@ public class CloudWatchSchedulerTest {
     private LambdaLogger platformLambdaLogger;
 
     @Mock
+    private LogPublisher resourceOwnerEventsLogger;
+
+    @Mock
     private RequestContext<TestContext> requestContext;
 
     private static final String FUNCTION_ARN = "arn:aws:lambda:region:account-id:function:function-name";
@@ -52,7 +56,7 @@ public class CloudWatchSchedulerTest {
         final CloudWatchEventsClient client = getCloudWatchEvents();
         when(provider.get()).thenReturn(client);
         final CronHelper cronHelper = getCronHelper();
-        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, platformLambdaLogger, null, cronHelper);
+        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, platformLambdaLogger, resourceOwnerEventsLogger, cronHelper);
         scheduler.refreshClient();
 
         scheduler.cleanupCloudWatchEvents(null, "targetid");
@@ -68,7 +72,7 @@ public class CloudWatchSchedulerTest {
         final CloudWatchEventsClient client = getCloudWatchEvents();
         when(provider.get()).thenReturn(client);
         final CronHelper cronHelper = getCronHelper();
-        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, platformLambdaLogger, null, cronHelper);
+        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, platformLambdaLogger, resourceOwnerEventsLogger, cronHelper);
         scheduler.refreshClient();
 
         scheduler.cleanupCloudWatchEvents("rulename", null);
@@ -84,7 +88,7 @@ public class CloudWatchSchedulerTest {
         final CloudWatchEventsClient client = getCloudWatchEvents();
         when(provider.get()).thenReturn(client);
         final CronHelper cronHelper = getCronHelper();
-        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, platformLambdaLogger, null, cronHelper);
+        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, platformLambdaLogger, resourceOwnerEventsLogger, cronHelper);
         scheduler.refreshClient();
 
         scheduler.cleanupCloudWatchEvents("rulename", "targetid");
@@ -102,7 +106,7 @@ public class CloudWatchSchedulerTest {
         final CronHelper cronHelper = getCronHelper();
         when(cronHelper.generateOneTimeCronExpression(1))
             .thenReturn("cron(41 14 31 10 ? 2019)");
-        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, platformLambdaLogger, null, cronHelper);
+        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, platformLambdaLogger, resourceOwnerEventsLogger, cronHelper);
         scheduler.refreshClient();
         final HandlerRequest<TestModel, TestContext> request = new HandlerRequest<>();
 

@@ -249,7 +249,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         initialiseRuntime(
                 request.getRequestData().getPlatformCredentials(),
                 request.getRequestData().getResourceOwnerLoggingCredentials(),
-                request.getRequestData().getResourceOwnerLoggingLogGroupName(),
+                request.getRequestData().getResourceOwnerLogGroupName(),
                 context,
                 URI.create(request.getResponseEndpoint()));
 
