@@ -1,35 +1,42 @@
 {
-  "typeName" : "AWS::Code::Repository",
-  "description" : "Resource Type definition for AWS::Code::Repository",
-  "properties" : {
-    "Arn" : {
-      "type" : "string"
+    "typeName": "AWS::Code::Repository",
+    "description": "Resource Type definition for AWS::Code::Repository",
+    "properties": {
+        "Arn": {
+            "type": "string"
+        },
+        "RepoName": {
+            "type": "string"
+        },
+        "Users": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+                "type": "string"
+            }
+        },
+        "Created": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "AccessDenied": {
+            "type": "boolean",
+            "default": false
+        },
+        "Throttle": {
+            "type": "boolean",
+            "default": false
+        }
     },
-    "RepoName" : {
-      "type" : "string"
-    },
-    "Users" : {
-      "type" : "array",
-      "uniqueItems" : true,
-      "items" : {
-        "type": "string"
-      }
-    },
-    "Created": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "AccessDenied": {
-      "type": "boolean",
-      "default": false
-    },
-    "Throttle": {
-      "type": "boolean",
-      "default": false
-    }
-  },
-  "required" : [ "RepoName" ],
-  "additionalProperties" : false,
-  "readOnlyProperties" : [ "Arn", "Created" ],
-  "createOnlyProperties" : [ "RepoName" ]
+    "required": [
+        "RepoName"
+    ],
+    "additionalProperties": false,
+    "readOnlyProperties": [
+        "Arn",
+        "Created"
+    ],
+    "createOnlyProperties": [
+        "RepoName"
+    ]
 }
