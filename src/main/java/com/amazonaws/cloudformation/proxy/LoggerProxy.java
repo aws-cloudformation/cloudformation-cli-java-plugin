@@ -18,8 +18,12 @@ public final class LoggerProxy implements Logger {
 
     @Override
     public void log(final String message) {
-        platformLambdaLogger.log(message);
-        //NOTE: Exceptions might be thrown are handled inside LogPublisher.
-        resourceOwnerEventsLogger.publishLogEvent(message);
+        if (platformLambdaLogger != null) {
+            platformLambdaLogger.log(message);
+        }
+        if (resourceOwnerEventsLogger != null) {
+            //NOTE: Exceptions might be thrown are handled inside LogPublisher.
+            resourceOwnerEventsLogger.publishLogEvent(message);
+        }
     }
 }

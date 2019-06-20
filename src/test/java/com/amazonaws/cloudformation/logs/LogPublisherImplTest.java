@@ -91,7 +91,7 @@ public class LogPublisherImplTest {
         when(cloudWatchLogsClient.putLogEvents(putLogEventsRequestArgumentCaptor.capture()))
                 .thenReturn(null);
         final String msgToLog = "How is it going?";
-        logPublisher.initializeLoggingConditions();
+        logPublisher.initialize();
         logPublisher.publishLogEvent(msgToLog);
 
         assertThat(describeLogGroupsRequestArgumentCaptor.getValue().logGroupNamePrefix()).isEqualTo(LOG_GROUP_NAME);
@@ -131,7 +131,7 @@ public class LogPublisherImplTest {
         when(cloudWatchLogsClient.putLogEvents(putLogEventsRequestArgumentCaptor.capture()))
                 .thenReturn(null);
         final String msgToLog = "How is it going?";
-        logPublisher.initializeLoggingConditions();
+        logPublisher.initialize();
         logPublisher.publishLogEvent(msgToLog);
 
         assertThat(describeLogGroupsRequestArgumentCaptor.getValue().logGroupNamePrefix()).isEqualTo(LOG_GROUP_NAME);
@@ -160,7 +160,7 @@ public class LogPublisherImplTest {
                 .thenThrow(new RuntimeException("Sorry"));
 
         final String msgToLog = "How is it going?";
-        logPublisher.initializeLoggingConditions();
+        logPublisher.initialize();
         logPublisher.publishLogEvent(msgToLog);
 
         assertThat(describeLogGroupsRequestArgumentCaptor.getValue().logGroupNamePrefix()).isEqualTo(LOG_GROUP_NAME);

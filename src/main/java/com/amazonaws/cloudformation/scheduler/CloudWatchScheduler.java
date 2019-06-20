@@ -1,6 +1,7 @@
 package com.amazonaws.cloudformation.scheduler;
 
 import com.amazonaws.cloudformation.logs.LogPublisher;
+import com.amazonaws.cloudformation.proxy.Logger;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.cloudformation.injection.CloudWatchEventsProvider;
 import com.amazonaws.cloudformation.proxy.HandlerRequest;
@@ -24,18 +25,15 @@ public class CloudWatchScheduler {
 
     private final CloudWatchEventsProvider cloudWatchEventsProvider;
 
-    private final LambdaLogger platformLambdaLogger;
-    private final LogPublisher resourceOwnerEventsLogger;
+    private final Logger loggerProxy;
 
     private final CronHelper cronHelper;
     private CloudWatchEventsClient client;
 
     public CloudWatchScheduler(final CloudWatchEventsProvider cloudWatchEventsProvider,
-                               final LogPublisher resourceOwnerEventsLogger,
-                               final LambdaLogger platformLambdaLogger) {
+                               final Logger loggerProxy) {
         this.cloudWatchEventsProvider = cloudWatchEventsProvider;
-        this.resourceOwnerEventsLogger = resourceOwnerEventsLogger;
-        this.platformLambdaLogger = platformLambdaLogger;
+        this.loggerProxy = loggerProxy;
         this.cronHelper = new CronHelper();
     }
 
@@ -43,12 +41,10 @@ public class CloudWatchScheduler {
      * This .ctor provided for testing
      */
     public CloudWatchScheduler(final CloudWatchEventsProvider cloudWatchEventsProvider,
-                               final LambdaLogger platformLambdaLogger,
-                               final LogPublisher resourceOwnerEventsLogger,
+                               final Logger loggerProxy,
                                final CronHelper cronHelper) {
         this.cloudWatchEventsProvider = cloudWatchEventsProvider;
-        this.resourceOwnerEventsLogger = resourceOwnerEventsLogger;
-        this.platformLambdaLogger = platformLambdaLogger;
+        this.loggerProxy = loggerProxy;
         this.cronHelper = cronHelper;
     }
 
@@ -151,11 +147,8 @@ public class CloudWatchScheduler {
      * @param message A string containing the event to log.
      */
     private void log(final String message) {
-        if (this.resourceOwnerEventsLogger != null) {
-            resourceOwnerEventsLogger.publishLogEvent(message);
-        }
-        if (this.platformLambdaLogger != null) {
-            this.platformLambdaLogger.log(message);
+        if (this.loggerProxy != null) {
+            loggerProxy.log(message);
         }
     }
 }

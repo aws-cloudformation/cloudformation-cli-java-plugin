@@ -32,7 +32,12 @@ public class LogPublisherImpl implements LogPublisher {
     }
 
     @Override
-    public void initializeLoggingConditions() {
+    public void filterLogMessage() {
+        // The way to filter information is to be designed.
+    }
+
+    @Override
+    public void initialize() {
         try {
             refreshClient();
             createLogGroupIfNotExist();
@@ -86,7 +91,7 @@ public class LogPublisherImpl implements LogPublisher {
     }
 
     @Override
-    public void publishLogEvent(final String messageToLog) {
+    public void publishLogEvent(final String message) {
         try {
             if (skipLogging) {
                 return;
@@ -94,12 +99,12 @@ public class LogPublisherImpl implements LogPublisher {
             cloudWatchLogsClient.putLogEvents(PutLogEventsRequest.builder()
                     .logGroupName(logGroupName)
                     .logStreamName(logStreamName)
-                    .logEvents(InputLogEvent.builder().message(messageToLog).timestamp(new Date().getTime()).build())
+                    .logEvents(InputLogEvent.builder().message(message).timestamp(new Date().getTime()).build())
                     .build());
         } catch (final Exception e) {
             platformLambdaLogger.log(String.format(
                     "An error occurred while putting log events [%s] to resource owner account, with error: %s",
-                    messageToLog, e.toString()));
+                    message, e.toString()));
         }
     }
 }

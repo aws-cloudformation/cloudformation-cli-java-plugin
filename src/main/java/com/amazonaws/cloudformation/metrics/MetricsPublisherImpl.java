@@ -2,8 +2,7 @@ package com.amazonaws.cloudformation.metrics;
 
 import com.amazonaws.cloudformation.Action;
 import com.amazonaws.cloudformation.injection.CloudWatchProvider;
-import com.amazonaws.cloudformation.logs.LogPublisher;
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
+import com.amazonaws.cloudformation.proxy.Logger;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.MetricDatum;
@@ -18,33 +17,23 @@ import java.util.Map;
 
 public class MetricsPublisherImpl implements MetricsPublisher {
 
-    private final CloudWatchProvider platformCloudWatchProvider;
-    private final CloudWatchProvider resourceOwnerCloudWatchProvider;
+    private final CloudWatchProvider cloudWatchProvider;
 
-    private final LambdaLogger platformLambdaLogger;
-    private final LogPublisher resourceOwnerEventsLogger;
+    private final Logger loggerProxy;
 
-    private CloudWatchClient platformCloudWatchClient;
-    private CloudWatchClient resourceOwnerCloudWatchClient;
+    private List<CloudWatchClient> cloudWatchClientList;
 
     private String resourceNamespace;
     private String resourceTypeName;
 
-    public MetricsPublisherImpl(final CloudWatchProvider platformCloudWatchProvider,
-                                final CloudWatchProvider resourceOwnerCloudWatchProvider,
-                                final LogPublisher resourceOwnerEventsLogger,
-                                final LambdaLogger platformLambdaLogger) {
-        this.platformCloudWatchProvider = platformCloudWatchProvider;
-        this.resourceOwnerCloudWatchProvider = resourceOwnerCloudWatchProvider;
-        this.resourceOwnerEventsLogger = resourceOwnerEventsLogger;
-        this.platformLambdaLogger = platformLambdaLogger;
+    public MetricsPublisherImpl(final CloudWatchProvider cloudWatchProvider,
+                                final Logger loggerProxy) {
+        this.cloudWatchProvider = cloudWatchProvider;
+        this.loggerProxy = loggerProxy;
     }
 
     public void refreshClient() {
-        this.platformCloudWatchClient = platformCloudWatchProvider.get();
-        if (resourceOwnerCloudWatchProvider != null) {
-            this.resourceOwnerCloudWatchClient = resourceOwnerCloudWatchProvider.get();
-        }
+        this.cloudWatchClientList = cloudWatchProvider.getClients();
     }
 
     public String getResourceTypeName() {
@@ -129,25 +118,17 @@ public class MetricsPublisherImpl implements MetricsPublisher {
             .build();
 
         try {
-            platformCloudWatchClient.putMetricData(putMetricDataRequest);
-            if (resourceOwnerCloudWatchClient != null) {
-                resourceOwnerCloudWatchClient.putMetricData(putMetricDataRequest);
+            for (final CloudWatchClient cloudWatchClient : this.cloudWatchClientList) {
+                cloudWatchClient.putMetricData(putMetricDataRequest);
             }
         } catch (final Exception e) {
             log(String.format("An error occurred while publishing metrics: %s", e.getMessage()));
         }
     }
 
-    /**
-     * null-safe platformLambdaLogger redirect
-     * @param message A string containing the event to log.
-     */
     private void log(final String message) {
-        if (this.resourceOwnerEventsLogger != null) {
-            this.resourceOwnerEventsLogger.publishLogEvent(String.format("%s\n", message));
-        }
-        if (this.platformLambdaLogger != null) {
-            this.platformLambdaLogger.log(String.format("%s\n", message));
+        if (loggerProxy != null) {
+            loggerProxy.log(String.format("%s\n", message));
         }
     }
 }
