@@ -36,7 +36,7 @@ public class ServiceHandlerWrapper extends LambdaWrapper<Model, StdCallbackConte
     }
 
     @Override
-    protected ResourceHandlerRequest<Model> transform(HandlerRequest<Model, StdCallbackContext> request) throws IOException {
+    protected ResourceHandlerRequest<Model> transform(final HandlerRequest<Model, StdCallbackContext> request) throws IOException {
         final Model desiredResourceState;
         final Model previousResourceState;
 
@@ -57,15 +57,10 @@ public class ServiceHandlerWrapper extends LambdaWrapper<Model, StdCallbackConte
         }
 
         return new ResourceHandlerRequest<>(
-            request.getAwsAccountId(),
-            request.getBearerToken(),
             request.getRequestData().getLogicalResourceId(),
-            request.getNextToken(),
-            request.getRegion(),
-            request.getResourceType(),
-            request.getResourceTypeVersion(),
             desiredResourceState,
-            previousResourceState
+            previousResourceState,
+            request.getBearerToken()
         );
     }
 
@@ -75,10 +70,10 @@ public class ServiceHandlerWrapper extends LambdaWrapper<Model, StdCallbackConte
     }
 
     @Override
-    public ProgressEvent<Model, StdCallbackContext> invokeHandler(AmazonWebServicesClientProxy proxy,
-                                                                  ResourceHandlerRequest<Model> request,
-                                                                  Action action,
-                                                                  StdCallbackContext callbackContext) throws Exception {
+    public ProgressEvent<Model, StdCallbackContext> invokeHandler(final AmazonWebServicesClientProxy proxy,
+                                                                  final ResourceHandlerRequest<Model> request,
+                                                                  final Action action,
+                                                                  final StdCallbackContext callbackContext) throws Exception {
         switch (action) {
             case CREATE:
                 return new CreateHandler(SVC_CLIENT).handleRequest(

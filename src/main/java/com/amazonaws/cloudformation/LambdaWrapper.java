@@ -76,24 +76,6 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         this.typeReference = getTypeReference();
     }
 
-    protected LambdaWrapper(final CallbackAdapter<ResourceT> callbackAdapter,
-                            final CredentialsProvider credentialsProvider,
-                            final MetricsPublisher metricsPublisher,
-                            final CloudWatchScheduler scheduler,
-                            final SchemaValidator validator,
-                            final Serializer serializer) {
-        this.callbackAdapter = callbackAdapter;
-        this.credentialsProvider = credentialsProvider;
-        this.cloudFormationProvider = new CloudFormationProvider(this.credentialsProvider);
-        this.cloudWatchProvider = new CloudWatchProvider(this.credentialsProvider);
-        this.cloudWatchEventsProvider = new CloudWatchEventsProvider(this.credentialsProvider);
-        this.metricsPublisher = metricsPublisher;
-        this.scheduler = scheduler;
-        this.serializer = serializer;
-        this.validator = validator;
-        typeReference = getTypeReference();
-    }
-
     /**
      * This .ctor provided for testing
      */
@@ -102,8 +84,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                          final MetricsPublisher metricsPublisher,
                          final CloudWatchScheduler scheduler,
                          final SchemaValidator validator,
-                         final Serializer serializer,
-                         final TypeReference<HandlerRequest<ResourceT, CallbackT>> typeReference) {
+                         final Serializer serializer) {
 
         this.callbackAdapter = callbackAdapter;
         this.credentialsProvider = credentialsProvider;
@@ -114,7 +95,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         this.scheduler = scheduler;
         this.serializer = serializer;
         this.validator = validator;
-        this.typeReference = typeReference;
+        this.typeReference = getTypeReference();
     }
 
     /**
@@ -199,7 +180,6 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         } finally {
             // A response will be output on all paths, though CloudFormation will
             // not block on invoking the handlers, but rather listen for callbacks
-            // FIXME: when an exception DOES NOT extend java.lang.Exception, then handlerResponse can be null
             writeResponse(outputStream, createProgressResponse(handlerResponse, request.getBearerToken()));
         }
     }
