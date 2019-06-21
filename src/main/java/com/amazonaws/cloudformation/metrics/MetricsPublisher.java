@@ -7,7 +7,7 @@ import java.time.Instant;
 public interface MetricsPublisher {
 
     /**
-     * On Lambda re-invoke we need to supply a new set of initiate credentials so this function
+     * On Lambda re-invoke we need to supply a new set of client credentials so this function
      * must be called whenever credentials are refreshed/changed in the owning entity
      */
     void refreshClient();
