@@ -232,7 +232,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                 HandlerErrorCode.InvalidRequest);
         } catch (final Throwable e) {
             // Exceptions are wrapped as a consistent error response to the caller (i.e; CloudFormation)
-            e.printStackTrace(); // for root causing - loggers to LambdaLogger by default
+            e.printStackTrace(); // for root causing - logs to LambdaLogger by default
             handlerResponse = ProgressEvent.defaultFailureHandler(
                 e,
                 HandlerErrorCode.InternalFailure

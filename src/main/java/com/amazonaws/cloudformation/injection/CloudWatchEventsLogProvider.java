@@ -12,13 +12,13 @@ public class CloudWatchEventsLogProvider extends AmazonWebServicesProvider {
 
     public CloudWatchLogsClient get() {
         return CloudWatchLogsClient.builder()
-                .credentialsProvider(this.getCredentialsProvider())
-                .overrideConfiguration(ClientOverrideConfiguration.builder()
-                        //Default Retry Condition of Retry Policy retries on Throttling and ClockSkew Exceptions
-                        .retryPolicy(RetryPolicy.builder()
-                                .numRetries(16)
-                                .build())
-                        .build())
-                .build();
+            .credentialsProvider(this.getCredentialsProvider())
+            .overrideConfiguration(ClientOverrideConfiguration.builder()
+                //Default Retry Condition of Retry Policy retries on Throttling and ClockSkew Exceptions
+                .retryPolicy(RetryPolicy.builder()
+                    .numRetries(16)
+                    .build())
+                .build())
+            .build();
     }
 }

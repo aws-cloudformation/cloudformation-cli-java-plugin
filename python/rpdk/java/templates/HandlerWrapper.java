@@ -49,7 +49,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
 
         final BaseHandler<CallbackContext> handler = handlers.get(action);
 
-        return handler.handleRequest(proxy, request, callbackContext, this.loggerProxy);
+        return handler.handleRequest(proxy, request, callbackContext, loggerProxy);
     }
 
     @Override
