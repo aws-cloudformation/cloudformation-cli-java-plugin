@@ -1,8 +1,8 @@
-package com.amazonaws.cloudformation.logs;
+package com.amazonaws.cloudformation.loggers;
 
 import com.amazonaws.cloudformation.injection.CloudWatchEventsLogProvider;
 import com.amazonaws.cloudformation.injection.CloudWatchProvider;
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
+import com.amazonaws.cloudformation.metrics.MetricsPublisherProxy;
 import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,7 +26,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class LogPublisherImplTest {
+public class CloudWatchLogPublisherImplTest {
 
     @Mock
     private CloudWatchEventsLogProvider cloudWatchEventsLogProvider;
@@ -34,24 +34,17 @@ public class LogPublisherImplTest {
     @Mock
     private CloudWatchLogsClient cloudWatchLogsClient;
 
+    @Mock
+    private LoggerProxy loggerProxy;
 
     @Mock
-    private LambdaLogger platformLambdaLogger;
+    private MetricsPublisherProxy metricsPublisherProxy;
 
     @Mock
     private CloudWatchProvider platformCloudWatchProvider;
 
     @Mock
-    private CloudWatchProvider resourceOwnerCloudWatchProvider;
-
-    @Mock
     private CloudWatchClient platformCloudWatchClient;
-
-    @Mock
-    private CloudWatchClient resourceOwnerCloudWatchClient;
-
-    @Mock
-    private LogPublisher resourceOwnerEventsLogger;
 
     private static final String LOG_GROUP_NAME = "log-group-name";
 
@@ -68,7 +61,7 @@ public class LogPublisherImplTest {
 
     @Test
     public void testPublishLogEventsWithExistingLogGroup() {
-        final LogPublisherImpl logPublisher = new LogPublisherImpl(cloudWatchEventsLogProvider, LOG_GROUP_NAME, platformLambdaLogger);
+        final CloudWatchLogPublisherImpl logPublisher = new CloudWatchLogPublisherImpl(cloudWatchEventsLogProvider, LOG_GROUP_NAME, loggerProxy, metricsPublisherProxy);
         final ArgumentCaptor<DescribeLogGroupsRequest> describeLogGroupsRequestArgumentCaptor =
                 ArgumentCaptor.forClass(DescribeLogGroupsRequest.class);
         final ArgumentCaptor<CreateLogStreamRequest> createLogStreamRequestArgumentCaptor =
@@ -79,7 +72,7 @@ public class LogPublisherImplTest {
         final DescribeLogGroupsResponse describeLogGroupsResponse = DescribeLogGroupsResponse.builder().logGroups(
                 LogGroup.builder()
                         .logGroupName(LOG_GROUP_NAME)
-                        .arn("arn:aws:logs:us-east-1:987721315229:log-group:/aws/lambda/testLogGroup-X:*")
+                        .arn("arn:aws:loggers:us-east-1:987721315229:log-group:/aws/lambda/testLogGroup-X:*")
                         .creationTime(4567898765l)
                         .storedBytes(456789l).build()
         ).build();
@@ -110,7 +103,7 @@ public class LogPublisherImplTest {
 
     @Test
     public void testPublishLogEventsCreatingNewLogGroup() {
-        final LogPublisherImpl logPublisher = new LogPublisherImpl(cloudWatchEventsLogProvider, LOG_GROUP_NAME, platformLambdaLogger);
+        final CloudWatchLogPublisherImpl logPublisher = new CloudWatchLogPublisherImpl(cloudWatchEventsLogProvider, LOG_GROUP_NAME, loggerProxy, metricsPublisherProxy);
         final ArgumentCaptor<DescribeLogGroupsRequest> describeLogGroupsRequestArgumentCaptor =
                 ArgumentCaptor.forClass(DescribeLogGroupsRequest.class);
         final ArgumentCaptor<CreateLogStreamRequest> createLogStreamRequestArgumentCaptor =
@@ -152,7 +145,7 @@ public class LogPublisherImplTest {
 
     @Test
     public void testPublishLogEventsSkippedOutOfInitializationFailure() {
-        final LogPublisherImpl logPublisher = new LogPublisherImpl(cloudWatchEventsLogProvider, LOG_GROUP_NAME, platformLambdaLogger);
+        final CloudWatchLogPublisherImpl logPublisher = new CloudWatchLogPublisherImpl(cloudWatchEventsLogProvider, LOG_GROUP_NAME, loggerProxy, metricsPublisherProxy);
         final ArgumentCaptor<DescribeLogGroupsRequest> describeLogGroupsRequestArgumentCaptor =
                 ArgumentCaptor.forClass(DescribeLogGroupsRequest.class);
 

@@ -2,7 +2,7 @@ package com.amazonaws.cloudformation.metrics;
 
 import com.amazonaws.cloudformation.Action;
 import com.amazonaws.cloudformation.injection.CloudWatchProvider;
-import com.amazonaws.cloudformation.proxy.Logger;
+import com.amazonaws.cloudformation.loggers.Logger;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.MetricDatum;
@@ -15,16 +15,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MetricsPublisherImpl implements MetricsPublisher {
+public class MetricsPublisherImpl extends MetricsPublisher {
 
     private final CloudWatchProvider cloudWatchProvider;
 
-    private final Logger loggerProxy;
+    private Logger loggerProxy;
 
-    private List<CloudWatchClient> cloudWatchClientList;
-
-    private String resourceNamespace;
-    private String resourceTypeName;
+    private CloudWatchClient cloudWatchClient;
 
     public MetricsPublisherImpl(final CloudWatchProvider cloudWatchProvider,
                                 final Logger loggerProxy) {
@@ -33,16 +30,11 @@ public class MetricsPublisherImpl implements MetricsPublisher {
     }
 
     public void refreshClient() {
-        this.cloudWatchClientList = cloudWatchProvider.getClients();
+        this.cloudWatchClient = cloudWatchProvider.get();
     }
 
-    public String getResourceTypeName() {
+    private String getResourceTypeName() {
         return this.resourceTypeName;
-    }
-
-    public void setResourceTypeName(final String resourceTypeName) {
-        this.resourceTypeName = resourceTypeName;
-        this.resourceNamespace = resourceTypeName.replace("::", "/");
     }
 
     public void publishExceptionMetric(final Instant timestamp,
@@ -50,6 +42,19 @@ public class MetricsPublisherImpl implements MetricsPublisher {
                                        final Throwable e) {
         final Map<String, String> dimensions = new HashMap<>();
         dimensions.put(Metrics.DIMENSION_KEY_ACTION_TYPE, action.name());
+        dimensions.put(Metrics.DIMENSION_KEY_EXCEPTION_TYPE, e.getClass().toString());
+        dimensions.put(Metrics.DIMENSION_KEY_RESOURCE_TYPE, this.getResourceTypeName());
+
+        publishMetric(Metrics.METRIC_NAME_HANDLER_EXCEPTION,
+            dimensions,
+            StandardUnit.COUNT,
+            1.0,
+            timestamp);
+    }
+
+    public void publishResourceOwnerLogDeliveryExceptionMetric(final Instant timestamp, final Throwable e) {
+        final Map<String, String> dimensions = new HashMap<>();
+        dimensions.put(Metrics.DIMENSION_KEY_ACTION_TYPE, "ResourceOwnerLogDelivery");
         dimensions.put(Metrics.DIMENSION_KEY_EXCEPTION_TYPE, e.getClass().toString());
         dimensions.put(Metrics.DIMENSION_KEY_RESOURCE_TYPE, this.getResourceTypeName());
 
@@ -118,9 +123,7 @@ public class MetricsPublisherImpl implements MetricsPublisher {
             .build();
 
         try {
-            for (final CloudWatchClient cloudWatchClient : this.cloudWatchClientList) {
-                cloudWatchClient.putMetricData(putMetricDataRequest);
-            }
+            this.cloudWatchClient.putMetricData(putMetricDataRequest);
         } catch (final Exception e) {
             log(String.format("An error occurred while publishing metrics: %s", e.getMessage()));
         }

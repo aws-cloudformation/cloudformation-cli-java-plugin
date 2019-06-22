@@ -2,7 +2,7 @@ package com.amazonaws.cloudformation.proxy;
 
 import com.amazonaws.cloudformation.TestModel;
 import com.amazonaws.cloudformation.injection.CloudFormationProvider;
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
+import com.amazonaws.cloudformation.loggers.LoggerProxy;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -42,7 +42,7 @@ public class CloudFormationCallbackAdapterTest {
     private CloudFormationProvider cloudFormationProvider;
 
     @Mock
-    private LambdaLogger lambdaLogger;
+    private LoggerProxy loggerProxy;
 
     @Test
     public void testReportProgress() {
@@ -59,7 +59,7 @@ public class CloudFormationCallbackAdapterTest {
             .thenReturn(response);
 
         final CloudFormationCallbackAdapter<TestModel> adapter =
-            new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, lambdaLogger);
+            new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, loggerProxy);
         adapter.refreshClient();
 
         adapter.reportProgress(

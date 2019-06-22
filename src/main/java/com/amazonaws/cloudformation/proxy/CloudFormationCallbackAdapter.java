@@ -1,7 +1,7 @@
 package com.amazonaws.cloudformation.proxy;
 
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.cloudformation.injection.CloudFormationProvider;
+import com.amazonaws.cloudformation.loggers.LoggerProxy;
 import org.json.JSONObject;
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressRequest;
@@ -11,14 +11,14 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
 
     private final CloudFormationProvider cloudFormationProvider;
 
-    private final LambdaLogger logger;
+    private final LoggerProxy loggerProxy;
 
     private CloudFormationClient client;
 
     public CloudFormationCallbackAdapter(final CloudFormationProvider cloudFormationProvider,
-                                         final LambdaLogger logger) {
+                                         final LoggerProxy loggerProxy) {
         this.cloudFormationProvider = cloudFormationProvider;
-        this.logger = logger;
+        this.loggerProxy = loggerProxy;
     }
 
     public void refreshClient() {
@@ -44,9 +44,9 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
             requestBuilder.errorCode(translate(errorCode));
         }
 
-        // TODO: be far more fault tolerant, do retries, emit logs and metrics, etc.
+        // TODO: be far more fault tolerant, do retries, emit loggers and metrics, etc.
         final RecordHandlerProgressResponse response = this.client.recordHandlerProgress(requestBuilder.build());
-        logger.log(String.format("Record Handler Progress with Request Id %s and Request: {%s}", response.responseMetadata().requestId(), requestBuilder.build().toString()));
+        loggerProxy.log(String.format("Record Handler Progress with Request Id %s and Request: {%s}", response.responseMetadata().requestId(), requestBuilder.build().toString()));
     }
 
     static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode translate(

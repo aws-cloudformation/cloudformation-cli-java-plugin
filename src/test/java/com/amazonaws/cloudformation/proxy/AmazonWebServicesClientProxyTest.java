@@ -1,10 +1,10 @@
 package com.amazonaws.cloudformation.proxy;
 
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.cloudformation.loggers.LoggerProxy;
 import com.amazonaws.services.cloudformation.AmazonCloudFormation;
 import com.amazonaws.services.cloudformation.model.DescribeStackEventsRequest;
 import com.amazonaws.services.cloudformation.model.DescribeStackEventsResult;
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.services.cloudformation.CloudFormationAsyncClient;
@@ -27,10 +27,10 @@ public class AmazonWebServicesClientProxyTest {
     @Test
     public void testInjectCredentialsAndInvoke() {
 
-        final LambdaLogger lambdaLogger = mock(LambdaLogger.class);
+        final LoggerProxy loggerProxy = mock(LoggerProxy.class);
         final Credentials credentials = new Credentials("accessKeyId", "secretAccessKey", "sessionToken");
 
-        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(lambdaLogger, credentials);
+        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(loggerProxy, credentials);
 
         final DescribeStackEventsRequest request = mock(DescribeStackEventsRequest.class);
 
@@ -57,10 +57,10 @@ public class AmazonWebServicesClientProxyTest {
     @Test
     public void testInjectCredentialsAndInvokeV2() {
 
-        final LambdaLogger lambdaLogger = mock(LambdaLogger.class);
+        final LoggerProxy loggerProxy = mock(LoggerProxy.class);
         final Credentials credentials = new Credentials("accessKeyId", "secretAccessKey", "sessionToken");
 
-        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(lambdaLogger, credentials);
+        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(loggerProxy, credentials);
 
         final software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest wrappedRequest =
                 mock(software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest.class);
@@ -99,10 +99,10 @@ public class AmazonWebServicesClientProxyTest {
     @Test
     public void testInjectCredentialsAndInvokeV2Async() throws ExecutionException, InterruptedException {
 
-        final LambdaLogger lambdaLogger = mock(LambdaLogger.class);
+        final LoggerProxy loggerProxy = mock(LoggerProxy.class);
         final Credentials credentials = new Credentials("accessKeyId", "secretAccessKey", "sessionToken");
 
-        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(lambdaLogger, credentials);
+        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(loggerProxy, credentials);
 
         final software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest wrappedRequest =
             mock(software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest.class);

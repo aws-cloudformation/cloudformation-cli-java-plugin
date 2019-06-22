@@ -6,7 +6,7 @@ import com.amazonaws.ResponseMetadata;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicSessionCredentials;
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
+import com.amazonaws.cloudformation.loggers.LoggerProxy;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -22,12 +22,12 @@ public class AmazonWebServicesClientProxy {
 
     private final AwsCredentialsProvider v2CredentialsProvider;
 
-    private final LambdaLogger logger;
+    private final LoggerProxy loggerProxy;
 
     public AmazonWebServicesClientProxy(
-        final LambdaLogger logger,
+        final LoggerProxy loggerProxy,
         final Credentials credentials) {
-        this.logger = logger;
+        this.loggerProxy = loggerProxy;
 
         final BasicSessionCredentials basicSessionCredentials = new BasicSessionCredentials(
             credentials.getAccessKeyId(),
@@ -51,7 +51,7 @@ public class AmazonWebServicesClientProxy {
         try {
             return requestFunction.apply(request);
         } catch (final Throwable e) {
-            logger.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
+            loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
             throw e;
         } finally {
             request.setRequestCredentialsProvider(null);
@@ -74,7 +74,7 @@ public class AmazonWebServicesClientProxy {
         try {
             return requestFunction.apply(wrappedRequest);
         } catch (final Throwable e) {
-            logger.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
+            loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
             throw e;
         }
     }
@@ -95,7 +95,7 @@ public class AmazonWebServicesClientProxy {
         try {
             return requestFunction.apply(wrappedRequest);
         } catch (final Throwable e) {
-            logger.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
+            loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
             throw e;
         }
     }
