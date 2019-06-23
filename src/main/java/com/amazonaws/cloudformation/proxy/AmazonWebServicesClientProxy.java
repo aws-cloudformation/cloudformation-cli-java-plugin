@@ -149,51 +149,61 @@ public class AmazonWebServicesClientProxy implements CallChain {
                             }
                             Callback<? super RequestT, Exception, ClientT, ModelT, CallbackT, ProgressEvent<ModelT, CallbackT>> exceptHandler =
                                 this.exceptHandler != null ? this.exceptHandler : AmazonWebServicesClientProxy.this::defaultHandler;
+                            int attempt = context.attempts(callGraph);
                             RequestT req = null;
                             ResponseT res = null;
-                            int attempt = context.attempts(callGraph);
-                            for(;;) {
-                                Instant now = Instant.now();
-                                try {
-                                    req = req == null ? reqMaker.apply(model) : req;
-                                    res = res == null ? resMaker.apply(req, client) : res;
-                                    if (waitFor != null) {
-                                        if (waitFor.invoke(req, res, client, model, context)) {
+                            try {
+                                for (;;) {
+                                    Instant now = Instant.now();
+                                    try {
+                                        req = req == null ? reqMaker.apply(model) : req;
+                                        res = res == null ? resMaker.apply(req, client) : res;
+                                        if (waitFor != null) {
+                                            if (waitFor.invoke(req, res, client, model, context)) {
+                                                return callback.invoke(req, res, client, model, context);
+                                            }
+                                        } else {
                                             return callback.invoke(req, res, client, model, context);
                                         }
+                                    } catch (Exception e) {
+                                        ProgressEvent<ModelT, CallbackT> handled = exceptHandler.invoke(req, e, client, model, context);
+                                        if (handled.isFailed() || handled.isSuccess()) {
+                                            return handled;
+                                        }
                                     }
-                                    else {
-                                        return callback.invoke(req, res, client, model, context);
+                                    //
+                                    // The logic to wait is if next delay + 2 * time to run the operation sequence + 100ms
+                                    // is less than time remaining time to run inside Lambda then we locally wait
+                                    // else we bail out. Assuming 3 DAYS for a DB to restore, that would be total of
+                                    // 3 x 24 x 60 x 60 x 1000 ms, fits in 32 bit int.
+                                    //
+                                    Instant opTime = Instant.now();
+                                    long elapsed = ChronoUnit.MILLIS.between(now, opTime);
+                                    long next = delay.nextDelay(attempt++);
+                                    context.attempts(callGraph, attempt);
+                                    if (next < 0) {
+                                        return ProgressEvent.failed(model, context,
+                                            HandlerErrorCode.ServiceException, "Exceeded attempts to wait");
                                     }
+                                    long remainingTime = getRemainingTimeInMillis();
+                                    long localWait = delay.unit().toMillis(next) + 2 * elapsed + 100;
+                                    if (remainingTime > localWait) {
+                                        Uninterruptibles.sleepUninterruptibly(next, delay.unit());
+                                        continue;
+                                    }
+                                    return ProgressEvent.defaultInProgressHandler(
+                                        context, (int) delay.unit().toSeconds(next), model);
                                 }
-                                catch (Exception e) {
-                                    ProgressEvent<ModelT, CallbackT> handled = exceptHandler.invoke(req, e, client, model, context);
-                                    if (handled.isFailed() || handled.isSuccess()) {
-                                        return handled;
-                                    }
-                                }
+                            }
+                            finally {
                                 //
-                                // The logic to wait is if next delay + 2 * time to run the operation sequence + 100ms
-                                // is less than time remaining time to run inside Lambda then we locally wait
-                                // else we bail out. Assuming 3 DAYS for a DB to restore, that would be total of
-                                // 3 x 24 x 60 x 60 x 1000 ms, fits in 32 bit int.
+                                // only set request if response was successful. Otherwise we will remember the
+                                // the original failed request in the callback. So when we fix and resume from
+                                // the error with callback, we will replay the wrong one
                                 //
-                                Instant opTime = Instant.now();
-                                long elapsed = ChronoUnit.MILLIS.between(now, opTime);
-                                long next = delay.nextDelay(attempt++);
-                                context.attempts(callGraph, attempt);
-                                if (next < 0) {
-                                    return ProgressEvent.failed(model, context,
-                                        HandlerErrorCode.ServiceException, "Exceeded attempts to wait");
+                                if (res == null) {
+                                    context.evictRequestRecord(callGraph);
                                 }
-                                long remainingTime = getRemainingTimeInMillis();
-                                long localWait = delay.unit().toMillis(next) + 2 * elapsed + 100;
-                                if (remainingTime > localWait) {
-                                    Uninterruptibles.sleepUninterruptibly(next, delay.unit());
-                                    continue;
-                                }
-                                return ProgressEvent.defaultInProgressHandler(
-                                    context, (int)delay.unit().toSeconds(next), model);
                             }
                         }
 

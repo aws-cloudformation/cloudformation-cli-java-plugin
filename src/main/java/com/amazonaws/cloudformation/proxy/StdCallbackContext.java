@@ -2,9 +2,8 @@ package com.amazonaws.cloudformation.proxy;
 
 import javax.annotation.concurrent.ThreadSafe;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -28,8 +27,13 @@ import java.util.function.Function;
 @lombok.ToString
 public class StdCallbackContext {
 
-    private final ConcurrentMap<String, Object> callGraphContexts =
-        new ConcurrentHashMap<>();
+    /*
+     * Uses a LinkedHashMap to preserve the order of calls within a
+     * set of callGraphs. If things interleave in terms of entries then
+     * it means that the context was being used in different threads.
+     */
+    private final Map<String, Object> callGraphContexts =
+        Collections.synchronizedMap(new LinkedHashMap<>(10));
 
     @SuppressWarnings("unchecked")
     public <M, R> Function<M, R> request(String callGraph, Function<M, R> func) {
@@ -37,6 +41,12 @@ public class StdCallbackContext {
             (R) callGraphContexts.computeIfAbsent(
                 callGraph + ".request", (ign) -> func.apply(m));
     }
+
+    @SuppressWarnings("unchecked")
+    public <R> R evictRequestRecord(String callGraph) {
+        return (R) callGraphContexts.remove(callGraph + ".request");
+    }
+
 
     @SuppressWarnings("unchecked")
     public <R, C, RT> BiFunction<R, C, RT> response(String callGraph, BiFunction<R, C, RT> func) {
