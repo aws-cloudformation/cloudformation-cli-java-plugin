@@ -6,8 +6,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.json.JSONObject;
+
 import java.io.IOException;
+
+import org.json.JSONObject;
 
 public class Serializer {
 
@@ -18,8 +20,10 @@ public class Serializer {
     }
 
     /**
-     * Configures the specified ObjectMapper with the (de)serialization behaviours we want gto enforce
-     * @param objectMapper  ObjectMapper instance to configure
+     * Configures the specified ObjectMapper with the (de)serialization behaviours
+     * we want gto enforce
+     *
+     * @param objectMapper ObjectMapper instance to configure
      */
     private void configureObjectMapper(final ObjectMapper objectMapper) {
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -38,8 +42,7 @@ public class Serializer {
         return new JSONObject(objectMapper.writeValueAsString(modelObject));
     }
 
-    public <T> T deserialize(final String s,
-                             final TypeReference<?> reference) throws IOException {
+    public <T> T deserialize(final String s, final TypeReference<?> reference) throws IOException {
         return this.objectMapper.readValue(s, reference);
     }
 }

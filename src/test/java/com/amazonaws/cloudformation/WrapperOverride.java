@@ -11,8 +11,6 @@ import com.amazonaws.cloudformation.resource.SchemaValidator;
 import com.amazonaws.cloudformation.resource.Serializer;
 import com.amazonaws.cloudformation.scheduler.CloudWatchScheduler;
 import com.fasterxml.jackson.core.type.TypeReference;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -20,6 +18,9 @@ import java.nio.charset.Charset;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * Test class used for testing of LambdaWrapper functionality
@@ -31,7 +32,8 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
     /**
      * Invoked to test normal initialization flows
      */
-    public WrapperOverride() { }
+    public WrapperOverride() {
+    }
 
     /**
      * This .ctor provided for testing
@@ -41,20 +43,15 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
                            final MetricsPublisher metricsPublisher,
                            final CloudWatchScheduler scheduler,
                            final SchemaValidator validator) {
-        super(
-            callbackAdapter,
-            credentialsProvider,
-            metricsPublisher,
-            scheduler,
-            validator,
-            new Serializer(),
-            new TypeReference<HandlerRequest<TestModel, TestContext>>() {});
+        super(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator, new Serializer(),
+              new TypeReference<HandlerRequest<TestModel, TestContext>>() {
+              });
     }
 
     @Override
     public InputStream provideResourceSchema() {
-        return new ByteArrayInputStream(
-            "{ \"properties\": { \"property1\": { \"type\": \"string\" }, \"property2\": { \"type\": \"integer\" } }, \"additionalProperties\": false }".getBytes(Charset.forName("UTF8")));
+        return new ByteArrayInputStream("{ \"properties\": { \"property1\": { \"type\": \"string\" }, \"property2\": { \"type\": \"integer\" } }, \"additionalProperties\": false }"
+            .getBytes(Charset.forName("UTF8")));
     }
 
     @Override
@@ -97,6 +94,7 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
 
     @Override
     protected TypeReference<HandlerRequest<TestModel, TestContext>> getTypeReference() {
-        return new TypeReference<HandlerRequest<TestModel, TestContext>>() {};
+        return new TypeReference<HandlerRequest<TestModel, TestContext>>() {
+        };
     }
 }

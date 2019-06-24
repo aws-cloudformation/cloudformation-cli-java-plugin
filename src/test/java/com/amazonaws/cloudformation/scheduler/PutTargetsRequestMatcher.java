@@ -1,12 +1,14 @@
 package com.amazonaws.cloudformation.scheduler;
 
+import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
+
 import org.mockito.ArgumentMatcher;
+
 import software.amazon.awssdk.services.cloudwatchevents.model.PutTargetsRequest;
 import software.amazon.awssdk.services.cloudwatchevents.model.Target;
-
-import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -17,8 +19,6 @@ public class PutTargetsRequestMatcher implements ArgumentMatcher<PutTargetsReque
 
     @Override
     public boolean matches(final PutTargetsRequest argument) {
-        return
-            argument.rule().startsWith(rule) &&
-            targetArgumentMatcher.matches(argument.targets());
+        return argument.rule().startsWith(rule) && targetArgumentMatcher.matches(argument.targets());
     }
 }

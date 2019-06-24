@@ -11,14 +11,11 @@ public class CloudWatchProvider extends AmazonWebServicesProvider {
     }
 
     public CloudWatchClient get() {
-        return CloudWatchClient.builder()
-            .credentialsProvider(this.getCredentialsProvider())
+        return CloudWatchClient.builder().credentialsProvider(this.getCredentialsProvider())
             .overrideConfiguration(ClientOverrideConfiguration.builder()
-                //Default Retry Condition of Retry Policy retries on Throttling and ClockSkew Exceptions
-                .retryPolicy(RetryPolicy.builder()
-                    .numRetries(16)
-                    .build())
-                .build())
+                // Default Retry Condition of Retry Policy retries on Throttling and ClockSkew
+                // Exceptions
+                .retryPolicy(RetryPolicy.builder().numRetries(16).build()).build())
             .build();
     }
 }

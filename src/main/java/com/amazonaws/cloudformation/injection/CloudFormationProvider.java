@@ -1,10 +1,10 @@
 package com.amazonaws.cloudformation.injection;
 
+import java.net.URI;
+
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.core.retry.RetryPolicy;
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
-
-import java.net.URI;
 
 public class CloudFormationProvider extends AmazonWebServicesProvider {
 
@@ -19,15 +19,11 @@ public class CloudFormationProvider extends AmazonWebServicesProvider {
     }
 
     public CloudFormationClient get() {
-        return CloudFormationClient.builder()
-                .credentialsProvider(this.getCredentialsProvider())
-                .endpointOverride(this.callbackEndpoint)
-                .overrideConfiguration(ClientOverrideConfiguration.builder()
-                        //Default Retry Condition of Retry Policy retries on Throttling and ClockSkew Exceptions
-                        .retryPolicy(RetryPolicy.builder()
-                                .numRetries(16)
-                                .build())
-                        .build())
-                .build();
+        return CloudFormationClient.builder().credentialsProvider(this.getCredentialsProvider())
+            .endpointOverride(this.callbackEndpoint).overrideConfiguration(ClientOverrideConfiguration.builder()
+                // Default Retry Condition of Retry Policy retries on Throttling and ClockSkew
+                // Exceptions
+                .retryPolicy(RetryPolicy.builder().numRetries(16).build()).build())
+            .build();
     }
 }

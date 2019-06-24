@@ -2,7 +2,9 @@ package com.amazonaws.cloudformation.scheduler;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+
 import org.mockito.ArgumentMatcher;
+
 import software.amazon.awssdk.services.cloudwatchevents.model.Target;
 
 @Data
@@ -15,9 +17,6 @@ public class TargetMatcher implements ArgumentMatcher<Target> {
 
     @Override
     public boolean matches(final Target argument) {
-        return
-            argument.arn().equals(arn) &&
-            argument.id().startsWith(id) &&
-            argument.input().equals(input);
+        return argument.arn().equals(arn) && argument.id().startsWith(id) && argument.input().equals(input);
     }
 }

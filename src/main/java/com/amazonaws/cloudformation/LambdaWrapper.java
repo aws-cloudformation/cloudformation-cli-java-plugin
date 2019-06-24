@@ -1,11 +1,10 @@
 package com.amazonaws.cloudformation;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.cloudformation.exceptions.ResourceAlreadyExistsException;
 import com.amazonaws.cloudformation.exceptions.ResourceNotFoundException;
-import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
-import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.amazonaws.cloudformation.exceptions.TerminalException;
 import com.amazonaws.cloudformation.injection.CloudFormationProvider;
 import com.amazonaws.cloudformation.injection.CloudWatchEventsProvider;
@@ -29,11 +28,10 @@ import com.amazonaws.cloudformation.resource.Serializer;
 import com.amazonaws.cloudformation.resource.Validator;
 import com.amazonaws.cloudformation.resource.exceptions.ValidationException;
 import com.amazonaws.cloudformation.scheduler.CloudWatchScheduler;
+import com.amazonaws.services.lambda.runtime.Context;
+import com.amazonaws.services.lambda.runtime.LambdaLogger;
+import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.io.IOUtils;
-import org.json.JSONObject;
-import org.json.JSONTokener;
-import software.amazon.awssdk.utils.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -46,7 +44,11 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import org.apache.commons.io.IOUtils;
+import org.json.JSONObject;
+import org.json.JSONTokener;
+
+import software.amazon.awssdk.utils.StringUtils;
 
 public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStreamHandler {
 
@@ -63,8 +65,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     protected final Serializer serializer;
     protected LambdaLogger logger;
 
-    private final static List<Action> MUTATING_ACTIONS =
-        Arrays.asList(Action.CREATE, Action.DELETE, Action.UPDATE);
+    private final static List<Action> MUTATING_ACTIONS = Arrays.asList(Action.CREATE, Action.DELETE, Action.UPDATE);
 
     protected LambdaWrapper() {
         this.credentialsProvider = new PlatformCredentialsProvider();
@@ -100,13 +101,13 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     }
 
     /**
-     * This function initialises dependencies which are depending on credentials passed
-     * at function invoke and not available during construction
-    */
-    private void initialiseRuntime(final Credentials platformCredentials,
-                                   final URI callbackEndpoint) {
+     * This function initialises dependencies which are depending on credentials
+     * passed at function invoke and not available during construction
+     */
+    private void initialiseRuntime(final Credentials platformCredentials, final URI callbackEndpoint) {
 
-        // initialisation skipped if these dependencies were set during injection (in test)
+        // initialisation skipped if these dependencies were set during injection (in
+        // test)
         this.cloudFormationProvider.setCallbackEndpoint(callbackEndpoint);
         this.credentialsProvider.setCredentials(platformCredentials);
         if (this.callbackAdapter == null) {
@@ -147,7 +148,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
             handlerResponse = processInvocation(rawInput, request, context);
         } catch (final ValidationException e) {
-            // TODO: we'll need a better way to expose the stack of causing exceptions for user feedback
+            // TODO: we'll need a better way to expose the stack of causing exceptions for
+            // user feedback
             final StringBuilder validationMessageBuilder = new StringBuilder();
             if (!StringUtils.isEmpty(e.getMessage())) {
                 validationMessageBuilder.append(String.format("Model validation failed (%s)", e.getMessage()));
@@ -156,26 +158,19 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             }
             if (e.getCausingExceptions() != null) {
                 for (final ValidationException cause : e.getCausingExceptions()) {
-                    validationMessageBuilder.append(String.format("\n%s (%s)",
-                        cause.getMessage(),
-                        cause.getSchemaLocation()));
+                    validationMessageBuilder.append(String.format("\n%s (%s)", cause.getMessage(), cause.getSchemaLocation()));
                 }
             }
             this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
-            handlerResponse = ProgressEvent.defaultFailureHandler(
-                new TerminalException(validationMessageBuilder.toString(), e),
+            handlerResponse = ProgressEvent.defaultFailureHandler(new TerminalException(validationMessageBuilder.toString(), e),
                 HandlerErrorCode.InvalidRequest);
         } catch (final Throwable e) {
-            // Exceptions are wrapped as a consistent error response to the caller (i.e; CloudFormation)
+            // Exceptions are wrapped as a consistent error response to the caller (i.e;
+            // CloudFormation)
             e.printStackTrace(); // for root causing - logs to LambdaLogger by default
-            handlerResponse = ProgressEvent.defaultFailureHandler(
-                e,
-                HandlerErrorCode.InternalFailure
-            );
+            handlerResponse = ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.InternalFailure);
             if (request.getRequestData() != null) {
-                handlerResponse.setResourceModel(
-                    request.getRequestData().getResourceProperties()
-                );
+                handlerResponse.setResourceModel(request.getRequestData().getResourceProperties());
             }
             this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
         } finally {
@@ -185,10 +180,9 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         }
     }
 
-    public ProgressEvent<ResourceT, CallbackT> processInvocation(
-        final JSONObject rawRequest,
-        final HandlerRequest<ResourceT, CallbackT> request,
-        final Context context) throws IOException, TerminalException {
+    public ProgressEvent<ResourceT, CallbackT> processInvocation(final JSONObject rawRequest,
+                                                                 final HandlerRequest<ResourceT, CallbackT> request,
+                                                                 final Context context) throws IOException, TerminalException {
 
         if (request == null || request.getRequestData() == null) {
             throw new TerminalException("Invalid request object received");
@@ -217,47 +211,51 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
         RequestContext<CallbackT> requestContext = request.getRequestContext();
         if (requestContext != null) {
-            // If this invocation was triggered by a 're-invoke' CloudWatch Event, clean it up
+            // If this invocation was triggered by a 're-invoke' CloudWatch Event, clean it
+            // up
             final String cloudWatchEventsRuleName = requestContext.getCloudWatchEventsRuleName();
             if (!StringUtils.isBlank(cloudWatchEventsRuleName)) {
-                this.scheduler.cleanupCloudWatchEvents(
-                    cloudWatchEventsRuleName,
-                    requestContext.getCloudWatchEventsTargetId());
+                this.scheduler.cleanupCloudWatchEvents(cloudWatchEventsRuleName, requestContext.getCloudWatchEventsTargetId());
             }
-            logger.log(String.format("Cleaned up previous Request Context of Rule %s and Target %s", requestContext.getCloudWatchEventsRuleName(), requestContext.getCloudWatchEventsTargetId()));
+            logger.log(String.format("Cleaned up previous Request Context of Rule %s and Target %s",
+                requestContext.getCloudWatchEventsRuleName(), requestContext.getCloudWatchEventsTargetId()));
         }
 
-        // MetricsPublisher is initialised with the resource type name for metrics namespace
+        // MetricsPublisher is initialised with the resource type name for metrics
+        // namespace
         this.metricsPublisher.setResourceTypeName(request.getResourceType());
 
         this.metricsPublisher.publishInvocationMetric(Instant.now(), request.getAction());
 
-        // for CUD actions, validate incoming model - any error is a terminal failure on the invocation
-        // NOTE: we validate the raw pre-deserialized payload to account for lenient serialization.
+        // for CUD actions, validate incoming model - any error is a terminal failure on
+        // the invocation
+        // NOTE: we validate the raw pre-deserialized payload to account for lenient
+        // serialization.
         // Here, we want to surface ALL input validation errors to the caller.
         if (MUTATING_ACTIONS.contains(request.getAction())) {
             // validate entire incoming payload, including extraneous fields which
             // are stripped by the Serializer (due to FAIL_ON_UNKNOWN_PROPERTIES setting)
-            final JSONObject rawModelObject =
-                rawRequest.getJSONObject("requestData").getJSONObject("resourceProperties");
+            final JSONObject rawModelObject = rawRequest.getJSONObject("requestData").getJSONObject("resourceProperties");
             validateModel(rawModelObject);
         }
 
         // TODO: implement decryption of request and returned callback context
         // using KMS Key accessible by the Lambda execution Role
 
-        // TODO: implement the handler invocation inside a time check which will abort and automatically
-        // reschedule a callback if the handler does not respond within the 15 minute invocation window
+        // TODO: implement the handler invocation inside a time check which will abort
+        // and automatically
+        // reschedule a callback if the handler does not respond within the 15 minute
+        // invocation window
 
-        // TODO: ensure that any credential expiry time is also considered in the time check to
-        // automatically fail a request if the handler will not be able to complete within that period,
+        // TODO: ensure that any credential expiry time is also considered in the time
+        // check to
+        // automatically fail a request if the handler will not be able to complete
+        // within that period,
         // such as before a FAS token expires
 
-
         // last mile proxy creation with passed-in credentials
-        final AmazonWebServicesClientProxy awsClientProxy = new AmazonWebServicesClientProxy(
-            this.logger,
-            request.getRequestData().getCallerCredentials());
+        final AmazonWebServicesClientProxy awsClientProxy = new AmazonWebServicesClientProxy(this.logger, request.getRequestData()
+            .getCallerCredentials());
 
         boolean computeLocally = true;
         ProgressEvent<ResourceT, CallbackT> handlerResponse = null;
@@ -267,45 +265,38 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             requestContext = request.getRequestContext();
             final CallbackT callbackContext = (requestContext != null) ? requestContext.getCallbackContext() : null;
 
-            handlerResponse = wrapInvocationAndHandleErrors(
-                awsClientProxy,
-                resourceHandlerRequest,
-                request,
-                callbackContext);
+            handlerResponse = wrapInvocationAndHandleErrors(awsClientProxy, resourceHandlerRequest, request, callbackContext);
 
-            // When the handler responses IN_PROGRESS with a callback delay, we trigger a callback to re-invoke
-            // the handler for the Resource type to implement stabilization checks and long-poll creation checks
+            // When the handler responses IN_PROGRESS with a callback delay, we trigger a
+            // callback to re-invoke
+            // the handler for the Resource type to implement stabilization checks and
+            // long-poll creation checks
             computeLocally = scheduleReinvocation(request, handlerResponse, context);
 
             // report the progress status back to configured endpoint
-            this.callbackAdapter.reportProgress(request.getBearerToken(),
-                handlerResponse.getErrorCode(),
-                handlerResponse.getStatus(),
-                handlerResponse.getResourceModel(),
-                handlerResponse.getMessage());
+            this.callbackAdapter.reportProgress(request.getBearerToken(), handlerResponse.getErrorCode(),
+                handlerResponse.getStatus(), handlerResponse.getResourceModel(), handlerResponse.getMessage());
         }
 
         return handlerResponse;
     }
 
     /**
-     * Invokes the handler implementation for the request, and wraps with try-catch to consistently
-     * handle certain classes of errors and correctly map those to the appropriate HandlerErrorCode
-     * Also wraps the invocation in last-mile timing metrics
+     * Invokes the handler implementation for the request, and wraps with try-catch
+     * to consistently handle certain classes of errors and correctly map those to
+     * the appropriate HandlerErrorCode Also wraps the invocation in last-mile
+     * timing metrics
      */
-    private ProgressEvent<ResourceT, CallbackT> wrapInvocationAndHandleErrors(
-        final AmazonWebServicesClientProxy awsClientProxy,
-        final ResourceHandlerRequest<ResourceT> resourceHandlerRequest,
-        final HandlerRequest<ResourceT, CallbackT> request,
-        final CallbackT callbackContext) {
+    private ProgressEvent<ResourceT, CallbackT>
+            wrapInvocationAndHandleErrors(final AmazonWebServicesClientProxy awsClientProxy,
+                                          final ResourceHandlerRequest<ResourceT> resourceHandlerRequest,
+                                          final HandlerRequest<ResourceT, CallbackT> request,
+                                          final CallbackT callbackContext) {
 
         final Date startTime = Date.from(Instant.now());
         try {
-            final ProgressEvent<ResourceT, CallbackT> handlerResponse = invokeHandler(
-                awsClientProxy,
-                resourceHandlerRequest,
-                request.getAction(),
-                callbackContext);
+            final ProgressEvent<ResourceT, CallbackT> handlerResponse = invokeHandler(awsClientProxy, resourceHandlerRequest,
+                request.getAction(), callbackContext);
             if (handlerResponse != null) {
                 this.log(String.format("Handler returned %s", handlerResponse.getStatus()));
             } else {
@@ -317,43 +308,33 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
         } catch (final ResourceAlreadyExistsException e) {
             this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
-            this.logger.log(String.format("An existing resource was found in a %s action on a $s: %s" +
-                request.getAction(), request.getResourceType(), e.toString()));
-            return ProgressEvent.defaultFailureHandler(
-                e,
-                HandlerErrorCode.AlreadyExists);
+            this.logger.log(String.format("An existing resource was found in a %s action on a $s: %s" + request.getAction(),
+                request.getResourceType(), e.toString()));
+            return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.AlreadyExists);
         } catch (final ResourceNotFoundException e) {
             this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
-            this.logger.log(String.format("A requested resource was not found in a %s action on a $s: %s" +
-                request.getAction(), request.getResourceType(), e.toString()));
-            return ProgressEvent.defaultFailureHandler(
-                e,
-                HandlerErrorCode.NotFound);
+            this.logger.log(String.format("A requested resource was not found in a %s action on a $s: %s" + request.getAction(),
+                request.getResourceType(), e.toString()));
+            return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.NotFound);
         } catch (final AmazonServiceException e) {
             this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
-            this.logger.log(String.format("A downstream service error occurred in a %s action on a %s: %s",
-                request.getAction(), request.getResourceType(), e.toString()));
-            return ProgressEvent.defaultFailureHandler(
-                e,
-                HandlerErrorCode.ServiceException);
+            this.logger.log(String.format("A downstream service error occurred in a %s action on a %s: %s", request.getAction(),
+                request.getResourceType(), e.toString()));
+            return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.ServiceException);
         } catch (final Throwable e) {
             this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
-            this.logger.log(String.format("An unknown error occurred in a %s action on a %s: %s",
-                request.getAction(), request.getResourceType(), e.toString()));
-            return ProgressEvent.defaultFailureHandler(
-                e,
-                HandlerErrorCode.InternalFailure);
+            this.logger.log(String.format("An unknown error occurred in a %s action on a %s: %s", request.getAction(),
+                request.getResourceType(), e.toString()));
+            return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.InternalFailure);
         } finally {
             final Date endTime = Date.from(Instant.now());
-            metricsPublisher.publishDurationMetric(
-                Instant.now(), request.getAction(), (endTime.getTime() - startTime.getTime()));
+            metricsPublisher.publishDurationMetric(Instant.now(), request.getAction(), (endTime.getTime() - startTime.getTime()));
         }
 
     }
 
-    private Response<ResourceT> createProgressResponse(
-        final ProgressEvent<ResourceT, CallbackT> progressEvent,
-        final String bearerToken) {
+    private Response<ResourceT> createProgressResponse(final ProgressEvent<ResourceT, CallbackT> progressEvent,
+                                                       final String bearerToken) {
 
         final Response<ResourceT> response = new Response<>();
         response.setMessage(progressEvent.getMessage());
@@ -365,9 +346,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         return response;
     }
 
-    private void writeResponse(
-        final OutputStream outputStream,
-        final Response<ResourceT> response) throws IOException {
+    private void writeResponse(final OutputStream outputStream, final Response<ResourceT> response) throws IOException {
 
         final JSONObject output = this.serializer.serialize(response);
         outputStream.write(output.toString().getBytes(Charset.forName("UTF-8")));
@@ -377,10 +356,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     private void validateModel(final JSONObject modelObject) throws ValidationException {
         final InputStream resourceSchema = provideResourceSchema();
         if (resourceSchema == null) {
-            throw new ValidationException(
-                "Unable to validate incoming model as no schema was provided.",
-                null,
-                null);
+            throw new ValidationException("Unable to validate incoming model as no schema was provided.", null, null);
         }
 
         this.validator.validateObject(modelObject, resourceSchema);
@@ -388,15 +364,16 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
     /**
      * Managed scheduling of handler re-invocations.
-     * @param request           the original request to the function
-     * @param handlerResponse   the previous response from handler
-     * @param context           LambdaContext granting runtime metadata
-     * @return                  boolean indicating whether to continue invoking locally, or exit for async reinvoke
+     *
+     * @param request the original request to the function
+     * @param handlerResponse the previous response from handler
+     * @param context LambdaContext granting runtime metadata
+     * @return boolean indicating whether to continue invoking locally, or exit for
+     *         async reinvoke
      */
-    private boolean scheduleReinvocation(
-        final HandlerRequest<ResourceT, CallbackT> request,
-        final ProgressEvent<ResourceT, CallbackT> handlerResponse,
-        final Context context) {
+    private boolean scheduleReinvocation(final HandlerRequest<ResourceT, CallbackT> request,
+                                         final ProgressEvent<ResourceT, CallbackT> handlerResponse,
+                                         final Context context) {
 
         if (handlerResponse.getStatus() != OperationStatus.IN_PROGRESS) {
             // no reinvoke required
@@ -404,7 +381,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         }
 
         final RequestContext<CallbackT> reinvocationContext = new RequestContext<>();
-        final RequestContext<CallbackT>requestContext = request.getRequestContext();
+        final RequestContext<CallbackT> requestContext = request.getRequestContext();
         int counter = 1;
         if (requestContext != null) {
             counter += requestContext.getInvocation();
@@ -414,14 +391,15 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         reinvocationContext.setCallbackContext(handlerResponse.getCallbackContext());
         request.setRequestContext(reinvocationContext);
 
-        // when a handler requests a sub-minute callback delay, and if the lambda invocation
+        // when a handler requests a sub-minute callback delay, and if the lambda
+        // invocation
         // has enough runtime (with 20% buffer), we can reschedule from a thread wait
-        // otherwise we re-invoke through CloudWatchEvents which have a granularity of minutes
-        if ((handlerResponse.getCallbackDelaySeconds() < 60) &&
-            (context.getRemainingTimeInMillis() / 1000) > handlerResponse.getCallbackDelaySeconds() * 1.2) {
+        // otherwise we re-invoke through CloudWatchEvents which have a granularity of
+        // minutes
+        if ((handlerResponse.getCallbackDelaySeconds() < 60)
+            && (context.getRemainingTimeInMillis() / 1000) > handlerResponse.getCallbackDelaySeconds() * 1.2) {
             logger.log(String.format("Scheduling re-invoke locally after %s seconds, with Context {%s}",
-                handlerResponse.getCallbackDelaySeconds(),
-                reinvocationContext.toString()));
+                handlerResponse.getCallbackDelaySeconds(), reinvocationContext.toString()));
             sleepUninterruptibly(handlerResponse.getCallbackDelaySeconds(), TimeUnit.SECONDS);
             return true;
         }
@@ -429,10 +407,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         logger.log(String.format("Scheduling re-invoke with Context {%s}", reinvocationContext.toString()));
         try {
             final int callbackDelayMinutes = handlerResponse.getCallbackDelaySeconds() / 60;
-            this.scheduler.rescheduleAfterMinutes(
-                context.getInvokedFunctionArn(),
-                callbackDelayMinutes,
-                request);
+            this.scheduler.rescheduleAfterMinutes(context.getInvokedFunctionArn(), callbackDelayMinutes, request);
         } catch (final Throwable e) {
             this.log(String.format("Failed to schedule re-invoke, caused by %s", e.toString()));
             handlerResponse.setMessage(e.getMessage());
@@ -444,32 +419,36 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     }
 
     /**
-     * Transforms the incoming request to the subset of typed models which the handler implementor needs
-     * @param request   The request as passed from the caller (e.g; CloudFormation) which contains
-     *                  additional context to inform the LambdaWrapper itself, and is not needed by the
-     *                  handler implementations
-     * @return  A converted ResourceHandlerRequest model
+     * Transforms the incoming request to the subset of typed models which the
+     * handler implementor needs
+     *
+     * @param request The request as passed from the caller (e.g; CloudFormation)
+     *            which contains additional context to inform the LambdaWrapper
+     *            itself, and is not needed by the handler implementations
+     * @return A converted ResourceHandlerRequest model
      */
-    protected abstract ResourceHandlerRequest<ResourceT> transform(
-        final HandlerRequest<ResourceT, CallbackT> request) throws IOException;
+    protected abstract ResourceHandlerRequest<ResourceT>
+              transform(final HandlerRequest<ResourceT, CallbackT> request) throws IOException;
 
     /**
-     * Handler implementation should implement this method to provide the schema for validation
-     * @return  An InputStream of the resource schema for the provider
+     * Handler implementation should implement this method to provide the schema for
+     * validation
+     *
+     * @return An InputStream of the resource schema for the provider
      */
     protected abstract InputStream provideResourceSchema();
 
     /**
      * Implemented by the handler package as the key entry point.
      */
-    public abstract ProgressEvent<ResourceT, CallbackT> invokeHandler(
-        final AmazonWebServicesClientProxy proxy,
-        final ResourceHandlerRequest<ResourceT> request,
-        final Action action,
-        final CallbackT callbackContext) throws Exception;
+    public abstract ProgressEvent<ResourceT, CallbackT> invokeHandler(final AmazonWebServicesClientProxy proxy,
+                                                                      final ResourceHandlerRequest<ResourceT> request,
+                                                                      final Action action,
+                                                                      final CallbackT callbackContext) throws Exception;
 
     /**
      * null-safe logger redirect
+     *
      * @param message A string containing the event to log.
      */
     private void log(final String message) {

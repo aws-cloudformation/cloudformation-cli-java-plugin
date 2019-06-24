@@ -1,15 +1,15 @@
 package com.amazonaws.cloudformation.scheduler;
 
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import org.junit.jupiter.api.Test;
 
 public class CronHelperTest {
 
@@ -23,8 +23,7 @@ public class CronHelperTest {
 
         final CronHelper cronHelper = new CronHelper(mockClockInASock);
 
-        assertThat(
-            cronHelper.generateOneTimeCronExpression(5)).isEqualTo("cron(46 13 30 10 ? 2018)");
+        assertThat(cronHelper.generateOneTimeCronExpression(5)).isEqualTo("cron(46 13 30 10 ? 2018)");
     }
 
     @Test
@@ -37,8 +36,7 @@ public class CronHelperTest {
 
         final CronHelper cronHelper = new CronHelper(mockClockInASock);
 
-        assertThat(
-            cronHelper.generateOneTimeCronExpression(3)).isEqualTo("cron(3 0 31 10 ? 2018)");
+        assertThat(cronHelper.generateOneTimeCronExpression(3)).isEqualTo("cron(3 0 31 10 ? 2018)");
     }
 
     @Test
@@ -51,7 +49,6 @@ public class CronHelperTest {
 
         final CronHelper cronHelper = new CronHelper(mockClockInASock);
 
-        assertThat(
-            cronHelper.generateOneTimeCronExpression(5)).isEqualTo("cron(2 0 1 1 ? 2019)");
+        assertThat(cronHelper.generateOneTimeCronExpression(5)).isEqualTo("cron(2 0 1 1 ? 2019)");
     }
 }

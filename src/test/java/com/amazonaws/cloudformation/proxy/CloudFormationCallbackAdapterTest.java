@@ -1,20 +1,5 @@
 package com.amazonaws.cloudformation.proxy;
 
-import com.amazonaws.cloudformation.TestModel;
-import com.amazonaws.cloudformation.injection.CloudFormationProvider;
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
-import software.amazon.awssdk.services.cloudformation.model.CloudFormationResponseMetadata;
-import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressRequest;
-import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressResponse;
-
-import java.util.UUID;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -34,6 +19,23 @@ import static software.amazon.awssdk.services.cloudformation.model.HandlerErrorC
 import static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.SERVICE_TIMEOUT;
 import static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.THROTTLING;
 import static software.amazon.awssdk.services.cloudformation.model.OperationStatus.FAILED;
+
+import com.amazonaws.cloudformation.TestModel;
+import com.amazonaws.cloudformation.injection.CloudFormationProvider;
+import com.amazonaws.services.lambda.runtime.LambdaLogger;
+
+import java.util.UUID;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
+import software.amazon.awssdk.services.cloudformation.model.CloudFormationResponseMetadata;
+import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressRequest;
+import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressResponse;
 
 @ExtendWith(MockitoExtension.class)
 public class CloudFormationCallbackAdapterTest {
@@ -55,22 +57,15 @@ public class CloudFormationCallbackAdapterTest {
 
         when(cloudFormationProvider.get()).thenReturn(client);
 
-        when(client.recordHandlerProgress(any(RecordHandlerProgressRequest.class)))
-            .thenReturn(response);
+        when(client.recordHandlerProgress(any(RecordHandlerProgressRequest.class))).thenReturn(response);
 
-        final CloudFormationCallbackAdapter<TestModel> adapter =
-            new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, lambdaLogger);
+        final CloudFormationCallbackAdapter<TestModel> adapter = new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider,
+                                                                                                              lambdaLogger);
         adapter.refreshClient();
 
-        adapter.reportProgress(
-            "bearer-token",
-            HandlerErrorCode.InvalidRequest,
-            OperationStatus.FAILED,
-            null,
-            "some error");
+        adapter.reportProgress("bearer-token", HandlerErrorCode.InvalidRequest, OperationStatus.FAILED, null, "some error");
 
-        final ArgumentCaptor<RecordHandlerProgressRequest> argument =
-            ArgumentCaptor.forClass(RecordHandlerProgressRequest.class);
+        final ArgumentCaptor<RecordHandlerProgressRequest> argument = ArgumentCaptor.forClass(RecordHandlerProgressRequest.class);
         verify(client).recordHandlerProgress(argument.capture());
         assertThat(argument.getValue()).isNotNull();
         assertThat(argument.getValue().bearerToken()).isEqualTo("bearer-token");
@@ -87,12 +82,14 @@ public class CloudFormationCallbackAdapterTest {
         assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.InvalidCredentials)).isEqualTo(INVALID_CREDENTIALS);
         assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.InvalidRequest)).isEqualTo(INVALID_REQUEST);
         assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.NetworkFailure)).isEqualTo(NETWORK_FAILURE);
-        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.NoOperationToPerform)).isEqualTo(NO_OPERATION_TO_PERFORM);
+        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.NoOperationToPerform))
+            .isEqualTo(NO_OPERATION_TO_PERFORM);
         assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.NotFound)).isEqualTo(NOT_FOUND);
         assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.NotReady)).isEqualTo(NOT_READY);
         assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.NotUpdatable)).isEqualTo(NOT_UPDATABLE);
         assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.ServiceException)).isEqualTo(SERVICE_EXCEPTION);
-        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.ServiceLimitExceeded)).isEqualTo(SERVICE_LIMIT_EXCEEDED);
+        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.ServiceLimitExceeded))
+            .isEqualTo(SERVICE_LIMIT_EXCEEDED);
         assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.ServiceTimeout)).isEqualTo(SERVICE_TIMEOUT);
         assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.Throttling)).isEqualTo(THROTTLING);
     }

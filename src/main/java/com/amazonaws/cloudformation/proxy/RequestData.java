@@ -1,9 +1,9 @@
 package com.amazonaws.cloudformation.proxy;
 
+import java.util.Map;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.Map;
 
 @Data
 @NoArgsConstructor

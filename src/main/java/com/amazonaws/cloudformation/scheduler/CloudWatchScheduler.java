@@ -1,11 +1,16 @@
 package com.amazonaws.cloudformation.scheduler;
 
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.cloudformation.injection.CloudWatchEventsProvider;
 import com.amazonaws.cloudformation.proxy.HandlerRequest;
 import com.amazonaws.cloudformation.proxy.RequestContext;
+import com.amazonaws.services.lambda.runtime.LambdaLogger;
+
+import java.util.UUID;
+
 import lombok.Data;
+
 import org.json.JSONObject;
+
 import software.amazon.awssdk.services.cloudwatchevents.CloudWatchEventsClient;
 import software.amazon.awssdk.services.cloudwatchevents.model.DeleteRuleRequest;
 import software.amazon.awssdk.services.cloudwatchevents.model.DescribeRuleRequest;
@@ -15,8 +20,6 @@ import software.amazon.awssdk.services.cloudwatchevents.model.RemoveTargetsReque
 import software.amazon.awssdk.services.cloudwatchevents.model.RuleState;
 import software.amazon.awssdk.services.cloudwatchevents.model.Target;
 import software.amazon.awssdk.utils.StringUtils;
-
-import java.util.UUID;
 
 @Data
 public class CloudWatchScheduler {
@@ -47,24 +50,27 @@ public class CloudWatchScheduler {
     }
 
     /**
-     * On Lambda re-invoke we need to supply a new set of client credentials so this function
-     * must be called whenever credentials are refreshed/changed in the owning entity
+     * On Lambda re-invoke we need to supply a new set of client credentials so this
+     * function must be called whenever credentials are refreshed/changed in the
+     * owning entity
      */
     public void refreshClient() {
         this.client = cloudWatchEventsProvider.get();
     }
 
     /**
-     * Schedule a re-invocation of the executing handler no less than 1 minute from now
-     * @param functionArn       the ARN oft he Lambda function to be invoked
-     * @param minutesFromNow    the minimum minutes from now that the re-invocation will occur. CWE provides only
-     *                          minute-granularity
-     * @param handlerRequest   additional context which the handler can provide itself for re-invocation
+     * Schedule a re-invocation of the executing handler no less than 1 minute from
+     * now
+     *
+     * @param functionArn the ARN oft he Lambda function to be invoked
+     * @param minutesFromNow the minimum minutes from now that the re-invocation
+     *            will occur. CWE provides only minute-granularity
+     * @param handlerRequest additional context which the handler can provide itself
+     *            for re-invocation
      */
-    public <ResourceT, CallbackT> void rescheduleAfterMinutes(
-                                       final String functionArn,
-                                       final int minutesFromNow,
-                                       final HandlerRequest<ResourceT, CallbackT> handlerRequest) {
+    public <ResourceT, CallbackT> void rescheduleAfterMinutes(final String functionArn,
+                                                              final int minutesFromNow,
+                                                              final HandlerRequest<ResourceT, CallbackT> handlerRequest) {
 
         // generate a cron expression; minutes must be a positive integer
         final String cronRule = this.cronHelper.generateOneTimeCronExpression(Math.max(minutesFromNow, 1));
@@ -81,67 +87,54 @@ public class CloudWatchScheduler {
         final String jsonRequest = new JSONObject(handlerRequest).toString();
         this.log(String.format("Scheduling re-invoke at %s (%s)\n", cronRule, rescheduleId));
 
-        final PutRuleRequest putRuleRequest = PutRuleRequest.builder()
-            .name(ruleName)
-            .scheduleExpression(cronRule)
-            .state(RuleState.ENABLED)
-            .build();
+        final PutRuleRequest putRuleRequest = PutRuleRequest.builder().name(ruleName).scheduleExpression(cronRule)
+            .state(RuleState.ENABLED).build();
         this.client.putRule(putRuleRequest);
 
-        final Target target = Target.builder()
-            .arn(functionArn)
-            .id(targetId)
-            .input(jsonRequest)
-            .build();
-        final PutTargetsRequest putTargetsRequest = PutTargetsRequest.builder()
-            .targets(target)
-            .rule(putRuleRequest.name())
+        final Target target = Target.builder().arn(functionArn).id(targetId).input(jsonRequest).build();
+        final PutTargetsRequest putTargetsRequest = PutTargetsRequest.builder().targets(target).rule(putRuleRequest.name())
             .build();
         this.client.putTargets(putTargetsRequest);
 
-        final DescribeRuleRequest describeRuleRequest = DescribeRuleRequest.builder()
-            .name(ruleName)
-            .build();
+        final DescribeRuleRequest describeRuleRequest = DescribeRuleRequest.builder().name(ruleName).build();
         this.client.describeRule(describeRuleRequest);
     }
 
     /**
-     * After a re-invocation, the CWE rule which generated the reinvocation should be scrubbed
-     * @param cloudWatchEventsRuleName  the name of the CWE rule which triggered a re-invocation
-     * @param cloudWatchEventsTargetId  the target of the CWE rule which triggered a re-invocation
+     * After a re-invocation, the CWE rule which generated the reinvocation should
+     * be scrubbed
+     *
+     * @param cloudWatchEventsRuleName the name of the CWE rule which triggered a
+     *            re-invocation
+     * @param cloudWatchEventsTargetId the target of the CWE rule which triggered a
+     *            re-invocation
      */
-    public void cleanupCloudWatchEvents(final String cloudWatchEventsRuleName,
-                                        final String cloudWatchEventsTargetId) {
+    public void cleanupCloudWatchEvents(final String cloudWatchEventsRuleName, final String cloudWatchEventsTargetId) {
 
         try {
             if (!StringUtils.isBlank(cloudWatchEventsTargetId)) {
-                final RemoveTargetsRequest removeTargetsRequest = RemoveTargetsRequest.builder()
-                    .ids(cloudWatchEventsTargetId)
-                    .rule(cloudWatchEventsRuleName)
-                    .build();
+                final RemoveTargetsRequest removeTargetsRequest = RemoveTargetsRequest.builder().ids(cloudWatchEventsTargetId)
+                    .rule(cloudWatchEventsRuleName).build();
                 this.client.removeTargets(removeTargetsRequest);
             }
         } catch (final Throwable e) {
-            this.log(String.format("Error cleaning CloudWatchEvents Target (targetId=%s): %s",
-                    cloudWatchEventsTargetId,
-                    e.getMessage()));
+            this.log(String.format("Error cleaning CloudWatchEvents Target (targetId=%s): %s", cloudWatchEventsTargetId,
+                e.getMessage()));
         }
         try {
             if (!StringUtils.isBlank(cloudWatchEventsRuleName)) {
-                final DeleteRuleRequest deleteRuleRequest = DeleteRuleRequest.builder()
-                    .name(cloudWatchEventsRuleName)
-                    .build();
+                final DeleteRuleRequest deleteRuleRequest = DeleteRuleRequest.builder().name(cloudWatchEventsRuleName).build();
                 this.client.deleteRule(deleteRuleRequest);
             }
         } catch (final Throwable e) {
-            this.log(String.format("Error cleaning CloudWatchEvents (ruleName=%s): %s",
-                cloudWatchEventsRuleName,
-                e.getMessage()));
+            this.log(
+                String.format("Error cleaning CloudWatchEvents (ruleName=%s): %s", cloudWatchEventsRuleName, e.getMessage()));
         }
     }
 
     /**
      * null-safe logger redirect
+     *
      * @param message A string containing the event to log.
      */
     private void log(final String message) {

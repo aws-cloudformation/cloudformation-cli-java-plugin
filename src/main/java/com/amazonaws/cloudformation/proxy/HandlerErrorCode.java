@@ -18,17 +18,20 @@ public enum HandlerErrorCode {
     InvalidCredentials,
 
     /**
-     * the handler completed without making any modifying API calls (only applicable to UpdateHandler)
+     * the handler completed without making any modifying API calls (only applicable
+     * to UpdateHandler)
      */
     NoOperationToPerform,
 
     /**
-     * the customer tried perform an update to a property that is not updatable (only applicable to UpdateHandler)
+     * the customer tried perform an update to a property that is not updatable
+     * (only applicable to UpdateHandler)
      */
     NotUpdatable,
 
     /**
-     * the specified resource does not exist, or is in a terminal, inoperable, and irrecoverable state
+     * the specified resource does not exist, or is in a terminal, inoperable, and
+     * irrecoverable state
      */
     NotFound,
 
@@ -38,8 +41,9 @@ public enum HandlerErrorCode {
     NotReady,
 
     /**
-     * the request was throttled by the downstream service.
-     * Handlers SHOULD retry on service throttling using exponential backoff in order to be resilient to transient throttling.
+     * the request was throttled by the downstream service. Handlers SHOULD retry on
+     * service throttling using exponential backoff in order to be resilient to
+     * transient throttling.
      */
     Throttling,
 
@@ -49,7 +53,8 @@ public enum HandlerErrorCode {
     ServiceLimitExceeded,
 
     /**
-     * the handler timed out waiting for the downstream service to perform an operation
+     * the handler timed out waiting for the downstream service to perform an
+     * operation
      */
     ServiceTimeout,
 
@@ -59,8 +64,10 @@ public enum HandlerErrorCode {
     ServiceException,
 
     /**
-     * the request was unable to be completed due to networking issues, such as failure to receive a response from the server.
-     * Handlers SHOULD retry on network failures using exponential backoff in order to be resilient to transient issues.
+     * the request was unable to be completed due to networking issues, such as
+     * failure to receive a response from the server. Handlers SHOULD retry on
+     * network failures using exponential backoff in order to be resilient to
+     * transient issues.
      */
     NetworkFailure,
 
@@ -70,8 +77,9 @@ public enum HandlerErrorCode {
     InternalFailure,
 
     /**
-     * a resource create request failed for an existing entity (only applicable to CreateHandler)
-     * Handlers MUST return this error when duplicate creation requests are received.
+     * a resource create request failed for an existing entity (only applicable to
+     * CreateHandler) Handlers MUST return this error when duplicate creation
+     * requests are received.
      */
     AlreadyExists
 }

@@ -1,11 +1,13 @@
 package com.amazonaws.cloudformation.scheduler;
 
+import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import org.mockito.ArgumentMatcher;
-import software.amazon.awssdk.services.cloudwatchevents.model.Target;
 
-import java.util.List;
+import org.mockito.ArgumentMatcher;
+
+import software.amazon.awssdk.services.cloudwatchevents.model.Target;
 
 @Data
 @AllArgsConstructor

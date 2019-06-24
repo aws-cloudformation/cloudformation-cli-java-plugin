@@ -1,8 +1,10 @@
 package com.amazonaws.cloudformation.proxy;
 
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.cloudformation.injection.CloudFormationProvider;
+import com.amazonaws.services.lambda.runtime.LambdaLogger;
+
 import org.json.JSONObject;
+
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressRequest;
 import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressResponse;
@@ -32,9 +34,7 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
                                final T resourceModel,
                                final String statusMessage) {
         final RecordHandlerProgressRequest.Builder requestBuilder = RecordHandlerProgressRequest.builder()
-            .bearerToken(bearerToken)
-            .operationStatus(translate(operationStatus))
-            .statusMessage(statusMessage);
+            .bearerToken(bearerToken).operationStatus(translate(operationStatus)).statusMessage(statusMessage);
 
         if (resourceModel != null) {
             requestBuilder.resourceModel(new JSONObject(resourceModel).toString());
@@ -46,11 +46,11 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
 
         // TODO: be far more fault tolerant, do retries, emit logs and metrics, etc.
         final RecordHandlerProgressResponse response = this.client.recordHandlerProgress(requestBuilder.build());
-        logger.log(String.format("Record Handler Progress with Request Id %s and Request: {%s}", response.responseMetadata().requestId(), requestBuilder.build().toString()));
+        logger.log(String.format("Record Handler Progress with Request Id %s and Request: {%s}",
+            response.responseMetadata().requestId(), requestBuilder.build().toString()));
     }
 
-    static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode translate(
-        final HandlerErrorCode errorCode) {
+    static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode translate(final HandlerErrorCode errorCode) {
         switch (errorCode) {
             case AccessDenied:
                 return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.ACCESS_DENIED;
@@ -79,12 +79,14 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
             case Throttling:
                 return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.THROTTLING;
             default:
-                // InternalFailure is CloudFormation's fallback error code when no more specificity is there
+                // InternalFailure is CloudFormation's fallback error code when no more
+                // specificity is there
                 return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.INTERNAL_FAILURE;
         }
     }
 
-    private software.amazon.awssdk.services.cloudformation.model.OperationStatus translate(final OperationStatus operationStatus) {
+    private software.amazon.awssdk.services.cloudformation.model.OperationStatus
+            translate(final OperationStatus operationStatus) {
         switch (operationStatus) {
             case SUCCESS:
                 return software.amazon.awssdk.services.cloudformation.model.OperationStatus.SUCCESS;

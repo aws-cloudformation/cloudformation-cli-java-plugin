@@ -16,7 +16,7 @@ public class ResourceAlreadyExistsException extends RuntimeException {
     public ResourceAlreadyExistsException(final String resourceTypeName,
                                           final String resourceIdentifier,
                                           final Throwable cause) {
-        super(String.format("Resource of type '%s' with identifier '%s' already exists.",
-            resourceTypeName, resourceIdentifier), cause);
+        super(String.format("Resource of type '%s' with identifier '%s' already exists.", resourceTypeName, resourceIdentifier),
+              cause);
     }
 }

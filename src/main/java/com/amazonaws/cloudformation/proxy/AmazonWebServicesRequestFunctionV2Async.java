@@ -1,9 +1,9 @@
 package com.amazonaws.cloudformation.proxy;
 
+import java.util.concurrent.CompletableFuture;
+
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
-
-import java.util.concurrent.CompletableFuture;
 
 @FunctionalInterface
 public interface AmazonWebServicesRequestFunctionV2Async<RequestT extends AwsRequest, ResultT extends AwsResponse> {

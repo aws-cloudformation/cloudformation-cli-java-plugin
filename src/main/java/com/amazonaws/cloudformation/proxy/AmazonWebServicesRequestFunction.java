@@ -5,8 +5,7 @@ import com.amazonaws.AmazonWebServiceResult;
 import com.amazonaws.ResponseMetadata;
 
 @FunctionalInterface
-public interface AmazonWebServicesRequestFunction<RequestT extends AmazonWebServiceRequest,
-                                                  ResultT extends AmazonWebServiceResult<ResponseMetadata>> {
+public interface AmazonWebServicesRequestFunction<RequestT extends AmazonWebServiceRequest, ResultT extends AmazonWebServiceResult<ResponseMetadata>> {
     /**
      * Applies this function to the given arguments.
      *

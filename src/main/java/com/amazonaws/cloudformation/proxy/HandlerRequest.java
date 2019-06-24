@@ -1,6 +1,7 @@
 package com.amazonaws.cloudformation.proxy;
 
 import com.amazonaws.cloudformation.Action;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
