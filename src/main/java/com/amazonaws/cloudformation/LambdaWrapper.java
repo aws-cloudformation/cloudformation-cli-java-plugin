@@ -66,6 +66,11 @@ import software.amazon.awssdk.utils.StringUtils;
 
 public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStreamHandler {
 
+    private static final List<Action> MUTATING_ACTIONS = Arrays.asList(Action.CREATE, Action.DELETE, Action.UPDATE);
+
+    protected final Serializer serializer;
+    protected LambdaLogger logger;
+
     private final CredentialsProvider credentialsProvider;
     private final CloudFormationProvider cloudFormationProvider;
     private final CloudWatchProvider cloudWatchProvider;
@@ -76,10 +81,6 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     private CloudWatchScheduler scheduler;
     private final SchemaValidator validator;
     private final TypeReference<HandlerRequest<ResourceT, CallbackT>> typeReference;
-    protected final Serializer serializer;
-    protected LambdaLogger logger;
-
-    private final static List<Action> MUTATING_ACTIONS = Arrays.asList(Action.CREATE, Action.DELETE, Action.UPDATE);
 
     protected LambdaWrapper() {
         this.credentialsProvider = new PlatformCredentialsProvider();
@@ -442,7 +443,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
      * @return A converted ResourceHandlerRequest model
      */
     protected abstract ResourceHandlerRequest<ResourceT>
-              transform(final HandlerRequest<ResourceT, CallbackT> request) throws IOException;
+              transform(HandlerRequest<ResourceT, CallbackT> request) throws IOException;
 
     /**
      * Handler implementation should implement this method to provide the schema for
@@ -455,10 +456,10 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     /**
      * Implemented by the handler package as the key entry point.
      */
-    public abstract ProgressEvent<ResourceT, CallbackT> invokeHandler(final AmazonWebServicesClientProxy proxy,
-                                                                      final ResourceHandlerRequest<ResourceT> request,
-                                                                      final Action action,
-                                                                      final CallbackT callbackContext) throws Exception;
+    public abstract ProgressEvent<ResourceT, CallbackT> invokeHandler(AmazonWebServicesClientProxy proxy,
+                                                                      ResourceHandlerRequest<ResourceT> request,
+                                                                      Action action,
+                                                                      CallbackT callbackContext) throws Exception;
 
     /**
      * null-safe logger redirect

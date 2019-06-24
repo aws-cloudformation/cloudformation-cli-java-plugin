@@ -31,9 +31,9 @@ public interface MetricsPublisher {
 
     void setResourceTypeName(String resourceTypeName);
 
-    void publishExceptionMetric(final Instant timestamp, final Action action, final Throwable e);
+    void publishExceptionMetric(Instant timestamp, Action action, Throwable e);
 
-    void publishInvocationMetric(final Instant timestamp, final Action action);
+    void publishInvocationMetric(Instant timestamp, Action action);
 
-    void publishDurationMetric(final Instant timestamp, final Action action, long milliseconds);
+    void publishDurationMetric(Instant timestamp, Action action, long milliseconds);
 }

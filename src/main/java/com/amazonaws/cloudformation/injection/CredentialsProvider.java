@@ -28,5 +28,5 @@ public interface CredentialsProvider {
     /**
      * Inject a new set of credentials (passed through from caller)
      */
-    void setCredentials(final Credentials credentials);
+    void setCredentials(Credentials credentials);
 }

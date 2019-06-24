@@ -20,6 +20,9 @@ import org.apache.commons.lang3.RandomStringUtils;
 
 public class IdentifierUtils {
 
+    private IdentifierUtils() {
+    }
+
     /**
      * For named resources, use this method to safely generate a user friendly
      * resource name when the customer does not pass in an explicit name For more

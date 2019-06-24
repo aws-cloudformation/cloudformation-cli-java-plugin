@@ -19,7 +19,7 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 
 public abstract class AmazonWebServicesProvider {
 
-    final protected CredentialsProvider credentialsProvider;
+    protected final CredentialsProvider credentialsProvider;
 
     protected AmazonWebServicesProvider(final CredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;

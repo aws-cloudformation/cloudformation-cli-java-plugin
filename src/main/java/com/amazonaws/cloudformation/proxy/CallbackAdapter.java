@@ -38,9 +38,9 @@ public interface CallbackAdapter<T> {
      * @param statusMessage (optional) progress status which may be shown to end
      *            user
      */
-    void reportProgress(final String bearerToken,
-                        final HandlerErrorCode errorCode,
-                        final OperationStatus operationStatus,
-                        final T resourceModel,
-                        final String statusMessage);
+    void reportProgress(String bearerToken,
+                        HandlerErrorCode errorCode,
+                        OperationStatus operationStatus,
+                        T resourceModel,
+                        String statusMessage);
 }
