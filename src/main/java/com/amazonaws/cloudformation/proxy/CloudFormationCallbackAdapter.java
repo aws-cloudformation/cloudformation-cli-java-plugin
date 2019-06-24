@@ -47,8 +47,8 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
                                final OperationStatus operationStatus,
                                final T resourceModel,
                                final String statusMessage) {
-        final RecordHandlerProgressRequest.Builder requestBuilder = RecordHandlerProgressRequest.builder()
-            .bearerToken(bearerToken).operationStatus(translate(operationStatus)).statusMessage(statusMessage);
+        RecordHandlerProgressRequest.Builder requestBuilder = RecordHandlerProgressRequest.builder().bearerToken(bearerToken)
+            .operationStatus(translate(operationStatus)).statusMessage(statusMessage);
 
         if (resourceModel != null) {
             requestBuilder.resourceModel(new JSONObject(resourceModel).toString());
@@ -59,7 +59,7 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
         }
 
         // TODO: be far more fault tolerant, do retries, emit logs and metrics, etc.
-        final RecordHandlerProgressResponse response = this.client.recordHandlerProgress(requestBuilder.build());
+        RecordHandlerProgressResponse response = this.client.recordHandlerProgress(requestBuilder.build());
         logger.log(String.format("Record Handler Progress with Request Id %s and Request: {%s}",
             response.responseMetadata().requestId(), requestBuilder.build().toString()));
     }

@@ -155,8 +155,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                 throw new TerminalException("No request object received");
             }
 
-            final String input = IOUtils.toString(inputStream, "UTF-8");
-            final JSONObject rawInput = new JSONObject(new JSONTokener(input));
+            String input = IOUtils.toString(inputStream, "UTF-8");
+            JSONObject rawInput = new JSONObject(new JSONTokener(input));
 
             // deserialize incoming payload to modelled request
             request = this.serializer.deserialize(input, typeReference);
@@ -165,14 +165,14 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         } catch (final ValidationException e) {
             // TODO: we'll need a better way to expose the stack of causing exceptions for
             // user feedback
-            final StringBuilder validationMessageBuilder = new StringBuilder();
+            StringBuilder validationMessageBuilder = new StringBuilder();
             if (!StringUtils.isEmpty(e.getMessage())) {
                 validationMessageBuilder.append(String.format("Model validation failed (%s)", e.getMessage()));
             } else {
                 validationMessageBuilder.append(String.format("Model validation failed"));
             }
             if (e.getCausingExceptions() != null) {
-                for (final ValidationException cause : e.getCausingExceptions()) {
+                for (ValidationException cause : e.getCausingExceptions()) {
                     validationMessageBuilder.append(String.format("\n%s (%s)", cause.getMessage(), cause.getSchemaLocation()));
                 }
             }
@@ -222,13 +222,13 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         initialiseRuntime(request.getRequestData().getPlatformCredentials(), URI.create(request.getResponseEndpoint()));
 
         // transform the request object to pass to caller
-        final ResourceHandlerRequest<ResourceT> resourceHandlerRequest = transform(request);
+        ResourceHandlerRequest<ResourceT> resourceHandlerRequest = transform(request);
 
         RequestContext<CallbackT> requestContext = request.getRequestContext();
         if (requestContext != null) {
             // If this invocation was triggered by a 're-invoke' CloudWatch Event, clean it
             // up
-            final String cloudWatchEventsRuleName = requestContext.getCloudWatchEventsRuleName();
+            String cloudWatchEventsRuleName = requestContext.getCloudWatchEventsRuleName();
             if (!StringUtils.isBlank(cloudWatchEventsRuleName)) {
                 this.scheduler.cleanupCloudWatchEvents(cloudWatchEventsRuleName, requestContext.getCloudWatchEventsTargetId());
             }
@@ -250,7 +250,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         if (MUTATING_ACTIONS.contains(request.getAction())) {
             // validate entire incoming payload, including extraneous fields which
             // are stripped by the Serializer (due to FAIL_ON_UNKNOWN_PROPERTIES setting)
-            final JSONObject rawModelObject = rawRequest.getJSONObject("requestData").getJSONObject("resourceProperties");
+            JSONObject rawModelObject = rawRequest.getJSONObject("requestData").getJSONObject("resourceProperties");
             validateModel(rawModelObject);
         }
 
@@ -269,7 +269,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // such as before a FAS token expires
 
         // last mile proxy creation with passed-in credentials
-        final AmazonWebServicesClientProxy awsClientProxy = new AmazonWebServicesClientProxy(this.logger, request.getRequestData()
+        AmazonWebServicesClientProxy awsClientProxy = new AmazonWebServicesClientProxy(this.logger, request.getRequestData()
             .getCallerCredentials());
 
         boolean computeLocally = true;
@@ -278,7 +278,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         while (computeLocally) {
             // rebuild callback context on each invocation cycle
             requestContext = request.getRequestContext();
-            final CallbackT callbackContext = (requestContext != null) ? requestContext.getCallbackContext() : null;
+            CallbackT callbackContext = (requestContext != null) ? requestContext.getCallbackContext() : null;
 
             handlerResponse = wrapInvocationAndHandleErrors(awsClientProxy, resourceHandlerRequest, request, callbackContext);
 
@@ -308,9 +308,9 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                                           final HandlerRequest<ResourceT, CallbackT> request,
                                           final CallbackT callbackContext) {
 
-        final Date startTime = Date.from(Instant.now());
+        Date startTime = Date.from(Instant.now());
         try {
-            final ProgressEvent<ResourceT, CallbackT> handlerResponse = invokeHandler(awsClientProxy, resourceHandlerRequest,
+            ProgressEvent<ResourceT, CallbackT> handlerResponse = invokeHandler(awsClientProxy, resourceHandlerRequest,
                 request.getAction(), callbackContext);
             if (handlerResponse != null) {
                 this.log(String.format("Handler returned %s", handlerResponse.getStatus()));
@@ -342,7 +342,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                 request.getResourceType(), e.toString()));
             return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.InternalFailure);
         } finally {
-            final Date endTime = Date.from(Instant.now());
+            Date endTime = Date.from(Instant.now());
             metricsPublisher.publishDurationMetric(Instant.now(), request.getAction(), (endTime.getTime() - startTime.getTime()));
         }
 
@@ -351,7 +351,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     private Response<ResourceT> createProgressResponse(final ProgressEvent<ResourceT, CallbackT> progressEvent,
                                                        final String bearerToken) {
 
-        final Response<ResourceT> response = new Response<>();
+        Response<ResourceT> response = new Response<>();
         response.setMessage(progressEvent.getMessage());
         response.setOperationStatus(progressEvent.getStatus());
         response.setResourceModel(progressEvent.getResourceModel());
@@ -363,13 +363,13 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
     private void writeResponse(final OutputStream outputStream, final Response<ResourceT> response) throws IOException {
 
-        final JSONObject output = this.serializer.serialize(response);
+        JSONObject output = this.serializer.serialize(response);
         outputStream.write(output.toString().getBytes(Charset.forName("UTF-8")));
         outputStream.close();
     }
 
     private void validateModel(final JSONObject modelObject) throws ValidationException {
-        final InputStream resourceSchema = provideResourceSchema();
+        InputStream resourceSchema = provideResourceSchema();
         if (resourceSchema == null) {
             throw new ValidationException("Unable to validate incoming model as no schema was provided.", null, null);
         }
@@ -395,8 +395,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             return false;
         }
 
-        final RequestContext<CallbackT> reinvocationContext = new RequestContext<>();
-        final RequestContext<CallbackT> requestContext = request.getRequestContext();
+        RequestContext<CallbackT> reinvocationContext = new RequestContext<>();
+        RequestContext<CallbackT> requestContext = request.getRequestContext();
         int counter = 1;
         if (requestContext != null) {
             counter += requestContext.getInvocation();
@@ -421,7 +421,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
         logger.log(String.format("Scheduling re-invoke with Context {%s}", reinvocationContext.toString()));
         try {
-            final int callbackDelayMinutes = handlerResponse.getCallbackDelaySeconds() / 60;
+            int callbackDelayMinutes = handlerResponse.getCallbackDelaySeconds() / 60;
             this.scheduler.rescheduleAfterMinutes(context.getInvokedFunctionArn(), callbackDelayMinutes, request);
         } catch (final Throwable e) {
             this.log(String.format("Failed to schedule re-invoke, caused by %s", e.toString()));

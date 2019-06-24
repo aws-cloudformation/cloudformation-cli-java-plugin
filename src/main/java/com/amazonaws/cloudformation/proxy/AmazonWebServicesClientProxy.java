@@ -43,12 +43,12 @@ public class AmazonWebServicesClientProxy {
                                         final Credentials credentials) {
         this.logger = logger;
 
-        final BasicSessionCredentials basicSessionCredentials = new BasicSessionCredentials(credentials.getAccessKeyId(),
-                                                                                            credentials.getSecretAccessKey(),
-                                                                                            credentials.getSessionToken());
+        BasicSessionCredentials basicSessionCredentials = new BasicSessionCredentials(credentials.getAccessKeyId(),
+                                                                                      credentials.getSecretAccessKey(),
+                                                                                      credentials.getSessionToken());
         this.v1CredentialsProvider = new AWSStaticCredentialsProvider(basicSessionCredentials);
 
-        final AwsSessionCredentials awsSessionCredentials = AwsSessionCredentials.create(credentials.getAccessKeyId(),
+        AwsSessionCredentials awsSessionCredentials = AwsSessionCredentials.create(credentials.getAccessKeyId(),
             credentials.getSecretAccessKey(), credentials.getSessionToken());
         this.v2CredentialsProvider = StaticCredentialsProvider.create(awsSessionCredentials);
     }
@@ -75,11 +75,11 @@ public class AmazonWebServicesClientProxy {
            injectCredentialsAndInvokeV2(final RequestT request,
                                         final AmazonWebServicesRequestFunctionV2<RequestT, ResultT> requestFunction) {
 
-        final AwsRequestOverrideConfiguration overrideConfiguration = AwsRequestOverrideConfiguration.builder()
+        AwsRequestOverrideConfiguration overrideConfiguration = AwsRequestOverrideConfiguration.builder()
             .credentialsProvider(v2CredentialsProvider).build();
 
         @SuppressWarnings("unchecked")
-        final RequestT wrappedRequest = (RequestT) request.toBuilder().overrideConfiguration(overrideConfiguration).build();
+        RequestT wrappedRequest = (RequestT) request.toBuilder().overrideConfiguration(overrideConfiguration).build();
 
         try {
             return requestFunction.apply(wrappedRequest);
@@ -94,11 +94,11 @@ public class AmazonWebServicesClientProxy {
            injectCredentialsAndInvokeV2Async(final RequestT request,
                                              final AmazonWebServicesRequestFunctionV2Async<RequestT, ResultT> requestFunction) {
 
-        final AwsRequestOverrideConfiguration overrideConfiguration = AwsRequestOverrideConfiguration.builder()
+        AwsRequestOverrideConfiguration overrideConfiguration = AwsRequestOverrideConfiguration.builder()
             .credentialsProvider(v2CredentialsProvider).build();
 
         @SuppressWarnings("unchecked")
-        final RequestT wrappedRequest = (RequestT) request.toBuilder().overrideConfiguration(overrideConfiguration).build();
+        RequestT wrappedRequest = (RequestT) request.toBuilder().overrideConfiguration(overrideConfiguration).build();
 
         try {
             return requestFunction.apply(wrappedRequest);

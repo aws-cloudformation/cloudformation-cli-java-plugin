@@ -87,30 +87,29 @@ public class CloudWatchScheduler {
                                                               final HandlerRequest<ResourceT, CallbackT> handlerRequest) {
 
         // generate a cron expression; minutes must be a positive integer
-        final String cronRule = this.cronHelper.generateOneTimeCronExpression(Math.max(minutesFromNow, 1));
+        String cronRule = this.cronHelper.generateOneTimeCronExpression(Math.max(minutesFromNow, 1));
 
-        final UUID rescheduleId = UUID.randomUUID();
-        final String ruleName = String.format("reinvoke-handler-%s", rescheduleId);
-        final String targetId = String.format("reinvoke-target-%s", rescheduleId);
+        UUID rescheduleId = UUID.randomUUID();
+        String ruleName = String.format("reinvoke-handler-%s", rescheduleId);
+        String targetId = String.format("reinvoke-target-%s", rescheduleId);
 
         // record the CloudWatchEvents objects for cleanup on the callback
-        final RequestContext<CallbackT> requestContext = handlerRequest.getRequestContext();
+        RequestContext<CallbackT> requestContext = handlerRequest.getRequestContext();
         requestContext.setCloudWatchEventsRuleName(ruleName);
         requestContext.setCloudWatchEventsTargetId(targetId);
 
-        final String jsonRequest = new JSONObject(handlerRequest).toString();
+        String jsonRequest = new JSONObject(handlerRequest).toString();
         this.log(String.format("Scheduling re-invoke at %s (%s)\n", cronRule, rescheduleId));
 
-        final PutRuleRequest putRuleRequest = PutRuleRequest.builder().name(ruleName).scheduleExpression(cronRule)
+        PutRuleRequest putRuleRequest = PutRuleRequest.builder().name(ruleName).scheduleExpression(cronRule)
             .state(RuleState.ENABLED).build();
         this.client.putRule(putRuleRequest);
 
-        final Target target = Target.builder().arn(functionArn).id(targetId).input(jsonRequest).build();
-        final PutTargetsRequest putTargetsRequest = PutTargetsRequest.builder().targets(target).rule(putRuleRequest.name())
-            .build();
+        Target target = Target.builder().arn(functionArn).id(targetId).input(jsonRequest).build();
+        PutTargetsRequest putTargetsRequest = PutTargetsRequest.builder().targets(target).rule(putRuleRequest.name()).build();
         this.client.putTargets(putTargetsRequest);
 
-        final DescribeRuleRequest describeRuleRequest = DescribeRuleRequest.builder().name(ruleName).build();
+        DescribeRuleRequest describeRuleRequest = DescribeRuleRequest.builder().name(ruleName).build();
         this.client.describeRule(describeRuleRequest);
     }
 
@@ -127,7 +126,7 @@ public class CloudWatchScheduler {
 
         try {
             if (!StringUtils.isBlank(cloudWatchEventsTargetId)) {
-                final RemoveTargetsRequest removeTargetsRequest = RemoveTargetsRequest.builder().ids(cloudWatchEventsTargetId)
+                RemoveTargetsRequest removeTargetsRequest = RemoveTargetsRequest.builder().ids(cloudWatchEventsTargetId)
                     .rule(cloudWatchEventsRuleName).build();
                 this.client.removeTargets(removeTargetsRequest);
             }
@@ -137,7 +136,7 @@ public class CloudWatchScheduler {
         }
         try {
             if (!StringUtils.isBlank(cloudWatchEventsRuleName)) {
-                final DeleteRuleRequest deleteRuleRequest = DeleteRuleRequest.builder().name(cloudWatchEventsRuleName).build();
+                DeleteRuleRequest deleteRuleRequest = DeleteRuleRequest.builder().name(cloudWatchEventsRuleName).build();
                 this.client.deleteRule(deleteRuleRequest);
             }
         } catch (final Throwable e) {

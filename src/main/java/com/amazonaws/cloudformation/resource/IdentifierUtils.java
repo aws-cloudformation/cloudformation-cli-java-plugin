@@ -20,6 +20,9 @@ import org.apache.commons.lang3.RandomStringUtils;
 
 public class IdentifierUtils {
 
+    private static final int GENERATED_PHYSICALID_MAXLEN = 40;
+    private static final int GUID_LENGTH = 12;
+
     private IdentifierUtils() {
     }
 
@@ -31,7 +34,7 @@ public class IdentifierUtils {
      * @return generated ID string
      */
     public static String generateResourceIdentifier(final String logicalResourceId, final String clientRequestToken) {
-        return generateResourceIdentifier(logicalResourceId, clientRequestToken, Constants.GENERATED_PHYSICALID_MAXLEN);
+        return generateResourceIdentifier(logicalResourceId, clientRequestToken, GENERATED_PHYSICALID_MAXLEN);
     }
 
     /**
@@ -43,17 +46,16 @@ public class IdentifierUtils {
      */
     public static String
            generateResourceIdentifier(final String logicalResourceId, final String clientRequestToken, final int maxLength) {
-        final int maxLogicalIdLength = maxLength - (Constants.GUID_LENGTH + 1);
+        int maxLogicalIdLength = maxLength - (GUID_LENGTH + 1);
 
-        final int endIndex = logicalResourceId.length() > maxLogicalIdLength ? maxLogicalIdLength : logicalResourceId.length();
+        int endIndex = logicalResourceId.length() > maxLogicalIdLength ? maxLogicalIdLength : logicalResourceId.length();
 
-        final StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder();
         if (endIndex > 0) {
             sb.append(logicalResourceId.substring(0, endIndex)).append("-");
         }
 
-        return sb.append(
-            RandomStringUtils.random(Constants.GUID_LENGTH, 0, 0, true, true, null, new Random(clientRequestToken.hashCode())))
+        return sb.append(RandomStringUtils.random(GUID_LENGTH, 0, 0, true, true, null, new Random(clientRequestToken.hashCode())))
             .toString();
     }
 }

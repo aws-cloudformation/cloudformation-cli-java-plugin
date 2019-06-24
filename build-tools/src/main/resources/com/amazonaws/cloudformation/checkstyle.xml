@@ -362,7 +362,7 @@
         </module>
 
         <!-- Checks that we don't use plural enum names -->
-        <!--<module name="com.amazonaws.cloudformation.buildtools.checkstyle.PluralEnumNames"/>-->
+        <module name="com.amazonaws.cloudformation.buildtools.checkstyle.PluralEnumNames"/>
 
         <!-- Checks for redundant public modifier on interfaces and other redundant modifiers -->
         <module name="RedundantModifier" />
@@ -371,6 +371,6 @@
         <module name="HideUtilityClassConstructor"/>
 
         <!-- Checks that no 'final' are added on local variables -->
-        <!--<module name="com.amazonaws.cloudformation.buildtools.checkstyle.UnnecessaryFinalOnLocalVariableCheck" />-->
+        <module name="com.amazonaws.cloudformation.buildtools.checkstyle.UnnecessaryFinalOnLocalVariableCheck" />
     </module>
 </module>

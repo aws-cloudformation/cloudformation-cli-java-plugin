@@ -14,7 +14,7 @@
 */
 package com.amazonaws.cloudformation.metrics;
 
-public class Metrics {
+public class Metric {
 
     public static final String METRIC_NAMESPACE_ROOT = "AWS_TMP/CloudFormation";
     public static final String METRIC_NAME_HANDLER_EXCEPTION = "HandlerException";
@@ -25,6 +25,6 @@ public class Metrics {
     public static final String DIMENSION_KEY_EXCEPTION_TYPE = "ExceptionType";
     public static final String DIMENSION_KEY_RESOURCE_TYPE = "ResourceType";
 
-    private Metrics() {
+    private Metric() {
     }
 }
