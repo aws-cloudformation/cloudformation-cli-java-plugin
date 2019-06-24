@@ -73,8 +73,8 @@ public class CloudFormationCallbackAdapterTest {
 
         when(client.recordHandlerProgress(any(RecordHandlerProgressRequest.class))).thenReturn(response);
 
-        final CloudFormationCallbackAdapter<TestModel> adapter = new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider,
-                                                                                                              lambdaLogger);
+        final CloudFormationCallbackAdapter<
+            TestModel> adapter = new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, lambdaLogger);
         adapter.refreshClient();
 
         adapter.reportProgress("bearer-token", HandlerErrorCode.InvalidRequest, OperationStatus.FAILED, null, "some error");

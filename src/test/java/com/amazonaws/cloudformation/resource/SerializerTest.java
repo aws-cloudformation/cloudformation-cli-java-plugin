@@ -38,8 +38,9 @@ public class SerializerTest {
 
     private static final String TEST_DATA_BASE_PATH = "src/test/java/com/amazonaws/cloudformation/data/%s";
 
-    private final TypeReference<HandlerRequest<TestModel, TestContext>> typeReference = new TypeReference<HandlerRequest<TestModel, TestContext>>() {
-    };
+    private final TypeReference<
+        HandlerRequest<TestModel, TestContext>> typeReference = new TypeReference<HandlerRequest<TestModel, TestContext>>() {
+        };
 
     public static String loadRequestJson(final String fileName) throws IOException {
         final File file = new File(String.format(TEST_DATA_BASE_PATH, fileName));

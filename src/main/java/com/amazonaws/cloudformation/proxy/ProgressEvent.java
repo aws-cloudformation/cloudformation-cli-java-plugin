@@ -84,11 +84,10 @@ public class ProgressEvent<ResourceT, CallbackT> {
     /**
      * Convenience method for constructing a SUCCESS response
      */
-    public static <ResourceT, CallbackT>
-           ProgressEvent<ResourceT, CallbackT>
-           defaultInProgressHandler(final CallbackT callbackContext,
-                                    final int callbackDelaySeconds,
-                                    final ResourceT resourceModel) {
+    public static <ResourceT,
+        CallbackT> ProgressEvent<ResourceT, CallbackT> defaultInProgressHandler(final CallbackT callbackContext,
+                                                                                final int callbackDelaySeconds,
+                                                                                final ResourceT resourceModel) {
 
         return ProgressEvent.<ResourceT, CallbackT>builder().callbackContext(callbackContext)
             .callbackDelaySeconds(callbackDelaySeconds).resourceModel(resourceModel).status(OperationStatus.IN_PROGRESS).build();
@@ -97,9 +96,8 @@ public class ProgressEvent<ResourceT, CallbackT> {
     /**
      * Convenience method for constructing a SUCCESS response
      */
-    public static <ResourceT, CallbackT>
-           ProgressEvent<ResourceT, CallbackT>
-           defaultSuccessHandler(final ResourceT resourceModel) {
+    public static <ResourceT,
+        CallbackT> ProgressEvent<ResourceT, CallbackT> defaultSuccessHandler(final ResourceT resourceModel) {
 
         return ProgressEvent.<ResourceT, CallbackT>builder().resourceModel(resourceModel).status(OperationStatus.SUCCESS).build();
     }

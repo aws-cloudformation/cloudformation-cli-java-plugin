@@ -132,8 +132,8 @@ public class AmazonWebServicesClientProxyTest {
             .describeStackEvents(any(software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest.class)))
                 .thenReturn(CompletableFuture.completedFuture(expectedResult));
 
-        final CompletableFuture<DescribeStackEventsResponse> result = proxy.injectCredentialsAndInvokeV2Async(request,
-            client::describeStackEvents);
+        final CompletableFuture<
+            DescribeStackEventsResponse> result = proxy.injectCredentialsAndInvokeV2Async(request, client::describeStackEvents);
 
         // verify request is rebuilt for injection
         verify(request).toBuilder();

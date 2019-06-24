@@ -41,8 +41,8 @@ public class ProgressEventTest {
     public void testDefaultInProgressHandler() {
         final TestModel model = TestModel.builder().property1("abc").property2(123).build();
         final TestContext callbackContet = TestContext.builder().contextPropertyA("def").build();
-        final ProgressEvent<TestModel, TestContext> progressEvent = ProgressEvent.defaultInProgressHandler(callbackContet, 3,
-            model);
+        final ProgressEvent<TestModel,
+            TestContext> progressEvent = ProgressEvent.defaultInProgressHandler(callbackContet, 3, model);
 
         assertThat(progressEvent.getCallbackContext()).isEqualTo(callbackContet);
         assertThat(progressEvent.getCallbackDelaySeconds()).isEqualTo(3);

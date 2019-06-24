@@ -124,8 +124,8 @@ public class LambdaWrapperTest {
 
     private void verifyHandlerResponse(final OutputStream out, final HandlerResponse<TestModel> expected) throws IOException {
         final Serializer serializer = new Serializer();
-        final HandlerResponse<TestModel> handlerResponse = serializer.deserialize(out.toString(),
-            new TypeReference<HandlerResponse<TestModel>>() {
+        final HandlerResponse<
+            TestModel> handlerResponse = serializer.deserialize(out.toString(), new TypeReference<HandlerResponse<TestModel>>() {
             });
 
         assertThat(handlerResponse.getBearerToken()).isEqualTo(expected.getBearerToken());
@@ -279,8 +279,8 @@ public class LambdaWrapperTest {
 
         // if the handler responds Complete, this is treated as a successful synchronous
         // completion
-        final ProgressEvent<TestModel, TestContext> pe = ProgressEvent.<TestModel, TestContext>builder()
-            .status(OperationStatus.SUCCESS).build();
+        final ProgressEvent<TestModel,
+            TestContext> pe = ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.SUCCESS).build();
         wrapper.setInvokeHandlerResponse(pe);
 
         lenient().when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
@@ -821,12 +821,13 @@ public class LambdaWrapperTest {
 
         // an InProgress response is always re-scheduled.
         // If no explicit time is supplied, a 1-minute interval is used
-        final ProgressEvent<TestModel, TestContext> pe1 = ProgressEvent.<TestModel, TestContext>builder()
-            .status(OperationStatus.IN_PROGRESS) // iterate locally once
-            .callbackDelaySeconds(5).resourceModel(model).build();
-        final ProgressEvent<TestModel, TestContext> pe2 = ProgressEvent.<TestModel, TestContext>builder()
-            .status(OperationStatus.SUCCESS) // then exit loop
-            .resourceModel(model).build();
+        final ProgressEvent<TestModel,
+            TestContext> pe1 = ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.IN_PROGRESS) // iterate
+                                                                                                                   // locally once
+                .callbackDelaySeconds(5).resourceModel(model).build();
+        final ProgressEvent<TestModel,
+            TestContext> pe2 = ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.SUCCESS) // then exit loop
+                .resourceModel(model).build();
         wrapper.enqueueResponses(Arrays.asList(pe1, pe2));
 
         wrapper.setTransformResponse(resourceHandlerRequest);
@@ -901,12 +902,16 @@ public class LambdaWrapperTest {
 
         // an InProgress response is always re-scheduled.
         // If no explicit time is supplied, a 1-minute interval is used
-        final ProgressEvent<TestModel, TestContext> pe1 = ProgressEvent.<TestModel, TestContext>builder()
-            .status(OperationStatus.IN_PROGRESS) // iterate locally once
-            .callbackDelaySeconds(5).resourceModel(model).build();
-        final ProgressEvent<TestModel, TestContext> pe2 = ProgressEvent.<TestModel, TestContext>builder()
-            .status(OperationStatus.IN_PROGRESS) // second iteration will exceed runtime
-            .callbackDelaySeconds(5).resourceModel(model).build();
+        final ProgressEvent<TestModel,
+            TestContext> pe1 = ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.IN_PROGRESS) // iterate
+                                                                                                                   // locally once
+                .callbackDelaySeconds(5).resourceModel(model).build();
+        final ProgressEvent<TestModel,
+            TestContext> pe2 = ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.IN_PROGRESS) // second
+                                                                                                                   // iteration
+                                                                                                                   // will exceed
+                                                                                                                   // runtime
+                .callbackDelaySeconds(5).resourceModel(model).build();
         wrapper.enqueueResponses(Arrays.asList(pe1, pe2));
 
         wrapper.setTransformResponse(resourceHandlerRequest);
