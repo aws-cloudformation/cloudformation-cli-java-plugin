@@ -20,17 +20,18 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.ACCESS_DENIED;
+import static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.ALREADY_EXISTS;
+import static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.GENERAL_SERVICE_EXCEPTION;
 import static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.INTERNAL_FAILURE;
 import static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.INVALID_CREDENTIALS;
 import static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.INVALID_REQUEST;
 import static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.NETWORK_FAILURE;
 import static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.NOT_FOUND;
-import static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.NOT_READY;
+import static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.NOT_STABILIZED;
 import static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.NOT_UPDATABLE;
-import static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.NO_OPERATION_TO_PERFORM;
-import static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.SERVICE_EXCEPTION;
+import static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.RESOURCE_CONFLICT;
+import static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.SERVICE_INTERNAL_ERROR;
 import static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.SERVICE_LIMIT_EXCEEDED;
-import static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.SERVICE_TIMEOUT;
 import static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.THROTTLING;
 import static software.amazon.awssdk.services.cloudformation.model.OperationStatus.FAILED;
 
@@ -91,20 +92,22 @@ public class CloudFormationCallbackAdapterTest {
 
     @Test
     public void testTranslate() {
-        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.AccessDenied)).isEqualTo(ACCESS_DENIED);
-        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.InternalFailure)).isEqualTo(INTERNAL_FAILURE);
-        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.InvalidCredentials)).isEqualTo(INVALID_CREDENTIALS);
-        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.InvalidRequest)).isEqualTo(INVALID_REQUEST);
-        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.NetworkFailure)).isEqualTo(NETWORK_FAILURE);
-        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.NoOperationToPerform))
-            .isEqualTo(NO_OPERATION_TO_PERFORM);
-        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.NotFound)).isEqualTo(NOT_FOUND);
-        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.NotReady)).isEqualTo(NOT_READY);
         assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.NotUpdatable)).isEqualTo(NOT_UPDATABLE);
-        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.ServiceException)).isEqualTo(SERVICE_EXCEPTION);
+        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.InvalidRequest)).isEqualTo(INVALID_REQUEST);
+        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.AccessDenied)).isEqualTo(ACCESS_DENIED);
+        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.InvalidCredentials)).isEqualTo(INVALID_CREDENTIALS);
+        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.NotFound)).isEqualTo(NOT_FOUND);
+        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.AlreadyExists)).isEqualTo(ALREADY_EXISTS);
+        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.ResourceConflict)).isEqualTo(RESOURCE_CONFLICT);
+        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.Throttling)).isEqualTo(THROTTLING);
         assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.ServiceLimitExceeded))
             .isEqualTo(SERVICE_LIMIT_EXCEEDED);
-        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.ServiceTimeout)).isEqualTo(SERVICE_TIMEOUT);
-        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.Throttling)).isEqualTo(THROTTLING);
+        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.NotStabilized)).isEqualTo(NOT_STABILIZED);
+        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.GeneralServiceException))
+            .isEqualTo(GENERAL_SERVICE_EXCEPTION);
+        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.ServiceInternalError))
+            .isEqualTo(SERVICE_INTERNAL_ERROR);
+        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.NetworkFailure)).isEqualTo(NETWORK_FAILURE);
+        assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.InternalFailure)).isEqualTo(INTERNAL_FAILURE);
     }
 }

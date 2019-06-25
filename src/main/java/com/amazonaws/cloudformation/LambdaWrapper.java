@@ -346,7 +346,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
             log(String.format("A downstream service error occurred in a %s action on a %s: %s", request.getAction(),
                 request.getResourceType(), e.toString()));
-            return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.ServiceException);
+            return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.ServiceInternalError);
         } catch (final Throwable e) {
             this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
             log(String.format("An unknown error occurred in a %s action on a %s: %s", request.getAction(),
@@ -438,7 +438,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             this.log(String.format("Failed to schedule re-invoke, caused by %s", e.toString()));
             handlerResponse.setMessage(e.getMessage());
             handlerResponse.setStatus(OperationStatus.FAILED);
-            handlerResponse.setErrorCode(HandlerErrorCode.ServiceException);
+            handlerResponse.setErrorCode(HandlerErrorCode.ServiceInternalError);
         }
 
         return false;

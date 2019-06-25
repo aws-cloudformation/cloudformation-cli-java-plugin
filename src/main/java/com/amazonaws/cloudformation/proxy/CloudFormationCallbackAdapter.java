@@ -68,8 +68,12 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
 
     static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode translate(final HandlerErrorCode errorCode) {
         switch (errorCode) {
+            case AlreadyExists:
+                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.ALREADY_EXISTS;
             case AccessDenied:
                 return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.ACCESS_DENIED;
+            case GeneralServiceException:
+                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.GENERAL_SERVICE_EXCEPTION;
             case InternalFailure:
                 return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.INTERNAL_FAILURE;
             case InvalidCredentials:
@@ -78,20 +82,18 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
                 return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.INVALID_REQUEST;
             case NetworkFailure:
                 return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.NETWORK_FAILURE;
-            case NoOperationToPerform:
-                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.NO_OPERATION_TO_PERFORM;
             case NotFound:
                 return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.NOT_FOUND;
-            case NotReady:
-                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.NOT_READY;
+            case NotStabilized:
+                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.NOT_STABILIZED;
             case NotUpdatable:
                 return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.NOT_UPDATABLE;
-            case ServiceException:
-                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.SERVICE_EXCEPTION;
+            case ResourceConflict:
+                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.RESOURCE_CONFLICT;
+            case ServiceInternalError:
+                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.SERVICE_INTERNAL_ERROR;
             case ServiceLimitExceeded:
                 return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.SERVICE_LIMIT_EXCEEDED;
-            case ServiceTimeout:
-                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.SERVICE_TIMEOUT;
             case Throttling:
                 return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.THROTTLING;
             default:
