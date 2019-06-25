@@ -777,7 +777,7 @@ public class LambdaWrapperTest {
             // verify output response
             verifyHandlerResponse(out, HandlerResponse.<TestModel>builder()
                 .bearerToken("123456")
-                .errorCode("ServiceException")
+                .errorCode("InternalFailure")
                 .operationStatus(OperationStatus.FAILED)
                 .message("some error (Service: null; Status Code: 0; Error Code: null; Request ID: null)")
                 .resourceModel(TestModel.builder().property1("abc").property2(123).build())
@@ -1111,7 +1111,7 @@ public class LambdaWrapperTest {
             // verify output response
             verifyHandlerResponse(out, HandlerResponse.<TestModel>builder()
                 .bearerToken("123456")
-                .errorCode("ServiceException")
+                .errorCode("GeneralServiceException")
                 .operationStatus(OperationStatus.FAILED)
                 .message("some error (Service: null; Status Code: 0; Error Code: null; Request ID: null)")
                 .build()
