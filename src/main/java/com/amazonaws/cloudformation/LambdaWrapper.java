@@ -257,7 +257,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         final AmazonWebServicesClientProxy awsClientProxy = new AmazonWebServicesClientProxy(
             this.logger,
             request.getRequestData().getCallerCredentials(),
-            context::getRemainingTimeInMillis);
+            () -> (long)context.getRemainingTimeInMillis());
 
         boolean computeLocally = true;
         ProgressEvent<ResourceT, CallbackT> handlerResponse = null;

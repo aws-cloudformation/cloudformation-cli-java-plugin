@@ -21,8 +21,4 @@ public class Model {
     private String arn;
     @JsonProperty("Created")
     private Date created;
-    @JsonProperty("AccessDenied")
-    private Boolean accessDenied;
-    @JsonProperty("Throttle")
-    private Boolean throttle;
 }

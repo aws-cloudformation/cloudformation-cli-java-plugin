@@ -25,14 +25,16 @@ import java.io.InputStream;
 
 public class ServiceHandlerWrapper extends LambdaWrapper<Model, StdCallbackContext> {
 
-    final static ServiceClient SVC_CLIENT = new ServiceClient();
+    private final ServiceClient serviceClient;
     public ServiceHandlerWrapper(final CallbackAdapter<Model> callbackAdapter,
                                  final CredentialsProvider credentialsProvider,
                                  final MetricsPublisher metricsPublisher,
                                  final CloudWatchScheduler scheduler,
                                  final SchemaValidator validator,
-                                 final Serializer serializer) {
+                                 final Serializer serializer,
+                                 final ServiceClient client) {
         super(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator, serializer);
+        this.serviceClient = client;
     }
 
     @Override
@@ -76,11 +78,11 @@ public class ServiceHandlerWrapper extends LambdaWrapper<Model, StdCallbackConte
                                                                   final StdCallbackContext callbackContext) throws Exception {
         switch (action) {
             case CREATE:
-                return new CreateHandler(SVC_CLIENT).handleRequest(
+                return new CreateHandler(serviceClient).handleRequest(
                     proxy, request, callbackContext, new LoggerProxy(Mockito.mock(LambdaLogger.class)));
 
             case READ:
-                return new ReadHandler(SVC_CLIENT).handleRequest(
+                return new ReadHandler(serviceClient).handleRequest(
                     proxy, request, callbackContext, new LoggerProxy(Mockito.mock(LambdaLogger.class)));
 
             default:

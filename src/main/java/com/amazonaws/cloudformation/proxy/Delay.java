@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * This interface defines the {@link Delay} that you needed between invocations
- * of the a lambda. Provides a simple interface to define different types of delay
+ * of a specific call chain. Provides a simple interface to define different types of delay
  * implementations like {@link Constant}, {@link Exponential}.
  *
  * {@link Constant}, provides the {@link Constant#nextDelay(int)} that waves constantly
@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
  * indicate end of delay.
  *
  * {@link Exponential}, provide exponential values between
- * [{@link Exponential#minDelay}, {@link Exponential#maxDelay}]
+ * [{@link Exponential#startRange}, {@link Exponential#endRange}]
  */
 public interface Delay {
     /**
@@ -39,13 +39,13 @@ public interface Delay {
      * has been reached. After which it will return -1
      *
      * {@code
-     *     final Delay delay = new Delay.Fixed(10, 5*10, TimeUnit.SECONDS);
-     *     long next = 0L, accured = 0L;
+     *     final Delay delay = new Delay.Constant(10, 5*10, TimeUnit.SECONDS);
+     *     long next = 0L, accrued = 0L;
      *     int attempt = 1;
      *     while ((next = fixed.nextDelay(attempt++)) > 0) {
-     *         accured += next;
+     *         accrued += next;
      *     }
-     *     Assertions.assertEquals(5*10, accured);
+     *     Assertions.assertEquals(5*10, accrued);
      * }
      */
     class Constant implements Delay {
@@ -143,34 +143,34 @@ public interface Delay {
     }
 
      /**
-      * {@link Exponential}, provides waves starting with minimum delay of {@link Exponential#minDelay}
-      * until {@link Exponential#maxDelay} is exceeded
+      * {@link Exponential}, provides waves starting with minimum delay of {@link Exponential#startRange}
+      * until {@link Exponential#endRange} is exceeded
      */
     class Exponential implements Delay {
-        private final long minDelay;
-        private final long maxDelay;
+        private final long startRange;
+        private final long endRange;
         private final TimeUnit unit;
         private final int powerBy;
         private final boolean isPowerOf2;
-        private long accured = 0L;
+        private long accrued = 0L;
 
-        public Exponential(long start,
-                           long maxDelay,
+        public Exponential(long startRange,
+                           long endRange,
                            TimeUnit unit) {
-            this(start, maxDelay, unit, 2);
+            this(startRange, endRange, unit, 2);
         }
 
-        public Exponential(long start,
-                           long maxDelay,
+        public Exponential(long startRange,
+                           long endRange,
                            TimeUnit unit,
                            int powerBy) {
 
-            Preconditions.checkArgument(start > 0, "minDelay > 0");
-            Preconditions.checkArgument(maxDelay > 0, "maxDelay > 0");
-            Preconditions.checkArgument(start < maxDelay, "minDelay < maxDelay");
+            Preconditions.checkArgument(startRange > 0, "startRange > 0");
+            Preconditions.checkArgument(endRange > 0, "endRange > 0");
+            Preconditions.checkArgument(startRange < endRange, "startRange < endRange");
             Preconditions.checkArgument(powerBy >= 2, "powerBy >= 2");
-            this.minDelay = start;
-            this.maxDelay = maxDelay;
+            this.startRange = startRange;
+            this.endRange = endRange;
             this.unit = unit;
             this.powerBy = powerBy;
             this.isPowerOf2 = Integer.bitCount(powerBy) == 1;
@@ -178,19 +178,19 @@ public interface Delay {
 
         @Override
         public long nextDelay(int attempt) {
-            long nextValue = minDelay;
+            long nextDelay = startRange;
             if (isPowerOf2) {
-                nextValue = 1L << attempt;
+                nextDelay = 1L << attempt;
             }
             else {
                 double next = Math.pow(powerBy, attempt);
-                nextValue = Math.round(next);
+                nextDelay = Math.round(next);
             }
-            if (nextValue < minDelay) {
-                nextValue = minDelay;
+            if (nextDelay < startRange) {
+                nextDelay = startRange;
             }
-            accured += nextValue;
-            return accured <= maxDelay ? nextValue : -1L;
+            accrued += nextDelay;
+            return accrued <= endRange ? nextDelay : -1L;
         }
 
         @Override

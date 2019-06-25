@@ -18,6 +18,7 @@ import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.exception.NonRetryableException;
+import software.amazon.awssdk.http.HttpStatusCode;
 
 import javax.annotation.Nonnull;
 import java.time.Instant;
@@ -30,7 +31,7 @@ import java.util.function.Supplier;
 
 /**
  * This implements the proxying mechanism to inject appropriate scoped credentials
- * into a service call when making AWS Webservice calls.
+ * into a service call when making Amazon Webservice calls.
  *
  * @see CallChain
  * @see ProxyClient
@@ -63,7 +64,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
     @Override
     public <ClientT, ModelT, CallbackT extends StdCallbackContext> RequestMaker<ClientT, ModelT, CallbackT>
         initiate(String callGraph, ProxyClient<ClientT> client, ModelT model, CallbackT cxt) {
-        Preconditions.checkNotNull(callGraph, "callGraph must be specified");
+        Preconditions.checkNotNull(callGraph, "callGraph can not be null");
         Preconditions.checkNotNull(client, "ProxyClient can not be null");
         Preconditions.checkNotNull(model, "Resource Model can not be null");
         Preconditions.checkNotNull(cxt, "cxt can not be null");
@@ -82,7 +83,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
         // handling errors, throttles and more. The handler can influence this
         // using retry method.
         //
-        private Delay delay = new Delay.Constant(3, 5, TimeUnit.SECONDS);
+        private Delay delay = new Delay.Constant(3, 3*3, TimeUnit.SECONDS);
         CallContext(String callGraph, ProxyClient<ClientT> client, ModelT model, CallbackT context) {
             this.callGraph = Preconditions.checkNotNull(callGraph);
             this.client = Preconditions.checkNotNull(client);
@@ -218,6 +219,8 @@ public class AmazonWebServicesClientProxy implements CallChain {
 
     }
 
+    public static final int HTTP_STATUS_NETWORK_AUTHN_REQUIRED = 511;
+    public static final int HTTP_STATUS_GONE = 410;
 
     public <RequestT, ClientT, ModelT, CallbackT extends StdCallbackContext>
         ProgressEvent<ModelT, CallbackT> defaultHandler(
@@ -239,38 +242,38 @@ public class AmazonWebServicesClientProxy implements CallChain {
             AwsErrorDetails details = sdkException.awsErrorDetails();
             String errMsg = "Code(" + details.errorCode() + "),  "  + details.errorMessage();
             switch (details.sdkHttpResponse().statusCode()) {
-                case 400:
+                case HttpStatusCode.BAD_REQUEST:
                     //
                     // BadRequest, wrong values in the request
                     //
                     return ProgressEvent.failed(model, context, HandlerErrorCode.InvalidRequest,
                         errMsg);
 
-                case 401:
-                case 403:
-                case 511: // Network Auth Required, just in case
+                case HttpStatusCode.UNAUTHORIZED:
+                case HttpStatusCode.FORBIDDEN:
+                case HTTP_STATUS_NETWORK_AUTHN_REQUIRED: // 511 Network Authentication Required, just in case
                     //
                     // Access Denied, AuthN/Z problems
                     //
                     return ProgressEvent.failed(model, context, HandlerErrorCode.AccessDenied,
                         errMsg);
 
-                case 404:
-                case 410:
+                case HttpStatusCode.NOT_FOUND:
+                case HTTP_STATUS_GONE: // 410 Gone
                     //
                     // Resource that we are trying READ/UPDATE/DELETE is not found
                     //
                     return ProgressEvent.failed(model, context, HandlerErrorCode.NotFound,
                         errMsg);
 
-                case 503:
+                case HttpStatusCode.SERVICE_UNAVAILABLE:
                     //
-                    // Often retries help here as well. IMP to remember here that
+                    // Often retries help here as well. IMPORTANT to remember here that
                     // there are retries with the SDK Client itself for these. Verify
                     // what we add extra over the default ones
                     //
-                case 504:
-                case 429: // Throttle, TOO many requests
+                case HttpStatusCode.GATEWAY_TIMEOUT:
+                case HttpStatusCode.THROTTLING: // Throttle, TOO many requests
                     AmazonWebServicesClientProxy.this.logger.log(
                         "Retrying for error " + details.errorMessage());
                     return ProgressEvent.progress(model, context);
@@ -281,19 +284,19 @@ public class AmazonWebServicesClientProxy implements CallChain {
             }
         }
         return ProgressEvent.failed(
-            model, context, HandlerErrorCode.ServiceException, e.getMessage());
+            model, context, HandlerErrorCode.InvalidRequest, e.getMessage());
 
     }
 
     private final AWSCredentialsProvider v1CredentialsProvider;
     private final AwsCredentialsProvider v2CredentialsProvider;
     private final LambdaLogger logger;
-    private final Supplier<Integer> remainingTimeInMillis;
+    private final Supplier<Long> remainingTimeInMillis;
 
     public AmazonWebServicesClientProxy(
         final LambdaLogger logger,
         final Credentials credentials,
-        final Supplier<Integer> remainingTimeToExecute) {
+        final Supplier<Long> remainingTimeToExecute) {
         this.logger = logger;
         this.remainingTimeInMillis = remainingTimeToExecute;
 
@@ -311,7 +314,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
     }
 
     public final long getRemainingTimeInMillis() {
-        return (long) remainingTimeInMillis.get();
+        return remainingTimeInMillis.get();
     }
 
     public <RequestT extends AmazonWebServiceRequest, ResultT extends AmazonWebServiceResult<ResponseMetadata>> ResultT injectCredentialsAndInvoke(

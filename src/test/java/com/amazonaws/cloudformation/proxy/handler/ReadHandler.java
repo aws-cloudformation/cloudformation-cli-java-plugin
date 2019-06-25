@@ -29,8 +29,6 @@ public class ReadHandler {
             .request(m -> {
                 DescribeRequest.Builder builder = new DescribeRequest.Builder();
                 builder.repoName(m.getRepoName());
-                builder.throwAccessDenied(m.getAccessDenied() != null && m.getAccessDenied());
-                builder.throwThrottleException(m.getThrottle() != null && m.getThrottle());
                 return builder.build();
             })
             .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::describeRepository))

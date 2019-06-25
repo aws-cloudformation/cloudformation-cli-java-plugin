@@ -18,14 +18,6 @@
         "Created": {
             "type": "string",
             "format": "date-time"
-        },
-        "AccessDenied": {
-            "type": "boolean",
-            "default": false
-        },
-        "Throttle": {
-            "type": "boolean",
-            "default": false
         }
     },
     "required": [
@@ -33,10 +25,10 @@
     ],
     "additionalProperties": false,
     "readOnlyProperties": [
-        "Arn",
-        "Created"
+        "/properties/Arn",
+        "/properties/Created"
     ],
     "createOnlyProperties": [
-        "RepoName"
+        "/properties/RepoName"
     ]
 }

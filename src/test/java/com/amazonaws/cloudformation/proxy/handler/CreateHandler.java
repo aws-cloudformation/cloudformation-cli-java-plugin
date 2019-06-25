@@ -31,8 +31,6 @@ public class CreateHandler {
                 .request((m) -> {
                     CreateRequest.Builder builder = new CreateRequest.Builder();
                     builder.repoName(m.getRepoName());
-                    builder.throwAccessDenied(m.getAccessDenied() != null && m.getAccessDenied());
-                    builder.throwThrottleException(m.getThrottle() != null && m.getThrottle());
                     return builder.build();
                 })
                 .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository))

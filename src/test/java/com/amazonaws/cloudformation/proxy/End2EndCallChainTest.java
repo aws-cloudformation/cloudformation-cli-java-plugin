@@ -7,23 +7,38 @@ import com.amazonaws.cloudformation.injection.CredentialsProvider;
 import com.amazonaws.cloudformation.metrics.MetricsPublisher;
 import com.amazonaws.cloudformation.proxy.handler.Model;
 import com.amazonaws.cloudformation.proxy.handler.ServiceHandlerWrapper;
+import com.amazonaws.cloudformation.proxy.service.AccessDenied;
 import com.amazonaws.cloudformation.proxy.service.CreateRequest;
+import com.amazonaws.cloudformation.proxy.service.CreateResponse;
+import com.amazonaws.cloudformation.proxy.service.DescribeRequest;
+import com.amazonaws.cloudformation.proxy.service.DescribeResponse;
+import com.amazonaws.cloudformation.proxy.service.ExistsException;
+import com.amazonaws.cloudformation.proxy.service.NotFoundException;
 import com.amazonaws.cloudformation.proxy.service.ServiceClient;
+import com.amazonaws.cloudformation.proxy.service.ThrottleException;
 import com.amazonaws.cloudformation.resource.Serializer;
 import com.amazonaws.cloudformation.resource.Validator;
 import com.amazonaws.cloudformation.scheduler.CloudWatchScheduler;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.joda.time.Instant;
 import org.json.JSONObject;
-import org.junit.jupiter.api.Assertions;
+
+// Testing needs
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.mockito.Mockito;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.http.SdkHttpResponse;
 import software.amazon.awssdk.services.cloudwatchevents.CloudWatchEventsClient;
 
 import java.io.ByteArrayInputStream;
@@ -35,13 +50,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.time.Duration;
 
-//
-// This
-//
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class End2EndCallChainTest {
 
-    static final AwsServiceException.Builder builder = Mockito.mock(AwsServiceException.Builder.class);
+    static final AwsServiceException.Builder builder = mock(AwsServiceException.Builder.class);
 
     //
     // The same that is asserted inside the ServiceClient
@@ -51,26 +63,30 @@ public class End2EndCallChainTest {
     private final Credentials credentials =
        new Credentials(MockCreds.accessKeyId(), MockCreds.secretAccessKey(), MockCreds.sessionToken());
     @SuppressWarnings("unchecked")
-    private final CallbackAdapter<Model> adapter = Mockito.mock(CallbackAdapter.class);
-
-    private final ServiceClient client = new ServiceClient();
+    private final CallbackAdapter<Model> adapter = mock(CallbackAdapter.class);
 
     @Test
     public void happyCase() {
-        AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(
-            Mockito.mock(LambdaLogger.class),
+        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(
+            mock(LambdaLogger.class),
             credentials,
-            () -> (int)Duration.ofMinutes(10).getSeconds());
-        Model model = Model.builder().repoName("repo").build();
+            () -> Duration.ofMinutes(10).getSeconds());
+        final Model model = Model.builder().repoName("repo").build();
         StdCallbackContext context = new StdCallbackContext();
-        ProxyClient<ServiceClient> client = proxy.newProxy(() -> this.client);
+        final ServiceClient serviceClient = mock(ServiceClient.class);
+        when(serviceClient.createRepository(any(CreateRequest.class))).thenReturn(
+            new CreateResponse.Builder()
+                .repoName(model.getRepoName()).build());
+
+        ProxyClient<ServiceClient> client = proxy.newProxy(() -> serviceClient);
+
         ProgressEvent<Model, StdCallbackContext> event =
             proxy.initiate("client:createRepository", client, model, context)
             .request((m) -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
             .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository))
             .done(r -> ProgressEvent.success(model, context));
 
-        Assertions.assertEquals(OperationStatus.SUCCESS, event.getStatus());
+        assertThat(event.getStatus()).isEqualTo(OperationStatus.SUCCESS);
 
         // replay, should get the same result.
         event =
@@ -78,10 +94,33 @@ public class End2EndCallChainTest {
             .request((m) -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
             .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository))
             .done(r -> ProgressEvent.success(model, context));
+        //
+        // Verify that we only got called. During replay we should have been skipped.
+        //
+        verify(serviceClient).createRepository(any(CreateRequest.class));
 
-        Assertions.assertEquals(OperationStatus.SUCCESS, event.getStatus());
+        assertThat(event.getStatus()).isEqualTo(OperationStatus.SUCCESS);
 
         // Now a separate request
+        final SdkHttpResponse sdkHttpResponse = mock(SdkHttpResponse.class);
+        when(sdkHttpResponse.statusCode()).thenReturn(500);
+
+        //
+        // Now reset expectation to fail with already exists
+        //
+        final ExistsException exists =
+            new ExistsException(mock(AwsServiceException.Builder.class)) {
+                private static final long serialVersionUID = 1L;
+                @Override
+                public AwsErrorDetails awsErrorDetails() {
+                    return AwsErrorDetails.builder()
+                        .errorCode("AlreadyExists")
+                        .errorMessage("Repo already exists")
+                        .sdkHttpResponse(sdkHttpResponse)
+                        .build();
+                }
+            };
+        when(serviceClient.createRepository(any(CreateRequest.class))).thenThrow(exists);
         StdCallbackContext newContext = new StdCallbackContext();
         event =
             proxy.initiate("client:createRepository", client, model, newContext)
@@ -89,8 +128,8 @@ public class End2EndCallChainTest {
                 .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository))
                 .done(r -> ProgressEvent.success(model, context));
 
-        Assertions.assertEquals(OperationStatus.FAILED, event.getStatus());
-        Assertions.assertTrue(event.getMessage().contains("AlreadyExists"));
+        assertThat(event.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(event.getMessage()).contains("AlreadyExists");
     }
 
     private HandlerRequest<Model, StdCallbackContext> prepareRequest(Model model) throws Exception {
@@ -148,43 +187,71 @@ public class End2EndCallChainTest {
     @Test
     public void notFound() throws Exception {
         final HandlerRequest<Model, StdCallbackContext> request = prepareRequest(
-            Model.builder().repoName("repository").throttle(true).build());
+            Model.builder().repoName("repository").build());
         request.setAction(Action.READ);
+        final Model model = request.getRequestData().getResourceProperties();
         final Serializer serializer = new Serializer();
         final InputStream stream = prepareStream(serializer, request);
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
-        final LambdaLogger logger = Mockito.mock(LambdaLogger.class);
+        final LambdaLogger logger = mock(LambdaLogger.class);
         final CredentialsProvider provider = prepareMockProvider();
-        Context cxt = Mockito.mock(Context.class);
+        final Context cxt = mock(Context.class);
         // bail out immediately
-        Mockito.when(cxt.getRemainingTimeInMillis()).thenReturn(50);
-        Mockito.when(cxt.getLogger()).thenReturn(logger);
+        when(cxt.getRemainingTimeInMillis()).thenReturn(50);
+        when(cxt.getLogger()).thenReturn(logger);
 
-        ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(
+        final ServiceClient client = mock(ServiceClient.class);
+        final SdkHttpResponse sdkHttpResponse = mock(SdkHttpResponse.class);
+        when(sdkHttpResponse.statusCode()).thenReturn(404);
+        final DescribeRequest describeRequest =
+            new DescribeRequest.Builder().repoName(model.getRepoName())
+                .overrideConfiguration(
+                    AwsRequestOverrideConfiguration.builder()
+                        .credentialsProvider(
+                            StaticCredentialsProvider.create(MockCreds))
+                        .build()
+                ).build();
+        final NotFoundException notFound =
+            new NotFoundException(mock(AwsServiceException.Builder.class)) {
+                private static final long serialVersionUID = 1L;
+                @Override
+                public AwsErrorDetails awsErrorDetails() {
+                    return
+                        AwsErrorDetails.builder()
+                            .errorCode("NotFound")
+                            .errorMessage("Repo not existing")
+                            .sdkHttpResponse(sdkHttpResponse)
+                            .build();
+                }
+            };
+        when(client.describeRepository(eq(describeRequest))).thenThrow(notFound);
+
+        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(
             adapter,
             provider,
-            Mockito.mock(MetricsPublisher.class),
+            mock(MetricsPublisher.class),
             new CloudWatchScheduler(
                 new CloudWatchEventsProvider(provider) {
                     @Override
                     public CloudWatchEventsClient get() {
-                        return Mockito.mock(CloudWatchEventsClient.class);
+                        return mock(CloudWatchEventsClient.class);
                     }
                 },
                 logger),
             new Validator(),
-            serializer
+            serializer,
+            client
         );
 
         wrapper.handleRequest(stream, output, cxt);
+        verify(client).describeRepository(eq(describeRequest));
 
         Response<Model> response = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),
             new TypeReference<Response<Model>>(){});
-        Assertions.assertNotNull(response);
-        Assertions.assertEquals(OperationStatus.FAILED, response.getOperationStatus());
-        Assertions.assertEquals("dwezxdfgfgh", response.getBearerToken());
-        Assertions.assertTrue(response.getMessage().contains("NotFound"));
-
+        assertThat(response).isNotNull();
+        assertThat(response.getOperationStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(response.getBearerToken()).isEqualTo("dwezxdfgfgh");
+        assertThat(response.getMessage()).contains("NotFound");
     }
 
     @SuppressWarnings("unchecked")
@@ -195,41 +262,75 @@ public class End2EndCallChainTest {
         final Serializer serializer = new Serializer();
         final InputStream stream = prepareStream(serializer, request);
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
-        final LambdaLogger logger = Mockito.mock(LambdaLogger.class);
+        final LambdaLogger logger = mock(LambdaLogger.class);
         final CredentialsProvider provider = prepareMockProvider();
-        Context cxt = Mockito.mock(Context.class);
+        final Context cxt = mock(Context.class);
         // bail out immediately
-        Mockito.when(cxt.getRemainingTimeInMillis()).thenReturn(50);
-        Mockito.when(cxt.getLogger()).thenReturn(logger);
+        when(cxt.getRemainingTimeInMillis()).thenReturn(50);
+        when(cxt.getLogger()).thenReturn(logger);
 
-        ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(
+        final Model model = request.getRequestData().getResourceProperties();
+
+        final ServiceClient client = mock(ServiceClient.class);
+        final CreateRequest createRequest = new CreateRequest.Builder()
+            .repoName(model.getRepoName())
+            .overrideConfiguration(
+                AwsRequestOverrideConfiguration.builder()
+                    .credentialsProvider(
+                        StaticCredentialsProvider.create(MockCreds))
+                    .build()
+            )
+            .build();
+        when(client.createRepository(eq(createRequest))).thenReturn(
+            new CreateResponse.Builder().repoName(model.getRepoName()).build());
+
+        final DescribeRequest describeRequest =
+            new DescribeRequest.Builder().repoName(model.getRepoName())
+                .overrideConfiguration(
+                    AwsRequestOverrideConfiguration.builder()
+                        .credentialsProvider(
+                            StaticCredentialsProvider.create(MockCreds))
+                        .build()
+                ).build();
+        final DescribeResponse describeResponse =
+            new DescribeResponse.Builder()
+                .createdWhen(Instant.now().toDate())
+                .repoName(model.getRepoName())
+                .repoArn("some-arn")
+                .build();
+        when(client.describeRepository(eq(describeRequest))).thenReturn(describeResponse);
+
+        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(
             adapter,
             provider,
-            Mockito.mock(MetricsPublisher.class),
+            mock(MetricsPublisher.class),
             new CloudWatchScheduler(
                 new CloudWatchEventsProvider(provider) {
                     @Override
                     public CloudWatchEventsClient get() {
-                        return Mockito.mock(CloudWatchEventsClient.class);
+                        return mock(CloudWatchEventsClient.class);
                     }
                 },
                 logger),
             new Validator(),
-            serializer
+            serializer,
+           client
         );
 
         wrapper.handleRequest(stream, output, cxt);
+        verify(client).createRepository(eq(createRequest));
+        verify(client).describeRepository(eq(describeRequest));
 
         Response<Model> response = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),
             new TypeReference<Response<Model>>(){});
-        Assertions.assertNotNull(response);
-        Assertions.assertEquals(OperationStatus.SUCCESS, response.getOperationStatus());
-        Assertions.assertEquals("dwezxdfgfgh", response.getBearerToken());
-        Assertions.assertNotNull(request.getRequestData());
+        assertThat(response).isNotNull();
+        assertThat(response.getOperationStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getBearerToken()).isEqualTo("dwezxdfgfgh");
+        assertThat(request.getRequestData()).isNotNull();
         Model responseModel = response.getResourceModel();
-        Assertions.assertEquals("repository", responseModel.getRepoName());
-        Assertions.assertNotNull(responseModel.getArn());
-        Assertions.assertNotNull(responseModel.getCreated());
+        assertThat(responseModel.getRepoName()).isEqualTo("repository");
+        assertThat(responseModel.getArn()).isNotNull();
+        assertThat(responseModel.getCreated()).isNotNull();
     }
 
     @Order(20)
@@ -239,165 +340,284 @@ public class End2EndCallChainTest {
         final Serializer serializer = new Serializer();
         final InputStream stream = prepareStream(serializer, request);
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
-        final LambdaLogger logger = Mockito.mock(LambdaLogger.class);
+        final LambdaLogger logger = mock(LambdaLogger.class);
         final CredentialsProvider provider = prepareMockProvider();
-        Context cxt = Mockito.mock(Context.class);
+        final Context cxt = mock(Context.class);
         // bail out immediately
-        Mockito.when(cxt.getRemainingTimeInMillis()).thenReturn((int)Duration.ofMinutes(1).toMillis());
-        Mockito.when(cxt.getLogger()).thenReturn(logger);
+        when(cxt.getRemainingTimeInMillis()).thenReturn((int)Duration.ofMinutes(1).toMillis());
+        when(cxt.getLogger()).thenReturn(logger);
 
-        ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(
+        final Model model = request.getRequestData().getResourceProperties();
+        final ServiceClient client = mock(ServiceClient.class);
+        final CreateRequest createRequest = new CreateRequest.Builder()
+            .repoName(model.getRepoName())
+            .overrideConfiguration(
+                AwsRequestOverrideConfiguration.builder()
+                    .credentialsProvider(
+                        StaticCredentialsProvider.create(MockCreds))
+                    .build()
+            )
+            .build();
+        // Now a separate request
+        final SdkHttpResponse sdkHttpResponse = mock(SdkHttpResponse.class);
+        when(sdkHttpResponse.statusCode()).thenReturn(500);
+
+        final ExistsException exists = new ExistsException(mock(AwsServiceException.Builder.class)) {
+            private static final long serialVersionUID = 1L;
+            @Override
+            public AwsErrorDetails awsErrorDetails() {
+                return AwsErrorDetails.builder()
+                    .errorCode("AlreadyExists")
+                    .errorMessage("Repo already exists")
+                    .sdkHttpResponse(sdkHttpResponse)
+                    .build();
+            }
+        };
+        when(client.createRepository(eq(createRequest))).thenThrow(exists);
+
+        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(
             adapter,
             provider,
-            Mockito.mock(MetricsPublisher.class),
+            mock(MetricsPublisher.class),
             new CloudWatchScheduler(
                 new CloudWatchEventsProvider(provider) {
                     @Override
                     public CloudWatchEventsClient get() {
-                        return Mockito.mock(CloudWatchEventsClient.class);
+                        return mock(CloudWatchEventsClient.class);
                     }
                 },
                 logger),
             new Validator(),
-            serializer
+            serializer,
+            client
         );
 
         wrapper.handleRequest(stream, output, cxt);
+        verify(client).createRepository(eq(createRequest));
 
         Response<Model> response = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),
             new TypeReference<Response<Model>>(){});
-        Assertions.assertNotNull(response);
-        Assertions.assertEquals(OperationStatus.FAILED, response.getOperationStatus());
-        Assertions.assertEquals("dwezxdfgfgh", response.getBearerToken());
-        Assertions.assertNotNull(request.getRequestData());
+        assertThat(response).isNotNull();
+        assertThat(response.getOperationStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(response.getBearerToken()).isEqualTo("dwezxdfgfgh");
+        assertThat(request.getRequestData()).isNotNull();
         Model responseModel = response.getResourceModel();
-        Assertions.assertEquals("repository", responseModel.getRepoName());
-        Assertions.assertTrue(response.getMessage().contains("AlreadyExists"));
+        assertThat(responseModel.getRepoName()).isEqualTo("repository");
+        assertThat(response.getMessage()).contains("AlreadyExists");
     }
 
     @Order(30)
     @Test
     public void createHandlerThottleException() throws Exception {
         final HandlerRequest<Model, StdCallbackContext> request = prepareRequest(
-            Model.builder().repoName("repository").throttle(true).build());
+            Model.builder().repoName("repository").build());
         request.setAction(Action.READ);
         final Serializer serializer = new Serializer();
         final InputStream stream = prepareStream(serializer, request);
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
-        final LambdaLogger logger = Mockito.mock(LambdaLogger.class);
+        final LambdaLogger logger = mock(LambdaLogger.class);
         final CredentialsProvider provider = prepareMockProvider();
-        Context cxt = Mockito.mock(Context.class);
-        // bail out immediately
-        Mockito.when(cxt.getRemainingTimeInMillis()).thenReturn((int)Duration.ofMinutes(1).toMillis());
-        Mockito.when(cxt.getLogger()).thenReturn(logger);
+        final Context cxt = mock(Context.class);
+        // bail out very slowly
+        when(cxt.getRemainingTimeInMillis()).thenReturn((int)Duration.ofMinutes(1).toMillis());
+        when(cxt.getLogger()).thenReturn(logger);
 
-        ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(
+        final Model model = request.getRequestData().getResourceProperties();
+        final ServiceClient client = mock(ServiceClient.class);
+        // Now a separate request
+        final SdkHttpResponse sdkHttpResponse = mock(SdkHttpResponse.class);
+        when(sdkHttpResponse.statusCode()).thenReturn(429);
+        final DescribeRequest describeRequest =
+            new DescribeRequest.Builder().repoName(model.getRepoName())
+                .overrideConfiguration(
+                    AwsRequestOverrideConfiguration.builder()
+                        .credentialsProvider(
+                            StaticCredentialsProvider.create(MockCreds))
+                        .build()
+                ).build();
+        final ThrottleException throttleException = new ThrottleException(mock(AwsServiceException.Builder.class)) {
+            private static final long serialVersionUID = 1L;
+            @Override
+            public AwsErrorDetails awsErrorDetails() {
+                return AwsErrorDetails.builder()
+                    .errorCode("ThrottleException")
+                    .errorMessage("Temporary Limit Exceeded")
+                    .sdkHttpResponse(sdkHttpResponse)
+                    .build();
+            }
+
+        };
+        when(client.describeRepository(eq(describeRequest))).thenThrow(throttleException);
+
+        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(
             adapter,
             provider,
-            Mockito.mock(MetricsPublisher.class),
+            mock(MetricsPublisher.class),
             new CloudWatchScheduler(
                 new CloudWatchEventsProvider(provider) {
                     @Override
                     public CloudWatchEventsClient get() {
-                        return Mockito.mock(CloudWatchEventsClient.class);
+                        return mock(CloudWatchEventsClient.class);
                     }
                 },
                 logger),
             new Validator(),
-            serializer
+            serializer,
+            client
         );
 
         wrapper.handleRequest(stream, output, cxt);
+        // Throttle retries 4 times (1, 0s), (2, 3s), (3, 6s), (4, 9s)
+        verify(client, times(4)).describeRepository(eq(describeRequest));
 
         Response<Model> response = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),
             new TypeReference<Response<Model>>(){});
-        Assertions.assertNotNull(response);
-        Assertions.assertEquals(OperationStatus.FAILED, response.getOperationStatus());
-        Assertions.assertEquals("dwezxdfgfgh", response.getBearerToken());
-        Assertions.assertTrue(response.getMessage().contains("Exceeded"));
+        assertThat(response).isNotNull();
+        assertThat(response.getOperationStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(response.getBearerToken()).isEqualTo("dwezxdfgfgh");
+        assertThat(response.getMessage()).contains("Exceeded");
     }
 
     @Order(40)
     @Test
     public void createHandlerThottleExceptionEarlyInProgressBailout() throws Exception {
         final HandlerRequest<Model, StdCallbackContext> request = prepareRequest(
-            Model.builder().repoName("repository").throttle(true).build());
+            Model.builder().repoName("repository").build());
         request.setAction(Action.READ);
         final Serializer serializer = new Serializer();
         final InputStream stream = prepareStream(serializer, request);
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
-        final LambdaLogger logger = Mockito.mock(LambdaLogger.class);
+        final LambdaLogger logger = mock(LambdaLogger.class);
         final CredentialsProvider provider = prepareMockProvider();
-        Context cxt = Mockito.mock(Context.class);
+        final Context cxt = mock(Context.class);
         // bail out immediately
-        Mockito.when(cxt.getRemainingTimeInMillis()).thenReturn(50);
-        Mockito.when(cxt.getLogger()).thenReturn(logger);
+        when(cxt.getRemainingTimeInMillis()).thenReturn(50);
+        when(cxt.getLogger()).thenReturn(logger);
 
-        ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(
+        final Model model = request.getRequestData().getResourceProperties();
+        final ServiceClient client = mock(ServiceClient.class);
+        // Now a separate request
+        final SdkHttpResponse sdkHttpResponse = mock(SdkHttpResponse.class);
+        when(sdkHttpResponse.statusCode()).thenReturn(429);
+        final DescribeRequest describeRequest =
+            new DescribeRequest.Builder().repoName(model.getRepoName())
+                .overrideConfiguration(
+                    AwsRequestOverrideConfiguration.builder()
+                        .credentialsProvider(
+                            StaticCredentialsProvider.create(MockCreds))
+                        .build()
+                ).build();
+        final ThrottleException throttleException = new ThrottleException(mock(AwsServiceException.Builder.class)) {
+            private static final long serialVersionUID = 1L;
+            @Override
+            public AwsErrorDetails awsErrorDetails() {
+                return AwsErrorDetails.builder()
+                    .errorCode("ThrottleException")
+                    .errorMessage("Temporary Limit Exceeded")
+                    .sdkHttpResponse(sdkHttpResponse)
+                    .build();
+            }
+
+        };
+        when(client.describeRepository(eq(describeRequest))).thenThrow(throttleException);
+
+        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(
             adapter,
             provider,
-            Mockito.mock(MetricsPublisher.class),
+            mock(MetricsPublisher.class),
             new CloudWatchScheduler(
                 new CloudWatchEventsProvider(provider) {
                     @Override
                     public CloudWatchEventsClient get() {
-                        return Mockito.mock(CloudWatchEventsClient.class);
+                        return mock(CloudWatchEventsClient.class);
                     }
                 },
                 logger),
             new Validator(),
-            serializer
+            serializer,
+            client
         );
 
         wrapper.handleRequest(stream, output, cxt);
+        // only 1 call (1, 0s), the next attempt is at 3s which exceed 50 ms remaining
+        verify(client).describeRepository(eq(describeRequest));
 
         Response<Model> response = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),
             new TypeReference<Response<Model>>(){});
-        Assertions.assertNotNull(response);
-        Assertions.assertEquals(OperationStatus.IN_PROGRESS, response.getOperationStatus());
-        Assertions.assertEquals("dwezxdfgfgh", response.getBearerToken());
+        assertThat(response).isNotNull();
+        assertThat(response.getOperationStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(response.getBearerToken()).isEqualTo("dwezxdfgfgh");
     }
 
     @Order(40)
     @Test
     public void accessDenied() throws Exception {
         final HandlerRequest<Model, StdCallbackContext> request = prepareRequest(
-            Model.builder().repoName("repository").accessDenied(true).build());
+            Model.builder().repoName("repository").build());
         request.setAction(Action.READ);
         final Serializer serializer = new Serializer();
         final InputStream stream = prepareStream(serializer, request);
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
-        final LambdaLogger logger = Mockito.mock(LambdaLogger.class);
+        final LambdaLogger logger = mock(LambdaLogger.class);
         final CredentialsProvider provider = prepareMockProvider();
-        Context cxt = Mockito.mock(Context.class);
+        final Context cxt = mock(Context.class);
         // bail out immediately
-        Mockito.when(cxt.getRemainingTimeInMillis()).thenReturn(50);
-        Mockito.when(cxt.getLogger()).thenReturn(logger);
+        when(cxt.getRemainingTimeInMillis()).thenReturn(50);
+        when(cxt.getLogger()).thenReturn(logger);
 
-        ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(
+        final Model model = request.getRequestData().getResourceProperties();
+        final ServiceClient client = mock(ServiceClient.class);
+        // Now a separate request
+        final SdkHttpResponse sdkHttpResponse = mock(SdkHttpResponse.class);
+        when(sdkHttpResponse.statusCode()).thenReturn(401);
+        final DescribeRequest describeRequest =
+            new DescribeRequest.Builder().repoName(model.getRepoName())
+                .overrideConfiguration(
+                    AwsRequestOverrideConfiguration.builder()
+                        .credentialsProvider(
+                            StaticCredentialsProvider.create(MockCreds))
+                        .build()
+                ).build();
+        final AccessDenied accessDenied = new AccessDenied(mock(AwsServiceException.Builder.class)) {
+            private static final long serialVersionUID = 1L;
+            @Override
+            public AwsErrorDetails awsErrorDetails() {
+                return AwsErrorDetails.builder()
+                    .errorCode("AccessDenied: 401")
+                    .errorMessage("Token Invalid")
+                    .sdkHttpResponse(sdkHttpResponse)
+                    .build();
+            }
+
+        };
+        when(client.describeRepository(eq(describeRequest))).thenThrow(accessDenied);
+
+        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(
             adapter,
             provider,
-            Mockito.mock(MetricsPublisher.class),
+            mock(MetricsPublisher.class),
             new CloudWatchScheduler(
                 new CloudWatchEventsProvider(provider) {
                     @Override
                     public CloudWatchEventsClient get() {
-                        return Mockito.mock(CloudWatchEventsClient.class);
+                        return mock(CloudWatchEventsClient.class);
                     }
                 },
                 logger),
             new Validator(),
-            serializer
+            serializer,
+            client
         );
 
         wrapper.handleRequest(stream, output, cxt);
+        verify(client).describeRepository(eq(describeRequest));
 
         Response<Model> response = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),
             new TypeReference<Response<Model>>(){});
-        Assertions.assertNotNull(response);
-        Assertions.assertEquals(OperationStatus.FAILED, response.getOperationStatus());
-        Assertions.assertEquals("dwezxdfgfgh", response.getBearerToken());
-        Assertions.assertTrue(response.getMessage().contains("AccessDenied"));
+        assertThat(response).isNotNull();
+        assertThat(response.getOperationStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(response.getBearerToken()).isEqualTo("dwezxdfgfgh");
+        assertThat(response.getMessage()).contains("AccessDenied");
     }
 
 }
