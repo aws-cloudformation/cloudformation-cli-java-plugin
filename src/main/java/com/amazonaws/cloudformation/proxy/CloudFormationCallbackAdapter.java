@@ -68,34 +68,33 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
 
     static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode translate(final HandlerErrorCode errorCode) {
         switch (errorCode) {
-            case AlreadyExists:
-                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.ALREADY_EXISTS;
-            case AccessDenied:
-                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.ACCESS_DENIED;
-            case GeneralServiceException:
-                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.GENERAL_SERVICE_EXCEPTION;
-            case InternalFailure:
-                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.INTERNAL_FAILURE;
-            case InvalidCredentials:
-                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.INVALID_CREDENTIALS;
-            case InvalidRequest:
-                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.INVALID_REQUEST;
-            case NetworkFailure:
-                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.NETWORK_FAILURE;
-            case NotFound:
-                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.NOT_FOUND;
-            case NotStabilized:
-                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.NOT_STABILIZED;
             case NotUpdatable:
                 return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.NOT_UPDATABLE;
+            case InvalidRequest:
+                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.INVALID_REQUEST;
+            case AccessDenied:
+                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.ACCESS_DENIED;
+            case InvalidCredentials:
+                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.INVALID_CREDENTIALS;
+            case AlreadyExists:
+                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.ALREADY_EXISTS;
+            case NotFound:
+                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.NOT_FOUND;
             case ResourceConflict:
                 return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.RESOURCE_CONFLICT;
-            case ServiceInternalError:
-                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.SERVICE_INTERNAL_ERROR;
-            case ServiceLimitExceeded:
-                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.SERVICE_LIMIT_EXCEEDED;
             case Throttling:
                 return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.THROTTLING;
+            case ServiceLimitExceeded:
+                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.SERVICE_LIMIT_EXCEEDED;
+            case NotStabilized:
+                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.NOT_STABILIZED;
+            case GeneralServiceException:
+                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.GENERAL_SERVICE_EXCEPTION;
+            case ServiceInternalError:
+                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.SERVICE_INTERNAL_ERROR;
+            case NetworkFailure:
+                return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.NETWORK_FAILURE;
+            case InternalFailure:
             default:
                 // InternalFailure is CloudFormation's fallback error code when no more
                 // specificity is there
