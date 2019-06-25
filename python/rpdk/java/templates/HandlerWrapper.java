@@ -11,10 +11,13 @@ import com.amazonaws.cloudformation.proxy.LoggerProxy;
 import com.amazonaws.cloudformation.proxy.ProgressEvent;
 import com.amazonaws.cloudformation.proxy.RequestContext;
 import com.amazonaws.cloudformation.proxy.ResourceHandlerRequest;
+import com.amazonaws.cloudformation.proxy.ResourceHandlerTestPayload;
 import com.amazonaws.cloudformation.resource.SchemaValidator;
 import com.amazonaws.cloudformation.resource.Serializer;
 import com.amazonaws.cloudformation.scheduler.CloudWatchScheduler;
+import com.amazonaws.services.lambda.runtime.Context;
 import com.fasterxml.jackson.core.type.TypeReference;
+import lombok.Data;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,6 +55,15 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
         final BaseHandler<CallbackContext> handler = handlers.get(action);
 
         return handler.handleRequest(proxy, request, callbackContext, loggerProxy);
+    }
+
+    public ProgressEvent<{{ pojo_name }}, CallbackContext> testEntrypoint(
+            final ResourceHandlerTestPayload<{{ pojo_name }}, CallbackContext> payload,
+            final Context context) {
+        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(
+                context.getLogger(), payload.getCredentials());
+
+        return invokeHandler(proxy, payload.getRequest(), payload.getAction(), payload.getCallbackContext());
     }
 
     @Override
