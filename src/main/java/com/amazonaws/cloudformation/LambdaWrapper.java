@@ -37,6 +37,7 @@ import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import software.amazon.awssdk.utils.StringUtils;
@@ -358,6 +359,18 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         return handlerResponse;
     }
 
+    private void logUnhandledError(
+            final String errorDescription,
+            final HandlerRequest<ResourceT, CallbackT> request,
+            final Throwable e) {
+        this.log(String.format("%s in a %s action on a %s: %s%n%s",
+                errorDescription,
+                request.getAction(),
+                request.getResourceType(),
+                e.toString(),
+                ExceptionUtils.getStackTrace(e)));
+    }
+
     /**
      * Invokes the handler implementation for the request, and wraps with try-catch to consistently
      * handle certain classes of errors and correctly map those to the appropriate HandlerErrorCode
@@ -387,30 +400,25 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
         } catch (final ResourceAlreadyExistsException e) {
             publishExceptionMetric(request.getAction(), e);
-            this.log(String.format("An existing resource was found in a %s action on a $s: %s" +
-                request.getAction(), request.getResourceType(), e.toString()));
+            logUnhandledError("An existing resource was found", request, e);
             return ProgressEvent.defaultFailureHandler(
                 e,
                 HandlerErrorCode.AlreadyExists);
         } catch (final ResourceNotFoundException e) {
             publishExceptionMetric(request.getAction(), e);
-            this.log(String.format("A requested resource was not found in a %s action on a $s: %s" +
-                request.getAction(), request.getResourceType(), e.toString()));
+            logUnhandledError("A requested resource was not found", request, e);
             return ProgressEvent.defaultFailureHandler(
                 e,
                 HandlerErrorCode.NotFound);
         } catch (final AmazonServiceException e) {
             publishExceptionMetric(request.getAction(), e);
-            this.log(String.format("A downstream service error occurred in a %s action on a %s: %s",
-                request.getAction(), request.getResourceType(), e.toString()));
+            logUnhandledError("A downstream service error occurred", request, e);
             return ProgressEvent.defaultFailureHandler(
                 e,
-                HandlerErrorCode.ServiceException);
+                HandlerErrorCode.GeneralServiceException);
         } catch (final Throwable e) {
-
             publishExceptionMetric(request.getAction(), e);
-            this.log(String.format("An unknown error occurred in a %s action on a %s: %s",
-                request.getAction(), request.getResourceType(), e.toString()));
+            logUnhandledError("An unknown error occurred ", request, e);
             return ProgressEvent.defaultFailureHandler(
                 e,
                 HandlerErrorCode.InternalFailure);
@@ -509,7 +517,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             this.log(String.format("Failed to schedule re-invoke, caused by %s", e.toString()));
             handlerResponse.setMessage(e.getMessage());
             handlerResponse.setStatus(OperationStatus.FAILED);
-            handlerResponse.setErrorCode(HandlerErrorCode.ServiceException);
+            handlerResponse.setErrorCode(HandlerErrorCode.InternalFailure);
         }
 
         return false;
