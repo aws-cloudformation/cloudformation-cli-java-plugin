@@ -15,7 +15,6 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
-
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
@@ -30,7 +29,6 @@
         <spotbugs.version>3.1.11</spotbugs.version>
         <spotless.version>1.23.1</spotless.version>
     </properties>
-
     <!-- https://docs.aws.amazon.com/sdk-for-java/v2/developer-guide/setup-project-maven.html -->
     <dependencyManagement>
         <dependencies>
@@ -43,7 +41,6 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
-
     <dependencies>
         <!-- https://mvnrepository.com/artifact/com.github.everit-org.json-schema/org.everit.json.schema -->
         <dependency>
@@ -174,11 +171,10 @@
             <version>${spotless.version}</version>
         </dependency>
         <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>build-tools</artifactId>
-        <version>1.0</version>
-    </dependency>
-
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>build-tools</artifactId>
+            <version>1.0</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
