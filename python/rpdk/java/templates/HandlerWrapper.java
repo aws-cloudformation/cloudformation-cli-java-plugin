@@ -17,7 +17,6 @@ import com.amazonaws.cloudformation.resource.Serializer;
 import com.amazonaws.cloudformation.scheduler.CloudWatchScheduler;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.fasterxml.jackson.core.type.TypeReference;
-import lombok.Data;
 
 import java.io.IOException;
 import java.io.InputStream;
