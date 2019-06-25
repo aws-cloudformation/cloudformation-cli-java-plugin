@@ -345,7 +345,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             logUnhandledError("A downstream service error occurred", request, e);
             return ProgressEvent.defaultFailureHandler(
                 e,
-                HandlerErrorCode.ServiceException);
+                HandlerErrorCode.GeneralServiceException);
         } catch (final Throwable e) {
             this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
             logUnhandledError("An unknown error occurred ", request, e);
@@ -446,7 +446,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             this.log(String.format("Failed to schedule re-invoke, caused by %s", e.toString()));
             handlerResponse.setMessage(e.getMessage());
             handlerResponse.setStatus(OperationStatus.FAILED);
-            handlerResponse.setErrorCode(HandlerErrorCode.ServiceException);
+            handlerResponse.setErrorCode(HandlerErrorCode.InternalFailure);
         }
 
         return false;

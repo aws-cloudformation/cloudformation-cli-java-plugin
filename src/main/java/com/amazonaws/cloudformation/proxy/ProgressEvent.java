@@ -19,7 +19,7 @@ public class ProgressEvent<ResourceT, CallbackT> {
     private OperationStatus status;
 
     /**
-     *  If OperationStatus is FAILED, an error code should be provided
+     *  If OperationStatus is FAILED or IN_PROGRESS, an error code should be provided
      */
     private HandlerErrorCode errorCode;
 
