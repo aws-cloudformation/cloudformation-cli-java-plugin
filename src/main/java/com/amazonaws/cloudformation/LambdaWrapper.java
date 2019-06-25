@@ -31,6 +31,7 @@ import com.amazonaws.cloudformation.resource.exceptions.ValidationException;
 import com.amazonaws.cloudformation.scheduler.CloudWatchScheduler;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import software.amazon.awssdk.utils.StringUtils;
@@ -165,10 +166,9 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             handlerResponse = ProgressEvent.defaultFailureHandler(
                 new TerminalException(validationMessageBuilder.toString(), e),
                 HandlerErrorCode.InvalidRequest);
-        } catch (final Exception e) {
+        } catch (final Throwable e) {
             // Exceptions are wrapped as a consistent error response to the caller (i.e; CloudFormation)
             e.printStackTrace(); // for root causing - logs to LambdaLogger by default
-            this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
             handlerResponse = ProgressEvent.defaultFailureHandler(
                 e,
                 HandlerErrorCode.InternalFailure
@@ -178,6 +178,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                     request.getRequestData().getResourceProperties()
                 );
             }
+            this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
         } finally {
             // A response will be output on all paths, though CloudFormation will
             // not block on invoking the handlers, but rather listen for callbacks
@@ -288,6 +289,18 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         return handlerResponse;
     }
 
+    private void logUnhandledError(
+            final String errorDescription,
+            final HandlerRequest<ResourceT, CallbackT> request,
+            final Throwable e) {
+        this.logger.log(String.format("%s in a %s action on a %s: %s%n%s",
+                errorDescription,
+                request.getAction(),
+                request.getResourceType(),
+                e.toString(),
+                ExceptionUtils.getStackTrace(e)));
+    }
+
     /**
      * Invokes the handler implementation for the request, and wraps with try-catch to consistently
      * handle certain classes of errors and correctly map those to the appropriate HandlerErrorCode
@@ -317,29 +330,25 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
         } catch (final ResourceAlreadyExistsException e) {
             this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
-            this.logger.log(String.format("An existing resource was found in a %s action on a $s: %s" +
-                request.getAction(), request.getResourceType(), e.toString()));
+            logUnhandledError("An existing resource was found", request, e);
             return ProgressEvent.defaultFailureHandler(
                 e,
                 HandlerErrorCode.AlreadyExists);
         } catch (final ResourceNotFoundException e) {
             this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
-            this.logger.log(String.format("A requested resource was not found in a %s action on a $s: %s" +
-                request.getAction(), request.getResourceType(), e.toString()));
+            logUnhandledError("A requested resource was not found", request, e);
             return ProgressEvent.defaultFailureHandler(
                 e,
                 HandlerErrorCode.NotFound);
         } catch (final AmazonServiceException e) {
             this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
-            this.logger.log(String.format("A downstream service error occurred in a %s action on a %s: %s",
-                request.getAction(), request.getResourceType(), e.toString()));
+            logUnhandledError("A downstream service error occurred", request, e);
             return ProgressEvent.defaultFailureHandler(
                 e,
-                HandlerErrorCode.ServiceException);
-        } catch (final Exception e) {
+                HandlerErrorCode.GeneralServiceException);
+        } catch (final Throwable e) {
             this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
-            this.logger.log(String.format("An unknown error occurred in a %s action on a %s: %s",
-                request.getAction(), request.getResourceType(), e.toString()));
+            logUnhandledError("An unknown error occurred ", request, e);
             return ProgressEvent.defaultFailureHandler(
                 e,
                 HandlerErrorCode.InternalFailure);
@@ -433,11 +442,11 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                 context.getInvokedFunctionArn(),
                 callbackDelayMinutes,
                 request);
-        } catch (final Exception e) {
+        } catch (final Throwable e) {
             this.log(String.format("Failed to schedule re-invoke, caused by %s", e.toString()));
             handlerResponse.setMessage(e.getMessage());
             handlerResponse.setStatus(OperationStatus.FAILED);
-            handlerResponse.setErrorCode(HandlerErrorCode.ServiceException);
+            handlerResponse.setErrorCode(HandlerErrorCode.InternalFailure);
         }
 
         return false;

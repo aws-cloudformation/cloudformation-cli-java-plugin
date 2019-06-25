@@ -121,7 +121,7 @@ public class CloudWatchScheduler {
                     .build();
                 this.client.removeTargets(removeTargetsRequest);
             }
-        } catch (final Exception e) {
+        } catch (final Throwable e) {
             this.log(String.format("Error cleaning CloudWatchEvents Target (targetId=%s): %s",
                     cloudWatchEventsTargetId,
                     e.getMessage()));
@@ -133,7 +133,7 @@ public class CloudWatchScheduler {
                     .build();
                 this.client.deleteRule(deleteRuleRequest);
             }
-        } catch (final Exception e) {
+        } catch (final Throwable e) {
             this.log(String.format("Error cleaning CloudWatchEvents (ruleName=%s): %s",
                 cloudWatchEventsRuleName,
                 e.getMessage()));

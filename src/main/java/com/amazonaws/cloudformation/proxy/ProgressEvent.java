@@ -19,7 +19,7 @@ public class ProgressEvent<ResourceT, CallbackT> {
     private OperationStatus status;
 
     /**
-     *  If OperationStatus is FAILED, an error code should be provided
+     *  If OperationStatus is FAILED or IN_PROGRESS, an error code should be provided
      */
     private HandlerErrorCode errorCode;
 
@@ -60,7 +60,7 @@ public class ProgressEvent<ResourceT, CallbackT> {
      * Convenience method for constructing a FAILED response
      */
     public static <ResourceT, CallbackT> ProgressEvent<ResourceT, CallbackT> defaultFailureHandler(
-        final Exception e,
+        final Throwable e,
         final HandlerErrorCode handlerErrorCode) {
 
         return ProgressEvent.<ResourceT, CallbackT>builder()

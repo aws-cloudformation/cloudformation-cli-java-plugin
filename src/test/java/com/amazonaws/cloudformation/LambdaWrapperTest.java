@@ -777,7 +777,7 @@ public class LambdaWrapperTest {
             // verify output response
             verifyHandlerResponse(out, HandlerResponse.<TestModel>builder()
                 .bearerToken("123456")
-                .errorCode("ServiceException")
+                .errorCode("InternalFailure")
                 .operationStatus(OperationStatus.FAILED)
                 .message("some error (Service: null; Status Code: 0; Error Code: null; Request ID: null)")
                 .resourceModel(TestModel.builder().property1("abc").property2(123).build())
@@ -1111,7 +1111,7 @@ public class LambdaWrapperTest {
             // verify output response
             verifyHandlerResponse(out, HandlerResponse.<TestModel>builder()
                 .bearerToken("123456")
-                .errorCode("ServiceException")
+                .errorCode("GeneralServiceException")
                 .operationStatus(OperationStatus.FAILED)
                 .message("some error (Service: null; Status Code: 0; Error Code: null; Request ID: null)")
                 .build()
@@ -1122,8 +1122,6 @@ public class LambdaWrapperTest {
     @Test
     public void invokeHandler_throwsResourceAlreadyExistsException_returnsAlreadyExists() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
-        final TestModel model = new TestModel();
-
         // exceptions are caught consistently by LambdaWrapper
         wrapper.setInvokeHandlerException(new ResourceAlreadyExistsException("AWS::Test::TestModel", "id-1234"));
 
@@ -1170,8 +1168,6 @@ public class LambdaWrapperTest {
     @Test
     public void invokeHandler_throwsResourceNotFoundException_returnsNotFound() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
-        final TestModel model = new TestModel();
-
         // exceptions are caught consistently by LambdaWrapper
         wrapper.setInvokeHandlerException(new ResourceNotFoundException("AWS::Test::TestModel", "id-1234"));
 
@@ -1210,6 +1206,47 @@ public class LambdaWrapperTest {
                 .errorCode("NotFound")
                 .operationStatus(OperationStatus.FAILED)
                 .message("Resource of type 'AWS::Test::TestModel' with identifier 'id-1234' was not found.")
+                .build()
+            );
+        }
+    }
+
+    @Test
+    public void invokeHandler_metricPublisherThrowable_returnsFailureResponse() throws IOException {
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator);
+
+        // simulate runtime Errors in the metrics publisher (such as dependency resolution conflicts)
+        doThrow(new Error("not an Exception"))
+            .when(metricsPublisher).publishInvocationMetric(any(), any());
+        doThrow(new Error("not an Exception"))
+            .when(metricsPublisher).publishExceptionMetric(any(), any(), any());
+
+        try (final InputStream in = loadRequestStream("create.request.json"); final OutputStream out = new ByteArrayOutputStream()) {
+            final Context context = getLambdaContext();
+
+            try {
+                wrapper.handleRequest(in, out, context);
+            } catch (final Error e) {
+                // ignore so we can perform verifications
+            }
+
+            // verify initialiseRuntime was called and initialised dependencies
+            verifyInitialiseRuntime();
+
+            // metrics publisher will be setup, but throw Error on all methods
+            verify(metricsPublisher, times(1)).setResourceTypeName(
+                "AWS::Test::TestModel");
+
+            // no further calls to metrics publisher should occur
+            verifyNoMoreInteractions(metricsPublisher);
+
+            // verify output response
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder()
+                .bearerToken("123456")
+                .errorCode("InternalFailure")
+                .operationStatus(OperationStatus.FAILED)
+                .message("not an Exception")
+                .resourceModel(TestModel.builder().property1("abc").property2(123).build())
                 .build()
             );
         }
