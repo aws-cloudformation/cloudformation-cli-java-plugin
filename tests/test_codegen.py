@@ -38,11 +38,11 @@ def test_initialize(project):
     actual_group_id = pom_tree.find("maven:groupId", namespace)
     expected_group_id = "com.aws.foo.{}".format(RESOURCE.lower())
     assert actual_group_id.text == expected_group_id
-    path = project.root / "Handler.yaml"
+    path = project.root / "template.yml"
     with path.open("r", encoding="utf-8") as f:
         template = yaml.safe_load(f)
 
-    handler_properties = template["Resources"]["ResourceHandler"]["Properties"]
+    handler_properties = template["Resources"]["TypeFunction"]["Properties"]
 
     code_uri = "./target/{}-handler-1.0-SNAPSHOT.jar".format(project.hypenated_name)
     assert handler_properties["CodeUri"] == code_uri
