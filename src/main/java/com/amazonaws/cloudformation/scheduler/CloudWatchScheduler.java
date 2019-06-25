@@ -85,6 +85,7 @@ public class CloudWatchScheduler {
     public <ResourceT, CallbackT> void rescheduleAfterMinutes(final String functionArn,
                                                               final int minutesFromNow,
                                                               final HandlerRequest<ResourceT, CallbackT> handlerRequest) {
+        assert client != null : "CloudWatchEventsClient was not initialised. You must call refreshClient() first.";
 
         // generate a cron expression; minutes must be a positive integer
         String cronRule = this.cronHelper.generateOneTimeCronExpression(Math.max(minutesFromNow, 1));
@@ -99,7 +100,7 @@ public class CloudWatchScheduler {
         requestContext.setCloudWatchEventsTargetId(targetId);
 
         String jsonRequest = new JSONObject(handlerRequest).toString();
-        this.log(String.format("Scheduling re-invoke at %s (%s)\n", cronRule, rescheduleId));
+        this.log(String.format("Scheduling re-invoke at %s (%s)%n", cronRule, rescheduleId));
 
         PutRuleRequest putRuleRequest = PutRuleRequest.builder().name(ruleName).scheduleExpression(cronRule)
             .state(RuleState.ENABLED).build();
@@ -123,6 +124,7 @@ public class CloudWatchScheduler {
      *            re-invocation
      */
     public void cleanupCloudWatchEvents(final String cloudWatchEventsRuleName, final String cloudWatchEventsTargetId) {
+        assert client != null : "CloudWatchEventsClient was not initialised. You must call refreshClient() first.";
 
         try {
             if (!StringUtils.isBlank(cloudWatchEventsTargetId)) {

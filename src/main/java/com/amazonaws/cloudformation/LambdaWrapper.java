@@ -169,14 +169,18 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             if (!StringUtils.isEmpty(e.getMessage())) {
                 validationMessageBuilder.append(String.format("Model validation failed (%s)", e.getMessage()));
             } else {
-                validationMessageBuilder.append(String.format("Model validation failed"));
+                validationMessageBuilder.append("Model validation failed with unknown cause.");
             }
             if (e.getCausingExceptions() != null) {
                 for (ValidationException cause : e.getCausingExceptions()) {
-                    validationMessageBuilder.append(String.format("\n%s (%s)", cause.getMessage(), cause.getSchemaLocation()));
+                    validationMessageBuilder.append(String.format("%n%s (%s)", cause.getMessage(), cause.getSchemaLocation()));
                 }
             }
-            this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
+            if (request != null) {
+                this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
+            } else {
+                this.metricsPublisher.publishExceptionMetric(Instant.now(), e);
+            }
             handlerResponse = ProgressEvent.defaultFailureHandler(new TerminalException(validationMessageBuilder.toString(), e),
                 HandlerErrorCode.InvalidRequest);
         } catch (final Throwable e) {
@@ -184,22 +188,29 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             // CloudFormation)
             e.printStackTrace(); // for root causing - logs to LambdaLogger by default
             handlerResponse = ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.InternalFailure);
-            if (request.getRequestData() != null) {
-                handlerResponse.setResourceModel(request.getRequestData().getResourceProperties());
+            if (request != null) {
+                if (request.getRequestData() != null) {
+                    handlerResponse.setResourceModel(request.getRequestData().getResourceProperties());
+                }
+                this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
+            } else {
+                this.metricsPublisher.publishExceptionMetric(Instant.now(), e);
             }
-            this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
         } finally {
             // A response will be output on all paths, though CloudFormation will
             // not block on invoking the handlers, but rather listen for callbacks
-            writeResponse(outputStream, createProgressResponse(handlerResponse, request.getBearerToken()));
+            writeResponse(outputStream,
+                createProgressResponse(handlerResponse, request != null ? request.getBearerToken() : null));
         }
     }
 
-    public ProgressEvent<ResourceT, CallbackT> processInvocation(final JSONObject rawRequest,
-                                                                 final HandlerRequest<ResourceT, CallbackT> request,
-                                                                 final Context context) throws IOException, TerminalException {
+    private ProgressEvent<ResourceT, CallbackT> processInvocation(final JSONObject rawRequest,
+                                                                  final HandlerRequest<ResourceT, CallbackT> request,
+                                                                  final Context context) throws IOException, TerminalException {
 
-        if (request == null || request.getRequestData() == null) {
+        assert request != null : "Invalid request object received";
+
+        if (request.getRequestData() == null) {
             throw new TerminalException("Invalid request object received");
         }
 
@@ -232,7 +243,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             if (!StringUtils.isBlank(cloudWatchEventsRuleName)) {
                 this.scheduler.cleanupCloudWatchEvents(cloudWatchEventsRuleName, requestContext.getCloudWatchEventsTargetId());
             }
-            logger.log(String.format("Cleaned up previous Request Context of Rule %s and Target %s",
+            log(String.format("Cleaned up previous Request Context of Rule %s and Target %s",
                 requestContext.getCloudWatchEventsRuleName(), requestContext.getCloudWatchEventsTargetId()));
         }
 
@@ -323,22 +334,22 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
         } catch (final ResourceAlreadyExistsException e) {
             this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
-            this.logger.log(String.format("An existing resource was found in a %s action on a $s: %s" + request.getAction(),
+            log(String.format("An existing resource was found in a %s action on a $s: %s" + request.getAction(),
                 request.getResourceType(), e.toString()));
             return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.AlreadyExists);
         } catch (final ResourceNotFoundException e) {
             this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
-            this.logger.log(String.format("A requested resource was not found in a %s action on a $s: %s" + request.getAction(),
+            log(String.format("A requested resource was not found in a %s action on a $s: %s" + request.getAction(),
                 request.getResourceType(), e.toString()));
             return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.NotFound);
         } catch (final AmazonServiceException e) {
             this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
-            this.logger.log(String.format("A downstream service error occurred in a %s action on a %s: %s", request.getAction(),
+            log(String.format("A downstream service error occurred in a %s action on a %s: %s", request.getAction(),
                 request.getResourceType(), e.toString()));
             return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.ServiceException);
         } catch (final Throwable e) {
             this.metricsPublisher.publishExceptionMetric(Instant.now(), request.getAction(), e);
-            this.logger.log(String.format("An unknown error occurred in a %s action on a %s: %s", request.getAction(),
+            log(String.format("An unknown error occurred in a %s action on a %s: %s", request.getAction(),
                 request.getResourceType(), e.toString()));
             return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.InternalFailure);
         } finally {
@@ -355,8 +366,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         response.setMessage(progressEvent.getMessage());
         response.setOperationStatus(progressEvent.getStatus());
         response.setResourceModel(progressEvent.getResourceModel());
-        response.setBearerToken(bearerToken);
         response.setErrorCode(progressEvent.getErrorCode());
+        response.setBearerToken(bearerToken);
 
         return response;
     }
@@ -412,14 +423,14 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // otherwise we re-invoke through CloudWatchEvents which have a granularity of
         // minutes
         if ((handlerResponse.getCallbackDelaySeconds() < 60)
-            && (context.getRemainingTimeInMillis() / 1000) > handlerResponse.getCallbackDelaySeconds() * 1.2) {
-            logger.log(String.format("Scheduling re-invoke locally after %s seconds, with Context {%s}",
+            && (context.getRemainingTimeInMillis() / 1000d) > handlerResponse.getCallbackDelaySeconds() * 1.2) {
+            log(String.format("Scheduling re-invoke locally after %s seconds, with Context {%s}",
                 handlerResponse.getCallbackDelaySeconds(), reinvocationContext.toString()));
             sleepUninterruptibly(handlerResponse.getCallbackDelaySeconds(), TimeUnit.SECONDS);
             return true;
         }
 
-        logger.log(String.format("Scheduling re-invoke with Context {%s}", reinvocationContext.toString()));
+        log(String.format("Scheduling re-invoke with Context {%s}", reinvocationContext.toString()));
         try {
             int callbackDelayMinutes = handlerResponse.getCallbackDelaySeconds() / 60;
             this.scheduler.rescheduleAfterMinutes(context.getInvokedFunctionArn(), callbackDelayMinutes, request);
@@ -468,7 +479,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
      */
     private void log(final String message) {
         if (this.logger != null) {
-            this.logger.log(String.format("%s\n", message));
+            this.logger.log(String.format("%s%n", message));
         }
     }
 

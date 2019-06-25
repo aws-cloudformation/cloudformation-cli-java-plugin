@@ -60,6 +60,15 @@ public class MetricsPublisherImpl implements MetricsPublisher {
         this.resourceNamespace = resourceTypeName.replace("::", "/");
     }
 
+    public void publishExceptionMetric(final Instant timestamp, final Throwable e) {
+        Map<String, String> dimensions = new HashMap<>();
+        dimensions.put(Metric.DIMENSION_KEY_ACTION_TYPE, "UNKNOWN");
+        dimensions.put(Metric.DIMENSION_KEY_EXCEPTION_TYPE, e.getClass().toString());
+        dimensions.put(Metric.DIMENSION_KEY_RESOURCE_TYPE, this.getResourceTypeName());
+
+        publishMetric(Metric.METRIC_NAME_HANDLER_EXCEPTION, dimensions, StandardUnit.COUNT, 1.0, timestamp);
+    }
+
     public void publishExceptionMetric(final Instant timestamp, final Action action, final Throwable e) {
         Map<String, String> dimensions = new HashMap<>();
         dimensions.put(Metric.DIMENSION_KEY_ACTION_TYPE, action.name());
@@ -91,6 +100,7 @@ public class MetricsPublisherImpl implements MetricsPublisher {
                                final StandardUnit unit,
                                final Double value,
                                final Instant timestamp) {
+        assert client != null : "CloudWatchEventsClient was not initialised. You must call refreshClient() first.";
 
         List<Dimension> dimensions = new ArrayList<>();
         for (Map.Entry<String, String> kvp : dimensionData.entrySet()) {

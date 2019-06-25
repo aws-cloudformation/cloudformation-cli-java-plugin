@@ -52,6 +52,7 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.fasterxml.jackson.core.type.TypeReference;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -545,7 +546,7 @@ public class LambdaWrapperTest {
 
             // verify output response
             verifyHandlerResponse(out, HandlerResponse.<TestModel>builder().bearerToken("123456").errorCode("InvalidRequest")
-                .operationStatus(OperationStatus.FAILED).message("Model validation failed").build());
+                .operationStatus(OperationStatus.FAILED).message("Model validation failed with unknown cause.").build());
         }
     }
 
@@ -1138,4 +1139,135 @@ public class LambdaWrapperTest {
                     .resourceModel(TestModel.builder().property1("abc").property2(123).build()).build());
         }
     }
+
+    @Test
+    public void invokeHandler_withInvalidPayload_returnsFailureResponse() throws IOException {
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler,
+                                                            validator);
+
+        try (final InputStream in = new ByteArrayInputStream(new byte[0]); final OutputStream out = new ByteArrayOutputStream()) {
+            final Context context = getLambdaContext();
+
+            try {
+                wrapper.handleRequest(in, out, context);
+            } catch (final Error e) {
+                // ignore so we can perform verifications
+            }
+
+            // verify output response
+            verifyHandlerResponse(out,
+                HandlerResponse.<TestModel>builder().errorCode("InternalFailure").operationStatus(OperationStatus.FAILED)
+                    .message("A JSONObject text must begin with '{' at 0 [character 1 line 1]").build());
+        }
+    }
+
+    @Test
+    public void invokeHandler_withNullInputStream_returnsFailureResponse() throws IOException {
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler,
+                                                            validator);
+
+        try (final OutputStream out = new ByteArrayOutputStream()) {
+            final Context context = getLambdaContext();
+
+            try {
+                wrapper.handleRequest(null, out, context);
+            } catch (final Error e) {
+                // ignore so we can perform verifications
+            }
+
+            // verify output response
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder().errorCode("InternalFailure")
+                .operationStatus(OperationStatus.FAILED).message("No request object received").build());
+        }
+    }
+
+    @Test
+    public void invokeHandler_withEmptyPayload_returnsFailure() throws IOException {
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler,
+                                                            validator);
+
+        try (final InputStream in = loadRequestStream("empty.request.json");
+            final OutputStream out = new ByteArrayOutputStream()) {
+            final Context context = getLambdaContext();
+
+            try {
+                wrapper.handleRequest(in, out, context);
+            } catch (final Error e) {
+                // ignore so we can perform verifications
+            }
+
+            // verify output response
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder().errorCode("InternalFailure")
+                .operationStatus(OperationStatus.FAILED).message("Invalid request object received").build());
+        }
+    }
+
+    @Test
+    public void invokeHandler_withEmptyResourceProperties_returnsFailure() throws IOException {
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler,
+                                                            validator);
+
+        try (final InputStream in = loadRequestStream("empty.resource.request.json");
+            final OutputStream out = new ByteArrayOutputStream()) {
+            final Context context = getLambdaContext();
+
+            try {
+                wrapper.handleRequest(in, out, context);
+            } catch (final Error e) {
+                // ignore so we can perform verifications
+            }
+
+            // verify output response
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder().errorCode("InternalFailure").bearerToken("123456")
+                .operationStatus(OperationStatus.FAILED).message("Invalid resource properties object received").build());
+        }
+    }
+
+    @Test
+    public void invokeHandler_missingLogger_isIgnored() throws IOException {
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler,
+                                                            validator);
+        // exceptions are caught consistently by LambdaWrapper
+        wrapper.setInvokeHandlerException(new ResourceNotFoundException("AWS::Test::TestModel", "id-1234"));
+
+        wrapper.setTransformResponse(resourceHandlerRequest);
+
+        try (final InputStream in = loadRequestStream("create.request.json");
+            final OutputStream out = new ByteArrayOutputStream()) {
+            final Context context = mock(Context.class);
+            lenient().when(context.getInvokedFunctionArn())
+                .thenReturn("arn:aws:lambda:aws-region:acct-id:function:testHandler:PROD");
+
+            // test with no logger supplied to ensure this does not impact execution of a
+            // handler
+            when(context.getLogger()).thenReturn(null);
+
+            wrapper.handleRequest(in, out, context);
+
+            // verify initialiseRuntime was called and initialised dependencies
+            verifyInitialiseRuntime();
+
+            // all metrics should be published, once for a single invocation
+            verify(metricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
+            verify(metricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
+            verify(metricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(Action.CREATE), anyLong());
+
+            // failure metric should be published
+            verify(metricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
+                any(ResourceNotFoundException.class));
+
+            // verify that model validation occurred for CREATE/UPDATE/DELETE
+            verify(validator, times(1)).validateObject(any(JSONObject.class), any(InputStream.class));
+
+            // no re-invocation via CloudWatch should occur
+            verifyNoMoreInteractions(scheduler);
+
+            // verify output response
+            verifyHandlerResponse(out,
+                HandlerResponse.<TestModel>builder().bearerToken("123456").errorCode("NotFound")
+                    .operationStatus(OperationStatus.FAILED)
+                    .message("Resource of type 'AWS::Test::TestModel' with identifier 'id-1234' was not found.").build());
+        }
+    }
+
 }

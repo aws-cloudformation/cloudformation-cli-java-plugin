@@ -47,6 +47,8 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
                                final OperationStatus operationStatus,
                                final T resourceModel,
                                final String statusMessage) {
+        assert client != null : "CloudWatchEventsClient was not initialised. You must call refreshClient() first.";
+
         RecordHandlerProgressRequest.Builder requestBuilder = RecordHandlerProgressRequest.builder().bearerToken(bearerToken)
             .operationStatus(translate(operationStatus)).statusMessage(statusMessage);
 
