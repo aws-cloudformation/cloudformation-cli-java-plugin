@@ -47,8 +47,7 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
             metricsPublisher,
             scheduler,
             validator,
-            new Serializer(),
-            new TypeReference<HandlerRequest<TestModel, TestContext>>() {});
+            new Serializer());
     }
 
     @Override

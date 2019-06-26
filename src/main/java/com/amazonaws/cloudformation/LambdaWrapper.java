@@ -85,8 +85,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                          final MetricsPublisher metricsPublisher,
                          final CloudWatchScheduler scheduler,
                          final SchemaValidator validator,
-                         final Serializer serializer,
-                         final TypeReference<HandlerRequest<ResourceT, CallbackT>> typeReference) {
+                         final Serializer serializer) {
 
         this.callbackAdapter = callbackAdapter;
         this.credentialsProvider = credentialsProvider;
@@ -97,7 +96,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         this.scheduler = scheduler;
         this.serializer = serializer;
         this.validator = validator;
-        this.typeReference = typeReference;
+        this.typeReference = getTypeReference();
     }
 
     /**
@@ -258,7 +257,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // last mile proxy creation with passed-in credentials
         final AmazonWebServicesClientProxy awsClientProxy = new AmazonWebServicesClientProxy(
             this.logger,
-            request.getRequestData().getCallerCredentials());
+            request.getRequestData().getCallerCredentials(),
+            () -> (long)context.getRemainingTimeInMillis());
 
         boolean computeLocally = true;
         ProgressEvent<ResourceT, CallbackT> handlerResponse = null;
