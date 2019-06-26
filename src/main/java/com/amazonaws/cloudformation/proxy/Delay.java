@@ -1,3 +1,17 @@
+/*
+* Copyright 2010-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+*
+* Licensed under the Apache License, Version 2.0 (the "License").
+* You may not use this file except in compliance with the License.
+* A copy of the License is located at
+*
+*  http://aws.amazon.com/apache2.0
+*
+* or in the "license" file accompanying this file. This file is distributed
+* on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+* express or implied. See the License for the specific language governing
+* permissions and limitations under the License.
+*/
 package com.amazonaws.cloudformation.proxy;
 
 import com.google.common.base.Preconditions;
@@ -8,12 +22,12 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * This interface defines the {@link Delay} that you needed between invocations
- * of a specific call chain. Provides a simple interface to define different types of delay
- * implementations like {@link Constant}, {@link Exponential}.
+ * of a specific call chain. Provides a simple interface to define different
+ * types of delay implementations like {@link Constant}, {@link Exponential}.
  *
- * {@link Constant}, provides the {@link Constant#nextDelay(int)} that waves constantly
- * for the next attempt. When it exceeds {@link Constant#maxDelay} it return -1 to
- * indicate end of delay.
+ * {@link Constant}, provides the {@link Constant#nextDelay(int)} that waves
+ * constantly for the next attempt. When it exceeds {@link Constant#maxDelay} it
+ * return -1 to indicate end of delay.
  *
  * {@link Exponential}, provide exponential values between
  * [{@link Exponential#startRange}, {@link Exponential#endRange}]
@@ -23,36 +37,36 @@ public interface Delay {
      * Returns the new delay amount to stabilize as defined by {@link #unit()} time.
      * This returns -1 to indicate that we are done with delays from this instance
      * Different implementations can return different values
+     *
      * @param attempt, starts with 1
-     * @return the next amount to stabilize for. return -1 to indicate delay is complete
+     * @return the next amount to stabilize for. return -1 to indicate delay is
+     *         complete
      */
     long nextDelay(int attempt);
 
     /**
-     * @return define the unit of time like {@link TimeUnit#SECONDS} or {@link TimeUnit#HOURS}
-     *         etc. to define the per unit stabilize time between delays.
+     * @return define the unit of time like {@link TimeUnit#SECONDS} or
+     *         {@link TimeUnit#HOURS} etc. to define the per unit stabilize time
+     *         between delays.
      */
     TimeUnit unit();
 
     /**
-     * Provides constant fixed delay seconds for each attempt until {@link #maxDelay}
-     * has been reached. After which it will return -1
+     * Provides constant fixed delay seconds for each attempt until
+     * {@link #maxDelay} has been reached. After which it will return -1
      *
      * {@code
      *     final Delay delay = new Delay.Constant(10, 5*10, TimeUnit.SECONDS);
      *     long next = 0L, accrued = 0L;
-     *     int attempt = 1;
-     *     while ((next = fixed.nextDelay(attempt++)) > 0) {
-     *         accrued += next;
-     *     }
-     *     Assertions.assertEquals(5*10, accrued);
-     * }
+     *     int attempt = 1; while ((next = fixed.nextDelay(attempt++)) > 0) {
+     * accrued += next; } Assertions.assertEquals(5*10, accrued); }
      */
     class Constant implements Delay {
 
         final long maxDelay;
         final long delay;
         final TimeUnit unit;
+
         public Constant(long delay,
                         long maxDelay,
                         TimeUnit unit) {
@@ -73,11 +87,10 @@ public interface Delay {
     }
 
     /**
-     * Provides blended delay of seconds for each attempt until all
-     * delays in the order start to return -1. This is useful to model
-     * blends in the delays where on can be quick for the first set of
-     * delays using {@link Constant} and then become {@link MultipleOf}
-     * or {@link Exponential} there after.
+     * Provides blended delay of seconds for each attempt until all delays in the
+     * order start to return -1. This is useful to model blends in the delays where
+     * on can be quick for the first set of delays using {@link Constant} and then
+     * become {@link MultipleOf} or {@link Exponential} there after.
      *
      * {@code
      *
@@ -93,6 +106,7 @@ public interface Delay {
 
         private final List<Delay> inOrder;
         private int index = 0;
+
         public Blended(Delay... delays) {
             inOrder = Arrays.asList(delays);
         }
@@ -117,14 +131,15 @@ public interface Delay {
     }
 
     /**
-     * Provides constant fixed delay seconds which is a multiple of the delay for each
-     * attempt until {@link #maxDelay} has been reached. After which it will return -1
-     * Fixed is the same as multiple = 1;
+     * Provides constant fixed delay seconds which is a multiple of the delay for
+     * each attempt until {@link #maxDelay} has been reached. After which it will
+     * return -1 Fixed is the same as multiple = 1;
      *
      */
     class MultipleOf extends Constant {
         private final int multiple;
         private long previous;
+
         public MultipleOf(long delay,
                           long maxDelay,
                           int multiple,
@@ -136,15 +151,18 @@ public interface Delay {
 
         @Override
         public long nextDelay(int attempt) {
-            if (attempt < 2) return (previous = delay);
+            if (attempt < 2) {
+                previous = delay;
+                return previous;
+            }
             previous = previous + delay * (attempt - 1) * multiple;
             return previous <= maxDelay ? previous : -1L;
         }
     }
 
-     /**
-      * {@link Exponential}, provides waves starting with minimum delay of {@link Exponential#startRange}
-      * until {@link Exponential#endRange} is exceeded
+    /**
+     * {@link Exponential}, provides waves starting with minimum delay of
+     * {@link Exponential#startRange} until {@link Exponential#endRange} is exceeded
      */
     class Exponential implements Delay {
         private final long startRange;
@@ -181,8 +199,7 @@ public interface Delay {
             long nextDelay = startRange;
             if (isPowerOf2) {
                 nextDelay = 1L << attempt;
-            }
-            else {
+            } else {
                 double next = Math.pow(powerBy, attempt);
                 nextDelay = Math.round(next);
             }

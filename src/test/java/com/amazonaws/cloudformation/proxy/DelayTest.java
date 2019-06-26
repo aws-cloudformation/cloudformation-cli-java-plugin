@@ -1,18 +1,32 @@
+/*
+* Copyright 2010-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+*
+* Licensed under the Apache License, Version 2.0 (the "License").
+* You may not use this file except in compliance with the License.
+* A copy of the License is located at
+*
+*  http://aws.amazon.com/apache2.0
+*
+* or in the "license" file accompanying this file. This file is distributed
+* on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+* express or implied. See the License for the specific language governing
+* permissions and limitations under the License.
+*/
 package com.amazonaws.cloudformation.proxy;
+
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 
-import java.time.Duration;
-import java.util.concurrent.TimeUnit;
-
 public class DelayTest {
 
     @Test
     public void fixedDelay() {
-        final Delay fixed = new Delay.Constant(50, 5*50, TimeUnit.MILLISECONDS);
-        int[] attempt = {1};
+        final Delay fixed = new Delay.Constant(50, 5 * 50, TimeUnit.MILLISECONDS);
+        int[] attempt = { 1 };
         final Executable fn = () -> {
             long next = 0L;
             while ((next = fixed.nextDelay(attempt[0])) > 0) {
@@ -32,7 +46,7 @@ public class DelayTest {
 
     @Test
     public void fixedDelayIter() {
-        final Delay fixed = new Delay.Constant(50, 5*50, TimeUnit.MILLISECONDS);
+        final Delay fixed = new Delay.Constant(50, 5 * 50, TimeUnit.MILLISECONDS);
         try {
             int attempt = 1;
             long next = 0L, accured = 0L, jitter = 2L;
@@ -46,8 +60,7 @@ public class DelayTest {
                 boolean range = accured >= (total - jitter) && accured <= (total + jitter);
                 Assertions.assertTrue(range);
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
     }
@@ -61,7 +74,7 @@ public class DelayTest {
             Assertions.assertEquals(5, next);
             accured += next;
         }
-        Assertions.assertEquals(5*10, accured);
+        Assertions.assertEquals(5 * 10, accured);
     }
 
     @Test
@@ -73,25 +86,23 @@ public class DelayTest {
             attempt++;
             accured += next;
         }
-        Assertions.assertEquals(5+15+35+65+105, accured);
+        Assertions.assertEquals(5 + 15 + 35 + 65 + 105, accured);
         Assertions.assertEquals(6, attempt);
     }
 
     @Test
     public void blendedDelay() {
-        final Delay delay = new Delay.Blended(
-            new Delay.Constant(5, 20, TimeUnit.SECONDS),
-            new Delay.MultipleOf(5, 220, 2, TimeUnit.SECONDS));
+        final Delay delay = new Delay.Blended(new Delay.Constant(5, 20, TimeUnit.SECONDS),
+                                              new Delay.MultipleOf(5, 220, 2, TimeUnit.SECONDS));
         long next = 0L, accured = 0L;
         int attempt = 1;
         while ((next = delay.nextDelay(attempt)) > 0) {
             attempt++;
             accured += next;
         }
-        Assertions.assertEquals(5*4+40+90+150+220, accured);
+        Assertions.assertEquals(5 * 4 + 40 + 90 + 150 + 220, accured);
         Assertions.assertEquals(9, attempt);
     }
-
 
     @Test
     public void exponentialDelays() {
