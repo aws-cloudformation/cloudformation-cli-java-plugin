@@ -18,27 +18,28 @@ import org.json.JSONObject;
 @AllArgsConstructor
 @NoArgsConstructor
 public class {{ pojo_name|uppercase_first_letter }} {
+    {% if pojo_name == "ResourceModel" %}
 
     public static final String TYPE_NAME = "{{ type_name }}";
 
-    {% for identifier in (primaryIdentifier or []) %}
+    {% for identifier in primaryIdentifier %}
     {% set components = identifier.split("/") %}
     public static final String IDENTIFIER_KEY_{{ components[2:]|join('_')|upper }} = "{{ identifier }}";
     {% endfor %}
-
-    {% for identifiers in (additionalIdentifiers or []) %}
+    {% for identifiers in additionalIdentifiers %}
     {% for identifier in identifiers %}
     {% set components = identifier.split("/") %}
     public static final String IDENTIFIER_KEY_{{ components[2:]|join('_')|upper }} = "{{ identifier }}";
     {% endfor %}
     {% endfor %}
+    {% endif %}
 
     {% for name, type in properties.items() %}
     @JsonProperty("{{ name }}")
     private {{ type }} {{ name|lowercase_first_letter }};
 
     {% endfor %}
-    {% if primaryIdentifier is not none %}
+    {% if pojo_name == "ResourceModel" %}
     public JSONObject getPrimaryIdentifier(){
         final JSONObject identifier = new JSONObject();
         {% for identifier in primaryIdentifier %}
@@ -50,9 +51,7 @@ public class {{ pojo_name|uppercase_first_letter }} {
         {% endfor %}
         return identifier;
     }
-    {% endif %}
 
-    {% if additionalIdentifiers is not none %}
     public List<JSONObject> getAdditionalIdentifiers(){
         final List<JSONObject> identifiers = new ArrayList<JSONObject>();
         {% for identifiers in additionalIdentifiers %}
