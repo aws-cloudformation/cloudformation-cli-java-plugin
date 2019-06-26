@@ -147,15 +147,15 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         this.platformLambdaLogger.setPriority(0);
         this.loggerProxy.addLogPublisher(this.platformLambdaLogger);
 
-        // Initialisation skipped if dependencies were set during injection (in unit tests).
-        // e.g. "if (this.platformMetricsPublisher == null)"
         this.cloudFormationProvider.setCallbackEndpoint(callbackEndpoint);
         this.platformCredentialsProvider.setCredentials(platformCredentials);
 
+        // Initialisation skipped if dependencies were set during injection (in unit tests).
+        // e.g. "if (this.platformMetricsPublisher == null)"
         if (this.platformMetricsPublisher == null) {
             this.platformMetricsPublisher = new MetricsPublisherImpl(this.platformCloudWatchProvider, this.loggerProxy);
-            this.platformMetricsPublisher.setPriority(0);
         }
+        this.platformMetricsPublisher.setPriority(0);
         this.metricsPublisherProxy.addMetricsPublisher(this.platformMetricsPublisher);
         this.platformMetricsPublisher.refreshClient();
 
@@ -233,21 +233,24 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                 HandlerErrorCode.InvalidRequest);
         } catch (final Throwable e) {
             // Exceptions are wrapped as a consistent error response to the caller (i.e; CloudFormation)
-            e.printStackTrace(); // for root causing - logs to LambdaLogger by default
+            this.log(e.getStackTrace().toString()); // for root causing - logs to LambdaLogger by default
             handlerResponse = ProgressEvent.defaultFailureHandler(
                 e,
                 HandlerErrorCode.InternalFailure
             );
-            if (request.getRequestData() != null) {
+            if (request != null && request.getRequestData() != null) {
                 handlerResponse.setResourceModel(
                     request.getRequestData().getResourceProperties()
                 );
             }
-            publishExceptionMetric(request.getAction(), e);
+            if (request != null) {
+                publishExceptionMetric(request.getAction(), e);
+            }
+
         } finally {
             // A response will be output on all paths, though CloudFormation will
             // not block on invoking the handlers, but rather listen for callbacks
-            writeResponse(outputStream, createProgressResponse(handlerResponse, request.getBearerToken()));
+            writeResponse(outputStream, createProgressResponse(handlerResponse, request == null ? null : request.getBearerToken()));
         }
     }
 
@@ -570,6 +573,9 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     private void log(final String message) {
         if (this.loggerProxy != null) {
             this.loggerProxy.log(String.format("%s\n", message));
+        } else {
+            // Lambda logger is the only fallback if metrics publisher proxy is not initialized.
+            lambdaLogger.log(message);
         }
     }
 

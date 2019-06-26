@@ -27,17 +27,6 @@ public class CloudWatchLogPublisherImpl extends LogPublisher {
 
     public CloudWatchLogPublisherImpl(final CloudWatchEventsLogProvider cloudWatchEventsLogProvider,
                                       final String logGroupName,
-                                      final LoggerProxy loggerProxy) {
-        this.cloudWatchEventsLogProvider = cloudWatchEventsLogProvider;
-        this.logGroupName = logGroupName;
-        this.loggerProxy = loggerProxy;
-    }
-
-    /**
-     * This overloaded constructor is for resource owner cloud watch logger to emit metrics for initialization failures.
-     */
-    public CloudWatchLogPublisherImpl(final CloudWatchEventsLogProvider cloudWatchEventsLogProvider,
-                                      final String logGroupName,
                                       final LoggerProxy loggerProxy,
                                       final MetricsPublisherProxy metricsPublisherProxy) {
         this.cloudWatchEventsLogProvider = cloudWatchEventsLogProvider;

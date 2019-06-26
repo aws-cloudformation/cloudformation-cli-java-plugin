@@ -106,6 +106,7 @@ public class LambdaWrapperTest {
         verify(platformCredentialsProvider).setCredentials(any(Credentials.class));
         verify(resourceOwnerLoggingCredentialsProvider).setCredentials(any(Credentials.class));
         verify(callbackAdapter).refreshClient();
+        verify(platformMetricsPublisher).setPriority(anyInt());
         verify(platformMetricsPublisher).refreshClient();
         verify(platformMetricsPublisher).getPriority();
         verify(resourceOwnerMetricsPublisher).refreshClient();
@@ -190,6 +191,11 @@ public class LambdaWrapperTest {
     }
 
     @Test
+    public void invokeHandlerForCreate_without_customer_loggingCredentials() throws IOException {
+        invokeHandler_without_customerLoggingCredentials("create.request-without-logging-credentials.json", Action.CREATE);
+    }
+
+    @Test
     public void invokeHandlerForCreate_nullResponse_returnsFailure() throws IOException {
         invokeHandler_nullResponse_returnsFailure("create.request.json", Action.CREATE);
     }
@@ -214,10 +220,78 @@ public class LambdaWrapperTest {
         invokeHandler_nullResponse_returnsFailure("list.request.json", Action.LIST);
     }
 
+    private void invokeHandler_without_customerLoggingCredentials(final String requestDataPath,
+                                                                  final Action action) throws IOException {
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider, resourceOwnerLoggingCredentialsProvider, platformEventsLogger, resourceOwnerEventsLogger, platformMetricsPublisher, resourceOwnerMetricsPublisher, scheduler, validator);
+        final TestModel model = new TestModel();
+
+        // a null response is a terminal fault
+        wrapper.setInvokeHandlerResponse(null);
+
+        lenient().when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
+        wrapper.setTransformResponse(resourceHandlerRequest);
+
+        try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
+            final Context context = getLambdaContext();
+
+            wrapper.handleRequest(in, out, context);
+
+            // verify initialiseRuntime was called and initialised dependencies
+            // verify initialiseRuntime was called and initialised dependencies
+            verify(platformCredentialsProvider).setCredentials(any(Credentials.class));
+            verify(resourceOwnerLoggingCredentialsProvider, times(0)).setCredentials(any(Credentials.class));
+            verify(callbackAdapter).refreshClient();
+            verify(platformMetricsPublisher).refreshClient();
+            verify(platformMetricsPublisher, times(0)).getPriority();
+            verify(resourceOwnerMetricsPublisher, times(0)).refreshClient();
+            verify(resourceOwnerMetricsPublisher, times(0)).getPriority();
+            verify(scheduler).refreshClient();
+
+            // validation failure metric should be published for final error handling
+            verify(platformMetricsPublisher, times(1)).publishExceptionMetric(
+                    any(Instant.class), any(), any(TerminalException.class));
+            verify(resourceOwnerMetricsPublisher, times(0)).publishExceptionMetric(
+                    any(Instant.class), any(), any(TerminalException.class));
+
+            // all metrics should be published even on terminal failure
+            verify(platformMetricsPublisher, times(1)).setResourceTypeName(
+                    "AWS::Test::TestModel");
+            verify(platformMetricsPublisher, times(1)).publishInvocationMetric(
+                    any(Instant.class), eq(action));
+            verify(platformMetricsPublisher, times(1)).publishDurationMetric(
+                    any(Instant.class), eq(action), anyLong());
+            verify(resourceOwnerMetricsPublisher, times(0)).setResourceTypeName(
+                    "AWS::Test::TestModel");
+            verify(resourceOwnerMetricsPublisher, times(0)).publishInvocationMetric(
+                    any(Instant.class), eq(action));
+            verify(resourceOwnerMetricsPublisher, times(0)).publishDurationMetric(
+                    any(Instant.class), eq(action), anyLong());
+
+            // verify that model validation occurred for CREATE/UPDATE/DELETE
+            if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
+                verify(validator, times(1)).validateObject(
+                        any(JSONObject.class), any(InputStream.class));
+            }
+
+            // no re-invocation via CloudWatch should occur
+            verifyNoMoreInteractions(scheduler);
+
+            verifyNoMoreInteractions(resourceOwnerEventsLogger);
+
+            // verify output response
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder()
+                    .bearerToken("123456")
+                    .errorCode("InternalFailure")
+                    .operationStatus(OperationStatus.FAILED)
+                    .message("Handler failed to provide a response.")
+                    .build()
+            );
+        }
+    }
+
     private void invokeHandler_handlerFailed_returnsFailure(final String requestDataPath,
                                           final Action action) throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider, resourceOwnerLoggingCredentialsProvider, platformEventsLogger, resourceOwnerEventsLogger, platformMetricsPublisher, resourceOwnerMetricsPublisher, scheduler, validator);
-        final TestModel model = new TestModel();
 
         // explicit fault response is treated as an unsuccessful synchronous completion
         final ProgressEvent<TestModel, TestContext> pe = ProgressEvent.<TestModel, TestContext>builder()
@@ -269,6 +343,27 @@ public class LambdaWrapperTest {
     }
 
     @Test
+    public void invokeHandler_withNullInput() throws IOException {
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider, resourceOwnerLoggingCredentialsProvider, platformEventsLogger, resourceOwnerEventsLogger, platformMetricsPublisher, resourceOwnerMetricsPublisher, scheduler, validator);
+
+        // explicit fault response is treated as an unsuccessful synchronous completion
+        final ProgressEvent<TestModel, TestContext> pe = ProgressEvent.<TestModel, TestContext>builder()
+                .status(OperationStatus.FAILED)
+                .errorCode(HandlerErrorCode.InternalFailure)
+                .message("Custom Fault")
+                .build();
+        wrapper.setInvokeHandlerResponse(pe);
+
+        wrapper.setTransformResponse(resourceHandlerRequest);
+
+        try (final InputStream in = null; final OutputStream out = new ByteArrayOutputStream()) {
+            final Context context = getLambdaContext();
+            wrapper.handleRequest(in, out, context);
+            verifyNoMoreInteractions(callbackAdapter, platformMetricsPublisher, platformEventsLogger, resourceOwnerMetricsPublisher, resourceOwnerEventsLogger);
+        }
+    }
+
+    @Test
     public void invokeHandlerForCreate_handlerFailed_returnsFailure() throws IOException {
         invokeHandler_handlerFailed_returnsFailure("create.request.json", Action.CREATE);
     }
@@ -279,7 +374,7 @@ public class LambdaWrapperTest {
     }
 
     @Test
-    public void invokeHandlerForUpdeate_handlerFailed_returnsFailure() throws IOException {
+    public void invokeHandlerForUpdate_handlerFailed_returnsFailure() throws IOException {
         invokeHandler_handlerFailed_returnsFailure("update.request.json", Action.UPDATE);
     }
 
@@ -907,7 +1002,7 @@ public class LambdaWrapperTest {
             wrapper.handleRequest(in, out, context);
 
             // malformed input exception is published
-            verify(lambdaLogger, times(1)).log(anyString());
+            verify(lambdaLogger, times(2)).log(anyString());
             verifyNoMoreInteractions(platformMetricsPublisher);
 
             // verify output response
