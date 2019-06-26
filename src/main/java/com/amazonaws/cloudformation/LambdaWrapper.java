@@ -13,10 +13,10 @@ import com.amazonaws.cloudformation.injection.SessionCredentialsProvider;
 import com.amazonaws.cloudformation.loggers.CloudWatchLogPublisherImpl;
 import com.amazonaws.cloudformation.loggers.LambdaLogPublisherImpl;
 import com.amazonaws.cloudformation.loggers.LogPublisher;
-import com.amazonaws.cloudformation.loggers.LoggerProxy;
+import com.amazonaws.cloudformation.proxy.LoggerProxy;
 import com.amazonaws.cloudformation.metrics.MetricsPublisher;
 import com.amazonaws.cloudformation.metrics.MetricsPublisherImpl;
-import com.amazonaws.cloudformation.metrics.MetricsPublisherProxy;
+import com.amazonaws.cloudformation.proxy.MetricsPublisherProxy;
 import com.amazonaws.cloudformation.proxy.AmazonWebServicesClientProxy;
 import com.amazonaws.cloudformation.proxy.CallbackAdapter;
 import com.amazonaws.cloudformation.proxy.CloudFormationCallbackAdapter;
@@ -109,8 +109,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                          final MetricsPublisher resourceOwnerMetricsPublisher,
                          final CloudWatchScheduler scheduler,
                          final SchemaValidator validator,
-                         final Serializer serializer,
-                         final TypeReference<HandlerRequest<ResourceT, CallbackT>> typeReference) {
+                         final Serializer serializer) {
 
         this.callbackAdapter = callbackAdapter;
         this.platformCredentialsProvider = platformCredentialsProvider;
@@ -127,7 +126,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         this.scheduler = scheduler;
         this.serializer = serializer;
         this.validator = validator;
-        this.typeReference = typeReference;
+        this.typeReference = getTypeReference();
     }
 
     /**
@@ -331,7 +330,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // last mile proxy creation with passed-in credentials
         final AmazonWebServicesClientProxy awsClientProxy = new AmazonWebServicesClientProxy(
             this.loggerProxy,
-            request.getRequestData().getCallerCredentials());
+            request.getRequestData().getCallerCredentials(),
+            () -> (long)context.getRemainingTimeInMillis());
 
         boolean computeLocally = true;
         ProgressEvent<ResourceT, CallbackT> handlerResponse = null;

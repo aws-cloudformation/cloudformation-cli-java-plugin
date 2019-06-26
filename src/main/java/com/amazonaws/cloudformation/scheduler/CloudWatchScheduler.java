@@ -1,6 +1,6 @@
 package com.amazonaws.cloudformation.scheduler;
 
-import com.amazonaws.cloudformation.loggers.Logger;
+import com.amazonaws.cloudformation.proxy.Logger;
 import com.amazonaws.cloudformation.injection.CloudWatchEventsProvider;
 import com.amazonaws.cloudformation.proxy.HandlerRequest;
 import com.amazonaws.cloudformation.proxy.RequestContext;

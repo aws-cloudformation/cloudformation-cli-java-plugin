@@ -1,7 +1,6 @@
 package com.amazonaws.cloudformation.proxy;
 
 import com.amazonaws.cloudformation.injection.CloudFormationProvider;
-import com.amazonaws.cloudformation.loggers.LoggerProxy;
 import org.json.JSONObject;
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressRequest;

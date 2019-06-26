@@ -2,7 +2,6 @@ package com.amazonaws.cloudformation.proxy;
 
 import com.amazonaws.cloudformation.TestModel;
 import com.amazonaws.cloudformation.injection.CloudFormationProvider;
-import com.amazonaws.cloudformation.loggers.LoggerProxy;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;

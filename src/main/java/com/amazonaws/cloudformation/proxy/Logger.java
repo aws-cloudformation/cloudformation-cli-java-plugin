@@ -1,4 +1,4 @@
-package com.amazonaws.cloudformation.loggers;
+package com.amazonaws.cloudformation.proxy;
 
 public interface Logger {
 

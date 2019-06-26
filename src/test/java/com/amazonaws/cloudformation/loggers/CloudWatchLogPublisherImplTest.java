@@ -2,7 +2,8 @@ package com.amazonaws.cloudformation.loggers;
 
 import com.amazonaws.cloudformation.injection.CloudWatchEventsLogProvider;
 import com.amazonaws.cloudformation.injection.CloudWatchProvider;
-import com.amazonaws.cloudformation.metrics.MetricsPublisherProxy;
+import com.amazonaws.cloudformation.proxy.MetricsPublisherProxy;
+import com.amazonaws.cloudformation.proxy.LoggerProxy;
 import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

@@ -1,6 +1,7 @@
-package com.amazonaws.cloudformation.metrics;
+package com.amazonaws.cloudformation.proxy;
 
 import com.amazonaws.cloudformation.Action;
+import com.amazonaws.cloudformation.metrics.MetricsPublisher;
 
 import java.time.Instant;
 import java.util.ArrayList;

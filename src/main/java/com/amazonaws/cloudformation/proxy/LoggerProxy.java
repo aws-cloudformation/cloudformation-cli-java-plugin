@@ -1,4 +1,6 @@
-package com.amazonaws.cloudformation.loggers;
+package com.amazonaws.cloudformation.proxy;
+
+import com.amazonaws.cloudformation.loggers.LogPublisher;
 
 import java.util.ArrayList;
 import java.util.Comparator;

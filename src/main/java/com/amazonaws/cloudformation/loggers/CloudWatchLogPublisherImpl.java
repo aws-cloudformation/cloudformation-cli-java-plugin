@@ -1,7 +1,8 @@
 package com.amazonaws.cloudformation.loggers;
 
 import com.amazonaws.cloudformation.injection.CloudWatchEventsLogProvider;
-import com.amazonaws.cloudformation.metrics.MetricsPublisherProxy;
+import com.amazonaws.cloudformation.proxy.MetricsPublisherProxy;
+import com.amazonaws.cloudformation.proxy.LoggerProxy;
 import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient;
 import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogGroupRequest;
 import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogStreamRequest;
