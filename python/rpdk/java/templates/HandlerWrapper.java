@@ -60,7 +60,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
             final ResourceHandlerTestPayload<{{ pojo_name }}, CallbackContext> payload,
             final Context context) {
         final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(
-                context.getLogger(), payload.getCredentials());
+                context.getLogger(), payload.getCredentials(), () -> (long) context.getRemainingTimeInMillis());
 
         return invokeHandler(proxy, payload.getRequest(), payload.getAction(), payload.getCallbackContext());
     }
