@@ -89,7 +89,7 @@ public class ServiceHandlerWrapper extends LambdaWrapper<Model, StdCallbackConte
                 return ProgressEvent.failed(
                     request.getDesiredResourceState(),
                     callbackContext,
-                    HandlerErrorCode.ServiceException,
+                    HandlerErrorCode.GeneralServiceException,
                     "Not Implemented");
         }
     }

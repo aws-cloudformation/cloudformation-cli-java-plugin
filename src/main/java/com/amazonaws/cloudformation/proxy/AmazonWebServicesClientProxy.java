@@ -184,7 +184,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
                                     context.attempts(callGraph, attempt);
                                     if (next < 0) {
                                         return ProgressEvent.failed(model, context,
-                                            HandlerErrorCode.ServiceException, "Exceeded attempts to wait");
+                                            HandlerErrorCode.NotStabilized, "Exceeded attempts to wait");
                                     }
                                     long remainingTime = getRemainingTimeInMillis();
                                     long localWait = delay.unit().toMillis(next) + 2 * elapsed + 100;
@@ -279,12 +279,12 @@ public class AmazonWebServicesClientProxy implements CallChain {
                     return ProgressEvent.progress(model, context);
 
                 default:
-                    return ProgressEvent.failed(model, context, HandlerErrorCode.ServiceException,
+                    return ProgressEvent.failed(model, context, HandlerErrorCode.GeneralServiceException,
                         errMsg);
             }
         }
         return ProgressEvent.failed(
-            model, context, HandlerErrorCode.InvalidRequest, e.getMessage());
+            model, context, HandlerErrorCode.InternalFailure, e.getMessage());
 
     }
 
