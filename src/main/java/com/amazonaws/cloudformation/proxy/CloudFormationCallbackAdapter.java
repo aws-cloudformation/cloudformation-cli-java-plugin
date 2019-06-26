@@ -103,7 +103,7 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
     }
 
     private software.amazon.awssdk.services.cloudformation.model.OperationStatus
-            translate(final OperationStatus operationStatus) {
+        translate(final OperationStatus operationStatus) {
         switch (operationStatus) {
             case SUCCESS:
                 return software.amazon.awssdk.services.cloudformation.model.OperationStatus.SUCCESS;

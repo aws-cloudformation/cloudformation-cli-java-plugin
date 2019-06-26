@@ -204,8 +204,8 @@ public class LambdaWrapperTest {
         invokeHandler_nullResponse_returnsFailure("list.request.json", Action.LIST);
     }
 
-    private void invokeHandler_handlerFailed_returnsFailure(final String requestDataPath,
-                                                            final Action action) throws IOException {
+    private void invokeHandler_handlerFailed_returnsFailure(final String requestDataPath, final Action action)
+        throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler,
                                                             validator);
         final TestModel model = new TestModel();
@@ -272,8 +272,8 @@ public class LambdaWrapperTest {
         invokeHandler_handlerFailed_returnsFailure("list.request.json", Action.LIST);
     }
 
-    private void invokeHandler_CompleteSynchronously_returnsSuccess(final String requestDataPath,
-                                                                    final Action action) throws IOException {
+    private void invokeHandler_CompleteSynchronously_returnsSuccess(final String requestDataPath, final Action action)
+        throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler,
                                                             validator);
         final TestModel model = new TestModel();
@@ -343,8 +343,8 @@ public class LambdaWrapperTest {
         invokeHandler_CompleteSynchronously_returnsSuccess("list.request.json", Action.LIST);
     }
 
-    private void invokeHandler_InProgress_returnsInProgress(final String requestDataPath,
-                                                            final Action action) throws IOException {
+    private void invokeHandler_InProgress_returnsInProgress(final String requestDataPath, final Action action)
+        throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler,
                                                             validator);
         final TestModel model = TestModel.builder().property1("abc").property2(123).build();
@@ -422,8 +422,8 @@ public class LambdaWrapperTest {
         invokeHandler_InProgress_returnsInProgress("list.request.json", Action.LIST);
     }
 
-    private void reInvokeHandler_InProgress_returnsInProgress(final String requestDataPath,
-                                                              final Action action) throws IOException {
+    private void reInvokeHandler_InProgress_returnsInProgress(final String requestDataPath, final Action action)
+        throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler,
                                                             validator);
         final TestModel model = TestModel.builder().property1("abc").property2(123).build();
@@ -895,8 +895,8 @@ public class LambdaWrapperTest {
     }
 
     @Test
-    public void
-           invokeHandler_localReinvokeWithSufficientRemainingTimeForFirstIterationOnly_SchedulesViaCloudWatch() throws IOException {
+    public void invokeHandler_localReinvokeWithSufficientRemainingTimeForFirstIterationOnly_SchedulesViaCloudWatch()
+        throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, credentialsProvider, metricsPublisher, scheduler,
                                                             validator);
         final TestModel model = TestModel.builder().property1("abc").property2(123).build();

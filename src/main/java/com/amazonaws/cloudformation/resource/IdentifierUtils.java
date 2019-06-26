@@ -45,7 +45,7 @@ public class IdentifierUtils {
      * @return generated ID string
      */
     public static String
-           generateResourceIdentifier(final String logicalResourceId, final String clientRequestToken, final int maxLength) {
+        generateResourceIdentifier(final String logicalResourceId, final String clientRequestToken, final int maxLength) {
         int maxLogicalIdLength = maxLength - (GUID_LENGTH + 1);
 
         int endIndex = logicalResourceId.length() > maxLogicalIdLength ? maxLogicalIdLength : logicalResourceId.length();

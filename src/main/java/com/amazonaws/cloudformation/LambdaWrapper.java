@@ -101,8 +101,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                          final MetricsPublisher metricsPublisher,
                          final CloudWatchScheduler scheduler,
                          final SchemaValidator validator,
-                         final Serializer serializer,
-                         final TypeReference<HandlerRequest<ResourceT, CallbackT>> typeReference) {
+                         final Serializer serializer) {
 
         this.callbackAdapter = callbackAdapter;
         this.credentialsProvider = credentialsProvider;
@@ -113,7 +112,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         this.scheduler = scheduler;
         this.serializer = serializer;
         this.validator = validator;
-        this.typeReference = typeReference;
+        this.typeReference = getTypeReference();
     }
 
     /**
@@ -142,9 +141,9 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         this.scheduler.refreshClient();
     }
 
-    public void handleRequest(final InputStream inputStream,
-                              final OutputStream outputStream,
-                              final Context context) throws IOException, TerminalException {
+    public void handleRequest(final InputStream inputStream, final OutputStream outputStream, final Context context)
+        throws IOException,
+        TerminalException {
 
         this.logger = context.getLogger();
 
@@ -205,9 +204,10 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         }
     }
 
-    private ProgressEvent<ResourceT, CallbackT> processInvocation(final JSONObject rawRequest,
-                                                                  final HandlerRequest<ResourceT, CallbackT> request,
-                                                                  final Context context) throws IOException, TerminalException {
+    private ProgressEvent<ResourceT, CallbackT>
+        processInvocation(final JSONObject rawRequest, final HandlerRequest<ResourceT, CallbackT> request, final Context context)
+            throws IOException,
+            TerminalException {
 
         assert request != null : "Invalid request object received";
 
@@ -282,7 +282,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
         // last mile proxy creation with passed-in credentials
         AmazonWebServicesClientProxy awsClientProxy = new AmazonWebServicesClientProxy(this.logger, request.getRequestData()
-            .getCallerCredentials());
+            .getCallerCredentials(), () -> (long) context.getRemainingTimeInMillis());
 
         boolean computeLocally = true;
         ProgressEvent<ResourceT, CallbackT> handlerResponse = null;
@@ -308,9 +308,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         return handlerResponse;
     }
 
-    private void logUnhandledError(final String errorDescription,
-                                   final HandlerRequest<ResourceT, CallbackT> request,
-                                   final Throwable e) {
+    private void
+        logUnhandledError(final String errorDescription, final HandlerRequest<ResourceT, CallbackT> request, final Throwable e) {
         log(String.format("%s in a %s action on a %s: %s%n%s", errorDescription, request.getAction(), request.getResourceType(),
             e.toString(), ExceptionUtils.getStackTrace(e)));
     }
@@ -322,10 +321,10 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
      * timing metrics
      */
     private ProgressEvent<ResourceT, CallbackT>
-            wrapInvocationAndHandleErrors(final AmazonWebServicesClientProxy awsClientProxy,
-                                          final ResourceHandlerRequest<ResourceT> resourceHandlerRequest,
-                                          final HandlerRequest<ResourceT, CallbackT> request,
-                                          final CallbackT callbackContext) {
+        wrapInvocationAndHandleErrors(final AmazonWebServicesClientProxy awsClientProxy,
+                                      final ResourceHandlerRequest<ResourceT> resourceHandlerRequest,
+                                      final HandlerRequest<ResourceT, CallbackT> request,
+                                      final CallbackT callbackContext) {
 
         Date startTime = Date.from(Instant.now());
         try {
@@ -457,8 +456,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
      *            itself, and is not needed by the handler implementations
      * @return A converted ResourceHandlerRequest model
      */
-    protected abstract ResourceHandlerRequest<ResourceT>
-              transform(HandlerRequest<ResourceT, CallbackT> request) throws IOException;
+    protected abstract ResourceHandlerRequest<ResourceT> transform(HandlerRequest<ResourceT, CallbackT> request)
+        throws IOException;
 
     /**
      * Handler implementation should implement this method to provide the schema for
@@ -474,7 +473,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     public abstract ProgressEvent<ResourceT, CallbackT> invokeHandler(AmazonWebServicesClientProxy proxy,
                                                                       ResourceHandlerRequest<ResourceT> request,
                                                                       Action action,
-                                                                      CallbackT callbackContext) throws Exception;
+                                                                      CallbackT callbackContext)
+        throws Exception;
 
     /**
      * null-safe logger redirect

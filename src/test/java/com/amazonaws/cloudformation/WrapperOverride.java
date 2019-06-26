@@ -57,9 +57,7 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
                            final MetricsPublisher metricsPublisher,
                            final CloudWatchScheduler scheduler,
                            final SchemaValidator validator) {
-        super(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator, new Serializer(),
-              new TypeReference<HandlerRequest<TestModel, TestContext>>() {
-              });
+        super(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator, new Serializer());
     }
 
     @Override
@@ -72,7 +70,8 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
     public ProgressEvent<TestModel, TestContext> invokeHandler(final AmazonWebServicesClientProxy awsClientProxy,
                                                                final ResourceHandlerRequest<TestModel> request,
                                                                final Action action,
-                                                               final TestContext callbackContext) throws Exception {
+                                                               final TestContext callbackContext)
+        throws Exception {
         if (invokeHandlerException != null) {
             throw invokeHandlerException;
         } else if (invokeHandlerResponses == null) {
