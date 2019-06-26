@@ -55,18 +55,24 @@ def test_generate(project):
     project.load_schema()
 
     generated_root = project._plugin._get_generated_root(project)
+    generated_tests_root = project._plugin._get_generated_tests_root(project)
 
     # generated root shouldn't be present
     assert not generated_root.is_dir()
+    assert not generated_tests_root.is_dir()
 
     project.generate()
 
-    test_file = generated_root / "test"
+    src_file = generated_root / "test"
+    src_file.touch()
+
+    test_file = generated_tests_root / "test"
     test_file.touch()
 
     project.generate()
 
     # asserts we remove existing files in the tree
+    assert not src_file.is_file()
     assert not test_file.is_file()
 
 
