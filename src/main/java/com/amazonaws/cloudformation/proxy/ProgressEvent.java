@@ -129,21 +129,4 @@ public class ProgressEvent<ResourceT, CallbackT> {
         onSuccess(Function<ProgressEvent<ResourceT, CallbackT>, ProgressEvent<ResourceT, CallbackT>> func) {
         return (status != null && status == OperationStatus.SUCCESS) ? func.apply(this) : this;
     }
-
-    public boolean isFailed() {
-        return status == OperationStatus.FAILED;
-    }
-
-    public boolean isInProgress() {
-        return status == OperationStatus.IN_PROGRESS;
-    }
-
-    public boolean isSuccess() {
-        return status == OperationStatus.SUCCESS;
-    }
-
-    public boolean isInProgressCallbackDelay() {
-        return isInProgress() && callbackDelaySeconds > 0;
-    }
-
 }

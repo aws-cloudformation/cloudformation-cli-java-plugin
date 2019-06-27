@@ -220,7 +220,8 @@ public class AmazonWebServicesClientProxy implements CallChain {
                                     } catch (Exception e) {
                                         ProgressEvent<ModelT,
                                             CallbackT> handled = exceptHandler.invoke(req, e, client, model, context);
-                                        if (handled.isFailed() || handled.isSuccess()) {
+                                        if (handled.getStatus() == OperationStatus.FAILED
+                                            || handled.getStatus() == OperationStatus.SUCCESS) {
                                             return handled;
                                         }
                                     }
