@@ -71,10 +71,10 @@ public class CloudWatchLogPublisherImpl extends LogPublisher {
     }
 
     private boolean doesLogGroupExist() {
-        final DescribeLogGroupsResponse response = cloudWatchLogsClient
+        DescribeLogGroupsResponse response = cloudWatchLogsClient
             .describeLogGroups(DescribeLogGroupsRequest.builder().logGroupNamePrefix(logGroupName).build());
-        final Boolean logGroupExists = response.logGroups().stream()
-            .filter(logGroup -> logGroup.logGroupName().equals(logGroupName)).findAny().isPresent();
+        Boolean logGroupExists = response.logGroups().stream().filter(logGroup -> logGroup.logGroupName().equals(logGroupName))
+            .findAny().isPresent();
 
         loggerProxy.log(String.format("Log group with name %s does%s exist in resource owner account.", logGroupName,
             logGroupExists ? "" : " not"));
@@ -87,7 +87,7 @@ public class CloudWatchLogPublisherImpl extends LogPublisher {
     }
 
     private String createLogStream() {
-        final String logStreamName = UUID.randomUUID().toString();
+        String logStreamName = UUID.randomUUID().toString();
         loggerProxy.log(String.format("Creating Log stream with name %s for log group %s.", logStreamName, logGroupName));
         cloudWatchLogsClient
             .createLogStream(CreateLogStreamRequest.builder().logGroupName(logGroupName).logStreamName(logStreamName).build());

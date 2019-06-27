@@ -52,7 +52,7 @@ public class MetricsPublisherImpl extends MetricsPublisher {
     }
 
     public void publishExceptionMetric(final Instant timestamp, final Action action, final Throwable e) {
-        final Map<String, String> dimensions = new HashMap<>();
+        Map<String, String> dimensions = new HashMap<>();
         dimensions.put(Metric.DIMENSION_KEY_ACTION_TYPE, action == null ? "NO_ACTION" : action.name());
         dimensions.put(Metric.DIMENSION_KEY_EXCEPTION_TYPE, e.getClass().toString());
         dimensions.put(Metric.DIMENSION_KEY_RESOURCE_TYPE, this.getResourceTypeName());
@@ -61,7 +61,7 @@ public class MetricsPublisherImpl extends MetricsPublisher {
     }
 
     public void publishResourceOwnerLogDeliveryExceptionMetric(final Instant timestamp, final Throwable e) {
-        final Map<String, String> dimensions = new HashMap<>();
+        Map<String, String> dimensions = new HashMap<>();
         dimensions.put(Metric.DIMENSION_KEY_ACTION_TYPE, "ResourceOwnerLogDelivery");
         dimensions.put(Metric.DIMENSION_KEY_EXCEPTION_TYPE, e.getClass().toString());
         dimensions.put(Metric.DIMENSION_KEY_RESOURCE_TYPE, this.getResourceTypeName());

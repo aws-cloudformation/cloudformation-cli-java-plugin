@@ -60,7 +60,7 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
         }
 
         // TODO: be far more fault tolerant, do retries, emit logs and metrics, etc.
-        final RecordHandlerProgressResponse response = this.client.recordHandlerProgress(requestBuilder.build());
+        RecordHandlerProgressResponse response = this.client.recordHandlerProgress(requestBuilder.build());
         loggerProxy.log(String.format("Record Handler Progress with Request Id %s and Request: {%s}",
             response.responseMetadata().requestId(), requestBuilder.build().toString()));
     }

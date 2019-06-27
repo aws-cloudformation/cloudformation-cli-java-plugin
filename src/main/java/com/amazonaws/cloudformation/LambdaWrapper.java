@@ -350,8 +350,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // such as before a FAS token expires
 
         // last mile proxy creation with passed-in credentials
-        final AmazonWebServicesClientProxy awsClientProxy = new AmazonWebServicesClientProxy(this.loggerProxy, request
-            .getRequestData().getCallerCredentials(), () -> (long) context.getRemainingTimeInMillis());
+        AmazonWebServicesClientProxy awsClientProxy = new AmazonWebServicesClientProxy(this.loggerProxy, request.getRequestData()
+            .getCallerCredentials(), () -> (long) context.getRemainingTimeInMillis());
 
         boolean computeLocally = true;
         ProgressEvent<ResourceT, CallbackT> handlerResponse = null;
@@ -425,7 +425,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             logUnhandledError("An unknown error occurred ", request, e);
             return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.InternalFailure);
         } finally {
-            final Date endTime = Date.from(Instant.now());
+            Date endTime = Date.from(Instant.now());
             this.metricsPublisherProxy.publishDurationMetric(Instant.now(), request.getAction(),
                 (endTime.getTime() - startTime.getTime()));
         }
@@ -479,8 +479,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             return false;
         }
 
-        final RequestContext<CallbackT> reinvocationContext = new RequestContext<>();
-        final RequestContext<CallbackT> requestContext = request.getRequestContext();
+        RequestContext<CallbackT> reinvocationContext = new RequestContext<>();
+        RequestContext<CallbackT> requestContext = request.getRequestContext();
 
         int counter = 1;
         if (requestContext != null) {
