@@ -20,8 +20,11 @@ import com.amazonaws.cloudformation.proxy.ProgressEvent;
 import com.amazonaws.cloudformation.proxy.ProxyClient;
 import com.amazonaws.cloudformation.proxy.ResourceHandlerRequest;
 import com.amazonaws.cloudformation.proxy.StdCallbackContext;
+import com.amazonaws.cloudformation.proxy.delay.Constant;
 import com.amazonaws.cloudformation.proxy.service.CreateRequest;
 import com.amazonaws.cloudformation.proxy.service.ServiceClient;
+
+import java.time.Duration;
 
 public class CreateHandler {
 
@@ -44,7 +47,8 @@ public class CreateHandler {
             CreateRequest.Builder builder = new CreateRequest.Builder();
             builder.repoName(m.getRepoName());
             return builder.build();
-        }).call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository))
+        }).retry(Constant.of().delay(Duration.ofSeconds(3)).timeout(Duration.ofSeconds(9)).build())
+            .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository))
             .done((request1, response, client1, model1, context1) -> new ReadHandler(this.client).handleRequest(proxy, request,
                 cxt, logger));
     }

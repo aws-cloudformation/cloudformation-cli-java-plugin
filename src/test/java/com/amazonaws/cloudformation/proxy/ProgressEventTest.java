@@ -18,7 +18,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.amazonaws.cloudformation.TestContext;
 import com.amazonaws.cloudformation.TestModel;
+import com.amazonaws.cloudformation.resource.Serializer;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
 public class ProgressEventTest {
@@ -65,5 +68,33 @@ public class ProgressEventTest {
         assertThat(progressEvent.getResourceModel()).isEqualTo(model);
         assertThat(progressEvent.getResourceModels()).isNull();
         assertThat(progressEvent.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+    }
+
+    @Test
+    public void testOnSuccessChain() {
+        final TestModel model = TestModel.builder().property1("abc").property2(123).build();
+        final ProgressEvent<TestModel, TestContext> progressEvent = ProgressEvent.defaultSuccessHandler(model);
+        final ProgressEvent<TestModel, TestContext> chained = progressEvent
+            .onSuccess(e -> ProgressEvent.failed(e.getResourceModel(), null, HandlerErrorCode.ServiceLimitExceeded, "Exceeded"));
+
+        assertThat(chained.getCallbackContext()).isNull();
+        assertThat(chained.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(chained.getErrorCode()).isEqualTo(HandlerErrorCode.ServiceLimitExceeded);
+        assertThat(chained.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(chained.getMessage()).isEqualTo("Exceeded");
+        assertThat(chained.isFailed()).isEqualTo(true);
+        assertThat(chained.isInProgress()).isEqualTo(false);
+        assertThat(chained.isInProgressCallbackDelay()).isEqualTo(false);
+    }
+
+    @Test
+    public void progressEvent_serialize_shouldReturnJson() throws JsonProcessingException {
+        final ProgressEvent<String, String> progressEvent = ProgressEvent.defaultSuccessHandler("");
+        final Serializer serializer = new Serializer();
+        final JSONObject json = serializer.serialize(progressEvent);
+
+        // careful if you add new properties here. downstream has to be able to handle
+        // them
+        assertThat(json).hasToString("{\"callbackDelaySeconds\":0,\"resourceModel\":\"\",\"status\":\"SUCCESS\"}");
     }
 }

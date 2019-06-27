@@ -14,6 +14,14 @@
 */
 package com.amazonaws.cloudformation.proxy;
 
+import static org.assertj.core.api.Assertions.*;
+
+import com.amazonaws.cloudformation.proxy.delay.Blended;
+import com.amazonaws.cloudformation.proxy.delay.Constant;
+import com.amazonaws.cloudformation.proxy.delay.Exponential;
+import com.amazonaws.cloudformation.proxy.delay.MultipleOf;
+import com.amazonaws.cloudformation.proxy.delay.ShiftByMultipleOf;
+
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
@@ -25,40 +33,41 @@ public class DelayTest {
 
     @Test
     public void fixedDelay() {
-        final Delay fixed = new Delay.Constant(50, 5 * 50, TimeUnit.MILLISECONDS);
+        final Delay fixed = Constant.of().delay(Duration.ofMillis(50)).timeout(Duration.ofMillis(5 * 50)).build();
         int[] attempt = { 1 };
         final Executable fn = () -> {
-            long next = 0L;
-            while ((next = fixed.nextDelay(attempt[0])) > 0) {
+            Duration next = Duration.ZERO;
+            while ((next = fixed.nextDelay(attempt[0])) != Duration.ZERO) {
                 attempt[0]++;
-                fixed.unit().sleep(next);
+                TimeUnit.MILLISECONDS.sleep(next.toMillis());
             }
         };
         //
         // Small 5ms jitter to ensure we complete within time
         //
         Assertions.assertTimeout(Duration.ofMillis(6 * 50), fn);
-        Assertions.assertEquals(6, attempt[0]);
-        Assertions.assertTrue(fixed.nextDelay(8) < 0);
-        Assertions.assertTrue(fixed.nextDelay(10) < 0);
-        Assertions.assertTrue(fixed.nextDelay(15) < 0);
+        assertThat(6).isEqualTo(attempt[0]);
+        assertThat(fixed.nextDelay(8) == Duration.ZERO).isEqualTo(true);
+        assertThat(fixed.nextDelay(10) == Duration.ZERO).isEqualTo(true);
+        assertThat(fixed.nextDelay(15) == Duration.ZERO).isEqualTo(true);
     }
 
     @Test
     public void fixedDelayIter() {
-        final Delay fixed = new Delay.Constant(50, 5 * 50, TimeUnit.MILLISECONDS);
+        final Delay fixed = Constant.of().delay(Duration.ofMillis(50)).timeout(Duration.ofMillis(5 * 50)).build();
         try {
             int attempt = 1;
-            long next = 0L, accured = 0L, jitter = 2L;
+            Duration next = Duration.ZERO;
+            long accured = 0L, jitter = 2L;
             Duration later = Duration.ZERO;
-            while ((next = fixed.nextDelay(attempt)) > 0) {
+            while ((next = fixed.nextDelay(attempt)) != Duration.ZERO) {
                 attempt++;
-                accured += next;
-                fixed.unit().sleep(next);
+                accured += next.toMillis();
+                TimeUnit.MILLISECONDS.sleep(next.toMillis());
                 later = later.plusMillis(50);
                 long total = later.toMillis();
                 boolean range = accured >= (total - jitter) && accured <= (total + jitter);
-                Assertions.assertTrue(range);
+                assertThat(range).isEqualTo(true);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -67,64 +76,134 @@ public class DelayTest {
 
     @Test
     public void fixedDelays() {
-        final Delay fixed = new Delay.Constant(5, 50, TimeUnit.MILLISECONDS);
-        long next = 0L, accured = 0L;
+        final Delay fixed = Constant.of().delay(Duration.ofMillis(5)).timeout(Duration.ofMillis(50)).build();
+        Duration next = Duration.ZERO;
+        long accured = 0L;
         int attempt = 1;
-        while ((next = fixed.nextDelay(attempt++)) > 0) {
-            Assertions.assertEquals(5, next);
-            accured += next;
+        while ((next = fixed.nextDelay(attempt++)) != Duration.ZERO) {
+            Assertions.assertEquals(Duration.ofMillis(5), next);
+            accured += next.toMillis();
         }
         Assertions.assertEquals(5 * 10, accured);
     }
 
     @Test
-    public void multipleOfDelay() {
-        final Delay fixed = new Delay.MultipleOf(5, 105, 2, TimeUnit.SECONDS);
-        long next = 0L, accured = 0L;
+    public void shiftedMultipleOfDelay() {
+        final Delay fixed = ShiftByMultipleOf.shiftedOf().delay(Duration.ofSeconds(5)).timeout(Duration.ofSeconds(105)).build();
+        Duration next = Duration.ZERO;
+        long accured = 0L;
         int attempt = 1;
-        while ((next = fixed.nextDelay(attempt)) > 0) {
+        while ((next = fixed.nextDelay(attempt)) != Duration.ZERO) {
             attempt++;
-            accured += next;
+            accured += next.getSeconds();
         }
         Assertions.assertEquals(5 + 15 + 35 + 65 + 105, accured);
         Assertions.assertEquals(6, attempt);
     }
 
     @Test
-    public void blendedDelay() {
-        final Delay delay = new Delay.Blended(new Delay.Constant(5, 20, TimeUnit.SECONDS),
-                                              new Delay.MultipleOf(5, 220, 2, TimeUnit.SECONDS));
-        long next = 0L, accured = 0L;
+    public void multipleOfDelay() {
+        final Delay fixed = MultipleOf.multipleOf().delay(Duration.ofSeconds(5)).timeout(Duration.ofSeconds(105)).build();
+        Duration next = Duration.ZERO;
+        long accured = 0L;
         int attempt = 1;
-        while ((next = delay.nextDelay(attempt)) > 0) {
+        while ((next = fixed.nextDelay(attempt)) != Duration.ZERO) {
             attempt++;
-            accured += next;
+            accured += next.getSeconds();
         }
-        Assertions.assertEquals(5 * 4 + 40 + 90 + 150 + 220, accured);
-        Assertions.assertEquals(9, attempt);
+        assertThat(5 + 10 + 15 + 20 + 25 + 30).isEqualTo(accured);
+        assertThat(6).isEqualTo(attempt);
+    }
+
+    @Test
+    public void multipleOfDelayBy4() {
+        final Delay fixed = MultipleOf.multipleOf().delay(Duration.ofSeconds(5)).multiple(4).timeout(Duration.ofSeconds(105))
+            .build();
+        Duration next = Duration.ZERO;
+        long accured = 0L;
+        int attempt = 1;
+        while ((next = fixed.nextDelay(attempt)) != Duration.ZERO) {
+            attempt++;
+            accured += next.getSeconds();
+        }
+        assertThat(5 + 20 + 40).isEqualTo(accured);
+        assertThat(4).isEqualTo(attempt);
+    }
+
+    @Test
+    public void blendedDelay() {
+        final Delay delay = Blended.of().add(Constant.of().delay(Duration.ofSeconds(5)).timeout(Duration.ofSeconds(20)).build())
+            .add(ShiftByMultipleOf.shiftedOf().delay(Duration.ofSeconds(5)).timeout(Duration.ofSeconds(220)).build()).build();
+        Duration next = Duration.ZERO;
+        long accured = 0L;
+        int attempt = 1;
+        while ((next = delay.nextDelay(attempt)) != Duration.ZERO) {
+            attempt++;
+            accured += next.getSeconds();
+        }
+        assertThat(5 * 4 + 40 + 90 + 150 + 220).isEqualTo(accured);
+        assertThat(9).isEqualTo(attempt);
     }
 
     @Test
     public void exponentialDelays() {
-        final Delay exponential = new Delay.Exponential(2, Math.round(Math.pow(2, 9)), TimeUnit.SECONDS);
+        final Delay exponential = Exponential.of().timeout(Duration.ofSeconds(Math.round(Math.pow(2, 9)))).build();
         int attempt = 1;
-        long next = 0L, accured = 0L;
-        while ((next = exponential.nextDelay(attempt)) > 0) {
-            Assertions.assertEquals(Math.round(Math.pow(2, attempt)), next);
+        Duration next = Duration.ZERO;
+        long accrued = 0L;
+        while ((next = exponential.nextDelay(attempt)) != Duration.ZERO) {
+            assertThat(Math.round(Math.pow(2, attempt))).isEqualTo(next.getSeconds());
             attempt++;
-            accured += next;
+            accrued += next.getSeconds();
         }
-        Assertions.assertEquals(9, attempt);
+        assertThat(9).isEqualTo(attempt);
 
-        final Delay delay = new Delay.Exponential(10, Math.round(Math.pow(10, 9)), TimeUnit.SECONDS, 10);
+        final Delay delay = Exponential.of().minDelay(Duration.ofSeconds(10))
+            .timeout(Duration.ofSeconds(Math.round(Math.pow(10, 9)))).powerBy(10).build();
         attempt = 1;
-        accured = 0L;
-        while ((next = delay.nextDelay(attempt)) > 0) {
-            Assertions.assertEquals(Math.round(Math.pow(10, attempt)), next);
+        accrued = 0L;
+        while ((next = delay.nextDelay(attempt)) != Duration.ZERO) {
+            assertThat(Math.round(Math.pow(10, attempt))).isEqualTo(next.getSeconds());
             attempt++;
-            accured += next;
+            accrued += next.getSeconds();
         }
-        Assertions.assertEquals(9, attempt);
+        assertThat(9).isEqualTo(attempt);
 
+        final Delay expoPower = Exponential.of().minDelay(Duration.ofSeconds(4)).timeout(Duration.ofSeconds(64)).powerBy(4)
+            .build();
+        attempt = 1;
+        accrued = 0L;
+        while ((next = expoPower.nextDelay(attempt)) != Duration.ZERO) {
+            switch ((int) next.getSeconds()) {
+                case 4:
+                case 16:
+                case 64:
+                    break;
+
+                default:
+                    Assertions.fail("power of 4 error " + next + " attempt " + attempt);
+            }
+            ++attempt;
+            accrued += next.getSeconds();
+        }
+        assertThat(3).isEqualTo(attempt);
+
+        final Delay expoPower2 = Exponential.of().minDelay(Duration.ofSeconds(16)).timeout(Duration.ofSeconds(64)).powerBy(4)
+            .build();
+        attempt = 1;
+        accrued = 0L;
+        while ((next = expoPower2.nextDelay(attempt)) != Duration.ZERO) {
+            switch ((int) next.getSeconds()) {
+                case 16:
+                case 64:
+                    break;
+
+                default:
+                    Assertions.fail("power of 4 error " + next + " attempt " + attempt);
+            }
+            ++attempt;
+            accrued += next.getSeconds();
+        }
+        assertThat(3).isEqualTo(attempt);
     }
 }
