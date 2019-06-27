@@ -243,11 +243,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         path = test_src / "ResourceModelTest.java"
         LOG.debug("Writing ResourceModelTest: %s", path)
         contents = template.render(
-            type_name=project.type_name,
-            package_name=self.package_name,
-            properties=pojos["ResourceModel"],
-            primaryIdentifier=self._get_primary_identifier(project.schema),
-            additionalIdentifiers=self._get_additional_identifiers(project.schema),
+            type_name=project.type_name, package_name=self.package_name
         )
         project.overwrite(path, contents)
 

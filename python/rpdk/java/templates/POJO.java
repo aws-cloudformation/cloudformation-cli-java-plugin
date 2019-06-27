@@ -49,17 +49,19 @@ public class {{ pojo_name|uppercase_first_letter }} {
         }
 
         {% endfor %}
-        return identifier;
+        // only return the identifier if it can be used, i.e. if all components are present
+        return identifier.length() == {{ primaryIdentifier|length }} ? identifier : null;
     }
 
     public List<JSONObject> getAdditionalIdentifiers(){
         final List<JSONObject> identifiers = new ArrayList<JSONObject>();
         {% for identifiers in additionalIdentifiers %}
-        if (getIdentifier{% for identifier in identifiers %}_{{identifier.split("/")[-1]|uppercase_first_letter}}{% endfor %}().length() != {{ identifiers|length }}) {
+        if (getIdentifier{% for identifier in identifiers %}_{{identifier.split("/")[-1]|uppercase_first_letter}}{% endfor %}() != null) {
             identifiers.add(getIdentifier{% for identifier in identifiers %}_{{identifier.split("/")[-1]|uppercase_first_letter}}{% endfor %}());
         }
         {% endfor %}
-        return identifiers;
+        // only return the identifiers if any can be used
+        return identifiers.isEmpty() ? null : identifiers;
     }
     {% for identifiers in additionalIdentifiers %}
 
@@ -72,7 +74,8 @@ public class {{ pojo_name|uppercase_first_letter }} {
         }
 
         {% endfor %}
-        return identifier;
+        // only return the identifier if it can be used, i.e. if all components are present
+        return identifier.length() == {{ identifiers|length }} ? identifier : null;
     }
     {% endfor %}
     {% endif %}
