@@ -106,14 +106,6 @@ def test__find_jar_two(project):
         project._plugin._find_jar(project)
 
 
-def test__get_primary_identifier_none(project):
-    assert [] == project._plugin._get_primary_identifier({})
-
-
-def test__get_additional_identifiers_none(project):
-    assert [] == project._plugin._get_additional_identifiers({})
-
-
 def test_package(project):
     project.load_schema()
     project.generate()
