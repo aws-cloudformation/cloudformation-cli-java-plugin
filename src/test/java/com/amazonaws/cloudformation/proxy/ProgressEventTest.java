@@ -66,4 +66,21 @@ public class ProgressEventTest {
         assertThat(progressEvent.getResourceModels()).isNull();
         assertThat(progressEvent.getStatus()).isEqualTo(OperationStatus.SUCCESS);
     }
+
+    @Test
+    public void testOnSuccessChain() {
+        final TestModel model = TestModel.builder().property1("abc").property2(123).build();
+        final ProgressEvent<TestModel, TestContext> progressEvent = ProgressEvent.defaultSuccessHandler(model);
+        final ProgressEvent<TestModel, TestContext> chained = progressEvent
+            .onSuccess(e -> ProgressEvent.failed(e.getResourceModel(), null, HandlerErrorCode.ServiceLimitExceeded, "Exceeded"));
+
+        assertThat(chained.getCallbackContext()).isNull();
+        assertThat(chained.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(chained.getErrorCode()).isEqualTo(HandlerErrorCode.ServiceLimitExceeded);
+        assertThat(chained.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(chained.getMessage()).isEqualTo("Exceeded");
+        assertThat(chained.isFailed()).isEqualTo(true);
+        assertThat(chained.isInProgress()).isEqualTo(false);
+        assertThat(chained.isInProgressCallbackDelay()).isEqualTo(false);
+    }
 }

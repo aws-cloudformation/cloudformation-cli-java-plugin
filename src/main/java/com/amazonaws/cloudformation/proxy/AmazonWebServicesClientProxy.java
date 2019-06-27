@@ -20,10 +20,12 @@ import com.amazonaws.ResponseMetadata;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicSessionCredentials;
+import com.amazonaws.cloudformation.proxy.delay.Constant;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.Uninterruptibles;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.CompletableFuture;
@@ -54,65 +56,6 @@ import software.amazon.awssdk.http.HttpStatusCode;
  */
 public class AmazonWebServicesClientProxy implements CallChain {
 
-    public static final int HTTP_STATUS_NETWORK_AUTHN_REQUIRED = 511;
-    public static final int HTTP_STATUS_GONE = 410;
-
-    private final AWSCredentialsProvider v1CredentialsProvider;
-    private final AwsCredentialsProvider v2CredentialsProvider;
-    private final LambdaLogger logger;
-    private final Supplier<Long> remainingTimeInMillis;
-
-    public AmazonWebServicesClientProxy(final LambdaLogger logger,
-                                        final Credentials credentials,
-                                        final Supplier<Long> remainingTimeToExecute) {
-        this.logger = logger;
-        this.remainingTimeInMillis = remainingTimeToExecute;
-
-        BasicSessionCredentials basicSessionCredentials = new BasicSessionCredentials(credentials.getAccessKeyId(),
-                                                                                      credentials.getSecretAccessKey(),
-                                                                                      credentials.getSessionToken());
-        this.v1CredentialsProvider = new AWSStaticCredentialsProvider(basicSessionCredentials);
-
-        AwsSessionCredentials awsSessionCredentials = AwsSessionCredentials.create(credentials.getAccessKeyId(),
-            credentials.getSecretAccessKey(), credentials.getSessionToken());
-        this.v2CredentialsProvider = StaticCredentialsProvider.create(awsSessionCredentials);
-    }
-
-    public <ClientT> ProxyClient<ClientT> newProxy(@Nonnull Supplier<ClientT> client) {
-        return new ProxyClient<ClientT>() {
-            @Override
-            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
-                ResponseT
-                injectCredentialsAndInvokeV2(RequestT request, Function<RequestT, ResponseT> requestFunction) {
-                return AmazonWebServicesClientProxy.this.injectCredentialsAndInvokeV2(request, requestFunction);
-            }
-
-            @Override
-            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
-                CompletableFuture<ResponseT>
-                injectCredentialsAndInvokeV2Aync(RequestT request,
-                                                 Function<RequestT, CompletableFuture<ResponseT>> requestFunction) {
-                return AmazonWebServicesClientProxy.this.injectCredentialsAndInvokeV2Async(request, requestFunction);
-            }
-
-            @Override
-            public ClientT client() {
-                return client.get();
-            }
-        };
-    }
-
-    @Override
-    public <ClientT, ModelT, CallbackT extends StdCallbackContext>
-        RequestMaker<ClientT, ModelT, CallbackT>
-        initiate(String callGraph, ProxyClient<ClientT> client, ModelT model, CallbackT cxt) {
-        Preconditions.checkNotNull(callGraph, "callGraph can not be null");
-        Preconditions.checkNotNull(client, "ProxyClient can not be null");
-        Preconditions.checkNotNull(model, "Resource Model can not be null");
-        Preconditions.checkNotNull(cxt, "cxt can not be null");
-        return new CallContext<>(callGraph, client, model, cxt);
-    }
-
     class CallContext<ClientT, ModelT, CallbackT extends StdCallbackContext>
         implements CallChain.RequestMaker<ClientT, ModelT, CallbackT> {
 
@@ -120,13 +63,12 @@ public class AmazonWebServicesClientProxy implements CallChain {
         private final ProxyClient<ClientT> client;
         private final ModelT model;
         private final CallbackT context;
-
         //
         // Default delay context and retries for all web service calls when
         // handling errors, throttles and more. The handler can influence this
         // using retry method.
         //
-        private Delay delay = new Delay.Constant(3, 3 * 3, TimeUnit.SECONDS);
+        private Delay delay = Constant.of().delay(Duration.ofSeconds(5)).timeout(Duration.ofMinutes(20)).build();
 
         CallContext(String callGraph,
                     ProxyClient<ClientT> client,
@@ -233,20 +175,19 @@ public class AmazonWebServicesClientProxy implements CallChain {
                                     //
                                     Instant opTime = Instant.now();
                                     long elapsed = ChronoUnit.MILLIS.between(now, opTime);
-                                    long next = delay.nextDelay(attempt++);
+                                    Duration next = delay.nextDelay(attempt++);
                                     context.attempts(callGraph, attempt);
-                                    if (next < 0) {
+                                    if (next == Duration.ZERO) {
                                         return ProgressEvent.failed(model, context, HandlerErrorCode.NotStabilized,
                                             "Exceeded attempts to wait");
                                     }
                                     long remainingTime = getRemainingTimeInMillis();
-                                    long localWait = delay.unit().toMillis(next) + 2 * elapsed + 100;
+                                    long localWait = next.toMillis() + 2 * elapsed + 100;
                                     if (remainingTime > localWait) {
-                                        Uninterruptibles.sleepUninterruptibly(next, delay.unit());
+                                        Uninterruptibles.sleepUninterruptibly(next.getSeconds(), TimeUnit.SECONDS);
                                         continue;
                                     }
-                                    return ProgressEvent.defaultInProgressHandler(context, (int) delay.unit().toSeconds(next),
-                                        model);
+                                    return ProgressEvent.defaultInProgressHandler(context, (int) next.getSeconds(), model);
                                 }
                             } finally {
                                 //
@@ -271,59 +212,28 @@ public class AmazonWebServicesClientProxy implements CallChain {
 
     }
 
-    public <RequestT, ClientT, ModelT, CallbackT extends StdCallbackContext>
-        ProgressEvent<ModelT, CallbackT>
-        defaultHandler(RequestT request, Exception e, ClientT client, ModelT model, CallbackT context) {
-        //
-        // Client side exception, mapping this to InvalidRequest at the moment
-        //
-        if (e instanceof NonRetryableException) {
-            return ProgressEvent.failed(model, context, HandlerErrorCode.InvalidRequest, e.getMessage());
-        }
+    public static final int HTTP_STATUS_GONE = 410;
+    public static final int HTTP_STATUS_NETWORK_AUTHN_REQUIRED = 511;
 
-        if (e instanceof AwsServiceException) {
-            AwsServiceException sdkException = (AwsServiceException) e;
-            AwsErrorDetails details = sdkException.awsErrorDetails();
-            String errMsg = "Code(" + details.errorCode() + "),  " + details.errorMessage();
-            switch (details.sdkHttpResponse().statusCode()) {
-                case HttpStatusCode.BAD_REQUEST:
-                    //
-                    // BadRequest, wrong values in the request
-                    //
-                    return ProgressEvent.failed(model, context, HandlerErrorCode.InvalidRequest, errMsg);
+    private final AWSCredentialsProvider v1CredentialsProvider;
+    private final AwsCredentialsProvider v2CredentialsProvider;
+    private final LambdaLogger logger;
+    private final Supplier<Long> remainingTimeInMillis;
 
-                case HttpStatusCode.UNAUTHORIZED:
-                case HttpStatusCode.FORBIDDEN:
-                case HTTP_STATUS_NETWORK_AUTHN_REQUIRED: // 511 Network Authentication Required, just in case
-                    //
-                    // Access Denied, AuthN/Z problems
-                    //
-                    return ProgressEvent.failed(model, context, HandlerErrorCode.AccessDenied, errMsg);
+    public AmazonWebServicesClientProxy(final LambdaLogger logger,
+                                        final Credentials credentials,
+                                        final Supplier<Long> remainingTimeToExecute) {
+        this.logger = logger;
+        this.remainingTimeInMillis = remainingTimeToExecute;
 
-                case HttpStatusCode.NOT_FOUND:
-                case HTTP_STATUS_GONE: // 410 Gone
-                    //
-                    // Resource that we are trying READ/UPDATE/DELETE is not found
-                    //
-                    return ProgressEvent.failed(model, context, HandlerErrorCode.NotFound, errMsg);
+        BasicSessionCredentials basicSessionCredentials = new BasicSessionCredentials(credentials.getAccessKeyId(),
+                                                                                      credentials.getSecretAccessKey(),
+                                                                                      credentials.getSessionToken());
+        this.v1CredentialsProvider = new AWSStaticCredentialsProvider(basicSessionCredentials);
 
-                case HttpStatusCode.SERVICE_UNAVAILABLE:
-                    //
-                    // Often retries help here as well. IMPORTANT to remember here that
-                    // there are retries with the SDK Client itself for these. Verify
-                    // what we add extra over the default ones
-                    //
-                case HttpStatusCode.GATEWAY_TIMEOUT:
-                case HttpStatusCode.THROTTLING: // Throttle, TOO many requests
-                    AmazonWebServicesClientProxy.this.logger.log("Retrying for error " + details.errorMessage());
-                    return ProgressEvent.progress(model, context);
-
-                default:
-                    return ProgressEvent.failed(model, context, HandlerErrorCode.GeneralServiceException, errMsg);
-            }
-        }
-        return ProgressEvent.failed(model, context, HandlerErrorCode.InternalFailure, e.getMessage());
-
+        AwsSessionCredentials awsSessionCredentials = AwsSessionCredentials.create(credentials.getAccessKeyId(),
+            credentials.getSecretAccessKey(), credentials.getSessionToken());
+        this.v2CredentialsProvider = StaticCredentialsProvider.create(awsSessionCredentials);
     }
 
     public final long getRemainingTimeInMillis() {
@@ -382,4 +292,95 @@ public class AmazonWebServicesClientProxy implements CallChain {
             throw e;
         }
     }
+
+    public <RequestT, ClientT, ModelT, CallbackT extends StdCallbackContext>
+        ProgressEvent<ModelT, CallbackT>
+        defaultHandler(RequestT request, Exception e, ClientT client, ModelT model, CallbackT context) {
+        //
+        // Client side exception, mapping this to InvalidRequest at the moment
+        //
+        if (e instanceof NonRetryableException) {
+            return ProgressEvent.failed(model, context, HandlerErrorCode.InvalidRequest, e.getMessage());
+        }
+
+        if (e instanceof AwsServiceException) {
+            AwsServiceException sdkException = (AwsServiceException) e;
+            AwsErrorDetails details = sdkException.awsErrorDetails();
+            String errMsg = "Code(" + details.errorCode() + "),  " + details.errorMessage();
+            switch (details.sdkHttpResponse().statusCode()) {
+                case HttpStatusCode.BAD_REQUEST:
+                    //
+                    // BadRequest, wrong values in the request
+                    //
+                    return ProgressEvent.failed(model, context, HandlerErrorCode.InvalidRequest, errMsg);
+
+                case HttpStatusCode.UNAUTHORIZED:
+                case HttpStatusCode.FORBIDDEN:
+                case HTTP_STATUS_NETWORK_AUTHN_REQUIRED: // 511 Network Authentication Required, just in case
+                    //
+                    // Access Denied, AuthN/Z problems
+                    //
+                    return ProgressEvent.failed(model, context, HandlerErrorCode.AccessDenied, errMsg);
+
+                case HttpStatusCode.NOT_FOUND:
+                case HTTP_STATUS_GONE: // 410 Gone
+                    //
+                    // Resource that we are trying READ/UPDATE/DELETE is not found
+                    //
+                    return ProgressEvent.failed(model, context, HandlerErrorCode.NotFound, errMsg);
+
+                case HttpStatusCode.SERVICE_UNAVAILABLE:
+                    //
+                    // Often retries help here as well. IMPORTANT to remember here that
+                    // there are retries with the SDK Client itself for these. Verify
+                    // what we add extra over the default ones
+                    //
+                case HttpStatusCode.GATEWAY_TIMEOUT:
+                case HttpStatusCode.THROTTLING: // Throttle, TOO many requests
+                    AmazonWebServicesClientProxy.this.logger.log("Retrying for error " + details.errorMessage());
+                    return ProgressEvent.progress(model, context);
+
+                default:
+                    return ProgressEvent.failed(model, context, HandlerErrorCode.GeneralServiceException, errMsg);
+            }
+        }
+        return ProgressEvent.failed(model, context, HandlerErrorCode.InternalFailure, e.getMessage());
+
+    }
+
+    public <ClientT> ProxyClient<ClientT> newProxy(@Nonnull Supplier<ClientT> client) {
+        return new ProxyClient<ClientT>() {
+            @Override
+            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
+                ResponseT
+                injectCredentialsAndInvokeV2(RequestT request, Function<RequestT, ResponseT> requestFunction) {
+                return AmazonWebServicesClientProxy.this.injectCredentialsAndInvokeV2(request, requestFunction);
+            }
+
+            @Override
+            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
+                CompletableFuture<ResponseT>
+                injectCredentialsAndInvokeV2Aync(RequestT request,
+                                                 Function<RequestT, CompletableFuture<ResponseT>> requestFunction) {
+                return AmazonWebServicesClientProxy.this.injectCredentialsAndInvokeV2Async(request, requestFunction);
+            }
+
+            @Override
+            public ClientT client() {
+                return client.get();
+            }
+        };
+    }
+
+    @Override
+    public <ClientT, ModelT, CallbackT extends StdCallbackContext>
+        RequestMaker<ClientT, ModelT, CallbackT>
+        initiate(String callGraph, ProxyClient<ClientT> client, ModelT model, CallbackT cxt) {
+        Preconditions.checkNotNull(callGraph, "callGraph can not be null");
+        Preconditions.checkNotNull(client, "ProxyClient can not be null");
+        Preconditions.checkNotNull(model, "Resource Model can not be null");
+        Preconditions.checkNotNull(cxt, "cxt can not be null");
+        return new CallContext<>(callGraph, client, model, cxt);
+    }
+
 }

@@ -23,6 +23,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.cloudformation.proxy.delay.Constant;
 import com.amazonaws.cloudformation.proxy.handler.Model;
 import com.amazonaws.cloudformation.proxy.service.AccessDenied;
 import com.amazonaws.cloudformation.proxy.service.BadRequestException;
@@ -43,7 +44,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import org.joda.time.Instant;
 import org.junit.jupiter.api.Test;
@@ -297,7 +297,7 @@ public class AmazonWebServicesClientProxyTest {
         ProgressEvent<Model,
             StdCallbackContext> result = proxy.initiate("client:createRepository", svcClient, model, context)
                 .request(m -> (requests[0] = new CreateRequest.Builder().repoName(m.getRepoName()).build()))
-                .retry(new Delay.Constant(1, 3, TimeUnit.SECONDS)).call((r, c) -> {
+                .retry(Constant.of().delay(Duration.ofSeconds(1)).timeout(Duration.ofSeconds(3)).build()).call((r, c) -> {
                     if (attempt[0]-- > 0) {
                         throw new ThrottleException(builder) {
                             private static final long serialVersionUID = 1L;
@@ -364,7 +364,7 @@ public class AmazonWebServicesClientProxyTest {
         final ProgressEvent<Model,
             StdCallbackContext> result = proxy.initiate("client:createRepository", svcClient, model, context)
                 .request(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
-                .retry(new Delay.Constant(5, 10, TimeUnit.SECONDS)).call((r, c) -> {
+                .retry(Constant.of().delay(Duration.ofSeconds(5)).timeout(Duration.ofSeconds(10)).build()).call((r, c) -> {
                     throw new ThrottleException(AwsServiceException.builder()) {
                         private static final long serialVersionUID = 1L;
 
@@ -375,7 +375,6 @@ public class AmazonWebServicesClientProxyTest {
                         }
                     };
                 }).done(ign -> ProgressEvent.success(model, context));
-
         assertThat(result.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
     }
 
@@ -396,13 +395,52 @@ public class AmazonWebServicesClientProxyTest {
         ProgressEvent<Model,
             StdCallbackContext> result = proxy.initiate("client:createRepository", svcClient, model, context)
                 .request(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
-                .retry(new Delay.Constant(5, 1, TimeUnit.SECONDS))
+                .retry(Constant.of().delay(Duration.ofSeconds(5)).timeout(Duration.ofSeconds(15)).build())
                 .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository))
                 .stabilize((request, response, client1, model1, context1) -> attempt[0]-- > 0)
                 .exceptFilter((request, exception, client1, model1, context1) -> exception instanceof ThrottleException)
                 .done(ign -> ProgressEvent.success(model, context));
 
         assertThat(result.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+    }
+
+    @Test
+    public void serviceCallWithFilterException() {
+        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(mock(LambdaLogger.class), MOCK,
+                                                                                    () -> Duration.ofSeconds(1).toMillis() // signal
+                                                                                                                           // we
+                                                                                                                           // have
+                                                                                                                           // only
+                                                                                                                           // 1
+                                                                                                                           // second
+        );
+        final Model model = new Model();
+        model.setRepoName("NewRepo");
+        final StdCallbackContext context = new StdCallbackContext();
+        final ServiceClient client = mock(ServiceClient.class);
+        final ProxyClient<ServiceClient> svcClient = proxy.newProxy(() -> client);
+        final SdkHttpResponse sdkHttpResponse = mock(SdkHttpResponse.class);
+        when(sdkHttpResponse.statusCode()).thenReturn(503);
+        when(client.createRepository(any(CreateRequest.class))).thenThrow(new ThrottleException(AwsServiceException.builder()) {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public AwsErrorDetails awsErrorDetails() {
+                return AwsErrorDetails.builder().errorCode("ThrottleException").errorMessage("Temporary Limit Exceeded")
+                    .sdkHttpResponse(sdkHttpResponse).build();
+            }
+        });
+
+        final ProgressEvent<Model,
+            StdCallbackContext> result = proxy.initiate("client:createRepository", svcClient, model, context)
+                .request(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
+                .retry(Constant.of().delay(Duration.ofSeconds(5)).timeout(Duration.ofSeconds(10)).build())
+                .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository))
+                .exceptFilter((request, response, client1, model1, context1) -> response instanceof ThrottleException)
+                .done(ign -> ProgressEvent.success(model, context));
+
+        assertThat(result.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+
     }
 
     @Test
