@@ -89,27 +89,22 @@
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>sdk-core</artifactId>
-            <version>${awssdk.version}</version>
         </dependency>
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>utils</artifactId>
-            <version>${awssdk.version}</version>
         </dependency>
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>cloudformation</artifactId>
-            <version>${awssdk.version}</version>
         </dependency>
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>cloudwatch</artifactId>
-            <version>${awssdk.version}</version>
         </dependency>
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>cloudwatchevents</artifactId>
-            <version>${awssdk.version}</version>
         </dependency>
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
@@ -176,12 +171,14 @@
             <artifactId>spotless-maven-plugin</artifactId>
             <version>${spotless.version}</version>
         </dependency>
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>build-tools</artifactId>
-            <version>1.0</version>
-        </dependency>
     </dependencies>
+    <pluginRepositories>
+        <!-- Supports software.amazon.awssdk:build-tools -->
+        <pluginRepository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </pluginRepository>
+    </pluginRepositories>
     <build>
         <plugins>
             <!-- https://github.com/diffplug/spotless/tree/master/plugin-maven -->
@@ -336,9 +333,9 @@
                         <version>${checkstyle.version}</version>
                     </dependency>
                     <dependency>
-                        <groupId>software.amazon.awssdk</groupId>
+                        <groupId>com.github.aws.aws-sdk-java-v2</groupId>
                         <artifactId>build-tools</artifactId>
-                        <version>1.0</version>
+                        <version>${awssdk.version}</version>
                     </dependency>
                 </dependencies>
                 <executions>
