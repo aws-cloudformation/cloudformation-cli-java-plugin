@@ -6,6 +6,7 @@ import com.amazonaws.cloudformation.LambdaWrapper;
 import com.amazonaws.cloudformation.metrics.MetricsPublisher;
 import com.amazonaws.cloudformation.proxy.AmazonWebServicesClientProxy;
 import com.amazonaws.cloudformation.proxy.CallbackAdapter;
+import com.amazonaws.cloudformation.proxy.HandlerErrorCode;
 import com.amazonaws.cloudformation.proxy.HandlerRequest;
 import com.amazonaws.cloudformation.proxy.LoggerProxy;
 import com.amazonaws.cloudformation.proxy.ProgressEvent;
@@ -62,7 +63,14 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
         final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(
                 context.getLogger(), payload.getCredentials(), () -> (long) context.getRemainingTimeInMillis());
 
-        return invokeHandler(proxy, payload.getRequest(), payload.getAction(), payload.getCallbackContext());
+        this.logger = context.getLogger();
+
+        try {
+            return invokeHandler(proxy, payload.getRequest(), payload.getAction(), payload.getCallbackContext());
+        } catch (final Throwable e) {
+            e.printStackTrace();
+            return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.InternalFailure);
+        }
     }
 
     @Override
