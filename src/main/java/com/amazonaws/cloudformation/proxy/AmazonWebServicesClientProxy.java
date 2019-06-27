@@ -73,7 +73,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
                                                                                       credentials.getSessionToken());
         this.v1CredentialsProvider = new AWSStaticCredentialsProvider(basicSessionCredentials);
 
-        final AwsSessionCredentials awsSessionCredentials = AwsSessionCredentials.create(credentials.getAccessKeyId(),
+        AwsSessionCredentials awsSessionCredentials = AwsSessionCredentials.create(credentials.getAccessKeyId(),
             credentials.getSecretAccessKey(), credentials.getSessionToken());
         this.v2CredentialsProvider = StaticCredentialsProvider.create(awsSessionCredentials);
     }
@@ -373,7 +373,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
             .credentialsProvider(v2CredentialsProvider).build();
 
         @SuppressWarnings("unchecked")
-        final RequestT wrappedRequest = (RequestT) request.toBuilder().overrideConfiguration(overrideConfiguration).build();
+        RequestT wrappedRequest = (RequestT) request.toBuilder().overrideConfiguration(overrideConfiguration).build();
 
         try {
             return requestFunction.apply(wrappedRequest);
