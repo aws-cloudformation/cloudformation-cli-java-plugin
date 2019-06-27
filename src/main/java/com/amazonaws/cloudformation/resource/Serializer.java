@@ -1,3 +1,17 @@
+/*
+* Copyright 2010-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+*
+* Licensed under the Apache License, Version 2.0 (the "License").
+* You may not use this file except in compliance with the License.
+* A copy of the License is located at
+*
+*  http://aws.amazon.com/apache2.0
+*
+* or in the "license" file accompanying this file. This file is distributed
+* on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+* express or implied. See the License for the specific language governing
+* permissions and limitations under the License.
+*/
 package com.amazonaws.cloudformation.resource;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -6,8 +20,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.json.JSONObject;
+
 import java.io.IOException;
+
+import org.json.JSONObject;
 
 public class Serializer {
 
@@ -18,8 +34,10 @@ public class Serializer {
     }
 
     /**
-     * Configures the specified ObjectMapper with the (de)serialization behaviours we want gto enforce
-     * @param objectMapper  ObjectMapper instance to configure
+     * Configures the specified ObjectMapper with the (de)serialization behaviours
+     * we want gto enforce
+     *
+     * @param objectMapper ObjectMapper instance to configure
      */
     private void configureObjectMapper(final ObjectMapper objectMapper) {
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -38,8 +56,7 @@ public class Serializer {
         return new JSONObject(objectMapper.writeValueAsString(modelObject));
     }
 
-    public <T> T deserialize(final String s,
-                             final TypeReference<?> reference) throws IOException {
+    public <T> T deserialize(final String s, final TypeReference<?> reference) throws IOException {
         return this.objectMapper.readValue(s, reference);
     }
 }

@@ -85,12 +85,22 @@ class JavaLanguagePlugin(LanguagePlugin):
         path = project.root / "template.yml"
         LOG.debug("Writing SAM template: %s", path)
         template = self.env.get_template("template.yml")
+
+        handler_params = {
+            "Handler": project.entrypoint,
+            "Runtime": project.runtime,
+            "CodeUri": self.CODE_URI.format(artifact_id),
+        }
         contents = template.render(
             resource_type=project.type_name,
-            handler_params={
-                "Handler": project.entrypoint,
-                "Runtime": project.runtime,
-                "CodeUri": self.CODE_URI.format(artifact_id),
+            functions={
+                "TypeFunction": handler_params,
+                "TestEntrypoint": {
+                    **handler_params,
+                    "Handler": handler_params["Handler"].replace(
+                        "handleRequest", "testEntrypoint"
+                    ),
+                },
             },
         )
         project.safewrite(path, contents)
