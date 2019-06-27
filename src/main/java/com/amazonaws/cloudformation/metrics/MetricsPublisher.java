@@ -1,3 +1,17 @@
+/*
+* Copyright 2010-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+*
+* Licensed under the Apache License, Version 2.0 (the "License").
+* You may not use this file except in compliance with the License.
+* A copy of the License is located at
+*
+*  http://aws.amazon.com/apache2.0
+*
+* or in the "license" file accompanying this file. This file is distributed
+* on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+* express or implied. See the License for the specific language governing
+* permissions and limitations under the License.
+*/
 package com.amazonaws.cloudformation.metrics;
 
 import com.amazonaws.cloudformation.Action;
@@ -6,6 +20,7 @@ import java.time.Instant;
 
 public abstract class MetricsPublisher {
 
+    protected int priority = 100;
     protected String resourceTypeName;
     protected String resourceNamespace;
 
@@ -15,16 +30,18 @@ public abstract class MetricsPublisher {
     }
 
     /**
-     * On Lambda re-invoke we need to supply a new set of client credentials so this function
-     * must be called whenever credentials are refreshed/changed in the owning entity
+     * On Lambda re-invoke we need to supply a new set of client credentials so this
+     * function must be called whenever credentials are refreshed/changed in the
+     * owning entity
      */
-    public void refreshClient() {}
+    public void refreshClient() {
+    }
 
     /**
-     * put metrics priority determines the order when multiple metrics pulisher exist. Default to 100.
-     * Smaller number is of higher priority, e.g. priority(0) > prority(10)
+     * put metrics priority determines the order when multiple metrics pulisher
+     * exist. Default to 100. Smaller number is of higher priority, e.g. priority(0)
+     * > prority(10)
      */
-    protected int priority = 100;
 
     public void setPriority(final int priority) {
         this.priority = priority;
@@ -34,11 +51,15 @@ public abstract class MetricsPublisher {
         return priority;
     }
 
-    public void publishExceptionMetric(final Instant timestamp, final Action action, final Throwable e) {}
+    public void publishExceptionMetric(final Instant timestamp, final Action action, final Throwable e) {
+    }
 
-    public void publishInvocationMetric(final Instant timestamp, final Action action) {}
+    public void publishInvocationMetric(final Instant timestamp, final Action action) {
+    }
 
-    public void publishDurationMetric(final Instant timestamp, final Action action, final long milliseconds) {}
+    public void publishDurationMetric(final Instant timestamp, final Action action, final long milliseconds) {
+    }
 
-    public void publishResourceOwnerLogDeliveryExceptionMetric(final Instant timestamp, final Throwable exception) {}
+    public void publishResourceOwnerLogDeliveryExceptionMetric(final Instant timestamp, final Throwable exception) {
+    }
 }

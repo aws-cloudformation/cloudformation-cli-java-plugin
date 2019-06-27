@@ -1,8 +1,27 @@
+/*
+* Copyright 2010-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+*
+* Licensed under the Apache License, Version 2.0 (the "License").
+* You may not use this file except in compliance with the License.
+* A copy of the License is located at
+*
+*  http://aws.amazon.com/apache2.0
+*
+* or in the "license" file accompanying this file. This file is distributed
+* on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+* express or implied. See the License for the specific language governing
+* permissions and limitations under the License.
+*/
 package com.amazonaws.cloudformation.loggers;
 
 import com.amazonaws.cloudformation.injection.CloudWatchEventsLogProvider;
-import com.amazonaws.cloudformation.proxy.MetricsPublisherProxy;
 import com.amazonaws.cloudformation.proxy.LoggerProxy;
+import com.amazonaws.cloudformation.proxy.MetricsPublisherProxy;
+
+import java.time.Instant;
+import java.util.Date;
+import java.util.UUID;
+
 import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient;
 import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogGroupRequest;
 import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogStreamRequest;
@@ -10,10 +29,6 @@ import software.amazon.awssdk.services.cloudwatchlogs.model.DescribeLogGroupsReq
 import software.amazon.awssdk.services.cloudwatchlogs.model.DescribeLogGroupsResponse;
 import software.amazon.awssdk.services.cloudwatchlogs.model.InputLogEvent;
 import software.amazon.awssdk.services.cloudwatchlogs.model.PutLogEventsRequest;
-
-import java.time.Instant;
-import java.util.Date;
-import java.util.UUID;
 
 public class CloudWatchLogPublisherImpl extends LogPublisher {
 
@@ -56,32 +71,26 @@ public class CloudWatchLogPublisherImpl extends LogPublisher {
     }
 
     private boolean doesLogGroupExist() {
-        final DescribeLogGroupsResponse response = cloudWatchLogsClient.describeLogGroups(
-            DescribeLogGroupsRequest.builder().logGroupNamePrefix(logGroupName).build());
-        final Boolean logGroupExists =
-            response.logGroups().stream().filter(
-                logGroup -> logGroup.logGroupName().equals(logGroupName)).findAny().isPresent();
+        final DescribeLogGroupsResponse response = cloudWatchLogsClient
+            .describeLogGroups(DescribeLogGroupsRequest.builder().logGroupNamePrefix(logGroupName).build());
+        final Boolean logGroupExists = response.logGroups().stream()
+            .filter(logGroup -> logGroup.logGroupName().equals(logGroupName)).findAny().isPresent();
 
-        loggerProxy.log(String.format(
-            "Log group with name %s does%s exist in resource owner account.",
-            logGroupName,
-            logGroupExists ? "": " not"));
+        loggerProxy.log(String.format("Log group with name %s does%s exist in resource owner account.", logGroupName,
+            logGroupExists ? "" : " not"));
         return logGroupExists;
     }
 
     private void createLogGroup() {
-        loggerProxy.log(String.format(
-            "Creating log group with name %s in resource owner account.", logGroupName));
+        loggerProxy.log(String.format("Creating log group with name %s in resource owner account.", logGroupName));
         cloudWatchLogsClient.createLogGroup(CreateLogGroupRequest.builder().logGroupName(logGroupName).build());
     }
 
     private String createLogStream() {
         final String logStreamName = UUID.randomUUID().toString();
-        loggerProxy.log(String.format(
-            "Creating Log stream with name %s for log group %s.", logStreamName, logGroupName));
-        cloudWatchLogsClient.createLogStream(CreateLogStreamRequest.builder()
-            .logGroupName(logGroupName)
-            .logStreamName(logStreamName).build());
+        loggerProxy.log(String.format("Creating Log stream with name %s for log group %s.", logStreamName, logGroupName));
+        cloudWatchLogsClient
+            .createLogStream(CreateLogStreamRequest.builder().logGroupName(logGroupName).logStreamName(logStreamName).build());
         return logStreamName;
     }
 
@@ -97,19 +106,16 @@ public class CloudWatchLogPublisherImpl extends LogPublisher {
             if (skipLogging) {
                 return true;
             }
-            cloudWatchLogsClient.putLogEvents(PutLogEventsRequest.builder()
-                .logGroupName(logGroupName)
-                .logStreamName(logStreamName)
-                .logEvents(InputLogEvent.builder()
-                    .message(this.filterMessage(message))
-                    .timestamp(new Date().getTime())
-                    .build())
-                .build());
+            cloudWatchLogsClient
+                .putLogEvents(PutLogEventsRequest.builder().logGroupName(logGroupName).logStreamName(logStreamName)
+                    .logEvents(
+                        InputLogEvent.builder().message(this.filterMessage(message)).timestamp(new Date().getTime()).build())
+                    .build());
             return true;
         } catch (final Exception ex) {
-            loggerProxy.log(String.format(
-                "An error occurred while putting log events [%s] to resource owner account, with error: %s",
-                message, ex.toString()));
+            loggerProxy
+                .log(String.format("An error occurred while putting log events [%s] to resource owner account, with error: %s",
+                    message, ex.toString()));
             emitMetricsForLoggingFailure(ex);
             return false;
         }

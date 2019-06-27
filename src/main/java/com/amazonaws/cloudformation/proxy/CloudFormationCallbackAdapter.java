@@ -1,7 +1,23 @@
+/*
+* Copyright 2010-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+*
+* Licensed under the Apache License, Version 2.0 (the "License").
+* You may not use this file except in compliance with the License.
+* A copy of the License is located at
+*
+*  http://aws.amazon.com/apache2.0
+*
+* or in the "license" file accompanying this file. This file is distributed
+* on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+* express or implied. See the License for the specific language governing
+* permissions and limitations under the License.
+*/
 package com.amazonaws.cloudformation.proxy;
 
 import com.amazonaws.cloudformation.injection.CloudFormationProvider;
+
 import org.json.JSONObject;
+
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressRequest;
 import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressResponse;
@@ -30,10 +46,10 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
                                final OperationStatus operationStatus,
                                final T resourceModel,
                                final String statusMessage) {
-        final RecordHandlerProgressRequest.Builder requestBuilder = RecordHandlerProgressRequest.builder()
-            .bearerToken(bearerToken)
-            .operationStatus(translate(operationStatus))
-            .statusMessage(statusMessage);
+        assert client != null : "CloudWatchEventsClient was not initialised. You must call refreshClient() first.";
+
+        RecordHandlerProgressRequest.Builder requestBuilder = RecordHandlerProgressRequest.builder().bearerToken(bearerToken)
+            .operationStatus(translate(operationStatus)).statusMessage(statusMessage);
 
         if (resourceModel != null) {
             requestBuilder.resourceModel(new JSONObject(resourceModel).toString());
@@ -45,11 +61,11 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
 
         // TODO: be far more fault tolerant, do retries, emit logs and metrics, etc.
         final RecordHandlerProgressResponse response = this.client.recordHandlerProgress(requestBuilder.build());
-        loggerProxy.log(String.format("Record Handler Progress with Request Id %s and Request: {%s}", response.responseMetadata().requestId(), requestBuilder.build().toString()));
+        loggerProxy.log(String.format("Record Handler Progress with Request Id %s and Request: {%s}",
+            response.responseMetadata().requestId(), requestBuilder.build().toString()));
     }
 
-    static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode translate(
-        final HandlerErrorCode errorCode) {
+    static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode translate(final HandlerErrorCode errorCode) {
         switch (errorCode) {
             case NotUpdatable:
                 return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.NOT_UPDATABLE;
@@ -79,12 +95,14 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
                 return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.NETWORK_FAILURE;
             case InternalFailure:
             default:
-                // InternalFailure is CloudFormation's fallback error code when no more specificity is there
+                // InternalFailure is CloudFormation's fallback error code when no more
+                // specificity is there
                 return software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.INTERNAL_FAILURE;
         }
     }
 
-    private software.amazon.awssdk.services.cloudformation.model.OperationStatus translate(final OperationStatus operationStatus) {
+    private software.amazon.awssdk.services.cloudformation.model.OperationStatus
+        translate(final OperationStatus operationStatus) {
         switch (operationStatus) {
             case SUCCESS:
                 return software.amazon.awssdk.services.cloudformation.model.OperationStatus.SUCCESS;
