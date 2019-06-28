@@ -18,9 +18,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.amazonaws.cloudformation.TestContext;
 import com.amazonaws.cloudformation.TestModel;
-
 import com.amazonaws.cloudformation.resource.Serializer;
 import com.fasterxml.jackson.core.JsonProcessingException;
+
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
