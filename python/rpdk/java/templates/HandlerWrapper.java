@@ -21,8 +21,14 @@ import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.commons.io.IOUtils;
+import org.json.JSONObject;
+
 
 public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, CallbackContext> {
 
@@ -57,19 +63,31 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
         return handler.handleRequest(proxy, request, callbackContext, loggerProxy);
     }
 
-    public ProgressEvent<{{ pojo_name }}, CallbackContext> testEntrypoint(
-            final ResourceHandlerTestPayload<{{ pojo_name }}, CallbackContext> payload,
-            final Context context) {
-        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(
-                context.getLogger(), payload.getCredentials(), () -> (long) context.getRemainingTimeInMillis());
-
+    public void testEntrypoint(
+            final InputStream inputStream,
+            final OutputStream outputStream,
+            final Context context) throws IOException {
         this.logger = context.getLogger();
 
+        ProgressEvent<{{ pojo_name }}, CallbackContext> response = ProgressEvent.failed(null, null, HandlerErrorCode.InternalFailure, "Uninitialized");
         try {
-            return invokeHandler(proxy, payload.getRequest(), payload.getAction(), payload.getCallbackContext());
+            final String input = IOUtils.toString(inputStream, "UTF-8");
+            final ResourceHandlerTestPayload<{{ pojo_name }}, CallbackContext> payload =
+                this.serializer.deserialize(
+                    input,
+                    new TypeReference<ResourceHandlerTestPayload<{{ pojo_name }}, CallbackContext>>() {});
+
+            final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(
+                    context.getLogger(), payload.getCredentials(), () -> (long) context.getRemainingTimeInMillis());
+
+            response = invokeHandler(proxy, payload.getRequest(), payload.getAction(), payload.getCallbackContext());
         } catch (final Throwable e) {
             e.printStackTrace();
-            return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.InternalFailure);
+            response = ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.InternalFailure);
+        } finally {
+            final JSONObject output = this.serializer.serialize(response);
+            outputStream.write(output.toString().getBytes(Charset.forName("UTF-8")));
+            outputStream.close();
         }
     }
 
