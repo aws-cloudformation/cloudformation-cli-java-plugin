@@ -14,6 +14,8 @@
 */
 package com.amazonaws.cloudformation.proxy;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.List;
 import java.util.function.Function;
 
@@ -130,18 +132,22 @@ public class ProgressEvent<ResourceT, CallbackT> {
         return (status != null && status == OperationStatus.SUCCESS) ? func.apply(this) : this;
     }
 
+    @JsonIgnore
     public boolean isFailed() {
         return status == OperationStatus.FAILED;
     }
 
+    @JsonIgnore
     public boolean isInProgress() {
         return status == OperationStatus.IN_PROGRESS;
     }
 
+    @JsonIgnore
     public boolean isSuccess() {
         return status == OperationStatus.SUCCESS;
     }
 
+    @JsonIgnore
     public boolean isInProgressCallbackDelay() {
         return isInProgress() && callbackDelaySeconds > 0;
     }
