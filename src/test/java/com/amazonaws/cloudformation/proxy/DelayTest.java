@@ -58,15 +58,15 @@ public class DelayTest {
         try {
             int attempt = 1;
             Duration next = Duration.ZERO;
-            long accured = 0L, jitter = 2L;
+            long accrued = 0L, jitter = 2L;
             Duration later = Duration.ZERO;
             while ((next = fixed.nextDelay(attempt)) != Duration.ZERO) {
                 attempt++;
-                accured += next.toMillis();
+                accrued += next.toMillis();
                 TimeUnit.MILLISECONDS.sleep(next.toMillis());
                 later = later.plusMillis(50);
                 long total = later.toMillis();
-                boolean range = accured >= (total - jitter) && accured <= (total + jitter);
+                boolean range = accrued >= (total - jitter) && accrued <= (total + jitter);
                 assertThat(range).isEqualTo(true);
             }
         } catch (InterruptedException e) {
@@ -78,26 +78,26 @@ public class DelayTest {
     public void fixedDelays() {
         final Delay fixed = Constant.of().delay(Duration.ofMillis(5)).timeout(Duration.ofMillis(50)).build();
         Duration next = Duration.ZERO;
-        long accured = 0L;
+        long accrued = 0L;
         int attempt = 1;
         while ((next = fixed.nextDelay(attempt++)) != Duration.ZERO) {
             Assertions.assertEquals(Duration.ofMillis(5), next);
-            accured += next.toMillis();
+            accrued += next.toMillis();
         }
-        Assertions.assertEquals(5 * 10, accured);
+        Assertions.assertEquals(5 * 10, accrued);
     }
 
     @Test
     public void shiftedMultipleOfDelay() {
         final Delay fixed = ShiftByMultipleOf.shiftedOf().delay(Duration.ofSeconds(5)).timeout(Duration.ofSeconds(105)).build();
         Duration next = Duration.ZERO;
-        long accured = 0L;
+        long accrued = 0L;
         int attempt = 1;
         while ((next = fixed.nextDelay(attempt)) != Duration.ZERO) {
             attempt++;
-            accured += next.getSeconds();
+            accrued += next.getSeconds();
         }
-        Assertions.assertEquals(5 + 15 + 35 + 65 + 105, accured);
+        Assertions.assertEquals(5 + 15 + 35 + 65 + 105, accrued);
         Assertions.assertEquals(6, attempt);
     }
 
@@ -105,13 +105,13 @@ public class DelayTest {
     public void multipleOfDelay() {
         final Delay fixed = MultipleOf.multipleOf().delay(Duration.ofSeconds(5)).timeout(Duration.ofSeconds(105)).build();
         Duration next = Duration.ZERO;
-        long accured = 0L;
+        long accrued = 0L;
         int attempt = 1;
         while ((next = fixed.nextDelay(attempt)) != Duration.ZERO) {
             attempt++;
-            accured += next.getSeconds();
+            accrued += next.getSeconds();
         }
-        assertThat(5 + 10 + 15 + 20 + 25 + 30).isEqualTo(accured);
+        assertThat(5 + 10 + 15 + 20 + 25 + 30).isEqualTo(accrued);
         assertThat(6).isEqualTo(attempt);
     }
 
@@ -120,13 +120,13 @@ public class DelayTest {
         final Delay fixed = MultipleOf.multipleOf().delay(Duration.ofSeconds(5)).multiple(4).timeout(Duration.ofSeconds(105))
             .build();
         Duration next = Duration.ZERO;
-        long accured = 0L;
+        long accrued = 0L;
         int attempt = 1;
         while ((next = fixed.nextDelay(attempt)) != Duration.ZERO) {
             attempt++;
-            accured += next.getSeconds();
+            accrued += next.getSeconds();
         }
-        assertThat(5 + 20 + 40).isEqualTo(accured);
+        assertThat(5 + 20 + 40).isEqualTo(accrued);
         assertThat(4).isEqualTo(attempt);
     }
 
@@ -135,13 +135,13 @@ public class DelayTest {
         final Delay delay = Blended.of().add(Constant.of().delay(Duration.ofSeconds(5)).timeout(Duration.ofSeconds(20)).build())
             .add(ShiftByMultipleOf.shiftedOf().delay(Duration.ofSeconds(5)).timeout(Duration.ofSeconds(220)).build()).build();
         Duration next = Duration.ZERO;
-        long accured = 0L;
+        long accrued = 0L;
         int attempt = 1;
         while ((next = delay.nextDelay(attempt)) != Duration.ZERO) {
             attempt++;
-            accured += next.getSeconds();
+            accrued += next.getSeconds();
         }
-        assertThat(5 * 4 + 40 + 90 + 150 + 220).isEqualTo(accured);
+        assertThat(5 * 4 + 40 + 90 + 150 + 220).isEqualTo(accrued);
         assertThat(9).isEqualTo(attempt);
     }
 
