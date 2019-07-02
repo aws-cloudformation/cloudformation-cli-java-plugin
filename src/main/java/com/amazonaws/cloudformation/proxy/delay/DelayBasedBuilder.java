@@ -21,7 +21,7 @@ import java.time.Duration;
 /**
  * Builder pattern for {@link com.amazonaws.cloudformation.proxy.Delay}s that
  * are based on some constant multiple or shift of delay
- * 
+ *
  * @param <R> the final delay object that needs to be built.
  * @param <T> the derived builder object.
  */

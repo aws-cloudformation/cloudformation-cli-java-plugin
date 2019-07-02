@@ -21,7 +21,7 @@ import java.time.Duration;
 /**
  * Base class for all [min, timeout) range based
  * {@link com.amazonaws.cloudformation.proxy.Delay}s
- * 
+ *
  * @see Exponential
  */
 abstract class MinDelayAbstractBase extends AbstractDelay {

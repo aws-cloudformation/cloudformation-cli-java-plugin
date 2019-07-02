@@ -19,7 +19,7 @@ import com.amazonaws.cloudformation.proxy.Delay;
 /**
  * Build the final {@link com.amazonaws.cloudformation.proxy.Delay} based
  * timeout and other specifications.
- * 
+ *
  * @param <R>, the delay object that is finally built. Can never be null
  */
 public interface Builder<R extends Delay> {

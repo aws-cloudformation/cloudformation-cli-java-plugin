@@ -21,7 +21,7 @@ import java.time.Duration;
 /**
  * All delays that have a min delay specified with a maximum time, effectively
  * range based
- * 
+ *
  * @param <R> the delay type that is being created.
  * @param <T> the derived builder type
  */
