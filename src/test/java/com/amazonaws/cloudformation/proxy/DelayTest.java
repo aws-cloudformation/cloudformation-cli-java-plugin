@@ -29,25 +29,13 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 
-<<<<<<< HEAD
-=======
-import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
->>>>>>> Improve coverage.
 public class DelayTest {
 
     @Test
     public void fixedDelay() {
-<<<<<<< HEAD
-        final Delay fixed = new Delay.Constant(50, 5 * 50, TimeUnit.MILLISECONDS);
-        int[] attempt = { 1 };
-=======
-        final Delay fixed = Delay.Constant.of()
+        final Delay fixed = Constant.of()
             .delay(Duration.ofMillis(50)).timeout(Duration.ofMillis(5*50)).build();
         int[] attempt = {1};
->>>>>>> Improve coverage.
         final Executable fn = () -> {
             Duration next = Duration.ZERO;
             while ((next = fixed.nextDelay(attempt[0])) != Duration.ZERO) {
@@ -67,12 +55,8 @@ public class DelayTest {
 
     @Test
     public void fixedDelayIter() {
-<<<<<<< HEAD
-        final Delay fixed = new Delay.Constant(50, 5 * 50, TimeUnit.MILLISECONDS);
-=======
-        final Delay fixed = Delay.Constant.of()
+        final Delay fixed = Constant.of()
             .delay(Duration.ofMillis(50)).timeout(Duration.ofMillis(5*50)).build();
->>>>>>> Improve coverage.
         try {
             int attempt = 1;
             Duration next = Duration.ZERO;
@@ -107,7 +91,7 @@ public class DelayTest {
 
     @Test
     public void shiftedMultipleOfDelay() {
-        final Delay fixed = Delay.ShiftByMultipleOf.shiftedOf()
+        final Delay fixed = ShiftByMultipleOf.shiftedOf()
             .delay(Duration.ofSeconds(5)).timeout(Duration.ofSeconds(105)).build();
         Duration next = Duration.ZERO;
         long accured = 0L;
@@ -151,18 +135,12 @@ public class DelayTest {
 
     @Test
     public void blendedDelay() {
-<<<<<<< HEAD
-        final Delay delay = new Delay.Blended(new Delay.Constant(5, 20, TimeUnit.SECONDS),
-                                              new Delay.MultipleOf(5, 220, 2, TimeUnit.SECONDS));
-        long next = 0L, accured = 0L;
-=======
-        final Delay delay = Delay.Blended.of()
-            .add(Delay.Constant.of().delay(Duration.ofSeconds(5)).timeout(Duration.ofSeconds(20)).build())
-            .add(Delay.ShiftByMultipleOf.shiftedOf().delay(Duration.ofSeconds(5)).timeout(Duration.ofSeconds(220)).build())
+        final Delay delay = Blended.of()
+            .add(Constant.of().delay(Duration.ofSeconds(5)).timeout(Duration.ofSeconds(20)).build())
+            .add(ShiftByMultipleOf.shiftedOf().delay(Duration.ofSeconds(5)).timeout(Duration.ofSeconds(220)).build())
             .build();
         Duration next = Duration.ZERO;
         long accured = 0L;
->>>>>>> Improve coverage.
         int attempt = 1;
         while ((next = delay.nextDelay(attempt)) != Duration.ZERO) {
             attempt++;
