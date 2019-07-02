@@ -26,13 +26,10 @@ import java.time.Duration;
  *     final Delay delay =
  *         Constant.of().delay(Duration.ofSeconds(5))
  *             .timeout(Duration.ofSeconds(50)).build();
- *     Duration next = 0L, accrued = 0L;
+ *     Duration next = Duration.ZERO;
  *     int attempt = 1;
- *     while ((next = fixed.nextDelay(attempt++)) != Duration.ZERO) {
- *         accrued += * next;
- *     }
- *     Assertions.assertEquals(5*10, accrued);
- * }
+ *     while ((next = fixed.nextDelay(attempt++)) != Duration.ZERO) { accrued +=
+ * next; } Assertions.assertEquals(5*10, accrued); }
  */
 public class Constant extends AbstractDelay {
 
