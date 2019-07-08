@@ -18,7 +18,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.amazonaws.cloudformation.TestContext;
 import com.amazonaws.cloudformation.TestModel;
+import com.amazonaws.cloudformation.resource.Serializer;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
 public class ProgressEventTest {
@@ -65,5 +68,16 @@ public class ProgressEventTest {
         assertThat(progressEvent.getResourceModel()).isEqualTo(model);
         assertThat(progressEvent.getResourceModels()).isNull();
         assertThat(progressEvent.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+    }
+
+    @Test
+    public void progressEvent_serialize_shouldReturnJson() throws JsonProcessingException {
+        final ProgressEvent<String, String> progressEvent = ProgressEvent.defaultSuccessHandler("");
+        final Serializer serializer = new Serializer();
+        final JSONObject json = serializer.serialize(progressEvent);
+
+        // careful if you add new properties here. downstream has to be able to handle
+        // them
+        assertThat(json).hasToString("{\"callbackDelaySeconds\":0,\"resourceModel\":\"\",\"status\":\"SUCCESS\"}");
     }
 }
