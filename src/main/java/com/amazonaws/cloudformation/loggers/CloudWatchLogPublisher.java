@@ -14,7 +14,7 @@
 */
 package com.amazonaws.cloudformation.loggers;
 
-import com.amazonaws.cloudformation.injection.CloudWatchEventsLogProvider;
+import com.amazonaws.cloudformation.injection.CloudWatchLogsProvider;
 import com.amazonaws.cloudformation.proxy.LoggerProxy;
 import com.amazonaws.cloudformation.proxy.MetricsPublisherProxy;
 
@@ -30,9 +30,9 @@ import software.amazon.awssdk.services.cloudwatchlogs.model.DescribeLogGroupsRes
 import software.amazon.awssdk.services.cloudwatchlogs.model.InputLogEvent;
 import software.amazon.awssdk.services.cloudwatchlogs.model.PutLogEventsRequest;
 
-public class CloudWatchLogPublisherImpl extends LogPublisher {
+public class CloudWatchLogPublisher extends LogPublisher {
 
-    private final CloudWatchEventsLogProvider cloudWatchEventsLogProvider;
+    private final CloudWatchLogsProvider cloudWatchLogsProvider;
 
     private CloudWatchLogsClient cloudWatchLogsClient;
     private String logGroupName;
@@ -41,11 +41,11 @@ public class CloudWatchLogPublisherImpl extends LogPublisher {
     private MetricsPublisherProxy metricsPublisherProxy;
     private boolean skipLogging = false;
 
-    public CloudWatchLogPublisherImpl(final CloudWatchEventsLogProvider cloudWatchEventsLogProvider,
-                                      final String logGroupName,
-                                      final LoggerProxy loggerProxy,
-                                      final MetricsPublisherProxy metricsPublisherProxy) {
-        this.cloudWatchEventsLogProvider = cloudWatchEventsLogProvider;
+    public CloudWatchLogPublisher(final CloudWatchLogsProvider cloudWatchLogsProvider,
+                                  final String logGroupName,
+                                  final LoggerProxy loggerProxy,
+                                  final MetricsPublisherProxy metricsPublisherProxy) {
+        this.cloudWatchLogsProvider = cloudWatchLogsProvider;
         this.logGroupName = logGroupName;
         this.loggerProxy = loggerProxy;
         this.metricsPublisherProxy = metricsPublisherProxy;
@@ -55,18 +55,14 @@ public class CloudWatchLogPublisherImpl extends LogPublisher {
     public void initialize() {
         try {
             refreshClient();
-            createLogGroupIfNotExist();
+            if (!doesLogGroupExist()) {
+                createLogGroup();
+            }
             this.logStreamName = createLogStream();
         } catch (Exception ex) {
-            skipLogging = true;
+            this.skipLogging = true;
             loggerProxy.log("Initializing logging group setting failed with error: " + ex.toString());
             emitMetricsForLoggingFailure(ex);
-        }
-    }
-
-    private void createLogGroupIfNotExist() {
-        if (!doesLogGroupExist()) {
-            createLogGroup();
         }
     }
 
@@ -95,9 +91,7 @@ public class CloudWatchLogPublisherImpl extends LogPublisher {
     }
 
     private void refreshClient() {
-        if (this.cloudWatchLogsClient == null) {
-            this.cloudWatchLogsClient = cloudWatchEventsLogProvider.get();
-        }
+        this.cloudWatchLogsClient = cloudWatchLogsProvider.get();
     }
 
     @Override

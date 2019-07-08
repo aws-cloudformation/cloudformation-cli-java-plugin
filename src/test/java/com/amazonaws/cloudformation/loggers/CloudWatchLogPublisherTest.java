@@ -19,7 +19,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.cloudformation.injection.CloudWatchEventsLogProvider;
+import com.amazonaws.cloudformation.injection.CloudWatchLogsProvider;
 import com.amazonaws.cloudformation.injection.CloudWatchProvider;
 import com.amazonaws.cloudformation.proxy.LoggerProxy;
 import com.amazonaws.cloudformation.proxy.MetricsPublisherProxy;
@@ -43,10 +43,10 @@ import software.amazon.awssdk.services.cloudwatchlogs.model.LogGroup;
 import software.amazon.awssdk.services.cloudwatchlogs.model.PutLogEventsRequest;
 
 @ExtendWith(MockitoExtension.class)
-public class CloudWatchLogPublisherImplTest {
+public class CloudWatchLogPublisherTest {
 
     @Mock
-    private CloudWatchEventsLogProvider cloudWatchEventsLogProvider;
+    private CloudWatchLogsProvider cloudWatchLogsProvider;
 
     @Mock
     private CloudWatchLogsClient cloudWatchLogsClient;
@@ -67,7 +67,7 @@ public class CloudWatchLogPublisherImplTest {
 
     @BeforeEach
     public void beforeEach() {
-        when(cloudWatchEventsLogProvider.get()).thenReturn(cloudWatchLogsClient);
+        when(cloudWatchLogsProvider.get()).thenReturn(cloudWatchLogsClient);
     }
 
     @AfterEach
@@ -78,9 +78,8 @@ public class CloudWatchLogPublisherImplTest {
 
     @Test
     public void testPublishLogEventsWithExistingLogGroup() {
-        final CloudWatchLogPublisherImpl logPublisher = new CloudWatchLogPublisherImpl(cloudWatchEventsLogProvider,
-                                                                                       LOG_GROUP_NAME, loggerProxy,
-                                                                                       metricsPublisherProxy);
+        final CloudWatchLogPublisher logPublisher = new CloudWatchLogPublisher(cloudWatchLogsProvider, LOG_GROUP_NAME,
+                                                                               loggerProxy, metricsPublisherProxy);
         final ArgumentCaptor<DescribeLogGroupsRequest> describeLogGroupsRequestArgumentCaptor = ArgumentCaptor
             .forClass(DescribeLogGroupsRequest.class);
         final ArgumentCaptor<
@@ -112,14 +111,13 @@ public class CloudWatchLogPublisherImplTest {
         verify(cloudWatchLogsClient).describeLogGroups(describeLogGroupsRequestArgumentCaptor.getValue());
         verify(cloudWatchLogsClient).createLogStream(createLogStreamRequestArgumentCaptor.getValue());
         verify(cloudWatchLogsClient).putLogEvents(putLogEventsRequestArgumentCaptor.getValue());
-        verifyNoMoreInteractions(cloudWatchEventsLogProvider);
+        verifyNoMoreInteractions(cloudWatchLogsProvider);
     }
 
     @Test
     public void testPublishLogEventsCreatingNewLogGroup() {
-        final CloudWatchLogPublisherImpl logPublisher = new CloudWatchLogPublisherImpl(cloudWatchEventsLogProvider,
-                                                                                       LOG_GROUP_NAME, loggerProxy,
-                                                                                       metricsPublisherProxy);
+        final CloudWatchLogPublisher logPublisher = new CloudWatchLogPublisher(cloudWatchLogsProvider, LOG_GROUP_NAME,
+                                                                               loggerProxy, metricsPublisherProxy);
         final ArgumentCaptor<DescribeLogGroupsRequest> describeLogGroupsRequestArgumentCaptor = ArgumentCaptor
             .forClass(DescribeLogGroupsRequest.class);
         final ArgumentCaptor<
@@ -153,14 +151,13 @@ public class CloudWatchLogPublisherImplTest {
         verify(cloudWatchLogsClient).createLogGroup(createLogGroupRequestArgumentCaptor.getValue());
         verify(cloudWatchLogsClient).createLogStream(createLogStreamRequestArgumentCaptor.getValue());
         verify(cloudWatchLogsClient).putLogEvents(putLogEventsRequestArgumentCaptor.getValue());
-        verifyNoMoreInteractions(cloudWatchEventsLogProvider);
+        verifyNoMoreInteractions(cloudWatchLogsProvider);
     }
 
     @Test
     public void testPublishLogEventsSkippedOutOfInitializationFailure() {
-        final CloudWatchLogPublisherImpl logPublisher = new CloudWatchLogPublisherImpl(cloudWatchEventsLogProvider,
-                                                                                       LOG_GROUP_NAME, loggerProxy,
-                                                                                       metricsPublisherProxy);
+        final CloudWatchLogPublisher logPublisher = new CloudWatchLogPublisher(cloudWatchLogsProvider, LOG_GROUP_NAME,
+                                                                               loggerProxy, metricsPublisherProxy);
         final ArgumentCaptor<DescribeLogGroupsRequest> describeLogGroupsRequestArgumentCaptor = ArgumentCaptor
             .forClass(DescribeLogGroupsRequest.class);
 
@@ -174,13 +171,13 @@ public class CloudWatchLogPublisherImplTest {
         assertThat(describeLogGroupsRequestArgumentCaptor.getValue().logGroupNamePrefix()).isEqualTo(LOG_GROUP_NAME);
 
         verify(cloudWatchLogsClient).describeLogGroups(describeLogGroupsRequestArgumentCaptor.getValue());
-        verifyNoMoreInteractions(cloudWatchEventsLogProvider);
+        verifyNoMoreInteractions(cloudWatchLogsProvider);
     }
 
     @Test
     public void testPublishLogEventsSkippedOutOfInitializationFailure_withNullMetricsProxy() {
-        final CloudWatchLogPublisherImpl logPublisher = new CloudWatchLogPublisherImpl(cloudWatchEventsLogProvider,
-                                                                                       LOG_GROUP_NAME, loggerProxy, null);
+        final CloudWatchLogPublisher logPublisher = new CloudWatchLogPublisher(cloudWatchLogsProvider, LOG_GROUP_NAME,
+                                                                               loggerProxy, null);
         final ArgumentCaptor<DescribeLogGroupsRequest> describeLogGroupsRequestArgumentCaptor = ArgumentCaptor
             .forClass(DescribeLogGroupsRequest.class);
 
@@ -194,14 +191,13 @@ public class CloudWatchLogPublisherImplTest {
         assertThat(describeLogGroupsRequestArgumentCaptor.getValue().logGroupNamePrefix()).isEqualTo(LOG_GROUP_NAME);
 
         verify(cloudWatchLogsClient).describeLogGroups(describeLogGroupsRequestArgumentCaptor.getValue());
-        verifyNoMoreInteractions(cloudWatchEventsLogProvider);
+        verifyNoMoreInteractions(cloudWatchLogsProvider);
     }
 
     @Test
     public void testPublishLogEventsSkippedOutOfInitializationFailure_errorCreatingLogStream() {
-        final CloudWatchLogPublisherImpl logPublisher = new CloudWatchLogPublisherImpl(cloudWatchEventsLogProvider,
-                                                                                       LOG_GROUP_NAME, loggerProxy,
-                                                                                       metricsPublisherProxy);
+        final CloudWatchLogPublisher logPublisher = new CloudWatchLogPublisher(cloudWatchLogsProvider, LOG_GROUP_NAME,
+                                                                               loggerProxy, metricsPublisherProxy);
         final ArgumentCaptor<DescribeLogGroupsRequest> describeLogGroupsRequestArgumentCaptor = ArgumentCaptor
             .forClass(DescribeLogGroupsRequest.class);
         final ArgumentCaptor<
@@ -226,6 +222,6 @@ public class CloudWatchLogPublisherImplTest {
         assertThat(createLogStreamRequestArgumentCaptor.getValue().logGroupName()).isEqualTo(LOG_GROUP_NAME);
         verify(cloudWatchLogsClient).describeLogGroups(describeLogGroupsRequestArgumentCaptor.getValue());
         verify(cloudWatchLogsClient).createLogStream(createLogStreamRequestArgumentCaptor.getValue());
-        verifyNoMoreInteractions(cloudWatchEventsLogProvider);
+        verifyNoMoreInteractions(cloudWatchLogsProvider);
     }
 }

@@ -21,13 +21,13 @@ import com.amazonaws.cloudformation.exceptions.ResourceAlreadyExistsException;
 import com.amazonaws.cloudformation.exceptions.ResourceNotFoundException;
 import com.amazonaws.cloudformation.exceptions.TerminalException;
 import com.amazonaws.cloudformation.injection.CloudFormationProvider;
-import com.amazonaws.cloudformation.injection.CloudWatchEventsLogProvider;
 import com.amazonaws.cloudformation.injection.CloudWatchEventsProvider;
+import com.amazonaws.cloudformation.injection.CloudWatchLogsProvider;
 import com.amazonaws.cloudformation.injection.CloudWatchProvider;
 import com.amazonaws.cloudformation.injection.CredentialsProvider;
 import com.amazonaws.cloudformation.injection.SessionCredentialsProvider;
-import com.amazonaws.cloudformation.loggers.CloudWatchLogPublisherImpl;
-import com.amazonaws.cloudformation.loggers.LambdaLogPublisherImpl;
+import com.amazonaws.cloudformation.loggers.CloudWatchLogPublisher;
+import com.amazonaws.cloudformation.loggers.LambdaLogPublisher;
 import com.amazonaws.cloudformation.loggers.LogPublisher;
 import com.amazonaws.cloudformation.metrics.MetricsPublisher;
 import com.amazonaws.cloudformation.metrics.MetricsPublisherImpl;
@@ -89,7 +89,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     private final CloudWatchProvider platformCloudWatchProvider;
     private final CloudWatchProvider resourceOwnerCloudWatchProvider;
     private final CloudWatchEventsProvider platformCloudWatchEventsProvider;
-    private final CloudWatchEventsLogProvider cloudWatchEventsLogProvider;
+    private final CloudWatchLogsProvider cloudWatchLogsProvider;
     private final SchemaValidator validator;
     private final TypeReference<HandlerRequest<ResourceT, CallbackT>> typeReference;
 
@@ -108,7 +108,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         this.platformCloudWatchProvider = new CloudWatchProvider(this.platformCredentialsProvider);
         this.resourceOwnerCloudWatchProvider = new CloudWatchProvider(this.resourceOwnerLoggingCredentialsProvider);
         this.platformCloudWatchEventsProvider = new CloudWatchEventsProvider(this.platformCredentialsProvider);
-        this.cloudWatchEventsLogProvider = new CloudWatchEventsLogProvider(this.resourceOwnerLoggingCredentialsProvider);
+        this.cloudWatchLogsProvider = new CloudWatchLogsProvider(this.resourceOwnerLoggingCredentialsProvider);
         this.serializer = new Serializer();
         this.validator = new Validator();
         this.typeReference = getTypeReference();
@@ -135,7 +135,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         this.platformCloudWatchProvider = new CloudWatchProvider(this.platformCredentialsProvider);
         this.resourceOwnerCloudWatchProvider = new CloudWatchProvider(this.resourceOwnerLoggingCredentialsProvider);
         this.platformCloudWatchEventsProvider = new CloudWatchEventsProvider(this.platformCredentialsProvider);
-        this.cloudWatchEventsLogProvider = new CloudWatchEventsLogProvider(this.resourceOwnerLoggingCredentialsProvider);
+        this.cloudWatchLogsProvider = new CloudWatchLogsProvider(this.resourceOwnerLoggingCredentialsProvider);
         this.resourceOwnerEventsLogger = resourceOwnerEventsLogger;
         this.platformLambdaLogger = platformEventsLogger;
         this.platformMetricsPublisher = platformMetricsPublisher;
@@ -159,7 +159,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         this.loggerProxy = new LoggerProxy();
         this.metricsPublisherProxy = new MetricsPublisherProxy();
 
-        this.platformLambdaLogger = new LambdaLogPublisherImpl(context.getLogger());
+        this.platformLambdaLogger = new LambdaLogPublisher(context.getLogger());
         this.platformLambdaLogger.setPriority(0);
         this.loggerProxy.addLogPublisher(this.platformLambdaLogger);
 
@@ -193,9 +193,9 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             this.resourceOwnerMetricsPublisher.refreshClient();
 
             if (this.resourceOwnerEventsLogger == null) {
-                this.resourceOwnerEventsLogger = new CloudWatchLogPublisherImpl(this.cloudWatchEventsLogProvider,
-                                                                                resourceOwnerLogGroupName, this.loggerProxy,
-                                                                                this.metricsPublisherProxy);
+                this.resourceOwnerEventsLogger = new CloudWatchLogPublisher(this.cloudWatchLogsProvider,
+                                                                            resourceOwnerLogGroupName, this.loggerProxy,
+                                                                            this.metricsPublisherProxy);
             }
             this.loggerProxy.addLogPublisher(this.resourceOwnerEventsLogger);
             // NOTE: initialize() contains refreshClient()

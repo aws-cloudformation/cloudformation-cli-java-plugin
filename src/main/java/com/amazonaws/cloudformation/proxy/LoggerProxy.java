@@ -37,7 +37,7 @@ public class LoggerProxy implements Logger {
     @Override
     public void log(final String message) {
         logPublishers.stream().forEach(logPublisher -> {
-            logPublisher.publishLogEvent(message);
+            logPublisher.publishLogEvent(logPublisher.filterMessage(message));
         });
     }
 }

@@ -49,7 +49,7 @@ public abstract class LogPublisher {
      * Redact or scrub loggers in someway to help prevent leaking of certain
      * information.
      */
-    protected String filterMessage(final String message) {
+    public String filterMessage(final String message) {
         // Default filtering mechanism to be determined.
         // Subclass could override this method for specific purpose.
         return message;

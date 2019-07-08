@@ -18,9 +18,9 @@ import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.core.retry.RetryPolicy;
 import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient;
 
-public class CloudWatchEventsLogProvider extends AmazonWebServicesProvider {
+public class CloudWatchLogsProvider extends AmazonWebServicesProvider {
 
-    public CloudWatchEventsLogProvider(final CredentialsProvider credentialsProvider) {
+    public CloudWatchLogsProvider(final CredentialsProvider credentialsProvider) {
         super(credentialsProvider);
     }
 
