@@ -36,7 +36,15 @@ class JavaLanguagePlugin(LanguagePlugin):
         self.package_name = None
 
     def _namespace_from_project(self, project):
-        self.namespace = project.settings["namespace"]
+        try:
+            self.namespace = project.settings["namespace"]
+        except KeyError:
+            # fallback provided to be backwards compatible
+            fallback = ("com",) + project.type_info
+            namespace = tuple(safe_reserved(s.lower()) for s in fallback)
+            self.namespace = project.settings["namespace"] = namespace
+            project._write_settings("java")  # pylint: disable=protected-access
+
         self.package_name = ".".join(self.namespace)
 
     def _prompt_for_namespace(self, project):

@@ -173,7 +173,7 @@ def test__prompt_for_namespace_other_overwritten():
     assert project.settings == {"namespace": ("com", "ball", "clown", "service")}
 
 
-def test__namespace_from_project():
+def test__namespace_from_project_new_settings():
     namespace = ("com", "ball", "clown", "service")
     project = Mock(settings={"namespace": namespace})
     plugin = JavaLanguagePlugin()
@@ -181,3 +181,12 @@ def test__namespace_from_project():
 
     assert plugin.namespace == namespace
     assert plugin.package_name == "com.ball.clown.service"
+
+
+def test__namespace_from_project_old_settings():
+    project = Mock(type_info=("Balloon", "Clown", "Service"), settings={})
+    plugin = JavaLanguagePlugin()
+    plugin._namespace_from_project(project)
+
+    assert plugin.namespace == ("com", "balloon", "clown", "service")
+    assert plugin.package_name == "com.balloon.clown.service"
