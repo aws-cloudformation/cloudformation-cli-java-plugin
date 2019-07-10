@@ -25,6 +25,6 @@ phases:
       - DIR=$(mktemp -d)
       - cd "$DIR"
       - ls -la
-      - echo "AWS::Foo::Bar" | cfn-cli init -vv
+      - printf "AWS::Foo::Bar\n\n" | cfn-cli init -vv
       - mvn clean verify
       - ls -la
