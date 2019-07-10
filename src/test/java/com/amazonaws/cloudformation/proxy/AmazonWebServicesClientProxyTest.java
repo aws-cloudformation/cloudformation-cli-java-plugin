@@ -14,6 +14,16 @@
 */
 package com.amazonaws.cloudformation.proxy;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.cloudformation.exceptions.ResourceAlreadyExistsException;
 import com.amazonaws.cloudformation.exceptions.TerminalException;
@@ -31,8 +41,16 @@ import com.amazonaws.cloudformation.proxy.service.ThrottleException;
 import com.amazonaws.services.cloudformation.AmazonCloudFormation;
 import com.amazonaws.services.cloudformation.model.DescribeStackEventsRequest;
 import com.amazonaws.services.cloudformation.model.DescribeStackEventsResult;
+
+import java.time.Duration;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+
 import org.joda.time.Instant;
 import org.junit.jupiter.api.Test;
+
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
@@ -43,22 +61,6 @@ import software.amazon.awssdk.http.SdkHttpResponse;
 import software.amazon.awssdk.services.cloudformation.CloudFormationAsyncClient;
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 import software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsResponse;
-
-import java.time.Duration;
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class AmazonWebServicesClientProxyTest {
     //
@@ -217,8 +219,8 @@ public class AmazonWebServicesClientProxyTest {
         when(client
             .describeStackEvents(any(software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest.class)))
                 .thenThrow(new TerminalException(new RuntimeException("Sorry")));
-        assertThrows(RuntimeException.class,
-            () -> proxy.injectCredentialsAndInvokeV2Async(request, client::describeStackEvents), "Expected Runtime Exception.");
+        assertThrows(RuntimeException.class, () -> proxy.injectCredentialsAndInvokeV2Async(request, client::describeStackEvents),
+            "Expected Runtime Exception.");
 
         // verify request is rebuilt for injection
         verify(request).toBuilder();

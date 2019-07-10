@@ -65,7 +65,6 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
             final InputStream inputStream,
             final OutputStream outputStream,
             final Context context) throws IOException {
-        this.logger = context.getLogger();
 
         ProgressEvent<{{ pojo_name }}, CallbackContext> response = ProgressEvent.failed(null, null, HandlerErrorCode.InternalFailure, "Uninitialized");
         try {
@@ -76,7 +75,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
                     new TypeReference<ResourceHandlerTestPayload<{{ pojo_name }}, CallbackContext>>() {});
 
             final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(
-                    context.getLogger(), payload.getCredentials(), () -> (long) context.getRemainingTimeInMillis());
+                loggerProxy, payload.getCredentials(), () -> (long) context.getRemainingTimeInMillis());
 
             response = invokeHandler(proxy, payload.getRequest(), payload.getAction(), payload.getCallbackContext());
         } catch (final Throwable e) {

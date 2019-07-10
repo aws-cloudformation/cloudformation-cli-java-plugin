@@ -23,6 +23,18 @@ import com.amazonaws.auth.BasicSessionCredentials;
 import com.amazonaws.cloudformation.proxy.delay.Constant;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.Uninterruptibles;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+import javax.annotation.Nonnull;
+
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -33,16 +45,6 @@ import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.exception.NonRetryableException;
 import software.amazon.awssdk.http.HttpStatusCode;
-
-import javax.annotation.Nonnull;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * This implements the proxying mechanism to inject appropriate scoped
@@ -111,7 +113,6 @@ public class AmazonWebServicesClientProxy implements CallChain {
         Preconditions.checkNotNull(cxt, "cxt can not be null");
         return new CallContext<>(callGraph, client, model, cxt);
     }
-
 
     class CallContext<ClientT, ModelT, CallbackT extends StdCallbackContext>
         implements CallChain.RequestMaker<ClientT, ModelT, CallbackT> {

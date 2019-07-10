@@ -76,7 +76,7 @@ public class ProgressEventTest {
         final TestModel model = TestModel.builder().property1("abc").property2(123).build();
         final ProgressEvent<TestModel, TestContext> progressEvent = ProgressEvent.defaultSuccessHandler(model);
         final ProgressEvent<TestModel, TestContext> chained = progressEvent
-                .onSuccess(e -> ProgressEvent.failed(e.getResourceModel(), null, HandlerErrorCode.ServiceLimitExceeded, "Exceeded"));
+            .onSuccess(e -> ProgressEvent.failed(e.getResourceModel(), null, HandlerErrorCode.ServiceLimitExceeded, "Exceeded"));
 
         assertThat(chained.getCallbackContext()).isNull();
         assertThat(chained.getCallbackDelaySeconds()).isEqualTo(0);
