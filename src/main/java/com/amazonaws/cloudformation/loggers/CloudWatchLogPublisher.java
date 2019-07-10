@@ -15,18 +15,13 @@
 package com.amazonaws.cloudformation.loggers;
 
 import com.amazonaws.cloudformation.injection.CloudWatchLogsProvider;
-import com.amazonaws.cloudformation.proxy.LoggerProxy;
 import com.amazonaws.cloudformation.proxy.MetricsPublisherProxy;
+import com.amazonaws.services.lambda.runtime.LambdaLogger;
 
 import java.time.Instant;
 import java.util.Date;
-import java.util.UUID;
 
 import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient;
-import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogGroupRequest;
-import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogStreamRequest;
-import software.amazon.awssdk.services.cloudwatchlogs.model.DescribeLogGroupsRequest;
-import software.amazon.awssdk.services.cloudwatchlogs.model.DescribeLogGroupsResponse;
 import software.amazon.awssdk.services.cloudwatchlogs.model.InputLogEvent;
 import software.amazon.awssdk.services.cloudwatchlogs.model.PutLogEventsRequest;
 
@@ -37,81 +32,45 @@ public class CloudWatchLogPublisher extends LogPublisher {
     private CloudWatchLogsClient cloudWatchLogsClient;
     private String logGroupName;
     private String logStreamName;
-    private LoggerProxy loggerProxy;
+    private LambdaLogger platformLambdaLogger;
     private MetricsPublisherProxy metricsPublisherProxy;
     private boolean skipLogging = false;
 
     public CloudWatchLogPublisher(final CloudWatchLogsProvider cloudWatchLogsProvider,
                                   final String logGroupName,
-                                  final LoggerProxy loggerProxy,
+                                  final String logStreamName,
+                                  final LambdaLogger platformLambdaLogger,
                                   final MetricsPublisherProxy metricsPublisherProxy) {
         this.cloudWatchLogsProvider = cloudWatchLogsProvider;
         this.logGroupName = logGroupName;
-        this.loggerProxy = loggerProxy;
+        this.logStreamName = logStreamName;
+        this.platformLambdaLogger = platformLambdaLogger;
         this.metricsPublisherProxy = metricsPublisherProxy;
+        this.skipLogging = logStreamName == null;
     }
 
     @Override
-    public void initialize() {
-        try {
-            refreshClient();
-            if (!doesLogGroupExist()) {
-                createLogGroup();
-            }
-            this.logStreamName = createLogStream();
-        } catch (Exception ex) {
-            this.skipLogging = true;
-            loggerProxy.log("Initializing logging group setting failed with error: " + ex.toString());
-            emitMetricsForLoggingFailure(ex);
-        }
-    }
-
-    private boolean doesLogGroupExist() {
-        DescribeLogGroupsResponse response = cloudWatchLogsClient
-            .describeLogGroups(DescribeLogGroupsRequest.builder().logGroupNamePrefix(logGroupName).build());
-        Boolean logGroupExists = response.logGroups().stream().filter(logGroup -> logGroup.logGroupName().equals(logGroupName))
-            .findAny().isPresent();
-
-        loggerProxy.log(String.format("Log group with name %s does%s exist in resource owner account.", logGroupName,
-            logGroupExists ? "" : " not"));
-        return logGroupExists;
-    }
-
-    private void createLogGroup() {
-        loggerProxy.log(String.format("Creating log group with name %s in resource owner account.", logGroupName));
-        cloudWatchLogsClient.createLogGroup(CreateLogGroupRequest.builder().logGroupName(logGroupName).build());
-    }
-
-    private String createLogStream() {
-        String logStreamName = UUID.randomUUID().toString();
-        loggerProxy.log(String.format("Creating Log stream with name %s for log group %s.", logStreamName, logGroupName));
-        cloudWatchLogsClient
-            .createLogStream(CreateLogStreamRequest.builder().logGroupName(logGroupName).logStreamName(logStreamName).build());
-        return logStreamName;
-    }
-
-    private void refreshClient() {
+    public void refreshClient() {
         this.cloudWatchLogsClient = cloudWatchLogsProvider.get();
     }
 
     @Override
-    public boolean publishLogEvent(final String message) {
+    protected void publishMessage(final String message) {
         try {
             if (skipLogging) {
-                return true;
+                return;
             }
+            assert cloudWatchLogsClient != null : "cloudWatchLogsClient was not initialised. "
+                + "You must call refreshClient() first.";
+
             cloudWatchLogsClient
                 .putLogEvents(PutLogEventsRequest.builder().logGroupName(logGroupName).logStreamName(logStreamName)
-                    .logEvents(
-                        InputLogEvent.builder().message(this.filterMessage(message)).timestamp(new Date().getTime()).build())
-                    .build());
-            return true;
+                    .logEvents(InputLogEvent.builder().message(message).timestamp(new Date().getTime()).build()).build());
         } catch (final Exception ex) {
-            loggerProxy
-                .log(String.format("An error occurred while putting log events [%s] to resource owner account, with error: %s",
+            platformLambdaLogger.log(
+                String.format("An error occurred while putting log events [%s] " + "to resource owner account, with error: %s",
                     message, ex.toString()));
             emitMetricsForLoggingFailure(ex);
-            return false;
         }
     }
 

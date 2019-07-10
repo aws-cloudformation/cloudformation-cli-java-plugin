@@ -122,11 +122,8 @@ public class LambdaWrapperTest {
         verify(platformCredentialsProvider).setCredentials(any(Credentials.class));
         verify(resourceOwnerLoggingCredentialsProvider).setCredentials(any(Credentials.class));
         verify(callbackAdapter).refreshClient();
-        verify(platformMetricsPublisher).setPriority(anyInt());
         verify(platformMetricsPublisher).refreshClient();
-        verify(platformMetricsPublisher).getPriority();
         verify(resourceOwnerMetricsPublisher).refreshClient();
-        verify(resourceOwnerMetricsPublisher).getPriority();
         verify(scheduler).refreshClient();
     }
 
@@ -252,9 +249,7 @@ public class LambdaWrapperTest {
             verify(resourceOwnerLoggingCredentialsProvider, times(0)).setCredentials(any(Credentials.class));
             verify(callbackAdapter).refreshClient();
             verify(platformMetricsPublisher).refreshClient();
-            verify(platformMetricsPublisher, times(0)).getPriority();
             verify(resourceOwnerMetricsPublisher, times(0)).refreshClient();
-            verify(resourceOwnerMetricsPublisher, times(0)).getPriority();
             verify(scheduler).refreshClient();
 
             // validation failure metric should be published for final error handling
@@ -837,6 +832,38 @@ public class LambdaWrapperTest {
             // verify output response
             verifyHandlerResponse(out,
                 HandlerResponse.<TestModel>builder().bearerToken("123456").operationStatus(OperationStatus.SUCCESS)
+                    .resourceModel(TestModel.builder().property1("abc").property2(123).build()).build());
+        }
+    }
+
+    @Test
+    public void invokeHandler_withDefaultInjection_returnsInProgress() throws IOException {
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
+                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
+                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
+                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+
+        final TestModel model = new TestModel();
+        model.setProperty1("abc");
+        model.setProperty2(123);
+        wrapper.setTransformResponse(resourceHandlerRequest);
+
+        // respond with immediate success to avoid callback invocation
+        final ProgressEvent<TestModel, TestContext> pe = ProgressEvent.<TestModel, TestContext>builder()
+            .status(OperationStatus.IN_PROGRESS).resourceModel(model).build();
+        wrapper.setInvokeHandlerResponse(pe);
+
+        // without platform credentials the handler is unable to do
+        // basic SDK initialization and any such request should fail fast
+        try (final InputStream in = loadRequestStream("create.request.json");
+            final OutputStream out = new ByteArrayOutputStream()) {
+            final Context context = getLambdaContext();
+
+            wrapper.handleRequest(in, out, context);
+
+            // verify output response
+            verifyHandlerResponse(out,
+                HandlerResponse.<TestModel>builder().bearerToken("123456").operationStatus(OperationStatus.IN_PROGRESS)
                     .resourceModel(TestModel.builder().property1("abc").property2(123).build()).build());
         }
     }

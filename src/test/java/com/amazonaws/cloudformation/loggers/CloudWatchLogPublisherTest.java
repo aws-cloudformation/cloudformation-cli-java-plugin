@@ -15,18 +15,20 @@
 package com.amazonaws.cloudformation.loggers;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.amazonaws.cloudformation.injection.CloudWatchLogsProvider;
 import com.amazonaws.cloudformation.injection.CloudWatchProvider;
-import com.amazonaws.cloudformation.proxy.LoggerProxy;
 import com.amazonaws.cloudformation.proxy.MetricsPublisherProxy;
-import com.google.common.collect.ImmutableList;
+import com.amazonaws.services.lambda.runtime.LambdaLogger;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -35,11 +37,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient;
-import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogGroupRequest;
-import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogStreamRequest;
-import software.amazon.awssdk.services.cloudwatchlogs.model.DescribeLogGroupsRequest;
-import software.amazon.awssdk.services.cloudwatchlogs.model.DescribeLogGroupsResponse;
-import software.amazon.awssdk.services.cloudwatchlogs.model.LogGroup;
 import software.amazon.awssdk.services.cloudwatchlogs.model.PutLogEventsRequest;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,7 +49,7 @@ public class CloudWatchLogPublisherTest {
     private CloudWatchLogsClient cloudWatchLogsClient;
 
     @Mock
-    private LoggerProxy loggerProxy;
+    private LambdaLogger platformLambdaLogger;
 
     @Mock
     private MetricsPublisherProxy metricsPublisherProxy;
@@ -64,11 +61,7 @@ public class CloudWatchLogPublisherTest {
     private CloudWatchClient platformCloudWatchClient;
 
     private static final String LOG_GROUP_NAME = "log-group-name";
-
-    @BeforeEach
-    public void beforeEach() {
-        when(cloudWatchLogsProvider.get()).thenReturn(cloudWatchLogsClient);
-    }
+    private static final String LOG_STREAM_NAME = "log-stream-name";
 
     @AfterEach
     public void afterEach() {
@@ -77,151 +70,111 @@ public class CloudWatchLogPublisherTest {
     }
 
     @Test
-    public void testPublishLogEventsWithExistingLogGroup() {
+    public void testPublishLogEventsHappyCase() {
         final CloudWatchLogPublisher logPublisher = new CloudWatchLogPublisher(cloudWatchLogsProvider, LOG_GROUP_NAME,
-                                                                               loggerProxy, metricsPublisherProxy);
-        final ArgumentCaptor<DescribeLogGroupsRequest> describeLogGroupsRequestArgumentCaptor = ArgumentCaptor
-            .forClass(DescribeLogGroupsRequest.class);
-        final ArgumentCaptor<
-            CreateLogStreamRequest> createLogStreamRequestArgumentCaptor = ArgumentCaptor.forClass(CreateLogStreamRequest.class);
+                                                                               LOG_STREAM_NAME, platformLambdaLogger,
+                                                                               metricsPublisherProxy);
         final ArgumentCaptor<
             PutLogEventsRequest> putLogEventsRequestArgumentCaptor = ArgumentCaptor.forClass(PutLogEventsRequest.class);
 
-        final DescribeLogGroupsResponse describeLogGroupsResponse = DescribeLogGroupsResponse.builder()
-            .logGroups(LogGroup.builder().logGroupName(LOG_GROUP_NAME)
-                .arn("arn:aws:loggers:us-east-1:987721315229:log-group:/aws/lambda/testLogGroup-X:*").creationTime(4567898765l)
-                .storedBytes(456789l).build())
-            .build();
-
-        when(cloudWatchLogsClient.describeLogGroups(describeLogGroupsRequestArgumentCaptor.capture()))
-            .thenReturn(describeLogGroupsResponse);
-        when(cloudWatchLogsClient.createLogStream(createLogStreamRequestArgumentCaptor.capture())).thenReturn(null);
+        when(cloudWatchLogsProvider.get()).thenReturn(cloudWatchLogsClient);
         when(cloudWatchLogsClient.putLogEvents(putLogEventsRequestArgumentCaptor.capture())).thenReturn(null);
         final String msgToLog = "How is it going?";
-        logPublisher.initialize();
+        logPublisher.refreshClient();
         logPublisher.publishLogEvent(msgToLog);
 
-        assertThat(describeLogGroupsRequestArgumentCaptor.getValue().logGroupNamePrefix()).isEqualTo(LOG_GROUP_NAME);
-        assertThat(createLogStreamRequestArgumentCaptor.getValue().logGroupName()).isEqualTo(LOG_GROUP_NAME);
         assertThat(putLogEventsRequestArgumentCaptor.getValue().logGroupName()).isEqualTo(LOG_GROUP_NAME);
-        assertThat(putLogEventsRequestArgumentCaptor.getValue().logStreamName())
-            .isEqualTo(createLogStreamRequestArgumentCaptor.getValue().logStreamName());
         assertThat(putLogEventsRequestArgumentCaptor.getValue().logEvents().get(0).message()).isEqualTo(msgToLog);
 
-        verify(cloudWatchLogsClient).describeLogGroups(describeLogGroupsRequestArgumentCaptor.getValue());
-        verify(cloudWatchLogsClient).createLogStream(createLogStreamRequestArgumentCaptor.getValue());
         verify(cloudWatchLogsClient).putLogEvents(putLogEventsRequestArgumentCaptor.getValue());
         verifyNoMoreInteractions(cloudWatchLogsProvider);
     }
 
     @Test
-    public void testPublishLogEventsCreatingNewLogGroup() {
+    public void testPublishLogEventsWithError() {
         final CloudWatchLogPublisher logPublisher = new CloudWatchLogPublisher(cloudWatchLogsProvider, LOG_GROUP_NAME,
-                                                                               loggerProxy, metricsPublisherProxy);
-        final ArgumentCaptor<DescribeLogGroupsRequest> describeLogGroupsRequestArgumentCaptor = ArgumentCaptor
-            .forClass(DescribeLogGroupsRequest.class);
-        final ArgumentCaptor<
-            CreateLogStreamRequest> createLogStreamRequestArgumentCaptor = ArgumentCaptor.forClass(CreateLogStreamRequest.class);
-        final ArgumentCaptor<
-            CreateLogGroupRequest> createLogGroupRequestArgumentCaptor = ArgumentCaptor.forClass(CreateLogGroupRequest.class);
+                                                                               LOG_STREAM_NAME, platformLambdaLogger,
+                                                                               metricsPublisherProxy);
         final ArgumentCaptor<
             PutLogEventsRequest> putLogEventsRequestArgumentCaptor = ArgumentCaptor.forClass(PutLogEventsRequest.class);
+        final ArgumentCaptor<String> stringArgumentCaptor = ArgumentCaptor.forClass(String.class);
 
-        final DescribeLogGroupsResponse describeLogGroupsResponse = DescribeLogGroupsResponse.builder()
-            .logGroups(ImmutableList.of()).build();
+        when(cloudWatchLogsProvider.get()).thenReturn(cloudWatchLogsClient);
+        when(cloudWatchLogsClient.putLogEvents(putLogEventsRequestArgumentCaptor.capture()))
+            .thenThrow(new RuntimeException("AccessDenied"));
+        doNothing().when(metricsPublisherProxy).publishResourceOwnerLogDeliveryExceptionMetric(any(), any());
+        doNothing().when(platformLambdaLogger).log(stringArgumentCaptor.capture());
 
-        when(cloudWatchLogsClient.describeLogGroups(describeLogGroupsRequestArgumentCaptor.capture()))
-            .thenReturn(describeLogGroupsResponse);
-        when(cloudWatchLogsClient.createLogGroup(createLogGroupRequestArgumentCaptor.capture())).thenReturn(null);
-        when(cloudWatchLogsClient.createLogStream(createLogStreamRequestArgumentCaptor.capture())).thenReturn(null);
-        when(cloudWatchLogsClient.putLogEvents(putLogEventsRequestArgumentCaptor.capture())).thenReturn(null);
         final String msgToLog = "How is it going?";
-        logPublisher.initialize();
+        logPublisher.refreshClient();
         logPublisher.publishLogEvent(msgToLog);
 
-        assertThat(describeLogGroupsRequestArgumentCaptor.getValue().logGroupNamePrefix()).isEqualTo(LOG_GROUP_NAME);
-        assertThat(createLogGroupRequestArgumentCaptor.getValue().logGroupName()).isEqualTo(LOG_GROUP_NAME);
-        assertThat(createLogStreamRequestArgumentCaptor.getValue().logGroupName()).isEqualTo(LOG_GROUP_NAME);
         assertThat(putLogEventsRequestArgumentCaptor.getValue().logGroupName()).isEqualTo(LOG_GROUP_NAME);
-        assertThat(putLogEventsRequestArgumentCaptor.getValue().logStreamName())
-            .isEqualTo(createLogStreamRequestArgumentCaptor.getValue().logStreamName());
         assertThat(putLogEventsRequestArgumentCaptor.getValue().logEvents().get(0).message()).isEqualTo(msgToLog);
 
-        verify(cloudWatchLogsClient).describeLogGroups(describeLogGroupsRequestArgumentCaptor.getValue());
-        verify(cloudWatchLogsClient).createLogGroup(createLogGroupRequestArgumentCaptor.getValue());
-        verify(cloudWatchLogsClient).createLogStream(createLogStreamRequestArgumentCaptor.getValue());
         verify(cloudWatchLogsClient).putLogEvents(putLogEventsRequestArgumentCaptor.getValue());
+        verify(metricsPublisherProxy).publishResourceOwnerLogDeliveryExceptionMetric(any(), any());
+        assertThat(stringArgumentCaptor.getValue().contains("AccessDenied"));
         verifyNoMoreInteractions(cloudWatchLogsProvider);
     }
 
     @Test
-    public void testPublishLogEventsSkippedOutOfInitializationFailure() {
+    public void testPublishLogEventsWithoutRefreshingClient() {
         final CloudWatchLogPublisher logPublisher = new CloudWatchLogPublisher(cloudWatchLogsProvider, LOG_GROUP_NAME,
-                                                                               loggerProxy, metricsPublisherProxy);
-        final ArgumentCaptor<DescribeLogGroupsRequest> describeLogGroupsRequestArgumentCaptor = ArgumentCaptor
-            .forClass(DescribeLogGroupsRequest.class);
+                                                                               LOG_STREAM_NAME, platformLambdaLogger,
+                                                                               metricsPublisherProxy);
+        assertThrows(AssertionError.class, () -> logPublisher.publishLogEvent("How is it going?"), "Expected assertion error");
 
-        when(cloudWatchLogsClient.describeLogGroups(describeLogGroupsRequestArgumentCaptor.capture()))
-            .thenThrow(new RuntimeException("Sorry"));
-
-        final String msgToLog = "How is it going?";
-        logPublisher.initialize();
-        logPublisher.publishLogEvent(msgToLog);
-
-        assertThat(describeLogGroupsRequestArgumentCaptor.getValue().logGroupNamePrefix()).isEqualTo(LOG_GROUP_NAME);
-
-        verify(cloudWatchLogsClient).describeLogGroups(describeLogGroupsRequestArgumentCaptor.getValue());
         verifyNoMoreInteractions(cloudWatchLogsProvider);
     }
 
     @Test
-    public void testPublishLogEventsSkippedOutOfInitializationFailure_withNullMetricsProxy() {
-        final CloudWatchLogPublisher logPublisher = new CloudWatchLogPublisher(cloudWatchLogsProvider, LOG_GROUP_NAME,
-                                                                               loggerProxy, null);
-        final ArgumentCaptor<DescribeLogGroupsRequest> describeLogGroupsRequestArgumentCaptor = ArgumentCaptor
-            .forClass(DescribeLogGroupsRequest.class);
-
-        when(cloudWatchLogsClient.describeLogGroups(describeLogGroupsRequestArgumentCaptor.capture()))
-            .thenThrow(new RuntimeException("Sorry"));
-
-        final String msgToLog = "How is it going?";
-        logPublisher.initialize();
-        logPublisher.publishLogEvent(msgToLog);
-
-        assertThat(describeLogGroupsRequestArgumentCaptor.getValue().logGroupNamePrefix()).isEqualTo(LOG_GROUP_NAME);
-
-        verify(cloudWatchLogsClient).describeLogGroups(describeLogGroupsRequestArgumentCaptor.getValue());
-        verifyNoMoreInteractions(cloudWatchLogsProvider);
+    public void testLogPublisherWithFilters() {
+        final LogPublisher customLogPublisher = new LogPublisher((String rawInput) -> "Redacted data : " + rawInput) {
+            @Override
+            protected void publishMessage(String message) {
+                System.out.println(message);
+            }
+        };
+        customLogPublisher.refreshClient();
+        customLogPublisher.publishLogEvent("This is log message");
     }
 
     @Test
-    public void testPublishLogEventsSkippedOutOfInitializationFailure_errorCreatingLogStream() {
+    public void testPublishLogEventsWithErrorAndNullMetricsPublisher() {
         final CloudWatchLogPublisher logPublisher = new CloudWatchLogPublisher(cloudWatchLogsProvider, LOG_GROUP_NAME,
-                                                                               loggerProxy, metricsPublisherProxy);
-        final ArgumentCaptor<DescribeLogGroupsRequest> describeLogGroupsRequestArgumentCaptor = ArgumentCaptor
-            .forClass(DescribeLogGroupsRequest.class);
+                                                                               LOG_STREAM_NAME, platformLambdaLogger, null);
         final ArgumentCaptor<
-            CreateLogStreamRequest> createLogStreamRequestArgumentCaptor = ArgumentCaptor.forClass(CreateLogStreamRequest.class);
+            PutLogEventsRequest> putLogEventsRequestArgumentCaptor = ArgumentCaptor.forClass(PutLogEventsRequest.class);
+        final ArgumentCaptor<String> stringArgumentCaptor = ArgumentCaptor.forClass(String.class);
 
-        final DescribeLogGroupsResponse describeLogGroupsResponse = DescribeLogGroupsResponse.builder()
-            .logGroups(LogGroup.builder().logGroupName(LOG_GROUP_NAME)
-                .arn("arn:aws:loggers:us-east-1:987721315229:log-group:/aws/lambda/testLogGroup-X:*").creationTime(4567898765l)
-                .storedBytes(456789l).build())
-            .build();
-
-        when(cloudWatchLogsClient.describeLogGroups(describeLogGroupsRequestArgumentCaptor.capture()))
-            .thenReturn(describeLogGroupsResponse);
-        when(cloudWatchLogsClient.createLogStream(createLogStreamRequestArgumentCaptor.capture()))
-            .thenThrow(new RuntimeException("Error Creating Log Stream"));
+        when(cloudWatchLogsProvider.get()).thenReturn(cloudWatchLogsClient);
+        when(cloudWatchLogsClient.putLogEvents(putLogEventsRequestArgumentCaptor.capture()))
+            .thenThrow(new RuntimeException("AccessDenied"));
+        doNothing().when(platformLambdaLogger).log(stringArgumentCaptor.capture());
 
         final String msgToLog = "How is it going?";
-        logPublisher.initialize();
+        logPublisher.refreshClient();
         logPublisher.publishLogEvent(msgToLog);
 
-        assertThat(describeLogGroupsRequestArgumentCaptor.getValue().logGroupNamePrefix()).isEqualTo(LOG_GROUP_NAME);
-        assertThat(createLogStreamRequestArgumentCaptor.getValue().logGroupName()).isEqualTo(LOG_GROUP_NAME);
-        verify(cloudWatchLogsClient).describeLogGroups(describeLogGroupsRequestArgumentCaptor.getValue());
-        verify(cloudWatchLogsClient).createLogStream(createLogStreamRequestArgumentCaptor.getValue());
+        assertThat(putLogEventsRequestArgumentCaptor.getValue().logGroupName()).isEqualTo(LOG_GROUP_NAME);
+        assertThat(putLogEventsRequestArgumentCaptor.getValue().logEvents().get(0).message()).isEqualTo(msgToLog);
+
+        verify(cloudWatchLogsClient).putLogEvents(putLogEventsRequestArgumentCaptor.getValue());
+        verify(metricsPublisherProxy, times(0)).publishResourceOwnerLogDeliveryExceptionMetric(any(), any());
+        assertThat(stringArgumentCaptor.getValue().contains("AccessDenied"));
+        verifyNoMoreInteractions(cloudWatchLogsProvider, metricsPublisherProxy);
+    }
+
+    @Test
+    public void testPublishLogEventsWithNullLogStream() {
+        final CloudWatchLogPublisher logPublisher = new CloudWatchLogPublisher(cloudWatchLogsProvider, LOG_GROUP_NAME, null,
+                                                                               platformLambdaLogger, metricsPublisherProxy);
+        final String msgToLog = "How is it going?";
+        when(cloudWatchLogsProvider.get()).thenReturn(cloudWatchLogsClient);
+        logPublisher.refreshClient();
+        logPublisher.publishLogEvent(msgToLog);
+
         verifyNoMoreInteractions(cloudWatchLogsProvider);
     }
 }

@@ -14,44 +14,51 @@
 */
 package com.amazonaws.cloudformation.loggers;
 
+import java.util.Arrays;
+import java.util.List;
+
 public abstract class LogPublisher {
+    private List<LogFilter> logFilterList;
 
     /**
-     * log priority determines the logging order when multiple logger exist. Default
-     * to 100. Smaller number is of higher priority, e.g. priority(0) > priority(10)
+     * Constructor with a sequence of logFilters.
      */
-    protected int priority = 100;
-
-    public int getPriority() {
-        return priority;
+    public LogPublisher(final LogFilter... filters) {
+        logFilterList = Arrays.asList(filters);
     }
 
-    public void setPriority(final int priority) {
-        this.priority = priority;
+    public void refreshClient() {
     }
 
     /**
-     * Method for setting up prerequisites for logging.
-     */
-    public void initialize() {
-    }
-
-    /**
-     * Override this method to realize log delivery to expected destination. Boolean
-     * indicates delivery log success status.
+     * Override to implement the log delivery method to destinations.
      *
      * @param message
      * @return
      */
-    public abstract boolean publishLogEvent(String message);
+    protected abstract void publishMessage(String message);
 
     /**
      * Redact or scrub loggers in someway to help prevent leaking of certain
      * information.
      */
-    public String filterMessage(final String message) {
+    private String filterMessage(final String message) {
         // Default filtering mechanism to be determined.
         // Subclass could override this method for specific purpose.
-        return message;
+        String toReturn = message;
+        for (LogFilter filter : logFilterList) {
+            toReturn = filter.filterString(toReturn);
+        }
+        return toReturn;
     }
+
+    /**
+     * Entry point of log publisher.
+     *
+     * @param message
+     */
+    public final void publishLogEvent(final String message) {
+        publishMessage(filterMessage(message));
+    }
+
 }

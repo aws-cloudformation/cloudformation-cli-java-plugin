@@ -26,6 +26,7 @@ import com.amazonaws.cloudformation.injection.CloudWatchLogsProvider;
 import com.amazonaws.cloudformation.injection.CloudWatchProvider;
 import com.amazonaws.cloudformation.injection.CredentialsProvider;
 import com.amazonaws.cloudformation.injection.SessionCredentialsProvider;
+import com.amazonaws.cloudformation.loggers.CloudWatchLogHelper;
 import com.amazonaws.cloudformation.loggers.CloudWatchLogPublisher;
 import com.amazonaws.cloudformation.loggers.LambdaLogPublisher;
 import com.amazonaws.cloudformation.loggers.LogPublisher;
@@ -99,6 +100,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     private CloudWatchScheduler scheduler;
 
     private LogPublisher platformLambdaLogger;
+    private CloudWatchLogHelper cloudWatchLogHelper;
     private LogPublisher resourceOwnerEventsLogger;
 
     protected LambdaWrapper() {
@@ -160,7 +162,6 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         this.metricsPublisherProxy = new MetricsPublisherProxy();
 
         this.platformLambdaLogger = new LambdaLogPublisher(context.getLogger());
-        this.platformLambdaLogger.setPriority(0);
         this.loggerProxy.addLogPublisher(this.platformLambdaLogger);
 
         this.cloudFormationProvider.setCallbackEndpoint(callbackEndpoint);
@@ -172,7 +173,6 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         if (this.platformMetricsPublisher == null) {
             this.platformMetricsPublisher = new MetricsPublisherImpl(this.platformCloudWatchProvider, this.loggerProxy);
         }
-        this.platformMetricsPublisher.setPriority(0);
         this.metricsPublisherProxy.addMetricsPublisher(this.platformMetricsPublisher);
         this.platformMetricsPublisher.refreshClient();
 
@@ -193,13 +193,17 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             this.resourceOwnerMetricsPublisher.refreshClient();
 
             if (this.resourceOwnerEventsLogger == null) {
+                this.cloudWatchLogHelper = new CloudWatchLogHelper(this.cloudWatchLogsProvider, resourceOwnerLogGroupName,
+                                                                   context.getLogger(), this.metricsPublisherProxy);
+                this.cloudWatchLogHelper.refreshClient();
+
                 this.resourceOwnerEventsLogger = new CloudWatchLogPublisher(this.cloudWatchLogsProvider,
-                                                                            resourceOwnerLogGroupName, this.loggerProxy,
-                                                                            this.metricsPublisherProxy);
+                                                                            resourceOwnerLogGroupName,
+                                                                            this.cloudWatchLogHelper.prepareLogStream(),
+                                                                            context.getLogger(), this.metricsPublisherProxy);
             }
             this.loggerProxy.addLogPublisher(this.resourceOwnerEventsLogger);
-            // NOTE: initialize() contains refreshClient()
-            this.resourceOwnerEventsLogger.initialize();
+            this.resourceOwnerEventsLogger.refreshClient();
         }
 
         if (this.callbackAdapter == null) {
@@ -267,7 +271,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             // A response will be output on all paths, though CloudFormation will
             // not block on invoking the handlers, but rather listen for callbacks
             writeResponse(outputStream,
-                createProgressResponse(handlerResponse, request == null ? null : request.getBearerToken()));
+                createProgressResponse(handlerResponse, request != null ? request.getBearerToken() : null));
         }
     }
 
@@ -313,7 +317,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             if (!StringUtils.isBlank(cloudWatchEventsRuleName)) {
                 this.scheduler.cleanupCloudWatchEvents(cloudWatchEventsRuleName, requestContext.getCloudWatchEventsTargetId());
             }
-            this.log(String.format("Cleaned up previous Request Context of Rule %s and Target %s",
+            log(String.format("Cleaned up previous Request Context of Rule %s and Target %s",
                 requestContext.getCloudWatchEventsRuleName(), requestContext.getCloudWatchEventsTargetId()));
         }
 
@@ -379,8 +383,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
     private void
         logUnhandledError(final String errorDescription, final HandlerRequest<ResourceT, CallbackT> request, final Throwable e) {
-        this.log(String.format("%s in a %s action on a %s: %s%n%s", errorDescription, request.getAction(),
-            request.getResourceType(), e.toString(), ExceptionUtils.getStackTrace(e)));
+        log(String.format("%s in a %s action on a %s: %s%n%s", errorDescription, request.getAction(), request.getResourceType(),
+            e.toString(), ExceptionUtils.getStackTrace(e)));
     }
 
     /**
@@ -426,7 +430,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.InternalFailure);
         } finally {
             Date endTime = Date.from(Instant.now());
-            this.metricsPublisherProxy.publishDurationMetric(Instant.now(), request.getAction(),
+            metricsPublisherProxy.publishDurationMetric(Instant.now(), request.getAction(),
                 (endTime.getTime() - startTime.getTime()));
         }
 

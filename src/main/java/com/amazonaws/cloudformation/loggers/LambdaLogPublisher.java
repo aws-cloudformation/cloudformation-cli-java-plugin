@@ -20,14 +20,14 @@ public class LambdaLogPublisher extends LogPublisher {
 
     private final LambdaLogger logger;
 
-    public LambdaLogPublisher(final LambdaLogger logger) {
-        // Make LambdaLogger have higher than default priority.
+    public LambdaLogPublisher(final LambdaLogger logger,
+                              final LogFilter... logFilters) {
+        super(logFilters);
         this.logger = logger;
     }
 
     @Override
-    public boolean publishLogEvent(String message) {
-        this.logger.log(filterMessage(message));
-        return true;
+    protected void publishMessage(String message) {
+        this.logger.log(message);
     }
 }

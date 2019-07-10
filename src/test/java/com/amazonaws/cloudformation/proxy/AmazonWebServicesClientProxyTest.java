@@ -14,10 +14,10 @@
 */
 package com.amazonaws.cloudformation.proxy;
 
-import static org.assertj.core.api.Assertions.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -25,6 +25,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.cloudformation.exceptions.ResourceAlreadyExistsException;
+import com.amazonaws.cloudformation.exceptions.TerminalException;
 import com.amazonaws.cloudformation.proxy.handler.Model;
 import com.amazonaws.cloudformation.proxy.service.AccessDenied;
 import com.amazonaws.cloudformation.proxy.service.BadRequestException;
@@ -90,6 +92,28 @@ public class AmazonWebServicesClientProxyTest {
 
         // ensure the return type matches
         assertThat(result).isEqualTo(expectedResult);
+    }
+
+    @Test
+    public void testInjectCredentialsAndInvokeWithError() {
+
+        final LoggerProxy loggerProxy = mock(LoggerProxy.class);
+        final Credentials credentials = new Credentials("accessKeyId", "secretAccessKey", "sessionToken");
+
+        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(loggerProxy, credentials, () -> 1000L);
+
+        final DescribeStackEventsRequest request = mock(DescribeStackEventsRequest.class);
+
+        final AmazonCloudFormation client = mock(AmazonCloudFormation.class);
+        when(client.describeStackEvents(any(DescribeStackEventsRequest.class))).thenThrow(new RuntimeException("Sorry"));
+
+        final RuntimeException expectedException = assertThrows(RuntimeException.class,
+            () -> proxy.injectCredentialsAndInvoke(request, client::describeStackEvents), "Expected Runtime Exception.");
+        assertEquals(expectedException.getMessage(), "Sorry");
+
+        // ensure credentials are injected and then removed
+        verify(request).setRequestCredentialsProvider(any(AWSStaticCredentialsProvider.class));
+        verify(request).setRequestCredentialsProvider(eq(null));
     }
 
     @Test
@@ -169,6 +193,41 @@ public class AmazonWebServicesClientProxyTest {
 
         // ensure the return type matches
         assertThat(result.get()).isEqualTo(expectedResult);
+    }
+
+    @Test
+    public void testInjectCredentialsAndInvokeV2Async_WithException() {
+
+        final LoggerProxy loggerProxy = mock(LoggerProxy.class);
+        final Credentials credentials = new Credentials("accessKeyId", "secretAccessKey", "sessionToken");
+
+        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(loggerProxy, credentials, () -> 1000L);
+
+        final software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest wrappedRequest = mock(
+            software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest.class);
+
+        final software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest.Builder builder = mock(
+            software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest.Builder.class);
+        when(builder.overrideConfiguration(any(AwsRequestOverrideConfiguration.class))).thenReturn(builder);
+        when(builder.build()).thenReturn(wrappedRequest);
+        final software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest request = mock(
+            software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest.class);
+        when(request.toBuilder()).thenReturn(builder);
+
+        final CloudFormationAsyncClient client = mock(CloudFormationAsyncClient.class);
+
+        when(client
+            .describeStackEvents(any(software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest.class)))
+                .thenThrow(new TerminalException(new RuntimeException("Sorry")));
+        final RuntimeException expectedException = assertThrows(RuntimeException.class,
+            () -> proxy.injectCredentialsAndInvokeV2Async(request, client::describeStackEvents), "Expected Runtime Exception.");
+
+        // verify request is rebuilt for injection
+        verify(request).toBuilder();
+
+        // verify the wrapped request is sent over the initiate
+        verify(client).describeStackEvents(wrappedRequest);
+
     }
 
     private final Credentials MOCK = new Credentials("accessKeyId", "secretKey", "token");
@@ -444,7 +503,7 @@ public class AmazonWebServicesClientProxyTest {
         ProxyClient<ServiceClient> svcClient = proxy.newProxy(() -> client);
         ProgressEvent<Model, StdCallbackContext> result = proxy.initiate("client:createRepository", svcClient, model, context)
             .request(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build()).call((r, g) -> {
-                throw new RuntimeException("Fail");
+                throw new ResourceAlreadyExistsException(new RuntimeException("Fail"));
             }).success();
         assertThat(result.getStatus()).isEqualTo(OperationStatus.FAILED);
 

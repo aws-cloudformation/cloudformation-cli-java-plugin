@@ -12,11 +12,15 @@
 * express or implied. See the License for the specific language governing
 * permissions and limitations under the License.
 */
-package com.amazonaws.cloudformation.proxy;
+package com.amazonaws.cloudformation.loggers;
 
-public enum OperationStatus {
-    IN_PROGRESS,
-    SUCCESS,
-    FAILED,
-    UNKNOWN // For testing purpose
+public interface LogFilter {
+
+    /**
+     * Override filterString method to customize string redaction.
+     *
+     * @param rawInput
+     * @return
+     */
+    String filterString(String rawInput);
 }

@@ -20,7 +20,6 @@ import java.time.Instant;
 
 public abstract class MetricsPublisher {
 
-    protected int priority = 100;
     protected String resourceTypeName;
     protected String resourceNamespace;
 
@@ -35,20 +34,6 @@ public abstract class MetricsPublisher {
      * owning entity
      */
     public void refreshClient() {
-    }
-
-    /**
-     * put metrics priority determines the order when multiple metrics pulisher
-     * exist. Default to 100. Smaller number is of higher priority, e.g. priority(0)
-     * > prority(10)
-     */
-
-    public void setPriority(final int priority) {
-        this.priority = priority;
-    }
-
-    public int getPriority() {
-        return priority;
     }
 
     public void publishExceptionMetric(final Instant timestamp, final Action action, final Throwable e) {
