@@ -9,7 +9,7 @@ import com.amazonaws.cloudformation.proxy.ResourceHandlerRequest;
 import java.util.ArrayList;
 import java.util.List;
 
-public class {{ operation }}Handler extends BaseHandler<CallbackContext> {
+public class {{ operation }}Handler extends SharedHandler {
 
     @Override
     public ProgressEvent<{{ pojo_name }}, CallbackContext> handleRequest(

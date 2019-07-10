@@ -6,7 +6,7 @@ import com.amazonaws.cloudformation.proxy.ProgressEvent;
 import com.amazonaws.cloudformation.proxy.OperationStatus;
 import com.amazonaws.cloudformation.proxy.ResourceHandlerRequest;
 
-public class {{ operation }}Handler extends BaseHandler<CallbackContext> {
+public class {{ operation }}Handler extends SharedHandler {
 
     @Override
     public ProgressEvent<{{ pojo_name }}, CallbackContext> handleRequest(

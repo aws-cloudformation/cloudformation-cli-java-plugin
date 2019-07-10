@@ -40,7 +40,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         )
         self.package_name = ".".join(self.namespace)
 
-    def init(self, project):
+    def init(self, project):  # pylint: disable=too-many-statements
         LOG.debug("Init started")
 
         self._namespace_from_project(project)
@@ -111,6 +111,12 @@ class JavaLanguagePlugin(LanguagePlugin):
         LOG.debug("Writing callback context")
         template = self.env.get_template("CallbackContext.java")
         path = src / "CallbackContext.java"
+        contents = template.render(package_name=self.package_name)
+        project.safewrite(path, contents)
+
+        LOG.debug("Writing shared handler")
+        template = self.env.get_template("SharedHandler.java")
+        path = src / "SharedHandler.java"
         contents = template.render(package_name=self.package_name)
         project.safewrite(path, contents)
 
