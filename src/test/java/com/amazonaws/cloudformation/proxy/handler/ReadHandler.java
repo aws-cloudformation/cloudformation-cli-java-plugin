@@ -20,8 +20,11 @@ import com.amazonaws.cloudformation.proxy.ProgressEvent;
 import com.amazonaws.cloudformation.proxy.ProxyClient;
 import com.amazonaws.cloudformation.proxy.ResourceHandlerRequest;
 import com.amazonaws.cloudformation.proxy.StdCallbackContext;
+import com.amazonaws.cloudformation.proxy.delay.Constant;
 import com.amazonaws.cloudformation.proxy.service.DescribeRequest;
 import com.amazonaws.cloudformation.proxy.service.ServiceClient;
+
+import java.time.Duration;
 
 public class ReadHandler {
 
@@ -43,12 +46,13 @@ public class ReadHandler {
             DescribeRequest.Builder builder = new DescribeRequest.Builder();
             builder.repoName(m.getRepoName());
             return builder.build();
-        }).call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::describeRepository)).done(r -> {
-            model.setRepoName(r.getRepoName());
-            model.setArn(r.getRepoArn());
-            model.setCreated(r.getCreatedWhen());
-            return ProgressEvent.success(model, context);
-        });
+        }).retry(Constant.of().delay(Duration.ofSeconds(3)).timeout(Duration.ofSeconds(9)).build())
+            .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::describeRepository)).done(r -> {
+                model.setRepoName(r.getRepoName());
+                model.setArn(r.getRepoArn());
+                model.setCreated(r.getCreatedWhen());
+                return ProgressEvent.success(model, context);
+            });
     }
 
 }
