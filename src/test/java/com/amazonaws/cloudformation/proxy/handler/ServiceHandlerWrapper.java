@@ -17,6 +17,7 @@ package com.amazonaws.cloudformation.proxy.handler;
 import com.amazonaws.cloudformation.Action;
 import com.amazonaws.cloudformation.LambdaWrapper;
 import com.amazonaws.cloudformation.injection.CredentialsProvider;
+import com.amazonaws.cloudformation.loggers.CloudWatchLogPublisher;
 import com.amazonaws.cloudformation.loggers.LogPublisher;
 import com.amazonaws.cloudformation.metrics.MetricsPublisher;
 import com.amazonaws.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -45,7 +46,7 @@ public class ServiceHandlerWrapper extends LambdaWrapper<Model, StdCallbackConte
     public ServiceHandlerWrapper(final CallbackAdapter<Model> callbackAdapter,
                                  final CredentialsProvider platformCredentialsProvider,
                                  final CredentialsProvider resourceOwnerLoggingCredentialsProvider,
-                                 final LogPublisher resourceOwnerEventsLogger,
+                                 final CloudWatchLogPublisher resourceOwnerEventsLogger,
                                  final LogPublisher platformEventsLogger,
                                  final MetricsPublisher platformMetricsPublisher,
                                  final MetricsPublisher resourceOwnerMetricsPublisher,
@@ -53,9 +54,8 @@ public class ServiceHandlerWrapper extends LambdaWrapper<Model, StdCallbackConte
                                  final SchemaValidator validator,
                                  final Serializer serializer,
                                  final ServiceClient client) {
-        super(callbackAdapter, platformCredentialsProvider, resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-              resourceOwnerEventsLogger, platformMetricsPublisher, resourceOwnerMetricsPublisher, scheduler, validator,
-              serializer);
+        super(callbackAdapter, platformCredentialsProvider, resourceOwnerLoggingCredentialsProvider, resourceOwnerEventsLogger,
+              platformEventsLogger, platformMetricsPublisher, resourceOwnerMetricsPublisher, scheduler, validator, serializer);
         this.serviceClient = client;
     }
 

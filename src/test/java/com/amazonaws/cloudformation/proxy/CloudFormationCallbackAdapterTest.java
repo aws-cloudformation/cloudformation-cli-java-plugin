@@ -152,35 +152,6 @@ public class CloudFormationCallbackAdapterTest {
     }
 
     @Test
-    public void testReportProgress_UNKNOWN() {
-        final CloudFormationClient client = mock(CloudFormationClient.class);
-
-        final RecordHandlerProgressResponse response = mock(RecordHandlerProgressResponse.class);
-        final CloudFormationResponseMetadata responseMetadata = mock(CloudFormationResponseMetadata.class);
-        when(responseMetadata.requestId()).thenReturn(UUID.randomUUID().toString());
-        when(response.responseMetadata()).thenReturn(responseMetadata);
-
-        when(cloudFormationProvider.get()).thenReturn(client);
-
-        when(client.recordHandlerProgress(any(RecordHandlerProgressRequest.class))).thenReturn(response);
-
-        final CloudFormationCallbackAdapter<
-            TestModel> adapter = new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, loggerProxy);
-        adapter.refreshClient();
-
-        adapter.reportProgress("bearer-token", HandlerErrorCode.InvalidRequest, OperationStatus.UNKNOWN, null, "some error");
-
-        final ArgumentCaptor<RecordHandlerProgressRequest> argument = ArgumentCaptor.forClass(RecordHandlerProgressRequest.class);
-        verify(client).recordHandlerProgress(argument.capture());
-        assertThat(argument.getValue()).isNotNull();
-        assertThat(argument.getValue().bearerToken()).isEqualTo("bearer-token");
-        assertThat(argument.getValue().errorCode()).isEqualTo(INVALID_REQUEST);
-        assertThat(argument.getValue().operationStatus()).isEqualTo(FAILED);
-        assertThat(argument.getValue().resourceModel()).isNull();
-        assertThat(argument.getValue().statusMessage()).isEqualTo("some error");
-    }
-
-    @Test
     public void testTranslate() {
         assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.NotUpdatable)).isEqualTo(NOT_UPDATABLE);
         assertThat(CloudFormationCallbackAdapter.translate(HandlerErrorCode.InvalidRequest)).isEqualTo(INVALID_REQUEST);

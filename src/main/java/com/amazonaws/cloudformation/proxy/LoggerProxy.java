@@ -19,11 +19,6 @@ import com.amazonaws.cloudformation.loggers.LogPublisher;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Proxies logging requests to the passed in loggers. NOTE: Logging order is
- * determined by loggers priorities, which is not guaranteed if having same
- * priorities.
- */
 public class LoggerProxy implements Logger {
 
     private final List<LogPublisher> logPublishers = new ArrayList<>();

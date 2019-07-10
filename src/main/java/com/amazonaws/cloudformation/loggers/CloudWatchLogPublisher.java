@@ -49,7 +49,6 @@ public class CloudWatchLogPublisher extends LogPublisher {
         this.skipLogging = logStreamName == null;
     }
 
-    @Override
     public void refreshClient() {
         this.cloudWatchLogsClient = cloudWatchLogsProvider.get();
     }

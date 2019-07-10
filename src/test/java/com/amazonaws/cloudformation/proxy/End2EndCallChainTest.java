@@ -21,6 +21,7 @@ import com.amazonaws.cloudformation.Action;
 import com.amazonaws.cloudformation.Response;
 import com.amazonaws.cloudformation.injection.CloudWatchEventsProvider;
 import com.amazonaws.cloudformation.injection.CredentialsProvider;
+import com.amazonaws.cloudformation.loggers.CloudWatchLogPublisher;
 import com.amazonaws.cloudformation.loggers.LogPublisher;
 import com.amazonaws.cloudformation.metrics.MetricsPublisher;
 import com.amazonaws.cloudformation.proxy.handler.Model;
@@ -224,8 +225,8 @@ public class End2EndCallChainTest {
 
         final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
                                                                         resourceOwnerLoggingCredentialsProvider,
-                                                                        mock(LogPublisher.class), mock(LogPublisher.class),
-                                                                        mock(MetricsPublisher.class),
+                                                                        mock(CloudWatchLogPublisher.class),
+                                                                        mock(LogPublisher.class), mock(MetricsPublisher.class),
                                                                         mock(MetricsPublisher.class),
                                                                         new CloudWatchScheduler(new CloudWatchEventsProvider(platformCredentialsProvider) {
                                                                             @Override
@@ -280,8 +281,8 @@ public class End2EndCallChainTest {
 
         final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
                                                                         resourceOwnerLoggingCredentialsProvider,
-                                                                        mock(LogPublisher.class), mock(LogPublisher.class),
-                                                                        mock(MetricsPublisher.class),
+                                                                        mock(CloudWatchLogPublisher.class),
+                                                                        mock(LogPublisher.class), mock(MetricsPublisher.class),
                                                                         mock(MetricsPublisher.class),
                                                                         new CloudWatchScheduler(new CloudWatchEventsProvider(platformCredentialsProvider) {
                                                                             @Override
@@ -344,8 +345,8 @@ public class End2EndCallChainTest {
 
         final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
                                                                         resourceOwnerLoggingCredentialsProvider,
-                                                                        mock(LogPublisher.class), mock(LogPublisher.class),
-                                                                        mock(MetricsPublisher.class),
+                                                                        mock(CloudWatchLogPublisher.class),
+                                                                        mock(LogPublisher.class), mock(MetricsPublisher.class),
                                                                         mock(MetricsPublisher.class),
                                                                         new CloudWatchScheduler(new CloudWatchEventsProvider(platformCredentialsProvider) {
                                                                             @Override
@@ -407,8 +408,8 @@ public class End2EndCallChainTest {
 
         final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
                                                                         resourceOwnerLoggingCredentialsProvider,
-                                                                        mock(LogPublisher.class), mock(LogPublisher.class),
-                                                                        mock(MetricsPublisher.class),
+                                                                        mock(CloudWatchLogPublisher.class),
+                                                                        mock(LogPublisher.class), mock(MetricsPublisher.class),
                                                                         mock(MetricsPublisher.class),
                                                                         new CloudWatchScheduler(new CloudWatchEventsProvider(platformCredentialsProvider) {
                                                                             @Override
@@ -468,8 +469,8 @@ public class End2EndCallChainTest {
 
         final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
                                                                         resourceOwnerLoggingCredentialsProvider,
-                                                                        mock(LogPublisher.class), mock(LogPublisher.class),
-                                                                        mock(MetricsPublisher.class),
+                                                                        mock(CloudWatchLogPublisher.class),
+                                                                        mock(LogPublisher.class), mock(MetricsPublisher.class),
                                                                         mock(MetricsPublisher.class),
                                                                         new CloudWatchScheduler(new CloudWatchEventsProvider(platformCredentialsProvider) {
                                                                             @Override
@@ -528,8 +529,8 @@ public class End2EndCallChainTest {
 
         final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
                                                                         resourceOwnerLoggingCredentialsProvider,
-                                                                        mock(LogPublisher.class), mock(LogPublisher.class),
-                                                                        mock(MetricsPublisher.class),
+                                                                        mock(CloudWatchLogPublisher.class),
+                                                                        mock(LogPublisher.class), mock(MetricsPublisher.class),
                                                                         mock(MetricsPublisher.class),
                                                                         new CloudWatchScheduler(new CloudWatchEventsProvider(platformCredentialsProvider) {
                                                                             @Override

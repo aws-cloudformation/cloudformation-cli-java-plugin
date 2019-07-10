@@ -130,14 +130,11 @@ public class CloudWatchLogPublisherTest {
 
     @Test
     public void testLogPublisherWithFilters() {
-        final LogPublisher customLogPublisher = new LogPublisher((String rawInput) -> "Redacted data : " + rawInput) {
-            @Override
-            protected void publishMessage(String message) {
-                System.out.println(message);
-            }
-        };
-        customLogPublisher.refreshClient();
-        customLogPublisher.publishLogEvent("This is log message");
+        final CloudWatchLogPublisher logPublisher = new CloudWatchLogPublisher(cloudWatchLogsProvider, LOG_GROUP_NAME,
+                                                                               LOG_STREAM_NAME, platformLambdaLogger, null);
+        when(cloudWatchLogsProvider.get()).thenReturn(cloudWatchLogsClient);
+        logPublisher.refreshClient();
+        logPublisher.publishLogEvent("This is log message");
     }
 
     @Test

@@ -101,7 +101,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
     private LogPublisher platformLambdaLogger;
     private CloudWatchLogHelper cloudWatchLogHelper;
-    private LogPublisher resourceOwnerEventsLogger;
+    private CloudWatchLogPublisher resourceOwnerEventsLogger;
 
     protected LambdaWrapper() {
         this.platformCredentialsProvider = new SessionCredentialsProvider();
@@ -122,7 +122,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     public LambdaWrapper(final CallbackAdapter<ResourceT> callbackAdapter,
                          final CredentialsProvider platformCredentialsProvider,
                          final CredentialsProvider resourceOwnerLoggingCredentialsProvider,
-                         final LogPublisher resourceOwnerEventsLogger,
+                         final CloudWatchLogPublisher resourceOwnerEventsLogger,
                          final LogPublisher platformEventsLogger,
                          final MetricsPublisher platformMetricsPublisher,
                          final MetricsPublisher resourceOwnerMetricsPublisher,

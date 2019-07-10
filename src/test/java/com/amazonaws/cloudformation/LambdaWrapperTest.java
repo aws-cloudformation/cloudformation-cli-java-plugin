@@ -23,6 +23,7 @@ import com.amazonaws.cloudformation.exceptions.ResourceAlreadyExistsException;
 import com.amazonaws.cloudformation.exceptions.ResourceNotFoundException;
 import com.amazonaws.cloudformation.exceptions.TerminalException;
 import com.amazonaws.cloudformation.injection.CredentialsProvider;
+import com.amazonaws.cloudformation.loggers.CloudWatchLogPublisher;
 import com.amazonaws.cloudformation.loggers.LogPublisher;
 import com.amazonaws.cloudformation.metrics.MetricsPublisher;
 import com.amazonaws.cloudformation.proxy.CallbackAdapter;
@@ -83,7 +84,7 @@ public class LambdaWrapperTest {
     private MetricsPublisher resourceOwnerMetricsPublisher;
 
     @Mock
-    private LogPublisher resourceOwnerEventsLogger;
+    private CloudWatchLogPublisher resourceOwnerEventsLogger;
 
     @Mock
     private LogPublisher platformEventsLogger;
@@ -186,6 +187,8 @@ public class LambdaWrapperTest {
             // no re-invocation via CloudWatch should occur
             verifyNoMoreInteractions(scheduler);
 
+            verify(resourceOwnerEventsLogger).refreshClient();
+            verify(resourceOwnerEventsLogger, times(3)).publishLogEvent(any());
             verifyNoMoreInteractions(resourceOwnerEventsLogger);
 
             // verify output response

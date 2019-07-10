@@ -16,11 +16,5 @@ package com.amazonaws.cloudformation.loggers;
 
 public interface LogFilter {
 
-    /**
-     * Override filterString method to customize string redaction.
-     *
-     * @param rawInput
-     * @return
-     */
-    String filterString(String rawInput);
+    String applyFilter(String rawInput);
 }

@@ -84,7 +84,7 @@ public class CloudWatchLogHelperTest {
 
         final DescribeLogGroupsResponse describeLogGroupsResponse = DescribeLogGroupsResponse.builder()
             .logGroups(LogGroup.builder().logGroupName(LOG_GROUP_NAME)
-                .arn("arn:aws:loggers:us-east-1:987721315229:log-group:/aws/lambda/testLogGroup-X:*").creationTime(4567898765l)
+                .arn("arn:aws:loggers:us-east-1:123456789012:log-group:/aws/lambda/testLogGroup-X:*").creationTime(4567898765l)
                 .storedBytes(456789l).build())
             .build();
 

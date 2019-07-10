@@ -20,14 +20,8 @@ import java.util.List;
 public abstract class LogPublisher {
     private List<LogFilter> logFilterList;
 
-    /**
-     * Constructor with a sequence of logFilters.
-     */
     public LogPublisher(final LogFilter... filters) {
         logFilterList = Arrays.asList(filters);
-    }
-
-    public void refreshClient() {
     }
 
     /**
@@ -47,7 +41,7 @@ public abstract class LogPublisher {
         // Subclass could override this method for specific purpose.
         String toReturn = message;
         for (LogFilter filter : logFilterList) {
-            toReturn = filter.filterString(toReturn);
+            toReturn = filter.applyFilter(toReturn);
         }
         return toReturn;
     }
