@@ -101,16 +101,14 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
         final {{ pojo_name }} desiredResourceState;
         final {{ pojo_name }} previousResourceState;
 
-        if (request != null &&
-            request.getRequestData() != null &&
+        if (request.getRequestData() != null &&
             request.getRequestData().getResourceProperties() != null) {
             desiredResourceState = request.getRequestData().getResourceProperties();
         } else {
             desiredResourceState = null;
         }
 
-        if (request != null &&
-            request.getRequestData() != null &&
+        if (request.getRequestData() != null &&
             request.getRequestData().getPreviousResourceProperties() != null) {
             previousResourceState = request.getRequestData().getPreviousResourceProperties();
         } else {
