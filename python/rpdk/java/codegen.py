@@ -170,6 +170,10 @@ class JavaLanguagePlugin(LanguagePlugin):
     def _get_generated_root(project):
         return project.root / "target" / "generated-sources" / "rpdk"
 
+    @staticmethod
+    def _get_generated_tests_root(project):
+        return project.root / "target" / "generated-test-sources" / "rpdk"
+
     def generate(self, project):
         LOG.debug("Generate started")
 
@@ -177,14 +181,24 @@ class JavaLanguagePlugin(LanguagePlugin):
 
         objects = JsonSchemaFlattener(project.schema).flatten_schema()
 
+        # clean generated files
         generated_root = self._get_generated_root(project)
         LOG.debug("Removing generated sources: %s", generated_root)
         shutil.rmtree(generated_root, ignore_errors=True)
+        generated_tests_root = self._get_generated_tests_root(project)
+        LOG.debug("Removing generated tests: %s", generated_tests_root)
+        shutil.rmtree(generated_tests_root, ignore_errors=True)
 
+        # create generated sources and tests directories
         src = generated_root.joinpath(*self.namespace)
         LOG.debug("Making generated folder structure: %s", src)
         src.mkdir(parents=True, exist_ok=True)
 
+        test_src = generated_tests_root.joinpath(*self.namespace)
+        LOG.debug("Making generated tests folder structure: %s", test_src)
+        test_src.mkdir(parents=True, exist_ok=True)
+
+        # write generated handler integration with LambdaWrapper
         path = src / "HandlerWrapper.java"
         LOG.debug("Writing handler wrapper: %s", path)
         template = self.env.get_template("HandlerWrapper.java")
@@ -213,6 +227,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         )
         project.overwrite(path, contents)
 
+        # generate pojos
         pojo_resolver = JavaPojoResolver(objects, "ResourceModel")
         pojos = pojo_resolver.resolve_pojos()
 
@@ -227,8 +242,20 @@ class JavaLanguagePlugin(LanguagePlugin):
                 package_name=self.package_name,
                 pojo_name=pojo_name,
                 properties=properties,
+                primaryIdentifier=project.schema.get("primaryIdentifier", []),
+                additionalIdentifiers=project.schema.get("additionalIdentifiers", []),
             )
             project.overwrite(path, contents)
+
+        # generate pojo tests
+        template = self.env.get_template("ResourceModelTest.java")
+
+        path = test_src / "ResourceModelTest.java"
+        LOG.debug("Writing ResourceModelTest: %s", path)
+        contents = template.render(
+            type_name=project.type_name, package_name=self.package_name
+        )
+        project.overwrite(path, contents)
 
         LOG.debug("Generate complete")
 
