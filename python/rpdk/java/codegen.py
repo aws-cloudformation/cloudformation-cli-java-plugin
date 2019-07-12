@@ -5,11 +5,12 @@ import shutil
 
 from rpdk.core.data_loaders import resource_stream
 from rpdk.core.exceptions import InternalError, SysExitRecommendedError
+from rpdk.core.init import input_with_validation
 from rpdk.core.jsonutils.flattener import JsonSchemaFlattener
 from rpdk.core.plugin_base import LanguagePlugin
 
 from .pojo_resolver import JavaPojoResolver
-from .utils import safe_reserved
+from .utils import safe_reserved, validate_namespace
 
 LOG = logging.getLogger(__name__)
 
@@ -35,15 +36,37 @@ class JavaLanguagePlugin(LanguagePlugin):
         self.package_name = None
 
     def _namespace_from_project(self, project):
-        self.namespace = ("com",) + tuple(
-            safe_reserved(s.lower()) for s in project.type_info
+        try:
+            self.namespace = project.settings["namespace"]
+        except KeyError:
+            # fallback provided to be backwards compatible
+            fallback = ("com",) + project.type_info
+            namespace = tuple(safe_reserved(s.lower()) for s in fallback)
+            self.namespace = project.settings["namespace"] = namespace
+            project._write_settings("java")  # pylint: disable=protected-access
+
+        self.package_name = ".".join(self.namespace)
+
+    def _prompt_for_namespace(self, project):
+        if project.type_info[0] == "AWS":
+            namespace = ("com", "amazonaws") + project.type_info[1:]
+        else:
+            namespace = ("com",) + project.type_info
+
+        namespace = tuple(safe_reserved(s.lower()) for s in namespace)
+
+        prompt = "Enter a package name (empty for default '{}'): ".format(
+            ".".join(namespace)
         )
+
+        self.namespace = input_with_validation(prompt, validate_namespace(namespace))
+        project.settings["namespace"] = self.namespace
         self.package_name = ".".join(self.namespace)
 
     def init(self, project):
         LOG.debug("Init started")
 
-        self._namespace_from_project(project)
+        self._prompt_for_namespace(project)
 
         project.runtime = self.RUNTIME
         project.entrypoint = self.ENTRY_POINT.format(self.package_name)
