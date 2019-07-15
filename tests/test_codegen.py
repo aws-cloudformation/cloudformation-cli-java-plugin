@@ -20,6 +20,10 @@ def project(tmpdir):
         "rpdk.core.plugin_registry.PLUGIN_REGISTRY",
         {"test": lambda: JavaLanguagePlugin},
         clear=True,
+    ), patch(
+        "rpdk.java.codegen.input_with_validation",
+        autospec=True,
+        return_value=("com", "amazonaws", "foo", RESOURCE.lower()),
     ):
         project.init("AWS::Foo::{}".format(RESOURCE), "test")
     return project
@@ -36,7 +40,7 @@ def test_initialize(project):
     pom_tree = ET.parse(str(project.root / "pom.xml"))
     namespace = {"maven": "http://maven.apache.org/POM/4.0.0"}
     actual_group_id = pom_tree.find("maven:groupId", namespace)
-    expected_group_id = "com.aws.foo.{}".format(RESOURCE.lower())
+    expected_group_id = "com.amazonaws.foo.{}".format(RESOURCE.lower())
     assert actual_group_id.text == expected_group_id
     path = project.root / "template.yml"
     with path.open("r", encoding="utf-8") as f:
@@ -55,18 +59,24 @@ def test_generate(project):
     project.load_schema()
 
     generated_root = project._plugin._get_generated_root(project)
+    generated_tests_root = project._plugin._get_generated_tests_root(project)
 
     # generated root shouldn't be present
     assert not generated_root.is_dir()
+    assert not generated_tests_root.is_dir()
 
     project.generate()
 
-    test_file = generated_root / "test"
+    src_file = generated_root / "test"
+    src_file.touch()
+
+    test_file = generated_tests_root / "test"
     test_file.touch()
 
     project.generate()
 
     # asserts we remove existing files in the tree
+    assert not src_file.is_file()
     assert not test_file.is_file()
 
 
@@ -115,3 +125,74 @@ def test_package(project):
 
     assert len(writes) > 10
     assert "pom.xml" in writes
+
+
+def test__prompt_for_namespace_aws_default():
+    project = Mock(type_info=("AWS", "Clown", "Service"), settings={})
+    plugin = JavaLanguagePlugin()
+
+    with patch("rpdk.core.init.input", return_value="") as mock_input:
+        plugin._prompt_for_namespace(project)
+
+    mock_input.assert_called_once()
+
+    assert project.settings == {"namespace": ("com", "amazonaws", "clown", "service")}
+
+
+def test__prompt_for_namespace_aws_overwritten():
+    project = Mock(type_info=("AWS", "Clown", "Service"), settings={})
+    plugin = JavaLanguagePlugin()
+
+    with patch(
+        "rpdk.core.init.input", return_value="com.red.clown.service"
+    ) as mock_input:
+        plugin._prompt_for_namespace(project)
+
+    mock_input.assert_called_once()
+
+    assert project.settings == {"namespace": ("com", "red", "clown", "service")}
+
+
+def test__prompt_for_namespace_other_default():
+    project = Mock(type_info=("Balloon", "Clown", "Service"), settings={})
+    plugin = JavaLanguagePlugin()
+
+    with patch("rpdk.core.init.input", return_value="") as mock_input:
+        plugin._prompt_for_namespace(project)
+
+    mock_input.assert_called_once()
+
+    assert project.settings == {"namespace": ("com", "balloon", "clown", "service")}
+
+
+def test__prompt_for_namespace_other_overwritten():
+    project = Mock(type_info=("Balloon", "Clown", "Service"), settings={})
+    plugin = JavaLanguagePlugin()
+
+    with patch(
+        "rpdk.core.init.input", return_value="com.ball.clown.service"
+    ) as mock_input:
+        plugin._prompt_for_namespace(project)
+
+    mock_input.assert_called_once()
+
+    assert project.settings == {"namespace": ("com", "ball", "clown", "service")}
+
+
+def test__namespace_from_project_new_settings():
+    namespace = ("com", "ball", "clown", "service")
+    project = Mock(settings={"namespace": namespace})
+    plugin = JavaLanguagePlugin()
+    plugin._namespace_from_project(project)
+
+    assert plugin.namespace == namespace
+    assert plugin.package_name == "com.ball.clown.service"
+
+
+def test__namespace_from_project_old_settings():
+    project = Mock(type_info=("Balloon", "Clown", "Service"), settings={})
+    plugin = JavaLanguagePlugin()
+    plugin._namespace_from_project(project)
+
+    assert plugin.namespace == ("com", "balloon", "clown", "service")
+    assert plugin.package_name == "com.balloon.clown.service"
