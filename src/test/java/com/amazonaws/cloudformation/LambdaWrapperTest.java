@@ -247,7 +247,6 @@ public class LambdaWrapperTest {
             wrapper.handleRequest(in, out, context);
 
             // verify initialiseRuntime was called and initialised dependencies
-            // verify initialiseRuntime was called and initialised dependencies
             verify(platformCredentialsProvider).setCredentials(any(Credentials.class));
             verify(resourceOwnerLoggingCredentialsProvider, times(0)).setCredentials(any(Credentials.class));
             verify(callbackAdapter).refreshClient();

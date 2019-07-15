@@ -34,7 +34,6 @@ public class CloudWatchLogPublisher extends LogPublisher {
     private String logStreamName;
     private LambdaLogger platformLambdaLogger;
     private MetricsPublisherProxy metricsPublisherProxy;
-    private boolean skipLogging = false;
 
     public CloudWatchLogPublisher(final CloudWatchLogsProvider cloudWatchLogsProvider,
                                   final String logGroupName,
@@ -46,7 +45,6 @@ public class CloudWatchLogPublisher extends LogPublisher {
         this.logStreamName = logStreamName;
         this.platformLambdaLogger = platformLambdaLogger;
         this.metricsPublisherProxy = metricsPublisherProxy;
-        this.skipLogging = logStreamName == null;
     }
 
     public void refreshClient() {
@@ -56,7 +54,7 @@ public class CloudWatchLogPublisher extends LogPublisher {
     @Override
     protected void publishMessage(final String message) {
         try {
-            if (skipLogging) {
+            if (skipLogging()) {
                 return;
             }
             assert cloudWatchLogsClient != null : "cloudWatchLogsClient was not initialised. "
@@ -71,6 +69,10 @@ public class CloudWatchLogPublisher extends LogPublisher {
                     message, ex.toString()));
             emitMetricsForLoggingFailure(ex);
         }
+    }
+
+    private boolean skipLogging() {
+        return logStreamName == null;
     }
 
     private void emitMetricsForLoggingFailure(final Exception ex) {

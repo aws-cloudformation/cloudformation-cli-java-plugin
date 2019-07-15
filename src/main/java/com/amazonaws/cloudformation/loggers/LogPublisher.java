@@ -24,12 +24,6 @@ public abstract class LogPublisher {
         logFilterList = Arrays.asList(filters);
     }
 
-    /**
-     * Override to implement the log delivery method to destinations.
-     *
-     * @param message
-     * @return
-     */
     protected abstract void publishMessage(String message);
 
     /**
@@ -37,8 +31,6 @@ public abstract class LogPublisher {
      * information.
      */
     private String filterMessage(final String message) {
-        // Default filtering mechanism to be determined.
-        // Subclass could override this method for specific purpose.
         String toReturn = message;
         for (LogFilter filter : logFilterList) {
             toReturn = filter.applyFilter(toReturn);
@@ -46,11 +38,6 @@ public abstract class LogPublisher {
         return toReturn;
     }
 
-    /**
-     * Entry point of log publisher.
-     *
-     * @param message
-     */
     public final void publishLogEvent(final String message) {
         publishMessage(filterMessage(message));
     }

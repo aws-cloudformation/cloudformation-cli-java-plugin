@@ -23,8 +23,6 @@ public class LoggerProxy implements Logger {
 
     private final List<LogPublisher> logPublishers = new ArrayList<>();
 
-    // The order which these loggers are added determines the order loggers get
-    // invoked "log(msg)"
     public void addLogPublisher(final LogPublisher logPublisher) {
         logPublishers.add(logPublisher);
     }

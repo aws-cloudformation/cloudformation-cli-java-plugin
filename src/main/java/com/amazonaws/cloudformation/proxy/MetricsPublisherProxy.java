@@ -24,8 +24,6 @@ import java.util.List;
 public class MetricsPublisherProxy {
     private final List<MetricsPublisher> metricsPublishers = new ArrayList<>();
 
-    // The order of metrics publisher added determines the order of invocation.
-    // First added first invoked.
     public void addMetricsPublisher(final MetricsPublisher metricsPublisher) {
         metricsPublishers.add(metricsPublisher);
     }
