@@ -35,13 +35,16 @@ public class MetricsPublisherImpl extends MetricsPublisher {
     private final CloudWatchProvider cloudWatchProvider;
 
     private Logger loggerProxy;
+    private String providerAccountId;
 
     private CloudWatchClient cloudWatchClient;
 
     public MetricsPublisherImpl(final CloudWatchProvider cloudWatchProvider,
-                                final Logger loggerProxy) {
+                                final Logger loggerProxy,
+                                final String providerAccountId) {
         this.cloudWatchProvider = cloudWatchProvider;
         this.loggerProxy = loggerProxy;
+        this.providerAccountId = providerAccountId;
     }
 
     public void refreshClient() {
@@ -112,7 +115,8 @@ public class MetricsPublisherImpl extends MetricsPublisher {
             .timestamp(timestamp).build();
 
         PutMetricDataRequest putMetricDataRequest = PutMetricDataRequest.builder()
-            .namespace(String.format("%s/%s", Metric.METRIC_NAMESPACE_ROOT, resourceNamespace)).metricData(metricDatum).build();
+            .namespace(String.format("%s/%s/%s", Metric.METRIC_NAMESPACE_ROOT, providerAccountId, resourceNamespace))
+            .metricData(metricDatum).build();
 
         try {
             this.cloudWatchClient.putMetricData(putMetricDataRequest);

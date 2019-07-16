@@ -156,6 +156,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                                    final Credentials resourceOwnerLoggingCredentials,
                                    final String resourceOwnerLogGroupName,
                                    final Context context,
+                                   final String awsAccountId,
                                    final URI callbackEndpoint) {
 
         this.loggerProxy = new LoggerProxy();
@@ -171,7 +172,10 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // tests).
         // e.g. "if (this.platformMetricsPublisher == null)"
         if (this.platformMetricsPublisher == null) {
-            this.platformMetricsPublisher = new MetricsPublisherImpl(this.platformCloudWatchProvider, this.loggerProxy);
+            // platformMetricsPublisher needs aws account id to differentiate metrics
+            // namespace
+            this.platformMetricsPublisher = new MetricsPublisherImpl(this.platformCloudWatchProvider, this.loggerProxy,
+                                                                     awsAccountId);
         }
         this.metricsPublisherProxy.addMetricsPublisher(this.platformMetricsPublisher);
         this.platformMetricsPublisher.refreshClient();
@@ -187,7 +191,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
             if (this.resourceOwnerMetricsPublisher == null) {
                 this.resourceOwnerMetricsPublisher = new MetricsPublisherImpl(this.resourceOwnerCloudWatchProvider,
-                                                                              this.loggerProxy);
+                                                                              this.loggerProxy, awsAccountId);
             }
             this.metricsPublisherProxy.addMetricsPublisher(this.resourceOwnerMetricsPublisher);
             this.resourceOwnerMetricsPublisher.refreshClient();
@@ -304,7 +308,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // initialise dependencies with platform credentials
         initialiseRuntime(request.getRequestData().getPlatformCredentials(),
             request.getRequestData().getResourceOwnerLoggingCredentials(),
-            request.getRequestData().getResourceOwnerLogGroupName(), context, URI.create(request.getResponseEndpoint()));
+            request.getRequestData().getResourceOwnerLogGroupName(), context, request.getAwsAccountId(),
+            URI.create(request.getResponseEndpoint()));
 
         // transform the request object to pass to caller
         ResourceHandlerRequest<ResourceT> resourceHandlerRequest = transform(request);
