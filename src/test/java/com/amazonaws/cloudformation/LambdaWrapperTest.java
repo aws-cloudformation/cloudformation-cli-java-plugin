@@ -167,9 +167,9 @@ public class LambdaWrapperTest {
 
             // validation failure metric should be published for final error handling
             verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
-                any(TerminalException.class));
+                any(TerminalException.class), any(HandlerErrorCode.class));
             verify(resourceOwnerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
-                any(TerminalException.class));
+                any(TerminalException.class), any(HandlerErrorCode.class));
 
             // all metrics should be published even on terminal failure
             verify(platformMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
@@ -256,9 +256,9 @@ public class LambdaWrapperTest {
 
             // validation failure metric should be published for final error handling
             verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
-                any(TerminalException.class));
+                any(TerminalException.class), any(HandlerErrorCode.class));
             verify(resourceOwnerMetricsPublisher, times(0)).publishExceptionMetric(any(Instant.class), any(),
-                any(TerminalException.class));
+                any(TerminalException.class), any(HandlerErrorCode.class));
 
             // all metrics should be published even on terminal failure
             verify(platformMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
@@ -645,9 +645,9 @@ public class LambdaWrapperTest {
 
             // validation failure metric should be published but no others
             verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), eq(action),
-                any(Exception.class));
+                any(Exception.class), any(HandlerErrorCode.class));
             verify(resourceOwnerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), eq(action),
-                any(Exception.class));
+                any(Exception.class), any(HandlerErrorCode.class));
 
             // all metrics should be published, even for a single invocation
             verify(platformMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
@@ -723,10 +723,10 @@ public class LambdaWrapperTest {
 
             // validation failure metric should be published but no others
             verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), eq(Action.CREATE),
-                any(Exception.class));
+                any(Exception.class), any(HandlerErrorCode.class));
 
             verify(resourceOwnerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), eq(Action.CREATE),
-                any(Exception.class));
+                any(Exception.class), any(HandlerErrorCode.class));
 
             // all metrics should be published, even for a single invocation
             verify(platformMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
@@ -1213,10 +1213,10 @@ public class LambdaWrapperTest {
 
             // failure metric should be published
             verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
-                any(AmazonServiceException.class));
+                any(AmazonServiceException.class), any(HandlerErrorCode.class));
 
             verify(resourceOwnerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
-                any(AmazonServiceException.class));
+                any(AmazonServiceException.class), any(HandlerErrorCode.class));
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             verify(validator, times(1)).validateObject(any(JSONObject.class), any(InputStream.class));
@@ -1265,10 +1265,10 @@ public class LambdaWrapperTest {
 
             // failure metric should be published
             verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
-                any(ResourceAlreadyExistsException.class));
+                any(ResourceAlreadyExistsException.class), any(HandlerErrorCode.class));
 
             verify(resourceOwnerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
-                any(ResourceAlreadyExistsException.class));
+                any(ResourceAlreadyExistsException.class), any(HandlerErrorCode.class));
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             verify(validator, times(1)).validateObject(any(JSONObject.class), any(InputStream.class));
@@ -1316,10 +1316,10 @@ public class LambdaWrapperTest {
 
             // failure metric should be published
             verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
-                any(ResourceNotFoundException.class));
+                any(ResourceNotFoundException.class), any(HandlerErrorCode.class));
 
             verify(resourceOwnerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
-                any(ResourceNotFoundException.class));
+                any(ResourceNotFoundException.class), any(HandlerErrorCode.class));
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             verify(validator, times(1)).validateObject(any(JSONObject.class), any(InputStream.class));
@@ -1345,7 +1345,7 @@ public class LambdaWrapperTest {
         // simulate runtime Errors in the metrics publisher (such as dependency
         // resolution conflicts)
         doThrow(new Error("not an Exception")).when(platformMetricsPublisher).publishInvocationMetric(any(), any());
-        doThrow(new Error("not an Exception")).when(platformMetricsPublisher).publishExceptionMetric(any(), any(), any());
+        doThrow(new Error("not an Exception")).when(platformMetricsPublisher).publishExceptionMetric(any(), any(), any(), any());
 
         try (final InputStream in = loadRequestStream("create.request.json");
             final OutputStream out = new ByteArrayOutputStream()) {

@@ -16,6 +16,7 @@ package com.amazonaws.cloudformation.metrics;
 
 import com.amazonaws.cloudformation.Action;
 import com.amazonaws.cloudformation.injection.CloudWatchProvider;
+import com.amazonaws.cloudformation.proxy.HandlerErrorCode;
 import com.amazonaws.cloudformation.proxy.Logger;
 
 import java.time.Instant;
@@ -51,15 +52,21 @@ public class MetricsPublisherImpl extends MetricsPublisher {
         return this.resourceTypeName;
     }
 
-    public void publishExceptionMetric(final Instant timestamp, final Action action, final Throwable e) {
+    @Override
+    public void publishExceptionMetric(final Instant timestamp,
+                                       final Action action,
+                                       final Throwable e,
+                                       final HandlerErrorCode handlerErrorCode) {
         Map<String, String> dimensions = new HashMap<>();
         dimensions.put(Metric.DIMENSION_KEY_ACTION_TYPE, action == null ? "NO_ACTION" : action.name());
         dimensions.put(Metric.DIMENSION_KEY_EXCEPTION_TYPE, e.getClass().toString());
         dimensions.put(Metric.DIMENSION_KEY_RESOURCE_TYPE, this.getResourceTypeName());
+        dimensions.put(Metric.HANDLER_ERROR_CODE, handlerErrorCode.name());
 
         publishMetric(Metric.METRIC_NAME_HANDLER_EXCEPTION, dimensions, StandardUnit.COUNT, 1.0, timestamp);
     }
 
+    @Override
     public void publishResourceOwnerLogDeliveryExceptionMetric(final Instant timestamp, final Throwable e) {
         Map<String, String> dimensions = new HashMap<>();
         dimensions.put(Metric.DIMENSION_KEY_ACTION_TYPE, "ResourceOwnerLogDelivery");
@@ -69,6 +76,7 @@ public class MetricsPublisherImpl extends MetricsPublisher {
         publishMetric(Metric.METRIC_NAME_HANDLER_EXCEPTION, dimensions, StandardUnit.COUNT, 1.0, timestamp);
     }
 
+    @Override
     public void publishInvocationMetric(final Instant timestamp, final Action action) {
         Map<String, String> dimensions = new HashMap<>();
         dimensions.put(Metric.DIMENSION_KEY_ACTION_TYPE, action == null ? "NO_ACTION" : action.name());
@@ -77,6 +85,7 @@ public class MetricsPublisherImpl extends MetricsPublisher {
         publishMetric(Metric.METRIC_NAME_HANDLER_INVOCATION_COUNT, dimensions, StandardUnit.COUNT, 1.0, timestamp);
     }
 
+    @Override
     public void publishDurationMetric(final Instant timestamp, final Action action, final long milliseconds) {
         Map<String, String> dimensions = new HashMap<>();
         dimensions.put(Metric.DIMENSION_KEY_ACTION_TYPE, action == null ? "NO_ACTION" : action.name());

@@ -252,7 +252,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                     validationMessageBuilder.append(String.format("%n%s (%s)", cause.getMessage(), cause.getSchemaLocation()));
                 }
             }
-            publishExceptionMetric(request == null ? null : request.getAction(), e);
+            publishExceptionMetric(request == null ? null : request.getAction(), e, HandlerErrorCode.InvalidRequest);
             handlerResponse = ProgressEvent.defaultFailureHandler(new TerminalException(validationMessageBuilder.toString(), e),
                 HandlerErrorCode.InvalidRequest);
         } catch (final Throwable e) {
@@ -264,7 +264,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                 handlerResponse.setResourceModel(request.getRequestData().getResourceProperties());
             }
             if (request != null) {
-                publishExceptionMetric(request.getAction(), e);
+                publishExceptionMetric(request.getAction(), e, HandlerErrorCode.InternalFailure);
             }
 
         } finally {
@@ -413,19 +413,19 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             return handlerResponse;
 
         } catch (final ResourceAlreadyExistsException e) {
-            publishExceptionMetric(request.getAction(), e);
+            publishExceptionMetric(request.getAction(), e, HandlerErrorCode.AlreadyExists);
             logUnhandledError("An existing resource was found", request, e);
             return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.AlreadyExists);
         } catch (final ResourceNotFoundException e) {
-            publishExceptionMetric(request.getAction(), e);
+            publishExceptionMetric(request.getAction(), e, HandlerErrorCode.NotFound);
             logUnhandledError("A requested resource was not found", request, e);
             return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.NotFound);
         } catch (final AmazonServiceException e) {
-            publishExceptionMetric(request.getAction(), e);
+            publishExceptionMetric(request.getAction(), e, HandlerErrorCode.GeneralServiceException);
             logUnhandledError("A downstream service error occurred", request, e);
             return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.GeneralServiceException);
         } catch (final Throwable e) {
-            publishExceptionMetric(request.getAction(), e);
+            publishExceptionMetric(request.getAction(), e, HandlerErrorCode.InternalFailure);
             logUnhandledError("An unknown error occurred ", request, e);
             return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.InternalFailure);
         } finally {
@@ -554,9 +554,9 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     /**
      * null-safe exception metrics delivery
      */
-    private void publishExceptionMetric(final Action action, final Throwable ex) {
+    private void publishExceptionMetric(final Action action, final Throwable ex, final HandlerErrorCode handlerErrorCode) {
         if (this.metricsPublisherProxy != null) {
-            this.metricsPublisherProxy.publishExceptionMetric(Instant.now(), action, ex);
+            this.metricsPublisherProxy.publishExceptionMetric(Instant.now(), action, ex, handlerErrorCode);
         } else {
             // Lambda logger is the only fallback if metrics publisher proxy is not
             // initialized.

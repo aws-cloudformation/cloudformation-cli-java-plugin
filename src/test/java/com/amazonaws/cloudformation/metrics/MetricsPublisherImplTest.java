@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import com.amazonaws.cloudformation.Action;
 import com.amazonaws.cloudformation.injection.CloudWatchProvider;
+import com.amazonaws.cloudformation.proxy.HandlerErrorCode;
 import com.amazonaws.cloudformation.proxy.Logger;
 
 import java.time.Instant;
@@ -124,7 +125,7 @@ public class MetricsPublisherImplTest {
 
         final Instant instant = Instant.parse("2019-06-03T17:50:00Z");
         final RuntimeException e = new RuntimeException("some error");
-        platformMetricsPublisher.publishExceptionMetric(instant, Action.CREATE, e);
+        platformMetricsPublisher.publishExceptionMetric(instant, Action.CREATE, e, HandlerErrorCode.InternalFailure);
         resourceOwnerMetricsPublisher.publishDurationMetric(instant, Action.UPDATE, 123456);
 
         final ArgumentCaptor<PutMetricDataRequest> argument1 = ArgumentCaptor.forClass(PutMetricDataRequest.class);
@@ -143,7 +144,8 @@ public class MetricsPublisherImplTest {
         assertThat(metricDatum.timestamp()).isEqualTo(Instant.parse("2019-06-03T17:50:00Z"));
         assertThat(metricDatum.dimensions()).containsExactlyInAnyOrder(Dimension.builder().name("Action").value("CREATE").build(),
             Dimension.builder().name("ExceptionType").value("class java.lang.RuntimeException").build(),
-            Dimension.builder().name("ResourceType").value("AWS::Test::TestModel").build());
+            Dimension.builder().name("ResourceType").value("AWS::Test::TestModel").build(),
+            Dimension.builder().name("HandlerErrorCode").value("InternalFailure").build());
     }
 
     @Test

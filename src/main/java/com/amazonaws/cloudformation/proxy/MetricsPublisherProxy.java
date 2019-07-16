@@ -32,8 +32,12 @@ public class MetricsPublisherProxy {
         metricsPublishers.stream().forEach(metricsPublisher -> metricsPublisher.setResourceTypeName(resourceTypeName));
     }
 
-    public void publishExceptionMetric(final Instant timestamp, final Action action, final Throwable e) {
-        metricsPublishers.stream().forEach(metricsPublisher -> metricsPublisher.publishExceptionMetric(timestamp, action, e));
+    public void publishExceptionMetric(final Instant timestamp,
+                                       final Action action,
+                                       final Throwable e,
+                                       final HandlerErrorCode handlerErrorCode) {
+        metricsPublishers.stream()
+            .forEach(metricsPublisher -> metricsPublisher.publishExceptionMetric(timestamp, action, e, handlerErrorCode));
     }
 
     public void publishInvocationMetric(final Instant timestamp, final Action action) {
