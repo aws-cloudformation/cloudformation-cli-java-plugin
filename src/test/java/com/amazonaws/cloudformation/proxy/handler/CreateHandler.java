@@ -15,7 +15,7 @@
 package com.amazonaws.cloudformation.proxy.handler;
 
 import com.amazonaws.cloudformation.proxy.AmazonWebServicesClientProxy;
-import com.amazonaws.cloudformation.proxy.Logger;
+import com.amazonaws.cloudformation.proxy.LoggerProxy;
 import com.amazonaws.cloudformation.proxy.ProgressEvent;
 import com.amazonaws.cloudformation.proxy.ProxyClient;
 import com.amazonaws.cloudformation.proxy.ResourceHandlerRequest;
@@ -37,7 +37,7 @@ public class CreateHandler {
     public ProgressEvent<Model, StdCallbackContext> handleRequest(final AmazonWebServicesClientProxy proxy,
                                                                   final ResourceHandlerRequest<Model> request,
                                                                   final StdCallbackContext context,
-                                                                  final Logger logger) {
+                                                                  final LoggerProxy loggerProxy) {
 
         final Model model = request.getDesiredResourceState();
         final StdCallbackContext cxt = context == null ? new StdCallbackContext() : context;
@@ -50,7 +50,8 @@ public class CreateHandler {
         }).retry(Constant.of().delay(Duration.ofSeconds(3)).timeout(Duration.ofSeconds(9)).build())
             .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository))
             .done((request1, response, client1, model1, context1) -> new ReadHandler(this.client).handleRequest(proxy, request,
-                cxt, logger));
+                cxt, loggerProxy));
+
     }
 
 }

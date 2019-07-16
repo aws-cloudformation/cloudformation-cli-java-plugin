@@ -12,23 +12,9 @@
 * express or implied. See the License for the specific language governing
 * permissions and limitations under the License.
 */
-package com.amazonaws.cloudformation.proxy;
+package com.amazonaws.cloudformation.loggers;
 
-import com.amazonaws.cloudformation.loggers.LogPublisher;
+public interface LogFilter {
 
-import java.util.ArrayList;
-import java.util.List;
-
-public class LoggerProxy implements Logger {
-
-    private final List<LogPublisher> logPublishers = new ArrayList<>();
-
-    public void addLogPublisher(final LogPublisher logPublisher) {
-        logPublishers.add(logPublisher);
-    }
-
-    @Override
-    public void log(final String message) {
-        logPublishers.stream().forEach(logPublisher -> logPublisher.publishLogEvent(message));
-    }
+    String applyFilter(String rawInput);
 }

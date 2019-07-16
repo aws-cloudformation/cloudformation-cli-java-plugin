@@ -15,7 +15,7 @@
 package com.amazonaws.cloudformation.proxy.handler;
 
 import com.amazonaws.cloudformation.proxy.AmazonWebServicesClientProxy;
-import com.amazonaws.cloudformation.proxy.Logger;
+import com.amazonaws.cloudformation.proxy.LoggerProxy;
 import com.amazonaws.cloudformation.proxy.ProgressEvent;
 import com.amazonaws.cloudformation.proxy.ProxyClient;
 import com.amazonaws.cloudformation.proxy.ResourceHandlerRequest;
@@ -37,7 +37,7 @@ public class ReadHandler {
     public ProgressEvent<Model, StdCallbackContext> handleRequest(final AmazonWebServicesClientProxy proxy,
                                                                   final ResourceHandlerRequest<Model> request,
                                                                   final StdCallbackContext context,
-                                                                  final Logger logger) {
+                                                                  final LoggerProxy loggerProxy) {
 
         final Model model = request.getDesiredResourceState();
         final StdCallbackContext cxt = context == null ? new StdCallbackContext() : context;

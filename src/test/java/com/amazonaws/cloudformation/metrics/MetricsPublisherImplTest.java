@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 
 import com.amazonaws.cloudformation.Action;
 import com.amazonaws.cloudformation.injection.CloudWatchProvider;
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
+import com.amazonaws.cloudformation.proxy.Logger;
 
 import java.time.Instant;
 
@@ -46,39 +46,59 @@ import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
 public class MetricsPublisherImplTest {
 
     @Mock
-    private LambdaLogger logger;
+    private Logger loggerProxy;
 
     @Mock
-    private CloudWatchProvider cloudWatchProvider;
+    private CloudWatchProvider platformCloudWatchProvider;
 
     @Mock
-    private CloudWatchClient cloudWatchClient;
+    private CloudWatchProvider resourceOwnerCloudWatchProvider;
+
+    @Mock
+    private CloudWatchClient platformCloudWatchClient;
+
+    @Mock
+    private CloudWatchClient resourceOwnerCloudWatchClient;
 
     @BeforeEach
     public void beforeEach() {
-        when(cloudWatchProvider.get()).thenReturn(cloudWatchClient);
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(mock(PutMetricDataResponse.class));
+        when(platformCloudWatchProvider.get()).thenReturn(platformCloudWatchClient);
+        when(resourceOwnerCloudWatchProvider.get()).thenReturn(resourceOwnerCloudWatchClient);
+        when(platformCloudWatchClient.putMetricData(any(PutMetricDataRequest.class)))
+            .thenReturn(mock(PutMetricDataResponse.class));
+        when(resourceOwnerCloudWatchClient.putMetricData(any(PutMetricDataRequest.class)))
+            .thenReturn(mock(PutMetricDataResponse.class));
     }
 
     @AfterEach
     public void afterEach() {
-        verifyNoMoreInteractions(cloudWatchProvider);
-        verifyNoMoreInteractions(cloudWatchClient);
+        verifyNoMoreInteractions(platformCloudWatchProvider);
+        verifyNoMoreInteractions(platformCloudWatchClient);
+        verifyNoMoreInteractions(resourceOwnerCloudWatchProvider);
+        verifyNoMoreInteractions(resourceOwnerCloudWatchClient);
     }
 
     @Test
     public void testPublishDurationMetric() {
-        final MetricsPublisherImpl o = new MetricsPublisherImpl(cloudWatchProvider, logger);
-        o.setResourceTypeName("AWS::Test::TestModel");
-        o.refreshClient();
+        final MetricsPublisherImpl platformMetricsPublisher = new MetricsPublisherImpl(platformCloudWatchProvider, loggerProxy);
+        platformMetricsPublisher.setResourceTypeName("AWS::Test::TestModel");
+        platformMetricsPublisher.refreshClient();
+
+        final MetricsPublisherImpl resourceOwnerMetricsPublisher = new MetricsPublisherImpl(resourceOwnerCloudWatchProvider,
+                                                                                            loggerProxy);
+        resourceOwnerMetricsPublisher.setResourceTypeName("AWS::Test::TestModel");
+        resourceOwnerMetricsPublisher.refreshClient();
 
         final Instant instant = Instant.parse("2019-06-04T17:50:00Z");
-        o.publishDurationMetric(instant, Action.UPDATE, 123456);
+        platformMetricsPublisher.publishDurationMetric(instant, Action.UPDATE, 123456);
+        resourceOwnerMetricsPublisher.publishDurationMetric(instant, Action.UPDATE, 123456);
 
-        final ArgumentCaptor<PutMetricDataRequest> argument = ArgumentCaptor.forClass(PutMetricDataRequest.class);
-        verify(cloudWatchClient).putMetricData(argument.capture());
+        final ArgumentCaptor<PutMetricDataRequest> argument1 = ArgumentCaptor.forClass(PutMetricDataRequest.class);
+        final ArgumentCaptor<PutMetricDataRequest> argument2 = ArgumentCaptor.forClass(PutMetricDataRequest.class);
+        verify(platformCloudWatchClient).putMetricData(argument1.capture());
+        verify(resourceOwnerCloudWatchClient).putMetricData(argument2.capture());
 
-        final PutMetricDataRequest request = argument.getValue();
+        final PutMetricDataRequest request = argument1.getValue();
         assertThat(request.namespace()).isEqualTo("AWS_TMP/CloudFormation/AWS/Test/TestModel");
 
         assertThat(request.metricData()).hasSize(1);
@@ -93,18 +113,26 @@ public class MetricsPublisherImplTest {
 
     @Test
     public void testPublishExceptionMetric() {
-        final MetricsPublisherImpl o = new MetricsPublisherImpl(cloudWatchProvider, logger);
-        o.setResourceTypeName("AWS::Test::TestModel");
-        o.refreshClient();
+        final MetricsPublisherImpl platformMetricsPublisher = new MetricsPublisherImpl(platformCloudWatchProvider, loggerProxy);
+        platformMetricsPublisher.setResourceTypeName("AWS::Test::TestModel");
+        platformMetricsPublisher.refreshClient();
+
+        final MetricsPublisherImpl resourceOwnerMetricsPublisher = new MetricsPublisherImpl(resourceOwnerCloudWatchProvider,
+                                                                                            loggerProxy);
+        resourceOwnerMetricsPublisher.setResourceTypeName("AWS::Test::TestModel");
+        resourceOwnerMetricsPublisher.refreshClient();
 
         final Instant instant = Instant.parse("2019-06-03T17:50:00Z");
         final RuntimeException e = new RuntimeException("some error");
-        o.publishExceptionMetric(instant, Action.CREATE, e);
+        platformMetricsPublisher.publishExceptionMetric(instant, Action.CREATE, e);
+        resourceOwnerMetricsPublisher.publishDurationMetric(instant, Action.UPDATE, 123456);
 
-        final ArgumentCaptor<PutMetricDataRequest> argument = ArgumentCaptor.forClass(PutMetricDataRequest.class);
-        verify(cloudWatchClient).putMetricData(argument.capture());
+        final ArgumentCaptor<PutMetricDataRequest> argument1 = ArgumentCaptor.forClass(PutMetricDataRequest.class);
+        final ArgumentCaptor<PutMetricDataRequest> argument2 = ArgumentCaptor.forClass(PutMetricDataRequest.class);
+        verify(platformCloudWatchClient).putMetricData(argument1.capture());
+        verify(resourceOwnerCloudWatchClient).putMetricData(argument2.capture());
 
-        final PutMetricDataRequest request = argument.getValue();
+        final PutMetricDataRequest request = argument1.getValue();
         assertThat(request.namespace()).isEqualTo("AWS_TMP/CloudFormation/AWS/Test/TestModel");
 
         assertThat(request.metricData()).hasSize(1);
@@ -120,17 +148,25 @@ public class MetricsPublisherImplTest {
 
     @Test
     public void testPublishInvocationMetric() {
-        final MetricsPublisherImpl o = new MetricsPublisherImpl(cloudWatchProvider, logger);
-        o.setResourceTypeName("AWS::Test::TestModel");
-        o.refreshClient();
+        final MetricsPublisherImpl platformMetricsPublisher = new MetricsPublisherImpl(platformCloudWatchProvider, loggerProxy);
+        platformMetricsPublisher.setResourceTypeName("AWS::Test::TestModel");
+        platformMetricsPublisher.refreshClient();
+
+        final MetricsPublisherImpl resourceOwnerMetricsPublisher = new MetricsPublisherImpl(resourceOwnerCloudWatchProvider,
+                                                                                            loggerProxy);
+        resourceOwnerMetricsPublisher.setResourceTypeName("AWS::Test::TestModel");
+        resourceOwnerMetricsPublisher.refreshClient();
 
         final Instant instant = Instant.parse("2019-06-04T17:50:00Z");
-        o.publishInvocationMetric(instant, Action.UPDATE);
+        platformMetricsPublisher.publishInvocationMetric(instant, Action.UPDATE);
+        resourceOwnerMetricsPublisher.publishDurationMetric(instant, Action.UPDATE, 123456);
 
-        final ArgumentCaptor<PutMetricDataRequest> argument = ArgumentCaptor.forClass(PutMetricDataRequest.class);
-        verify(cloudWatchClient).putMetricData(argument.capture());
+        final ArgumentCaptor<PutMetricDataRequest> argument1 = ArgumentCaptor.forClass(PutMetricDataRequest.class);
+        final ArgumentCaptor<PutMetricDataRequest> argument2 = ArgumentCaptor.forClass(PutMetricDataRequest.class);
+        verify(platformCloudWatchClient).putMetricData(argument1.capture());
+        verify(resourceOwnerCloudWatchClient).putMetricData(argument2.capture());
 
-        final PutMetricDataRequest request = argument.getValue();
+        final PutMetricDataRequest request = argument1.getValue();
         assertThat(request.namespace()).isEqualTo("AWS_TMP/CloudFormation/AWS/Test/TestModel");
 
         assertThat(request.metricData()).hasSize(1);

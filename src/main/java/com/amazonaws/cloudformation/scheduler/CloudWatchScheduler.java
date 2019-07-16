@@ -16,8 +16,8 @@ package com.amazonaws.cloudformation.scheduler;
 
 import com.amazonaws.cloudformation.injection.CloudWatchEventsProvider;
 import com.amazonaws.cloudformation.proxy.HandlerRequest;
+import com.amazonaws.cloudformation.proxy.Logger;
 import com.amazonaws.cloudformation.proxy.RequestContext;
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
 
 import java.util.UUID;
 
@@ -40,15 +40,15 @@ public class CloudWatchScheduler {
 
     private final CloudWatchEventsProvider cloudWatchEventsProvider;
 
-    private final LambdaLogger logger;
+    private final Logger loggerProxy;
 
     private final CronHelper cronHelper;
     private CloudWatchEventsClient client;
 
     public CloudWatchScheduler(final CloudWatchEventsProvider cloudWatchEventsProvider,
-                               final LambdaLogger logger) {
+                               final Logger loggerProxy) {
         this.cloudWatchEventsProvider = cloudWatchEventsProvider;
-        this.logger = logger;
+        this.loggerProxy = loggerProxy;
         this.cronHelper = new CronHelper();
     }
 
@@ -56,10 +56,10 @@ public class CloudWatchScheduler {
      * This .ctor provided for testing
      */
     public CloudWatchScheduler(final CloudWatchEventsProvider cloudWatchEventsProvider,
-                               final LambdaLogger logger,
+                               final Logger loggerProxy,
                                final CronHelper cronHelper) {
         this.cloudWatchEventsProvider = cloudWatchEventsProvider;
-        this.logger = logger;
+        this.loggerProxy = loggerProxy;
         this.cronHelper = cronHelper;
     }
 
@@ -76,7 +76,7 @@ public class CloudWatchScheduler {
      * Schedule a re-invocation of the executing handler no less than 1 minute from
      * now
      *
-     * @param functionArn the ARN oft he Lambda function to be invoked
+     * @param functionArn the ARN of the Lambda function to be invoked
      * @param minutesFromNow the minimum minutes from now that the re-invocation
      *            will occur. CWE provides only minute-granularity
      * @param handlerRequest additional context which the handler can provide itself
@@ -153,8 +153,8 @@ public class CloudWatchScheduler {
      * @param message A string containing the event to log.
      */
     private void log(final String message) {
-        if (this.logger != null) {
-            this.logger.log(message);
+        if (this.loggerProxy != null) {
+            loggerProxy.log(message);
         }
     }
 }

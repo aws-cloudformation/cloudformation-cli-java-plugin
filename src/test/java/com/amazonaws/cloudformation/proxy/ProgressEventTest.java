@@ -18,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.amazonaws.cloudformation.TestContext;
 import com.amazonaws.cloudformation.TestModel;
+import com.amazonaws.cloudformation.exceptions.ResourceNotFoundException;
 import com.amazonaws.cloudformation.resource.Serializer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
@@ -85,6 +86,55 @@ public class ProgressEventTest {
         assertThat(chained.isFailed()).isEqualTo(true);
         assertThat(chained.isInProgress()).isEqualTo(false);
         assertThat(chained.isInProgressCallbackDelay()).isEqualTo(false);
+    }
+
+    @Test
+    public void testOnSuccessMethod_Success() {
+        final TestModel model = TestModel.builder().property1("abc").property2(123).build();
+        final ProgressEvent<TestModel, TestContext> progressEvent = ProgressEvent.defaultSuccessHandler(model);
+
+        progressEvent.onSuccess((ProgressEvent<TestModel, TestContext> testModelTestContextProgressEvent) -> progressEvent);
+        progressEvent.isSuccess();
+        progressEvent.isInProgressCallbackDelay();
+    }
+
+    @Test
+    public void testOnSuccessMethod_NoStatus() {
+        final TestModel model = TestModel.builder().property1("abc").property2(123).build();
+        final ProgressEvent<TestModel, TestContext> progressEvent = ProgressEvent.defaultSuccessHandler(model);
+        progressEvent.setStatus(null);
+
+        progressEvent.onSuccess((ProgressEvent<TestModel, TestContext> testModelTestContextProgressEvent) -> progressEvent);
+        progressEvent.isSuccess();
+        progressEvent.isInProgressCallbackDelay();
+    }
+
+    @Test
+    public void testOnSuccessMethod_InProgress1() {
+        final TestModel model = TestModel.builder().property1("abc").property2(123).build();
+        final ProgressEvent<TestModel, TestContext> progressEvent = ProgressEvent.defaultInProgressHandler(null, 30, model);
+
+        progressEvent.onSuccess((ProgressEvent<TestModel, TestContext> testModelTestContextProgressEvent) -> progressEvent);
+        progressEvent.isSuccess();
+        progressEvent.isInProgressCallbackDelay();
+    }
+
+    @Test
+    public void testOnSuccessMethod_InProgress2() {
+        final TestModel model = TestModel.builder().property1("abc").property2(123).build();
+        final ProgressEvent<TestModel, TestContext> progressEvent = ProgressEvent.defaultInProgressHandler(null, 0, model);
+
+        progressEvent.onSuccess((ProgressEvent<TestModel, TestContext> testModelTestContextProgressEvent) -> progressEvent);
+        progressEvent.isSuccess();
+        progressEvent.isInProgressCallbackDelay();
+    }
+
+    @Test
+    public void testOnSuccessMethod_Failed() {
+        final ProgressEvent<TestModel, TestContext> progressEvent = ProgressEvent.defaultFailureHandler(
+            new ResourceNotFoundException(new RuntimeException("Sorry")), HandlerErrorCode.InternalFailure);
+
+        progressEvent.onSuccess((ProgressEvent<TestModel, TestContext> testModelTestContextProgressEvent) -> progressEvent);
     }
 
     @Test

@@ -21,7 +21,6 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicSessionCredentials;
 import com.amazonaws.cloudformation.proxy.delay.Constant;
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.Uninterruptibles;
 
@@ -55,6 +54,65 @@ import software.amazon.awssdk.http.HttpStatusCode;
  * @see ProxyClient
  */
 public class AmazonWebServicesClientProxy implements CallChain {
+
+    public static final int HTTP_STATUS_NETWORK_AUTHN_REQUIRED = 511;
+    public static final int HTTP_STATUS_GONE = 410;
+
+    private final AWSCredentialsProvider v1CredentialsProvider;
+    private final AwsCredentialsProvider v2CredentialsProvider;
+    private final Supplier<Long> remainingTimeInMillis;
+    private LoggerProxy loggerProxy;
+
+    public AmazonWebServicesClientProxy(final LoggerProxy loggerProxy,
+                                        final Credentials credentials,
+                                        final Supplier<Long> remainingTimeToExecute) {
+        this.loggerProxy = loggerProxy;
+        this.remainingTimeInMillis = remainingTimeToExecute;
+
+        BasicSessionCredentials basicSessionCredentials = new BasicSessionCredentials(credentials.getAccessKeyId(),
+                                                                                      credentials.getSecretAccessKey(),
+                                                                                      credentials.getSessionToken());
+        this.v1CredentialsProvider = new AWSStaticCredentialsProvider(basicSessionCredentials);
+
+        AwsSessionCredentials awsSessionCredentials = AwsSessionCredentials.create(credentials.getAccessKeyId(),
+            credentials.getSecretAccessKey(), credentials.getSessionToken());
+        this.v2CredentialsProvider = StaticCredentialsProvider.create(awsSessionCredentials);
+    }
+
+    public <ClientT> ProxyClient<ClientT> newProxy(@Nonnull Supplier<ClientT> client) {
+        return new ProxyClient<ClientT>() {
+            @Override
+            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
+                ResponseT
+                injectCredentialsAndInvokeV2(RequestT request, Function<RequestT, ResponseT> requestFunction) {
+                return AmazonWebServicesClientProxy.this.injectCredentialsAndInvokeV2(request, requestFunction);
+            }
+
+            @Override
+            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
+                CompletableFuture<ResponseT>
+                injectCredentialsAndInvokeV2Aync(RequestT request,
+                                                 Function<RequestT, CompletableFuture<ResponseT>> requestFunction) {
+                return AmazonWebServicesClientProxy.this.injectCredentialsAndInvokeV2Async(request, requestFunction);
+            }
+
+            @Override
+            public ClientT client() {
+                return client.get();
+            }
+        };
+    }
+
+    @Override
+    public <ClientT, ModelT, CallbackT extends StdCallbackContext>
+        RequestMaker<ClientT, ModelT, CallbackT>
+        initiate(String callGraph, ProxyClient<ClientT> client, ModelT model, CallbackT cxt) {
+        Preconditions.checkNotNull(callGraph, "callGraph can not be null");
+        Preconditions.checkNotNull(client, "ProxyClient can not be null");
+        Preconditions.checkNotNull(model, "Resource Model can not be null");
+        Preconditions.checkNotNull(cxt, "cxt can not be null");
+        return new CallContext<>(callGraph, client, model, cxt);
+    }
 
     class CallContext<ClientT, ModelT, CallbackT extends StdCallbackContext>
         implements CallChain.RequestMaker<ClientT, ModelT, CallbackT> {
@@ -212,30 +270,6 @@ public class AmazonWebServicesClientProxy implements CallChain {
 
     }
 
-    public static final int HTTP_STATUS_GONE = 410;
-    public static final int HTTP_STATUS_NETWORK_AUTHN_REQUIRED = 511;
-
-    private final AWSCredentialsProvider v1CredentialsProvider;
-    private final AwsCredentialsProvider v2CredentialsProvider;
-    private final LambdaLogger logger;
-    private final Supplier<Long> remainingTimeInMillis;
-
-    public AmazonWebServicesClientProxy(final LambdaLogger logger,
-                                        final Credentials credentials,
-                                        final Supplier<Long> remainingTimeToExecute) {
-        this.logger = logger;
-        this.remainingTimeInMillis = remainingTimeToExecute;
-
-        BasicSessionCredentials basicSessionCredentials = new BasicSessionCredentials(credentials.getAccessKeyId(),
-                                                                                      credentials.getSecretAccessKey(),
-                                                                                      credentials.getSessionToken());
-        this.v1CredentialsProvider = new AWSStaticCredentialsProvider(basicSessionCredentials);
-
-        AwsSessionCredentials awsSessionCredentials = AwsSessionCredentials.create(credentials.getAccessKeyId(),
-            credentials.getSecretAccessKey(), credentials.getSessionToken());
-        this.v2CredentialsProvider = StaticCredentialsProvider.create(awsSessionCredentials);
-    }
-
     public final long getRemainingTimeInMillis() {
         return remainingTimeInMillis.get();
     }
@@ -249,7 +283,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
         try {
             return requestFunction.apply(request);
         } catch (final Throwable e) {
-            logger.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
+            loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
             throw e;
         } finally {
             request.setRequestCredentialsProvider(null);
@@ -269,7 +303,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
         try {
             return requestFunction.apply(wrappedRequest);
         } catch (final Throwable e) {
-            logger.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
+            loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
             throw e;
         }
     }
@@ -288,7 +322,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
         try {
             return requestFunction.apply(wrappedRequest);
         } catch (final Throwable e) {
-            logger.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
+            loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
             throw e;
         }
     }
@@ -337,7 +371,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
                     //
                 case HttpStatusCode.GATEWAY_TIMEOUT:
                 case HttpStatusCode.THROTTLING: // Throttle, TOO many requests
-                    AmazonWebServicesClientProxy.this.logger.log("Retrying for error " + details.errorMessage());
+                    AmazonWebServicesClientProxy.this.loggerProxy.log("Retrying for error " + details.errorMessage());
                     return ProgressEvent.progress(model, context);
 
                 default:
@@ -347,40 +381,4 @@ public class AmazonWebServicesClientProxy implements CallChain {
         return ProgressEvent.failed(model, context, HandlerErrorCode.InternalFailure, e.getMessage());
 
     }
-
-    public <ClientT> ProxyClient<ClientT> newProxy(@Nonnull Supplier<ClientT> client) {
-        return new ProxyClient<ClientT>() {
-            @Override
-            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
-                ResponseT
-                injectCredentialsAndInvokeV2(RequestT request, Function<RequestT, ResponseT> requestFunction) {
-                return AmazonWebServicesClientProxy.this.injectCredentialsAndInvokeV2(request, requestFunction);
-            }
-
-            @Override
-            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
-                CompletableFuture<ResponseT>
-                injectCredentialsAndInvokeV2Aync(RequestT request,
-                                                 Function<RequestT, CompletableFuture<ResponseT>> requestFunction) {
-                return AmazonWebServicesClientProxy.this.injectCredentialsAndInvokeV2Async(request, requestFunction);
-            }
-
-            @Override
-            public ClientT client() {
-                return client.get();
-            }
-        };
-    }
-
-    @Override
-    public <ClientT, ModelT, CallbackT extends StdCallbackContext>
-        RequestMaker<ClientT, ModelT, CallbackT>
-        initiate(String callGraph, ProxyClient<ClientT> client, ModelT model, CallbackT cxt) {
-        Preconditions.checkNotNull(callGraph, "callGraph can not be null");
-        Preconditions.checkNotNull(client, "ProxyClient can not be null");
-        Preconditions.checkNotNull(model, "Resource Model can not be null");
-        Preconditions.checkNotNull(cxt, "cxt can not be null");
-        return new CallContext<>(callGraph, client, model, cxt);
-    }
-
 }

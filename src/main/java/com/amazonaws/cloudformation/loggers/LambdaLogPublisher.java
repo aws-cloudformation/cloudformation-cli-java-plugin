@@ -12,23 +12,22 @@
 * express or implied. See the License for the specific language governing
 * permissions and limitations under the License.
 */
-package com.amazonaws.cloudformation.proxy;
+package com.amazonaws.cloudformation.loggers;
 
-import com.amazonaws.cloudformation.loggers.LogPublisher;
+import com.amazonaws.services.lambda.runtime.LambdaLogger;
 
-import java.util.ArrayList;
-import java.util.List;
+public class LambdaLogPublisher extends LogPublisher {
 
-public class LoggerProxy implements Logger {
+    private final LambdaLogger logger;
 
-    private final List<LogPublisher> logPublishers = new ArrayList<>();
-
-    public void addLogPublisher(final LogPublisher logPublisher) {
-        logPublishers.add(logPublisher);
+    public LambdaLogPublisher(final LambdaLogger logger,
+                              final LogFilter... logFilters) {
+        super(logFilters);
+        this.logger = logger;
     }
 
     @Override
-    public void log(final String message) {
-        logPublishers.stream().forEach(logPublisher -> logPublisher.publishLogEvent(message));
+    protected void publishMessage(String message) {
+        this.logger.log(message);
     }
 }

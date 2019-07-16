@@ -26,8 +26,8 @@ import com.amazonaws.cloudformation.TestContext;
 import com.amazonaws.cloudformation.TestModel;
 import com.amazonaws.cloudformation.injection.CloudWatchEventsProvider;
 import com.amazonaws.cloudformation.proxy.HandlerRequest;
+import com.amazonaws.cloudformation.proxy.Logger;
 import com.amazonaws.cloudformation.proxy.RequestContext;
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
 
 import java.util.Arrays;
 import java.util.List;
@@ -35,6 +35,7 @@ import java.util.List;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -47,7 +48,7 @@ import software.amazon.awssdk.services.cloudwatchevents.model.RuleState;
 public class CloudWatchSchedulerTest {
 
     @Mock
-    private LambdaLogger logger;
+    private Logger loggerProxy;
 
     @Mock
     private RequestContext<TestContext> requestContext;
@@ -68,7 +69,7 @@ public class CloudWatchSchedulerTest {
         final CloudWatchEventsClient client = getCloudWatchEvents();
         when(provider.get()).thenReturn(client);
         final CronHelper cronHelper = getCronHelper();
-        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, logger, cronHelper);
+        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, loggerProxy, cronHelper);
         scheduler.refreshClient();
 
         scheduler.cleanupCloudWatchEvents(null, "targetid");
@@ -84,7 +85,7 @@ public class CloudWatchSchedulerTest {
         final CloudWatchEventsClient client = getCloudWatchEvents();
         when(provider.get()).thenReturn(client);
         final CronHelper cronHelper = getCronHelper();
-        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, logger, cronHelper);
+        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, loggerProxy, cronHelper);
         scheduler.refreshClient();
 
         scheduler.cleanupCloudWatchEvents("rulename", null);
@@ -100,7 +101,45 @@ public class CloudWatchSchedulerTest {
         final CloudWatchEventsClient client = getCloudWatchEvents();
         when(provider.get()).thenReturn(client);
         final CronHelper cronHelper = getCronHelper();
-        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, logger, cronHelper);
+        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, loggerProxy, cronHelper);
+        scheduler.refreshClient();
+
+        scheduler.cleanupCloudWatchEvents("rulename", "targetid");
+
+        verify(client, times(1)).deleteRule(any(DeleteRuleRequest.class));
+
+        verify(client, times(1)).removeTargets(any(RemoveTargetsRequest.class));
+    }
+
+    @Test
+    public void test_cleanupCloudWatchEventsWithErrorRemovingTarget() {
+        final CloudWatchEventsProvider provider = mock(CloudWatchEventsProvider.class);
+        final CloudWatchEventsClient client = getCloudWatchEvents();
+        when(provider.get()).thenReturn(client);
+        final CronHelper cronHelper = getCronHelper();
+        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, loggerProxy, cronHelper);
+        when(client.deleteRule(ArgumentCaptor.forClass(DeleteRuleRequest.class).capture()))
+            .thenThrow(new RuntimeException("AccessDenied"));
+
+        scheduler.refreshClient();
+
+        scheduler.cleanupCloudWatchEvents("rulename", "targetid");
+
+        verify(client, times(1)).deleteRule(any(DeleteRuleRequest.class));
+
+        verify(client, times(1)).removeTargets(any(RemoveTargetsRequest.class));
+    }
+
+    @Test
+    public void test_cleanupCloudWatchEventsWithErrorDeletingRule() {
+        final CloudWatchEventsProvider provider = mock(CloudWatchEventsProvider.class);
+        final CloudWatchEventsClient client = getCloudWatchEvents();
+        when(provider.get()).thenReturn(client);
+        final CronHelper cronHelper = getCronHelper();
+        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, null, cronHelper);
+        when(client.removeTargets(ArgumentCaptor.forClass(RemoveTargetsRequest.class).capture()))
+            .thenThrow(new RuntimeException("AccessDenied"));
+
         scheduler.refreshClient();
 
         scheduler.cleanupCloudWatchEvents("rulename", "targetid");
@@ -117,7 +156,7 @@ public class CloudWatchSchedulerTest {
         when(provider.get()).thenReturn(client);
         final CronHelper cronHelper = getCronHelper();
         when(cronHelper.generateOneTimeCronExpression(1)).thenReturn("cron(41 14 31 10 ? 2019)");
-        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, logger, cronHelper);
+        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, loggerProxy, cronHelper);
         scheduler.refreshClient();
         final HandlerRequest<TestModel, TestContext> request = new HandlerRequest<>();
 

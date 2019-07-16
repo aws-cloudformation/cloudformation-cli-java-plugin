@@ -14,13 +14,15 @@
 */
 package com.amazonaws.cloudformation.proxy;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 import com.amazonaws.cloudformation.Action;
 import com.amazonaws.cloudformation.Response;
 import com.amazonaws.cloudformation.injection.CloudWatchEventsProvider;
 import com.amazonaws.cloudformation.injection.CredentialsProvider;
+import com.amazonaws.cloudformation.loggers.CloudWatchLogPublisher;
+import com.amazonaws.cloudformation.loggers.LogPublisher;
 import com.amazonaws.cloudformation.metrics.MetricsPublisher;
 import com.amazonaws.cloudformation.proxy.handler.Model;
 import com.amazonaws.cloudformation.proxy.handler.ServiceHandlerWrapper;
@@ -80,8 +82,9 @@ public class End2EndCallChainTest {
 
     @Test
     public void happyCase() {
-        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(mock(LambdaLogger.class), credentials,
+        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(mock(LoggerProxy.class), credentials,
                                                                                     () -> Duration.ofMinutes(10).getSeconds());
+
         final Model model = Model.builder().repoName("repo").build();
         StdCallbackContext context = new StdCallbackContext();
         final ServiceClient serviceClient = mock(ServiceClient.class);
@@ -195,12 +198,13 @@ public class End2EndCallChainTest {
         final Serializer serializer = new Serializer();
         final InputStream stream = prepareStream(serializer, request);
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
-        final LambdaLogger logger = mock(LambdaLogger.class);
-        final CredentialsProvider provider = prepareMockProvider();
+        final LoggerProxy loggerProxy = mock(LoggerProxy.class);
+        final CredentialsProvider platformCredentialsProvider = prepareMockProvider();
+        final CredentialsProvider resourceOwnerLoggingCredentialsProvider = prepareMockProvider();
         final Context cxt = mock(Context.class);
         // bail out immediately
         when(cxt.getRemainingTimeInMillis()).thenReturn(50);
-        when(cxt.getLogger()).thenReturn(logger);
+        when(cxt.getLogger()).thenReturn(mock(LambdaLogger.class));
 
         final ServiceClient client = mock(ServiceClient.class);
         final SdkHttpResponse sdkHttpResponse = mock(SdkHttpResponse.class);
@@ -219,13 +223,17 @@ public class End2EndCallChainTest {
         };
         when(client.describeRepository(eq(describeRequest))).thenThrow(notFound);
 
-        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, provider, mock(
-            MetricsPublisher.class), new CloudWatchScheduler(new CloudWatchEventsProvider(provider) {
-                @Override
-                public CloudWatchEventsClient get() {
-                    return mock(CloudWatchEventsClient.class);
-                }
-            }, logger), new Validator(), serializer, client);
+        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
+                                                                        resourceOwnerLoggingCredentialsProvider,
+                                                                        mock(CloudWatchLogPublisher.class),
+                                                                        mock(LogPublisher.class), mock(MetricsPublisher.class),
+                                                                        mock(MetricsPublisher.class),
+                                                                        new CloudWatchScheduler(new CloudWatchEventsProvider(platformCredentialsProvider) {
+                                                                            @Override
+                                                                            public CloudWatchEventsClient get() {
+                                                                                return mock(CloudWatchEventsClient.class);
+                                                                            }
+                                                                        }, loggerProxy), new Validator(), serializer, client);
 
         wrapper.handleRequest(stream, output, cxt);
         verify(client).describeRepository(eq(describeRequest));
@@ -247,12 +255,13 @@ public class End2EndCallChainTest {
         final Serializer serializer = new Serializer();
         final InputStream stream = prepareStream(serializer, request);
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
-        final LambdaLogger logger = mock(LambdaLogger.class);
-        final CredentialsProvider provider = prepareMockProvider();
+        final LoggerProxy loggerProxy = mock(LoggerProxy.class);
+        final CredentialsProvider platformCredentialsProvider = prepareMockProvider();
+        final CredentialsProvider resourceOwnerLoggingCredentialsProvider = prepareMockProvider();
         final Context cxt = mock(Context.class);
         // bail out immediately
         when(cxt.getRemainingTimeInMillis()).thenReturn(50);
-        when(cxt.getLogger()).thenReturn(logger);
+        when(cxt.getLogger()).thenReturn(mock(LambdaLogger.class));
 
         final Model model = request.getRequestData().getResourceProperties();
 
@@ -270,13 +279,17 @@ public class End2EndCallChainTest {
             .repoName(model.getRepoName()).repoArn("some-arn").build();
         when(client.describeRepository(eq(describeRequest))).thenReturn(describeResponse);
 
-        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, provider, mock(
-            MetricsPublisher.class), new CloudWatchScheduler(new CloudWatchEventsProvider(provider) {
-                @Override
-                public CloudWatchEventsClient get() {
-                    return mock(CloudWatchEventsClient.class);
-                }
-            }, logger), new Validator(), serializer, client);
+        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
+                                                                        resourceOwnerLoggingCredentialsProvider,
+                                                                        mock(CloudWatchLogPublisher.class),
+                                                                        mock(LogPublisher.class), mock(MetricsPublisher.class),
+                                                                        mock(MetricsPublisher.class),
+                                                                        new CloudWatchScheduler(new CloudWatchEventsProvider(platformCredentialsProvider) {
+                                                                            @Override
+                                                                            public CloudWatchEventsClient get() {
+                                                                                return mock(CloudWatchEventsClient.class);
+                                                                            }
+                                                                        }, loggerProxy), new Validator(), serializer, client);
 
         wrapper.handleRequest(stream, output, cxt);
         verify(client).createRepository(eq(createRequest));
@@ -302,12 +315,13 @@ public class End2EndCallChainTest {
         final Serializer serializer = new Serializer();
         final InputStream stream = prepareStream(serializer, request);
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
-        final LambdaLogger logger = mock(LambdaLogger.class);
-        final CredentialsProvider provider = prepareMockProvider();
+        final LoggerProxy loggerProxy = mock(LoggerProxy.class);
+        final CredentialsProvider platformCredentialsProvider = prepareMockProvider();
+        final CredentialsProvider resourceOwnerLoggingCredentialsProvider = prepareMockProvider();
         final Context cxt = mock(Context.class);
         // bail out immediately
         when(cxt.getRemainingTimeInMillis()).thenReturn((int) Duration.ofMinutes(1).toMillis());
-        when(cxt.getLogger()).thenReturn(logger);
+        when(cxt.getLogger()).thenReturn(mock(LambdaLogger.class));
 
         final Model model = request.getRequestData().getResourceProperties();
         final ServiceClient client = mock(ServiceClient.class);
@@ -329,13 +343,17 @@ public class End2EndCallChainTest {
         };
         when(client.createRepository(eq(createRequest))).thenThrow(exists);
 
-        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, provider, mock(
-            MetricsPublisher.class), new CloudWatchScheduler(new CloudWatchEventsProvider(provider) {
-                @Override
-                public CloudWatchEventsClient get() {
-                    return mock(CloudWatchEventsClient.class);
-                }
-            }, logger), new Validator(), serializer, client);
+        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
+                                                                        resourceOwnerLoggingCredentialsProvider,
+                                                                        mock(CloudWatchLogPublisher.class),
+                                                                        mock(LogPublisher.class), mock(MetricsPublisher.class),
+                                                                        mock(MetricsPublisher.class),
+                                                                        new CloudWatchScheduler(new CloudWatchEventsProvider(platformCredentialsProvider) {
+                                                                            @Override
+                                                                            public CloudWatchEventsClient get() {
+                                                                                return mock(CloudWatchEventsClient.class);
+                                                                            }
+                                                                        }, loggerProxy), new Validator(), serializer, client);
 
         wrapper.handleRequest(stream, output, cxt);
         verify(client).createRepository(eq(createRequest));
@@ -360,12 +378,13 @@ public class End2EndCallChainTest {
         final Serializer serializer = new Serializer();
         final InputStream stream = prepareStream(serializer, request);
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
-        final LambdaLogger logger = mock(LambdaLogger.class);
-        final CredentialsProvider provider = prepareMockProvider();
+        final LoggerProxy loggerProxy = mock(LoggerProxy.class);
+        final CredentialsProvider platformCredentialsProvider = prepareMockProvider();
+        final CredentialsProvider resourceOwnerLoggingCredentialsProvider = prepareMockProvider();
         final Context cxt = mock(Context.class);
         // bail out very slowly
         when(cxt.getRemainingTimeInMillis()).thenReturn((int) Duration.ofMinutes(1).toMillis());
-        when(cxt.getLogger()).thenReturn(logger);
+        when(cxt.getLogger()).thenReturn(mock(LambdaLogger.class));
 
         final Model model = request.getRequestData().getResourceProperties();
         final ServiceClient client = mock(ServiceClient.class);
@@ -387,13 +406,17 @@ public class End2EndCallChainTest {
         };
         when(client.describeRepository(eq(describeRequest))).thenThrow(throttleException);
 
-        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, provider, mock(
-            MetricsPublisher.class), new CloudWatchScheduler(new CloudWatchEventsProvider(provider) {
-                @Override
-                public CloudWatchEventsClient get() {
-                    return mock(CloudWatchEventsClient.class);
-                }
-            }, logger), new Validator(), serializer, client);
+        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
+                                                                        resourceOwnerLoggingCredentialsProvider,
+                                                                        mock(CloudWatchLogPublisher.class),
+                                                                        mock(LogPublisher.class), mock(MetricsPublisher.class),
+                                                                        mock(MetricsPublisher.class),
+                                                                        new CloudWatchScheduler(new CloudWatchEventsProvider(platformCredentialsProvider) {
+                                                                            @Override
+                                                                            public CloudWatchEventsClient get() {
+                                                                                return mock(CloudWatchEventsClient.class);
+                                                                            }
+                                                                        }, loggerProxy), new Validator(), serializer, client);
 
         wrapper.handleRequest(stream, output, cxt);
         // Throttle retries 4 times (1, 0s), (2, 3s), (3, 6s), (4, 9s)
@@ -416,12 +439,13 @@ public class End2EndCallChainTest {
         final Serializer serializer = new Serializer();
         final InputStream stream = prepareStream(serializer, request);
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
-        final LambdaLogger logger = mock(LambdaLogger.class);
-        final CredentialsProvider provider = prepareMockProvider();
+        final LoggerProxy loggerProxy = mock(LoggerProxy.class);
+        final CredentialsProvider platformCredentialsProvider = prepareMockProvider();
+        final CredentialsProvider resourceOwnerLoggingCredentialsProvider = prepareMockProvider();
         final Context cxt = mock(Context.class);
         // bail out immediately
         when(cxt.getRemainingTimeInMillis()).thenReturn(50);
-        when(cxt.getLogger()).thenReturn(logger);
+        when(cxt.getLogger()).thenReturn(mock(LambdaLogger.class));
 
         final Model model = request.getRequestData().getResourceProperties();
         final ServiceClient client = mock(ServiceClient.class);
@@ -443,13 +467,17 @@ public class End2EndCallChainTest {
         };
         when(client.describeRepository(eq(describeRequest))).thenThrow(throttleException);
 
-        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, provider, mock(
-            MetricsPublisher.class), new CloudWatchScheduler(new CloudWatchEventsProvider(provider) {
-                @Override
-                public CloudWatchEventsClient get() {
-                    return mock(CloudWatchEventsClient.class);
-                }
-            }, logger), new Validator(), serializer, client);
+        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
+                                                                        resourceOwnerLoggingCredentialsProvider,
+                                                                        mock(CloudWatchLogPublisher.class),
+                                                                        mock(LogPublisher.class), mock(MetricsPublisher.class),
+                                                                        mock(MetricsPublisher.class),
+                                                                        new CloudWatchScheduler(new CloudWatchEventsProvider(platformCredentialsProvider) {
+                                                                            @Override
+                                                                            public CloudWatchEventsClient get() {
+                                                                                return mock(CloudWatchEventsClient.class);
+                                                                            }
+                                                                        }, loggerProxy), new Validator(), serializer, client);
 
         wrapper.handleRequest(stream, output, cxt);
         // only 1 call (1, 0s), the next attempt is at 3s which exceed 50 ms remaining
@@ -471,12 +499,13 @@ public class End2EndCallChainTest {
         final Serializer serializer = new Serializer();
         final InputStream stream = prepareStream(serializer, request);
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
-        final LambdaLogger logger = mock(LambdaLogger.class);
-        final CredentialsProvider provider = prepareMockProvider();
+        final LoggerProxy loggerProxy = mock(LoggerProxy.class);
+        final CredentialsProvider platformCredentialsProvider = prepareMockProvider();
+        final CredentialsProvider resourceOwnerLoggingCredentialsProvider = prepareMockProvider();
         final Context cxt = mock(Context.class);
         // bail out immediately
         when(cxt.getRemainingTimeInMillis()).thenReturn(50);
-        when(cxt.getLogger()).thenReturn(logger);
+        when(cxt.getLogger()).thenReturn(mock(LambdaLogger.class));
 
         final Model model = request.getRequestData().getResourceProperties();
         final ServiceClient client = mock(ServiceClient.class);
@@ -498,13 +527,17 @@ public class End2EndCallChainTest {
         };
         when(client.describeRepository(eq(describeRequest))).thenThrow(accessDenied);
 
-        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, provider, mock(
-            MetricsPublisher.class), new CloudWatchScheduler(new CloudWatchEventsProvider(provider) {
-                @Override
-                public CloudWatchEventsClient get() {
-                    return mock(CloudWatchEventsClient.class);
-                }
-            }, logger), new Validator(), serializer, client);
+        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
+                                                                        resourceOwnerLoggingCredentialsProvider,
+                                                                        mock(CloudWatchLogPublisher.class),
+                                                                        mock(LogPublisher.class), mock(MetricsPublisher.class),
+                                                                        mock(MetricsPublisher.class),
+                                                                        new CloudWatchScheduler(new CloudWatchEventsProvider(platformCredentialsProvider) {
+                                                                            @Override
+                                                                            public CloudWatchEventsClient get() {
+                                                                                return mock(CloudWatchEventsClient.class);
+                                                                            }
+                                                                        }, loggerProxy), new Validator(), serializer, client);
 
         wrapper.handleRequest(stream, output, cxt);
         verify(client).describeRepository(eq(describeRequest));

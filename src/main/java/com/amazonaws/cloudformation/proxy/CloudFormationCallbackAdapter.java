@@ -15,7 +15,6 @@
 package com.amazonaws.cloudformation.proxy;
 
 import com.amazonaws.cloudformation.injection.CloudFormationProvider;
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
 
 import org.json.JSONObject;
 
@@ -27,14 +26,14 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
 
     private final CloudFormationProvider cloudFormationProvider;
 
-    private final LambdaLogger logger;
+    private final LoggerProxy loggerProxy;
 
     private CloudFormationClient client;
 
     public CloudFormationCallbackAdapter(final CloudFormationProvider cloudFormationProvider,
-                                         final LambdaLogger logger) {
+                                         final LoggerProxy loggerProxy) {
         this.cloudFormationProvider = cloudFormationProvider;
-        this.logger = logger;
+        this.loggerProxy = loggerProxy;
     }
 
     public void refreshClient() {
@@ -62,7 +61,7 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
 
         // TODO: be far more fault tolerant, do retries, emit logs and metrics, etc.
         RecordHandlerProgressResponse response = this.client.recordHandlerProgress(requestBuilder.build());
-        logger.log(String.format("Record Handler Progress with Request Id %s and Request: {%s}",
+        loggerProxy.log(String.format("Record Handler Progress with Request Id %s and Request: {%s}",
             response.responseMetadata().requestId(), requestBuilder.build().toString()));
     }
 

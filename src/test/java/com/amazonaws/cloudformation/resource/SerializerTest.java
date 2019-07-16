@@ -23,6 +23,7 @@ import com.amazonaws.cloudformation.TestModel;
 import com.amazonaws.cloudformation.proxy.HandlerRequest;
 import com.amazonaws.cloudformation.proxy.RequestContext;
 import com.amazonaws.cloudformation.proxy.RequestData;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.io.File;
@@ -32,6 +33,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import org.apache.commons.io.IOUtils;
+import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
 public class SerializerTest {
@@ -52,6 +54,12 @@ public class SerializerTest {
             e.printStackTrace();
             return null;
         }
+    }
+
+    @Test
+    public void testSerialize() throws JsonProcessingException {
+        final Serializer serializer = new Serializer();
+        serializer.serialize(new JSONObject());
     }
 
     @Test

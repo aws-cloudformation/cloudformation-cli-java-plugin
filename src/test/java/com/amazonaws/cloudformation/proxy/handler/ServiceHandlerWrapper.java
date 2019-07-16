@@ -17,6 +17,8 @@ package com.amazonaws.cloudformation.proxy.handler;
 import com.amazonaws.cloudformation.Action;
 import com.amazonaws.cloudformation.LambdaWrapper;
 import com.amazonaws.cloudformation.injection.CredentialsProvider;
+import com.amazonaws.cloudformation.loggers.CloudWatchLogPublisher;
+import com.amazonaws.cloudformation.loggers.LogPublisher;
 import com.amazonaws.cloudformation.metrics.MetricsPublisher;
 import com.amazonaws.cloudformation.proxy.AmazonWebServicesClientProxy;
 import com.amazonaws.cloudformation.proxy.CallbackAdapter;
@@ -30,7 +32,6 @@ import com.amazonaws.cloudformation.proxy.service.ServiceClient;
 import com.amazonaws.cloudformation.resource.SchemaValidator;
 import com.amazonaws.cloudformation.resource.Serializer;
 import com.amazonaws.cloudformation.scheduler.CloudWatchScheduler;
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.io.IOException;
@@ -43,13 +44,18 @@ public class ServiceHandlerWrapper extends LambdaWrapper<Model, StdCallbackConte
     private final ServiceClient serviceClient;
 
     public ServiceHandlerWrapper(final CallbackAdapter<Model> callbackAdapter,
-                                 final CredentialsProvider credentialsProvider,
-                                 final MetricsPublisher metricsPublisher,
+                                 final CredentialsProvider platformCredentialsProvider,
+                                 final CredentialsProvider resourceOwnerLoggingCredentialsProvider,
+                                 final CloudWatchLogPublisher resourceOwnerEventsLogger,
+                                 final LogPublisher platformEventsLogger,
+                                 final MetricsPublisher platformMetricsPublisher,
+                                 final MetricsPublisher resourceOwnerMetricsPublisher,
                                  final CloudWatchScheduler scheduler,
                                  final SchemaValidator validator,
                                  final Serializer serializer,
                                  final ServiceClient client) {
-        super(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator, serializer);
+        super(callbackAdapter, platformCredentialsProvider, resourceOwnerLoggingCredentialsProvider, resourceOwnerEventsLogger,
+              platformEventsLogger, platformMetricsPublisher, resourceOwnerMetricsPublisher, scheduler, validator, serializer);
         this.serviceClient = client;
     }
 
@@ -90,11 +96,11 @@ public class ServiceHandlerWrapper extends LambdaWrapper<Model, StdCallbackConte
         switch (action) {
             case CREATE:
                 return new CreateHandler(serviceClient).handleRequest(proxy, request, callbackContext,
-                    new LoggerProxy(Mockito.mock(LambdaLogger.class)));
+                    Mockito.mock(LoggerProxy.class));
 
             case READ:
                 return new ReadHandler(serviceClient).handleRequest(proxy, request, callbackContext,
-                    new LoggerProxy(Mockito.mock(LambdaLogger.class)));
+                    Mockito.mock(LoggerProxy.class));
 
             default:
                 return ProgressEvent.failed(request.getDesiredResourceState(), callbackContext,

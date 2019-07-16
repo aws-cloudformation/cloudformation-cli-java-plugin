@@ -15,6 +15,8 @@
 package com.amazonaws.cloudformation;
 
 import com.amazonaws.cloudformation.injection.CredentialsProvider;
+import com.amazonaws.cloudformation.loggers.CloudWatchLogPublisher;
+import com.amazonaws.cloudformation.loggers.LogPublisher;
 import com.amazonaws.cloudformation.metrics.MetricsPublisher;
 import com.amazonaws.cloudformation.proxy.AmazonWebServicesClientProxy;
 import com.amazonaws.cloudformation.proxy.CallbackAdapter;
@@ -53,11 +55,17 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
      * This .ctor provided for testing
      */
     public WrapperOverride(final CallbackAdapter<TestModel> callbackAdapter,
-                           final CredentialsProvider credentialsProvider,
-                           final MetricsPublisher metricsPublisher,
+                           final CredentialsProvider platformCredentialsProvider,
+                           final CredentialsProvider resourceOwnerLoggingCredentialsProvider,
+                           final LogPublisher platformEventsLogger,
+                           final CloudWatchLogPublisher resourceOwnerEventsLogger,
+                           final MetricsPublisher platformMetricsPublisher,
+                           final MetricsPublisher resourceOwnerMetricsPublisher,
                            final CloudWatchScheduler scheduler,
                            final SchemaValidator validator) {
-        super(callbackAdapter, credentialsProvider, metricsPublisher, scheduler, validator, new Serializer());
+        super(callbackAdapter, platformCredentialsProvider, resourceOwnerLoggingCredentialsProvider, resourceOwnerEventsLogger,
+              platformEventsLogger, platformMetricsPublisher, resourceOwnerMetricsPublisher, scheduler, validator,
+              new Serializer());
     }
 
     @Override

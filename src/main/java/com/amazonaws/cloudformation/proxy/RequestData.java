@@ -24,6 +24,8 @@ import lombok.NoArgsConstructor;
 public class RequestData<ResourceT> {
     private Credentials callerCredentials;
     private Credentials platformCredentials;
+    private Credentials resourceOwnerLoggingCredentials;
+    private String resourceOwnerLogGroupName;
     private String logicalResourceId;
     private ResourceT resourceProperties;
     private ResourceT previousResourceProperties;

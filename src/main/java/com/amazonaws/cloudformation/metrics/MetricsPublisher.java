@@ -18,24 +18,33 @@ import com.amazonaws.cloudformation.Action;
 
 import java.time.Instant;
 
-public interface MetricsPublisher {
+public abstract class MetricsPublisher {
+
+    protected String resourceTypeName;
+    protected String resourceNamespace;
+
+    public void setResourceTypeName(final String resourceTypeName) {
+        this.resourceTypeName = resourceTypeName;
+        this.resourceNamespace = resourceTypeName.replace("::", "/");
+    }
 
     /**
      * On Lambda re-invoke we need to supply a new set of client credentials so this
      * function must be called whenever credentials are refreshed/changed in the
      * owning entity
      */
-    void refreshClient();
+    public void refreshClient() {
+    }
 
-    String getResourceTypeName();
+    public void publishExceptionMetric(final Instant timestamp, final Action action, final Throwable e) {
+    }
 
-    void setResourceTypeName(String resourceTypeName);
+    public void publishInvocationMetric(final Instant timestamp, final Action action) {
+    }
 
-    void publishExceptionMetric(Instant timestamp, Throwable e);
+    public void publishDurationMetric(final Instant timestamp, final Action action, final long milliseconds) {
+    }
 
-    void publishExceptionMetric(Instant timestamp, Action action, Throwable e);
-
-    void publishInvocationMetric(Instant timestamp, Action action);
-
-    void publishDurationMetric(Instant timestamp, Action action, long milliseconds);
+    public void publishResourceOwnerLogDeliveryExceptionMetric(final Instant timestamp, final Throwable exception) {
+    }
 }
