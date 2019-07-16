@@ -15,6 +15,7 @@
 package com.amazonaws.cloudformation.metrics;
 
 import com.amazonaws.cloudformation.Action;
+import com.amazonaws.cloudformation.proxy.HandlerErrorCode;
 
 import java.time.Instant;
 
@@ -36,7 +37,10 @@ public abstract class MetricsPublisher {
     public void refreshClient() {
     }
 
-    public void publishExceptionMetric(final Instant timestamp, final Action action, final Throwable e) {
+    public void publishExceptionMetric(final Instant timestamp,
+                                       final Action action,
+                                       final Throwable e,
+                                       final HandlerErrorCode handlerErrorCode) {
     }
 
     public void publishInvocationMetric(final Instant timestamp, final Action action) {

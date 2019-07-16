@@ -24,6 +24,7 @@ public class Metric {
     public static final String DIMENSION_KEY_ACTION_TYPE = "Action";
     public static final String DIMENSION_KEY_EXCEPTION_TYPE = "ExceptionType";
     public static final String DIMENSION_KEY_RESOURCE_TYPE = "ResourceType";
+    public static final String DIMENSION_KEY_HANDLER_ERROR_CODE = "HandlerErrorCode";
 
     private Metric() {
     }
