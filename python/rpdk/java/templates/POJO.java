@@ -1,6 +1,7 @@
 // This is a generated file. Modifications will be overwritten.
 package {{ package_name }};
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Map;
 import java.util.List;
@@ -19,11 +20,12 @@ import org.json.JSONObject;
 @NoArgsConstructor
 public class {{ pojo_name|uppercase_first_letter }} {
     {% if pojo_name == "ResourceModel" %}
-
+    @JsonIgnore
     public static final String TYPE_NAME = "{{ type_name }}";
 
     {% for identifier in primaryIdentifier %}
         {% set components = identifier.split("/") %}
+    @JsonIgnore
     public static final String IDENTIFIER_KEY_{{ components[2:]|join('_')|upper }} = "{{ identifier }}";
     {% endfor -%}
 
@@ -41,6 +43,7 @@ public class {{ pojo_name|uppercase_first_letter }} {
 
     {% endfor %}
     {% if pojo_name == "ResourceModel" %}
+    @JsonIgnore
     public JSONObject getPrimaryIdentifier() {
         final JSONObject identifier = new JSONObject();
         {% for identifier in primaryIdentifier %}
@@ -60,6 +63,7 @@ public class {{ pojo_name|uppercase_first_letter }} {
         return identifier.length() == {{ primaryIdentifier|length }} ? identifier : null;
     }
 
+    @JsonIgnore
     public List<JSONObject> getAdditionalIdentifiers() {
         final List<JSONObject> identifiers = new ArrayList<JSONObject>();
         {% for identifiers in additionalIdentifiers %}
@@ -72,6 +76,7 @@ public class {{ pojo_name|uppercase_first_letter }} {
     }
     {% for identifiers in additionalIdentifiers %}
 
+    @JsonIgnore
     public JSONObject getIdentifier {%- for identifier in identifiers -%} _{{identifier.split("/")[-1]|uppercase_first_letter}} {%- endfor -%} () {
         final JSONObject identifier = new JSONObject();
         {% for identifier in identifiers %}
