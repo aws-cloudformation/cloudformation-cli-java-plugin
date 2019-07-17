@@ -61,6 +61,8 @@ public class MetricsPublisherImplTest {
     @Mock
     private CloudWatchClient resourceOwnerCloudWatchClient;
 
+    private String awsAccountId = "77384178834";
+
     @BeforeEach
     public void beforeEach() {
         when(platformCloudWatchProvider.get()).thenReturn(platformCloudWatchClient);
@@ -81,12 +83,13 @@ public class MetricsPublisherImplTest {
 
     @Test
     public void testPublishDurationMetric() {
-        final MetricsPublisherImpl platformMetricsPublisher = new MetricsPublisherImpl(platformCloudWatchProvider, loggerProxy);
+        final MetricsPublisherImpl platformMetricsPublisher = new MetricsPublisherImpl(platformCloudWatchProvider, loggerProxy,
+                                                                                       awsAccountId);
         platformMetricsPublisher.setResourceTypeName("AWS::Test::TestModel");
         platformMetricsPublisher.refreshClient();
 
         final MetricsPublisherImpl resourceOwnerMetricsPublisher = new MetricsPublisherImpl(resourceOwnerCloudWatchProvider,
-                                                                                            loggerProxy);
+                                                                                            loggerProxy, awsAccountId);
         resourceOwnerMetricsPublisher.setResourceTypeName("AWS::Test::TestModel");
         resourceOwnerMetricsPublisher.refreshClient();
 
@@ -100,7 +103,8 @@ public class MetricsPublisherImplTest {
         verify(resourceOwnerCloudWatchClient).putMetricData(argument2.capture());
 
         final PutMetricDataRequest request = argument1.getValue();
-        assertThat(request.namespace()).isEqualTo("AWS_TMP/CloudFormation/AWS/Test/TestModel");
+        assertThat(request.namespace())
+            .isEqualTo(String.format("%s/%s/%s", "AWS/CloudFormation", awsAccountId, "AWS/Test/TestModel"));
 
         assertThat(request.metricData()).hasSize(1);
         final MetricDatum metricDatum = request.metricData().get(0);
@@ -114,12 +118,13 @@ public class MetricsPublisherImplTest {
 
     @Test
     public void testPublishExceptionMetric() {
-        final MetricsPublisherImpl platformMetricsPublisher = new MetricsPublisherImpl(platformCloudWatchProvider, loggerProxy);
+        final MetricsPublisherImpl platformMetricsPublisher = new MetricsPublisherImpl(platformCloudWatchProvider, loggerProxy,
+                                                                                       awsAccountId);
         platformMetricsPublisher.setResourceTypeName("AWS::Test::TestModel");
         platformMetricsPublisher.refreshClient();
 
         final MetricsPublisherImpl resourceOwnerMetricsPublisher = new MetricsPublisherImpl(resourceOwnerCloudWatchProvider,
-                                                                                            loggerProxy);
+                                                                                            loggerProxy, awsAccountId);
         resourceOwnerMetricsPublisher.setResourceTypeName("AWS::Test::TestModel");
         resourceOwnerMetricsPublisher.refreshClient();
 
@@ -134,7 +139,8 @@ public class MetricsPublisherImplTest {
         verify(resourceOwnerCloudWatchClient).putMetricData(argument2.capture());
 
         final PutMetricDataRequest request = argument1.getValue();
-        assertThat(request.namespace()).isEqualTo("AWS_TMP/CloudFormation/AWS/Test/TestModel");
+        assertThat(request.namespace())
+            .isEqualTo(String.format("%s/%s/%s", "AWS/CloudFormation", awsAccountId, "AWS/Test/TestModel"));
 
         assertThat(request.metricData()).hasSize(1);
         final MetricDatum metricDatum = request.metricData().get(0);
@@ -150,12 +156,13 @@ public class MetricsPublisherImplTest {
 
     @Test
     public void testPublishInvocationMetric() {
-        final MetricsPublisherImpl platformMetricsPublisher = new MetricsPublisherImpl(platformCloudWatchProvider, loggerProxy);
+        final MetricsPublisherImpl platformMetricsPublisher = new MetricsPublisherImpl(platformCloudWatchProvider, loggerProxy,
+                                                                                       awsAccountId);
         platformMetricsPublisher.setResourceTypeName("AWS::Test::TestModel");
         platformMetricsPublisher.refreshClient();
 
         final MetricsPublisherImpl resourceOwnerMetricsPublisher = new MetricsPublisherImpl(resourceOwnerCloudWatchProvider,
-                                                                                            loggerProxy);
+                                                                                            loggerProxy, awsAccountId);
         resourceOwnerMetricsPublisher.setResourceTypeName("AWS::Test::TestModel");
         resourceOwnerMetricsPublisher.refreshClient();
 
@@ -169,7 +176,8 @@ public class MetricsPublisherImplTest {
         verify(resourceOwnerCloudWatchClient).putMetricData(argument2.capture());
 
         final PutMetricDataRequest request = argument1.getValue();
-        assertThat(request.namespace()).isEqualTo("AWS_TMP/CloudFormation/AWS/Test/TestModel");
+        assertThat(request.namespace())
+            .isEqualTo(String.format("%s/%s/%s", "AWS/CloudFormation", awsAccountId, "AWS/Test/TestModel"));
 
         assertThat(request.metricData()).hasSize(1);
         final MetricDatum metricDatum = request.metricData().get(0);
