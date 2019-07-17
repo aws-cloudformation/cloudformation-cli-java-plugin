@@ -104,7 +104,7 @@ public class MetricsPublisherImplTest {
 
         final PutMetricDataRequest request = argument1.getValue();
         assertThat(request.namespace())
-            .isEqualTo(String.format("%s/%s/%s", "AWS_TMP/CloudFormation", awsAccountId, "AWS/Test/TestModel"));
+            .isEqualTo(String.format("%s/%s/%s", "AWS/CloudFormation", awsAccountId, "AWS/Test/TestModel"));
 
         assertThat(request.metricData()).hasSize(1);
         final MetricDatum metricDatum = request.metricData().get(0);
@@ -140,7 +140,7 @@ public class MetricsPublisherImplTest {
 
         final PutMetricDataRequest request = argument1.getValue();
         assertThat(request.namespace())
-            .isEqualTo(String.format("%s/%s/%s", "AWS_TMP/CloudFormation", awsAccountId, "AWS/Test/TestModel"));
+            .isEqualTo(String.format("%s/%s/%s", "AWS/CloudFormation", awsAccountId, "AWS/Test/TestModel"));
 
         assertThat(request.metricData()).hasSize(1);
         final MetricDatum metricDatum = request.metricData().get(0);
@@ -177,7 +177,7 @@ public class MetricsPublisherImplTest {
 
         final PutMetricDataRequest request = argument1.getValue();
         assertThat(request.namespace())
-            .isEqualTo(String.format("%s/%s/%s", "AWS_TMP/CloudFormation", awsAccountId, "AWS/Test/TestModel"));
+            .isEqualTo(String.format("%s/%s/%s", "AWS/CloudFormation", awsAccountId, "AWS/Test/TestModel"));
 
         assertThat(request.metricData()).hasSize(1);
         final MetricDatum metricDatum = request.metricData().get(0);

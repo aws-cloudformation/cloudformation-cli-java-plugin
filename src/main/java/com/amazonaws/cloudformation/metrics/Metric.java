@@ -16,7 +16,7 @@ package com.amazonaws.cloudformation.metrics;
 
 public class Metric {
 
-    public static final String METRIC_NAMESPACE_ROOT = "AWS_TMP/CloudFormation";
+    public static final String METRIC_NAMESPACE_ROOT = "AWS/CloudFormation";
     public static final String METRIC_NAME_HANDLER_EXCEPTION = "HandlerException";
     public static final String METRIC_NAME_HANDLER_DURATION = "HandlerInvocationDuration";
     public static final String METRIC_NAME_HANDLER_INVOCATION_COUNT = "HandlerInvocationCount";
