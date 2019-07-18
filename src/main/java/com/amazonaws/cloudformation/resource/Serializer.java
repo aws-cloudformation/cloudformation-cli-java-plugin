@@ -27,25 +27,43 @@ import org.json.JSONObject;
 
 public class Serializer {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper OBJECT_MAPPER;
 
-    public Serializer() {
-        configureObjectMapper(this.objectMapper);
+    private static final ObjectMapper STRICT_OBJECT_MAPPER;
+
+    /**
+     * Configures the specified ObjectMapper with the (de)serialization behaviours
+     * we want gto enforce for strict serialization (for validation purposes)
+     *
+     * @param objectMapper ObjectMapper instance to configure
+     */
+    static {
+        STRICT_OBJECT_MAPPER = new ObjectMapper();
+        STRICT_OBJECT_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
+        STRICT_OBJECT_MAPPER.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
+        STRICT_OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_ABSENT);
+        STRICT_OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
+        STRICT_OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+        STRICT_OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
     }
 
     /**
      * Configures the specified ObjectMapper with the (de)serialization behaviours
-     * we want gto enforce
+     * we want to enforce NOTE: We intend to move towards versioned protocol between
+     * caller (CloudFormation) and the various handlers. For now, loose
+     * serialization at the protocol layer allows some flexibility between these
+     * components.
      *
      * @param objectMapper ObjectMapper instance to configure
      */
-    private void configureObjectMapper(final ObjectMapper objectMapper) {
-        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        objectMapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
-        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_ABSENT);
-        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
-        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    static {
+        OBJECT_MAPPER = new ObjectMapper();
+        OBJECT_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        OBJECT_MAPPER.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
+        OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_ABSENT);
+        OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
+        OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+        OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
     }
 
     public <T> JSONObject serialize(final T modelObject) throws JsonProcessingException {
@@ -53,10 +71,14 @@ public class Serializer {
             return (JSONObject) modelObject;
         }
 
-        return new JSONObject(objectMapper.writeValueAsString(modelObject));
+        return new JSONObject(OBJECT_MAPPER.writeValueAsString(modelObject));
     }
 
     public <T> T deserialize(final String s, final TypeReference<?> reference) throws IOException {
-        return this.objectMapper.readValue(s, reference);
+        return OBJECT_MAPPER.readValue(s, reference);
+    }
+
+    public <T> T deserializeStrict(final String s, final TypeReference<?> reference) throws IOException {
+        return STRICT_OBJECT_MAPPER.readValue(s, reference);
     }
 }

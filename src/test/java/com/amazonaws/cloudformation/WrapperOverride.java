@@ -118,4 +118,10 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
         return new TypeReference<HandlerRequest<TestModel, TestContext>>() {
         };
     }
+
+    @Override
+    protected TypeReference<TestModel> getModelTypeReference() {
+        return new TypeReference<TestModel>() {
+        };
+    }
 }

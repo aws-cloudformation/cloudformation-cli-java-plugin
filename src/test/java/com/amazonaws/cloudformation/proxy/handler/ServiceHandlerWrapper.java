@@ -113,4 +113,10 @@ public class ServiceHandlerWrapper extends LambdaWrapper<Model, StdCallbackConte
         return new TypeReference<HandlerRequest<Model, StdCallbackContext>>() {
         };
     }
+
+    @Override
+    protected TypeReference<Model> getModelTypeReference() {
+        return new TypeReference<Model>() {
+        };
+    }
 }
