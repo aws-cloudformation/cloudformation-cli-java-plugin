@@ -34,6 +34,11 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
 
     private final Configuration configuration = new Configuration();
     private final Map<Action, BaseHandler<CallbackContext>> handlers = new HashMap<>();
+    private final static TypeReference<HandlerRequest<{{ pojo_name }}, CallbackContext>> REQUEST_REFERENCE =
+        new TypeReference<HandlerRequest<{{ pojo_name }}, CallbackContext>>() {};
+    private final static TypeReference<{{ pojo_name }}> TYPE_REFERENCE =
+        new TypeReference<{{ pojo_name }}>() {};
+
 
     public HandlerWrapper() {
         initialiseHandlers();
@@ -122,11 +127,11 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
 
     @Override
     protected TypeReference<HandlerRequest<{{ pojo_name }}, CallbackContext>> getTypeReference() {
-        return new TypeReference<HandlerRequest<{{ pojo_name }}, CallbackContext>>() {};
+        return REQUEST_REFERENCE
     }
 
     @Override
     protected TypeReference<{{ pojo_name }}> getModelTypeReference() {
-        return new TypeReference<{{ pojo_name }}>() {};
+        return TYPE_REFERENCE;
     }
 }

@@ -471,15 +471,17 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         TypeReference<ResourceT> modelTypeReference = getModelTypeReference();
 
         // deserialize incoming payload to modelled request
+        ResourceT  deserializedModel;
         try {
-            ResourceT deserializedModel = this.serializer.deserializeStrict(modelObject.toString(), modelTypeReference);
-            JSONObject serializedModel = this.serializer.serialize(deserializedModel);
-            this.validator.validateObject(serializedModel, resourceSchema);
+            deserializedModel = this.serializer.deserializeStrict(modelObject.toString(), modelTypeReference);
         } catch (UnrecognizedPropertyException e) {
             throw new ValidationException(String.format("#: extraneous key [%s] is not permitted", e.getPropertyName()),
                                           e.getPropertyName(), "#");
 
         }
+
+        JSONObject serializedModel = this.serializer.serialize(deserializedModel);
+        this.validator.validateObject(serializedModel, resourceSchema);
     }
 
     /**
