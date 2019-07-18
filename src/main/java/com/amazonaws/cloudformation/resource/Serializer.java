@@ -29,8 +29,11 @@ public class Serializer {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    private final ObjectMapper strictObjectMapper = new ObjectMapper();
+
     public Serializer() {
         configureObjectMapper(this.objectMapper);
+        configureObjectMapperStrict(this.strictObjectMapper);
     }
 
     /**
@@ -48,6 +51,21 @@ public class Serializer {
         objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
     }
 
+    /**
+     * Configures the specified ObjectMapper with the (de)serialization behaviours
+     * we want gto enforce for strict serialization (for validation purposes)
+     *
+     * @param objectMapper ObjectMapper instance to configure
+     */
+    private void configureObjectMapperStrict(final ObjectMapper objectMapper) {
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
+        objectMapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_ABSENT);
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    }
+
     public <T> JSONObject serialize(final T modelObject) throws JsonProcessingException {
         if (modelObject instanceof JSONObject) {
             return (JSONObject) modelObject;
@@ -58,5 +76,9 @@ public class Serializer {
 
     public <T> T deserialize(final String s, final TypeReference<?> reference) throws IOException {
         return this.objectMapper.readValue(s, reference);
+    }
+
+    public <T> T deserializeStrict(final String s, final TypeReference<?> reference) throws IOException {
+        return this.strictObjectMapper.readValue(s, reference);
     }
 }

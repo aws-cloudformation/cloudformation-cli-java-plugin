@@ -53,6 +53,7 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -461,13 +462,24 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         outputStream.close();
     }
 
-    private void validateModel(final JSONObject modelObject) throws ValidationException {
+    private void validateModel(final JSONObject modelObject) throws ValidationException, IOException {
         InputStream resourceSchema = provideResourceSchema();
         if (resourceSchema == null) {
             throw new ValidationException("Unable to validate incoming model as no schema was provided.", null, null);
         }
 
-        this.validator.validateObject(modelObject, resourceSchema);
+        TypeReference<ResourceT> modelTypeReference = getModelTypeReference();
+
+        // deserialize incoming payload to modelled request
+        try {
+            ResourceT deserializedModel = this.serializer.deserializeStrict(modelObject.toString(), modelTypeReference);
+            JSONObject serializedModel = this.serializer.serialize(deserializedModel);
+            this.validator.validateObject(serializedModel, resourceSchema);
+        } catch (UnrecognizedPropertyException e) {
+            throw new ValidationException(String.format("#: extraneous key [%s] is not permitted", e.getPropertyName()),
+                                          e.getPropertyName(), "#");
+
+        }
     }
 
     /**
@@ -585,4 +597,6 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     }
 
     protected abstract TypeReference<HandlerRequest<ResourceT, CallbackT>> getTypeReference();
+
+    protected abstract TypeReference<ResourceT> getModelTypeReference();
 }

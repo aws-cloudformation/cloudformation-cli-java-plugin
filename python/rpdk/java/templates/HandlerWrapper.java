@@ -124,4 +124,9 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
     protected TypeReference<HandlerRequest<{{ pojo_name }}, CallbackContext>> getTypeReference() {
         return new TypeReference<HandlerRequest<{{ pojo_name }}, CallbackContext>>() {};
     }
+
+    @Override
+    protected TypeReference<{{ pojo_name }}> getModelTypeReference() {
+        return new TypeReference<{{ pojo_name }}>() {};
+    }
 }
