@@ -1466,4 +1466,38 @@ public class LambdaWrapperTest {
                 .operationStatus(OperationStatus.FAILED).message("Invalid resource properties object received").build());
         }
     }
+
+    @Test
+    public void stringifiedPayload_validation_successful() throws IOException {
+        // this test ensures that validation on the resource payload is performed
+        // against the serialized
+        // model rather than the raw payload. This allows the handlers to accept
+        // incoming payloads that
+        // may have quoted values where the JSON Serialization is still able to
+        // construct a valid POJO
+        SchemaValidator validator = new Validator();
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
+                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
+                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
+                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+
+        // explicit fault response is treated as an unsuccessful synchronous completion
+        final ProgressEvent<TestModel, TestContext> pe = ProgressEvent.<TestModel, TestContext>builder()
+            .status(OperationStatus.SUCCESS).message("Handler was invoked").build();
+        wrapper.setInvokeHandlerResponse(pe);
+
+        wrapper.setTransformResponse(resourceHandlerRequest);
+
+        try (final InputStream in = loadRequestStream("create.request-with-stringified-resource.json");
+            final OutputStream out = new ByteArrayOutputStream()) {
+            final Context context = getLambdaContext();
+
+            wrapper.handleRequest(in, out, context);
+
+            // verify output response
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder().bearerToken("123456").message("Handler was invoked")
+                .operationStatus(OperationStatus.SUCCESS).build());
+
+        }
+    }
 }
