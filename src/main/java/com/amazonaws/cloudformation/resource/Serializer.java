@@ -49,7 +49,10 @@ public class Serializer {
 
     /**
      * Configures the specified ObjectMapper with the (de)serialization behaviours
-     * we want gto enforce
+     * we want to enforce
+     * NOTE: We intend to move towards versioned protocol between caller (CloudFormation)
+     * and the various handlers. For now, loose serialization at the protocol layer allows
+     * some flexibility between these components.
      *
      * @param objectMapper ObjectMapper instance to configure
      */
