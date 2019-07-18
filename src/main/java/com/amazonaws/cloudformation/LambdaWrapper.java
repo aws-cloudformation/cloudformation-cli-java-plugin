@@ -471,7 +471,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         TypeReference<ResourceT> modelTypeReference = getModelTypeReference();
 
         // deserialize incoming payload to modelled request
-        ResourceT  deserializedModel;
+        ResourceT deserializedModel;
         try {
             deserializedModel = this.serializer.deserializeStrict(modelObject.toString(), modelTypeReference);
         } catch (UnrecognizedPropertyException e) {

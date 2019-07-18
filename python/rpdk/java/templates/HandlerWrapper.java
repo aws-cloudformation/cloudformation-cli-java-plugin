@@ -127,7 +127,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
 
     @Override
     protected TypeReference<HandlerRequest<{{ pojo_name }}, CallbackContext>> getTypeReference() {
-        return REQUEST_REFERENCE
+        return REQUEST_REFERENCE;
     }
 
     @Override
