@@ -557,10 +557,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
      * Handler implementation should implement this method to provide the schema for
      * validation
      *
-     * @return An InputStream of the resource schema for the provider
+     * @return An JSONObject of the resource schema for the provider
      */
-    // protected abstract InputStream provideResourceSchema();
-
     protected abstract JSONObject provideResourceSchemaJSONObject();
 
     /**
