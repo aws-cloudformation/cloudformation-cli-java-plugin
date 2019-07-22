@@ -94,8 +94,8 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
     }
 
     @Override
-    public InputStream provideResourceSchema() {
-        return this.configuration.resourceSchema();
+    public JSONObject provideResourceSchemaJSONObject() {
+        return this.configuration.resourceSchemaJSONObject();
     }
 
     @Override

@@ -463,8 +463,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     }
 
     private void validateModel(final JSONObject modelObject) throws ValidationException, IOException {
-        InputStream resourceSchema = provideResourceSchema();
-        if (resourceSchema == null) {
+        JSONObject resourceSchemaJSONObject = provideResourceSchemaJSONObject();
+        if (resourceSchemaJSONObject == null) {
             throw new ValidationException("Unable to validate incoming model as no schema was provided.", null, null);
         }
 
@@ -481,7 +481,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         }
 
         JSONObject serializedModel = this.serializer.serialize(deserializedModel);
-        this.validator.validateObject(serializedModel, resourceSchema);
+        this.validator.validateObject(serializedModel, resourceSchemaJSONObject);
     }
 
     /**
@@ -559,7 +559,9 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
      *
      * @return An InputStream of the resource schema for the provider
      */
-    protected abstract InputStream provideResourceSchema();
+    // protected abstract InputStream provideResourceSchema();
+
+    protected abstract JSONObject provideResourceSchemaJSONObject();
 
     /**
      * Implemented by the handler package as the key entry point.

@@ -29,7 +29,6 @@ import com.amazonaws.cloudformation.scheduler.CloudWatchScheduler;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.LinkedList;
 import java.util.List;
@@ -37,6 +36,9 @@ import java.util.Queue;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+
+import org.json.JSONObject;
+import org.json.JSONTokener;
 
 /**
  * Test class used for testing of LambdaWrapper functionality
@@ -69,9 +71,9 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
     }
 
     @Override
-    public InputStream provideResourceSchema() {
-        return new ByteArrayInputStream("{ \"properties\": { \"property1\": { \"type\": \"string\" }, \"property2\": { \"type\": \"integer\" } }, \"additionalProperties\": false }"
-            .getBytes(Charset.forName("UTF8")));
+    protected JSONObject provideResourceSchemaJSONObject() {
+        return new JSONObject(new JSONTokener(new ByteArrayInputStream("{ \"properties\": { \"property1\": { \"type\": \"string\" }, \"property2\": { \"type\": \"integer\" } }, \"additionalProperties\": false }"
+            .getBytes(Charset.forName("UTF8")))));
     }
 
     @Override

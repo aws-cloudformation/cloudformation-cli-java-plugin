@@ -35,8 +35,9 @@ import com.amazonaws.cloudformation.scheduler.CloudWatchScheduler;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.io.IOException;
-import java.io.InputStream;
 
+import org.json.JSONObject;
+import org.json.JSONTokener;
 import org.mockito.Mockito;
 
 public class ServiceHandlerWrapper extends LambdaWrapper<Model, StdCallbackContext> {
@@ -83,8 +84,8 @@ public class ServiceHandlerWrapper extends LambdaWrapper<Model, StdCallbackConte
     }
 
     @Override
-    protected InputStream provideResourceSchema() {
-        return getClass().getResourceAsStream("model.json");
+    protected JSONObject provideResourceSchemaJSONObject() {
+        return new JSONObject(new JSONTokener(this.getClass().getResourceAsStream("model.json")));
     }
 
     @Override

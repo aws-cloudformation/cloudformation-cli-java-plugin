@@ -181,7 +181,7 @@ public class LambdaWrapperTest {
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
-                verify(validator, times(1)).validateObject(any(JSONObject.class), any(InputStream.class));
+                verify(validator, times(1)).validateObject(any(JSONObject.class), any(JSONObject.class));
             }
 
             // no re-invocation via CloudWatch should occur
@@ -270,7 +270,7 @@ public class LambdaWrapperTest {
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
-                verify(validator, times(1)).validateObject(any(JSONObject.class), any(InputStream.class));
+                verify(validator, times(1)).validateObject(any(JSONObject.class), any(JSONObject.class));
             }
 
             // no re-invocation via CloudWatch should occur
@@ -316,7 +316,7 @@ public class LambdaWrapperTest {
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
-                verify(validator, times(1)).validateObject(any(JSONObject.class), any(InputStream.class));
+                verify(validator, times(1)).validateObject(any(JSONObject.class), any(JSONObject.class));
             }
 
             // no re-invocation via CloudWatch should occur
@@ -411,7 +411,7 @@ public class LambdaWrapperTest {
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
-                verify(validator, times(1)).validateObject(any(JSONObject.class), any(InputStream.class));
+                verify(validator, times(1)).validateObject(any(JSONObject.class), any(JSONObject.class));
             }
 
             // no re-invocation via CloudWatch should occur
@@ -487,7 +487,7 @@ public class LambdaWrapperTest {
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
-                verify(validator, times(1)).validateObject(any(JSONObject.class), any(InputStream.class));
+                verify(validator, times(1)).validateObject(any(JSONObject.class), any(JSONObject.class));
             }
 
             // re-invocation via CloudWatch should occur
@@ -575,7 +575,7 @@ public class LambdaWrapperTest {
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
-                verify(validator, times(1)).validateObject(any(JSONObject.class), any(InputStream.class));
+                verify(validator, times(1)).validateObject(any(JSONObject.class), any(JSONObject.class));
             }
 
             // re-invocation via CloudWatch should occur
@@ -627,7 +627,7 @@ public class LambdaWrapperTest {
     }
 
     private void invokeHandler_SchemaValidationFailure(final String requestDataPath, final Action action) throws IOException {
-        doThrow(ValidationException.class).when(validator).validateObject(any(JSONObject.class), any(InputStream.class));
+        doThrow(ValidationException.class).when(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
                                                             resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
                                                             resourceOwnerEventsLogger, platformMetricsPublisher,
@@ -660,7 +660,7 @@ public class LambdaWrapperTest {
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
-                verify(validator, times(1)).validateObject(any(JSONObject.class), any(InputStream.class));
+                verify(validator, times(1)).validateObject(any(JSONObject.class), any(JSONObject.class));
             }
 
             // no re-invocation via CloudWatch should occur
@@ -1044,7 +1044,7 @@ public class LambdaWrapperTest {
             verifyNoMoreInteractions(resourceOwnerMetricsPublisher);
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
-            verify(validator, times(1)).validateObject(any(JSONObject.class), any(InputStream.class));
+            verify(validator, times(1)).validateObject(any(JSONObject.class), any(JSONObject.class));
 
             // this was a re-invocation, so a cleanup is required
             verify(scheduler, times(1)).cleanupCloudWatchEvents(eq("reinvoke-handler-4754ac8a-623b-45fe-84bc-f5394118a8be"),
@@ -1138,7 +1138,7 @@ public class LambdaWrapperTest {
             verifyNoMoreInteractions(resourceOwnerMetricsPublisher);
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
-            verify(validator, times(1)).validateObject(any(JSONObject.class), any(InputStream.class));
+            verify(validator, times(1)).validateObject(any(JSONObject.class), any(JSONObject.class));
 
             // re-invocation via CloudWatch should occur for the second iteration
             verify(scheduler, times(1)).rescheduleAfterMinutes(anyString(), eq(0),
@@ -1219,7 +1219,7 @@ public class LambdaWrapperTest {
                 any(AmazonServiceException.class), any(HandlerErrorCode.class));
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
-            verify(validator, times(1)).validateObject(any(JSONObject.class), any(InputStream.class));
+            verify(validator, times(1)).validateObject(any(JSONObject.class), any(JSONObject.class));
 
             // no re-invocation via CloudWatch should occur
             verifyNoMoreInteractions(scheduler);
@@ -1271,7 +1271,7 @@ public class LambdaWrapperTest {
                 any(ResourceAlreadyExistsException.class), any(HandlerErrorCode.class));
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
-            verify(validator, times(1)).validateObject(any(JSONObject.class), any(InputStream.class));
+            verify(validator, times(1)).validateObject(any(JSONObject.class), any(JSONObject.class));
 
             // no re-invocation via CloudWatch should occur
             verifyNoMoreInteractions(scheduler);
@@ -1322,7 +1322,7 @@ public class LambdaWrapperTest {
                 any(ResourceNotFoundException.class), any(HandlerErrorCode.class));
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
-            verify(validator, times(1)).validateObject(any(JSONObject.class), any(InputStream.class));
+            verify(validator, times(1)).validateObject(any(JSONObject.class), any(JSONObject.class));
 
             // no re-invocation via CloudWatch should occur
             verifyNoMoreInteractions(scheduler);
