@@ -57,6 +57,7 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.mockito.stubbing.Answer;
 
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -65,6 +66,10 @@ import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.http.SdkHttpResponse;
 import software.amazon.awssdk.services.cloudwatchevents.CloudWatchEventsClient;
+import software.amazon.awssdk.services.cloudwatchevents.model.PutRuleRequest;
+import software.amazon.awssdk.services.cloudwatchevents.model.PutRuleResponse;
+import software.amazon.awssdk.services.cloudwatchevents.model.PutTargetsRequest;
+import software.amazon.awssdk.services.cloudwatchevents.model.PutTargetsResponse;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class End2EndCallChainTest {
@@ -233,7 +238,8 @@ public class End2EndCallChainTest {
                                                                             public CloudWatchEventsClient get() {
                                                                                 return mock(CloudWatchEventsClient.class);
                                                                             }
-                                                                        }, loggerProxy), new Validator(), serializer, client);
+                                                                        }, loggerProxy, serializer), new Validator(), serializer,
+                                                                        client);
 
         wrapper.handleRequest(stream, output, cxt);
         verify(client).describeRepository(eq(describeRequest));
@@ -289,7 +295,8 @@ public class End2EndCallChainTest {
                                                                             public CloudWatchEventsClient get() {
                                                                                 return mock(CloudWatchEventsClient.class);
                                                                             }
-                                                                        }, loggerProxy), new Validator(), serializer, client);
+                                                                        }, loggerProxy, serializer), new Validator(), serializer,
+                                                                        client);
 
         wrapper.handleRequest(stream, output, cxt);
         verify(client).createRepository(eq(createRequest));
@@ -353,7 +360,8 @@ public class End2EndCallChainTest {
                                                                             public CloudWatchEventsClient get() {
                                                                                 return mock(CloudWatchEventsClient.class);
                                                                             }
-                                                                        }, loggerProxy), new Validator(), serializer, client);
+                                                                        }, loggerProxy, serializer), new Validator(), serializer,
+                                                                        client);
 
         wrapper.handleRequest(stream, output, cxt);
         verify(client).createRepository(eq(createRequest));
@@ -377,7 +385,7 @@ public class End2EndCallChainTest {
         request.setAction(Action.READ);
         final Serializer serializer = new Serializer();
         final InputStream stream = prepareStream(serializer, request);
-        final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
+        ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
         final LoggerProxy loggerProxy = mock(LoggerProxy.class);
         final CredentialsProvider platformCredentialsProvider = prepareMockProvider();
         final CredentialsProvider resourceOwnerLoggingCredentialsProvider = prepareMockProvider();
@@ -406,6 +414,16 @@ public class End2EndCallChainTest {
         };
         when(client.describeRepository(eq(describeRequest))).thenThrow(throttleException);
 
+        final ByteArrayOutputStream cweRequestOutput = new ByteArrayOutputStream(2048);
+        CloudWatchEventsClient cloudWatchEventsClient = mock(CloudWatchEventsClient.class);
+        when(cloudWatchEventsClient.putRule(any(PutRuleRequest.class))).thenReturn(mock(PutRuleResponse.class));
+        when(cloudWatchEventsClient.putTargets(any(PutTargetsRequest.class)))
+            .thenAnswer((Answer<PutTargetsResponse>) invocationOnMock -> {
+                PutTargetsRequest putTargetsRequest = invocationOnMock.getArgument(0, PutTargetsRequest.class);
+                cweRequestOutput.write(putTargetsRequest.targets().get(0).input().getBytes(StandardCharsets.UTF_8));
+                return PutTargetsResponse.builder().build();
+            });
+
         final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
                                                                         resourceOwnerLoggingCredentialsProvider,
                                                                         mock(CloudWatchLogPublisher.class),
@@ -414,13 +432,23 @@ public class End2EndCallChainTest {
                                                                         new CloudWatchScheduler(new CloudWatchEventsProvider(platformCredentialsProvider) {
                                                                             @Override
                                                                             public CloudWatchEventsClient get() {
-                                                                                return mock(CloudWatchEventsClient.class);
+                                                                                return cloudWatchEventsClient;
                                                                             }
-                                                                        }, loggerProxy), new Validator(), serializer, client);
+                                                                        }, loggerProxy, serializer), new Validator(), serializer,
+                                                                        client);
 
+        // Bail early for the handshake. Expect cloudwatch events
         wrapper.handleRequest(stream, output, cxt);
-        // Throttle retries 4 times (1, 0s), (2, 3s), (3, 6s), (4, 9s)
-        verify(client, times(4)).describeRepository(eq(describeRequest));
+        // Replay Cloudwatch events stream
+        // refresh the stream
+        output = new ByteArrayOutputStream(2048);
+        wrapper.handleRequest(new ByteArrayInputStream(cweRequestOutput.toByteArray()), output, cxt);
+
+        // Handshake mode 1 try, Throttle retries 4 times (1, 0s), (2, 3s), (3, 6s), (4,
+        // 9s)
+        verify(client, times(5)).describeRepository(eq(describeRequest));
+        verify(cloudWatchEventsClient, times(1)).putRule(any(PutRuleRequest.class));
+        verify(cloudWatchEventsClient, times(1)).putTargets(any(PutTargetsRequest.class));
 
         Response<Model> response = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),
             new TypeReference<Response<Model>>() {
@@ -477,7 +505,8 @@ public class End2EndCallChainTest {
                                                                             public CloudWatchEventsClient get() {
                                                                                 return mock(CloudWatchEventsClient.class);
                                                                             }
-                                                                        }, loggerProxy), new Validator(), serializer, client);
+                                                                        }, loggerProxy, serializer), new Validator(), serializer,
+                                                                        client);
 
         wrapper.handleRequest(stream, output, cxt);
         // only 1 call (1, 0s), the next attempt is at 3s which exceed 50 ms remaining
@@ -537,7 +566,8 @@ public class End2EndCallChainTest {
                                                                             public CloudWatchEventsClient get() {
                                                                                 return mock(CloudWatchEventsClient.class);
                                                                             }
-                                                                        }, loggerProxy), new Validator(), serializer, client);
+                                                                        }, loggerProxy, serializer), new Validator(), serializer,
+                                                                        client);
 
         wrapper.handleRequest(stream, output, cxt);
         verify(client).describeRepository(eq(describeRequest));

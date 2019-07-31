@@ -392,7 +392,7 @@ public class AmazonWebServicesClientProxyTest {
         assertThat(resultModel.getArn()).isNotNull();
         assertThat(resultModel.getCreated()).isNotNull();
 
-        Map<String, Object> callGraphs = context.getCallGraphs();
+        Map<String, Object> callGraphs = context.callGraphs();
         assertThat(callGraphs.containsKey("client:createRepository.request")).isEqualTo(true);
         assertSame(requests[0], callGraphs.get("client:createRepository.request"));
         assertThat(callGraphs.containsKey("client:createRepository.response")).isEqualTo(true);
