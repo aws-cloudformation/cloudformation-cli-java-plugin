@@ -46,17 +46,17 @@ public class ServiceHandlerWrapper extends LambdaWrapper<Model, StdCallbackConte
 
     public ServiceHandlerWrapper(final CallbackAdapter<Model> callbackAdapter,
                                  final CredentialsProvider platformCredentialsProvider,
-                                 final CredentialsProvider resourceOwnerLoggingCredentialsProvider,
-                                 final CloudWatchLogPublisher resourceOwnerEventsLogger,
+                                 final CredentialsProvider providerLoggingCredentialsProvider,
+                                 final CloudWatchLogPublisher providerEventsLogger,
                                  final LogPublisher platformEventsLogger,
                                  final MetricsPublisher platformMetricsPublisher,
-                                 final MetricsPublisher resourceOwnerMetricsPublisher,
+                                 final MetricsPublisher providerMetricsPublisher,
                                  final CloudWatchScheduler scheduler,
                                  final SchemaValidator validator,
                                  final Serializer serializer,
                                  final ServiceClient client) {
-        super(callbackAdapter, platformCredentialsProvider, resourceOwnerLoggingCredentialsProvider, resourceOwnerEventsLogger,
-              platformEventsLogger, platformMetricsPublisher, resourceOwnerMetricsPublisher, scheduler, validator, serializer);
+        super(callbackAdapter, platformCredentialsProvider, providerLoggingCredentialsProvider, providerEventsLogger,
+              platformEventsLogger, platformMetricsPublisher, providerMetricsPublisher, scheduler, validator, serializer);
         this.serviceClient = client;
     }
 

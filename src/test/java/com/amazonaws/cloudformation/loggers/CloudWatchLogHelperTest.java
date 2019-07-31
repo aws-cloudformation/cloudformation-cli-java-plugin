@@ -161,7 +161,7 @@ public class CloudWatchLogHelperTest {
         assertThat(describeLogGroupsRequestArgumentCaptor.getValue().logGroupNamePrefix()).isEqualTo(LOG_GROUP_NAME);
 
         verify(cloudWatchLogsClient).describeLogGroups(describeLogGroupsRequestArgumentCaptor.getValue());
-        verify(metricsPublisherProxy).publishResourceOwnerLogDeliveryExceptionMetric(any(), any());
+        verify(metricsPublisherProxy).publishProviderLogDeliveryExceptionMetric(any(), any());
         verify(platformLambdaLogger).log(anyString());
         verifyNoMoreInteractions(cloudWatchLogsProvider, platformLambdaLogger, metricsPublisherProxy);
     }
@@ -189,7 +189,7 @@ public class CloudWatchLogHelperTest {
         assertThat(describeLogGroupsRequestArgumentCaptor.getValue().logGroupNamePrefix()).isEqualTo(LOG_GROUP_NAME);
 
         verify(cloudWatchLogsClient).describeLogGroups(describeLogGroupsRequestArgumentCaptor.getValue());
-        verify(metricsPublisherProxy).publishResourceOwnerLogDeliveryExceptionMetric(any(), any());
+        verify(metricsPublisherProxy).publishProviderLogDeliveryExceptionMetric(any(), any());
         verify(platformLambdaLogger, times(0)).log(anyString());
         verifyNoMoreInteractions(cloudWatchLogsProvider, platformLambdaLogger, metricsPublisherProxy);
     }

@@ -41,7 +41,9 @@ public class MetricsPublisherImpl extends MetricsPublisher {
 
     public MetricsPublisherImpl(final CloudWatchProvider cloudWatchProvider,
                                 final Logger loggerProxy,
-                                final String providerAccountId) {
+                                final String providerAccountId,
+                                final String resourceTypeName) {
+        super(resourceTypeName);
         this.cloudWatchProvider = cloudWatchProvider;
         this.loggerProxy = loggerProxy;
         this.providerAccountId = providerAccountId;
@@ -70,9 +72,9 @@ public class MetricsPublisherImpl extends MetricsPublisher {
     }
 
     @Override
-    public void publishResourceOwnerLogDeliveryExceptionMetric(final Instant timestamp, final Throwable e) {
+    public void publishProviderLogDeliveryExceptionMetric(final Instant timestamp, final Throwable e) {
         Map<String, String> dimensions = new HashMap<>();
-        dimensions.put(Metric.DIMENSION_KEY_ACTION_TYPE, "ResourceOwnerLogDelivery");
+        dimensions.put(Metric.DIMENSION_KEY_ACTION_TYPE, "ProviderLogDelivery");
         dimensions.put(Metric.DIMENSION_KEY_EXCEPTION_TYPE, e.getClass().toString());
         dimensions.put(Metric.DIMENSION_KEY_RESOURCE_TYPE, this.getResourceTypeName());
 

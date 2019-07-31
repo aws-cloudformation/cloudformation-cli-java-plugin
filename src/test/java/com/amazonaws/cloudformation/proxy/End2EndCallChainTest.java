@@ -200,7 +200,7 @@ public class End2EndCallChainTest {
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
         final LoggerProxy loggerProxy = mock(LoggerProxy.class);
         final CredentialsProvider platformCredentialsProvider = prepareMockProvider();
-        final CredentialsProvider resourceOwnerLoggingCredentialsProvider = prepareMockProvider();
+        final CredentialsProvider providerLoggingCredentialsProvider = prepareMockProvider();
         final Context cxt = mock(Context.class);
         // bail out immediately
         when(cxt.getRemainingTimeInMillis()).thenReturn(50);
@@ -224,7 +224,7 @@ public class End2EndCallChainTest {
         when(client.describeRepository(eq(describeRequest))).thenThrow(notFound);
 
         final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
-                                                                        resourceOwnerLoggingCredentialsProvider,
+                                                                        providerLoggingCredentialsProvider,
                                                                         mock(CloudWatchLogPublisher.class),
                                                                         mock(LogPublisher.class), mock(MetricsPublisher.class),
                                                                         mock(MetricsPublisher.class),
@@ -257,7 +257,7 @@ public class End2EndCallChainTest {
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
         final LoggerProxy loggerProxy = mock(LoggerProxy.class);
         final CredentialsProvider platformCredentialsProvider = prepareMockProvider();
-        final CredentialsProvider resourceOwnerLoggingCredentialsProvider = prepareMockProvider();
+        final CredentialsProvider providerLoggingCredentialsProvider = prepareMockProvider();
         final Context cxt = mock(Context.class);
         // bail out immediately
         when(cxt.getRemainingTimeInMillis()).thenReturn(50);
@@ -280,7 +280,7 @@ public class End2EndCallChainTest {
         when(client.describeRepository(eq(describeRequest))).thenReturn(describeResponse);
 
         final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
-                                                                        resourceOwnerLoggingCredentialsProvider,
+                                                                        providerLoggingCredentialsProvider,
                                                                         mock(CloudWatchLogPublisher.class),
                                                                         mock(LogPublisher.class), mock(MetricsPublisher.class),
                                                                         mock(MetricsPublisher.class),
@@ -317,7 +317,7 @@ public class End2EndCallChainTest {
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
         final LoggerProxy loggerProxy = mock(LoggerProxy.class);
         final CredentialsProvider platformCredentialsProvider = prepareMockProvider();
-        final CredentialsProvider resourceOwnerLoggingCredentialsProvider = prepareMockProvider();
+        final CredentialsProvider providerLoggingCredentialsProvider = prepareMockProvider();
         final Context cxt = mock(Context.class);
         // bail out immediately
         when(cxt.getRemainingTimeInMillis()).thenReturn((int) Duration.ofMinutes(1).toMillis());
@@ -344,7 +344,7 @@ public class End2EndCallChainTest {
         when(client.createRepository(eq(createRequest))).thenThrow(exists);
 
         final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
-                                                                        resourceOwnerLoggingCredentialsProvider,
+                                                                        providerLoggingCredentialsProvider,
                                                                         mock(CloudWatchLogPublisher.class),
                                                                         mock(LogPublisher.class), mock(MetricsPublisher.class),
                                                                         mock(MetricsPublisher.class),
@@ -380,7 +380,7 @@ public class End2EndCallChainTest {
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
         final LoggerProxy loggerProxy = mock(LoggerProxy.class);
         final CredentialsProvider platformCredentialsProvider = prepareMockProvider();
-        final CredentialsProvider resourceOwnerLoggingCredentialsProvider = prepareMockProvider();
+        final CredentialsProvider providerLoggingCredentialsProvider = prepareMockProvider();
         final Context cxt = mock(Context.class);
         // bail out very slowly
         when(cxt.getRemainingTimeInMillis()).thenReturn((int) Duration.ofMinutes(1).toMillis());
@@ -407,7 +407,7 @@ public class End2EndCallChainTest {
         when(client.describeRepository(eq(describeRequest))).thenThrow(throttleException);
 
         final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
-                                                                        resourceOwnerLoggingCredentialsProvider,
+                                                                        providerLoggingCredentialsProvider,
                                                                         mock(CloudWatchLogPublisher.class),
                                                                         mock(LogPublisher.class), mock(MetricsPublisher.class),
                                                                         mock(MetricsPublisher.class),
@@ -441,7 +441,7 @@ public class End2EndCallChainTest {
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
         final LoggerProxy loggerProxy = mock(LoggerProxy.class);
         final CredentialsProvider platformCredentialsProvider = prepareMockProvider();
-        final CredentialsProvider resourceOwnerLoggingCredentialsProvider = prepareMockProvider();
+        final CredentialsProvider providerLoggingCredentialsProvider = prepareMockProvider();
         final Context cxt = mock(Context.class);
         // bail out immediately
         when(cxt.getRemainingTimeInMillis()).thenReturn(50);
@@ -468,7 +468,7 @@ public class End2EndCallChainTest {
         when(client.describeRepository(eq(describeRequest))).thenThrow(throttleException);
 
         final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
-                                                                        resourceOwnerLoggingCredentialsProvider,
+                                                                        providerLoggingCredentialsProvider,
                                                                         mock(CloudWatchLogPublisher.class),
                                                                         mock(LogPublisher.class), mock(MetricsPublisher.class),
                                                                         mock(MetricsPublisher.class),
@@ -501,7 +501,7 @@ public class End2EndCallChainTest {
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
         final LoggerProxy loggerProxy = mock(LoggerProxy.class);
         final CredentialsProvider platformCredentialsProvider = prepareMockProvider();
-        final CredentialsProvider resourceOwnerLoggingCredentialsProvider = prepareMockProvider();
+        final CredentialsProvider providerLoggingCredentialsProvider = prepareMockProvider();
         final Context cxt = mock(Context.class);
         // bail out immediately
         when(cxt.getRemainingTimeInMillis()).thenReturn(50);
@@ -528,7 +528,7 @@ public class End2EndCallChainTest {
         when(client.describeRepository(eq(describeRequest))).thenThrow(accessDenied);
 
         final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
-                                                                        resourceOwnerLoggingCredentialsProvider,
+                                                                        providerLoggingCredentialsProvider,
                                                                         mock(CloudWatchLogPublisher.class),
                                                                         mock(LogPublisher.class), mock(MetricsPublisher.class),
                                                                         mock(MetricsPublisher.class),
