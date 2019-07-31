@@ -84,12 +84,14 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     // Keep lambda logger as the last fallback log delivery approach
     protected LambdaLogger lambdaLogger;
 
+    // provider... prefix indicates credential provided by resource owner
+
     private final CredentialsProvider platformCredentialsProvider;
-    private final CredentialsProvider resourceOwnerLoggingCredentialsProvider;
+    private final CredentialsProvider providerCredentialsProvider;
 
     private final CloudFormationProvider cloudFormationProvider;
     private final CloudWatchProvider platformCloudWatchProvider;
-    private final CloudWatchProvider resourceOwnerCloudWatchProvider;
+    private final CloudWatchProvider providerCloudWatchProvider;
     private final CloudWatchEventsProvider platformCloudWatchEventsProvider;
     private final CloudWatchLogsProvider cloudWatchLogsProvider;
     private final SchemaValidator validator;
@@ -97,21 +99,21 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
     private CallbackAdapter<ResourceT> callbackAdapter;
     private MetricsPublisher platformMetricsPublisher;
-    private MetricsPublisher resourceOwnerMetricsPublisher;
+    private MetricsPublisher providerMetricsPublisher;
     private CloudWatchScheduler scheduler;
 
     private LogPublisher platformLambdaLogger;
     private CloudWatchLogHelper cloudWatchLogHelper;
-    private CloudWatchLogPublisher resourceOwnerEventsLogger;
+    private CloudWatchLogPublisher providerEventsLogger;
 
     protected LambdaWrapper() {
         this.platformCredentialsProvider = new SessionCredentialsProvider();
-        this.resourceOwnerLoggingCredentialsProvider = new SessionCredentialsProvider();
+        this.providerCredentialsProvider = new SessionCredentialsProvider();
         this.cloudFormationProvider = new CloudFormationProvider(this.platformCredentialsProvider);
         this.platformCloudWatchProvider = new CloudWatchProvider(this.platformCredentialsProvider);
-        this.resourceOwnerCloudWatchProvider = new CloudWatchProvider(this.resourceOwnerLoggingCredentialsProvider);
+        this.providerCloudWatchProvider = new CloudWatchProvider(this.providerCredentialsProvider);
         this.platformCloudWatchEventsProvider = new CloudWatchEventsProvider(this.platformCredentialsProvider);
-        this.cloudWatchLogsProvider = new CloudWatchLogsProvider(this.resourceOwnerLoggingCredentialsProvider);
+        this.cloudWatchLogsProvider = new CloudWatchLogsProvider(this.providerCredentialsProvider);
         this.serializer = new Serializer();
         this.validator = new Validator();
         this.typeReference = getTypeReference();
@@ -122,27 +124,27 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
      */
     public LambdaWrapper(final CallbackAdapter<ResourceT> callbackAdapter,
                          final CredentialsProvider platformCredentialsProvider,
-                         final CredentialsProvider resourceOwnerLoggingCredentialsProvider,
-                         final CloudWatchLogPublisher resourceOwnerEventsLogger,
+                         final CredentialsProvider providerCredentialsProvider,
+                         final CloudWatchLogPublisher providerEventsLogger,
                          final LogPublisher platformEventsLogger,
                          final MetricsPublisher platformMetricsPublisher,
-                         final MetricsPublisher resourceOwnerMetricsPublisher,
+                         final MetricsPublisher providerMetricsPublisher,
                          final CloudWatchScheduler scheduler,
                          final SchemaValidator validator,
                          final Serializer serializer) {
 
         this.callbackAdapter = callbackAdapter;
         this.platformCredentialsProvider = platformCredentialsProvider;
-        this.resourceOwnerLoggingCredentialsProvider = resourceOwnerLoggingCredentialsProvider;
+        this.providerCredentialsProvider = providerCredentialsProvider;
         this.cloudFormationProvider = new CloudFormationProvider(this.platformCredentialsProvider);
         this.platformCloudWatchProvider = new CloudWatchProvider(this.platformCredentialsProvider);
-        this.resourceOwnerCloudWatchProvider = new CloudWatchProvider(this.resourceOwnerLoggingCredentialsProvider);
+        this.providerCloudWatchProvider = new CloudWatchProvider(this.providerCredentialsProvider);
         this.platformCloudWatchEventsProvider = new CloudWatchEventsProvider(this.platformCredentialsProvider);
-        this.cloudWatchLogsProvider = new CloudWatchLogsProvider(this.resourceOwnerLoggingCredentialsProvider);
-        this.resourceOwnerEventsLogger = resourceOwnerEventsLogger;
+        this.cloudWatchLogsProvider = new CloudWatchLogsProvider(this.providerCredentialsProvider);
+        this.providerEventsLogger = providerEventsLogger;
         this.platformLambdaLogger = platformEventsLogger;
         this.platformMetricsPublisher = platformMetricsPublisher;
-        this.resourceOwnerMetricsPublisher = resourceOwnerMetricsPublisher;
+        this.providerMetricsPublisher = providerMetricsPublisher;
         this.scheduler = scheduler;
         this.serializer = serializer;
         this.validator = validator;
@@ -187,28 +189,28 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // Both are required parameters when LoggingConfig (optional) is provided when
         // 'RegisterType'.
         if (providerCredentials != null) {
-            if (this.resourceOwnerLoggingCredentialsProvider != null) {
-                this.resourceOwnerLoggingCredentialsProvider.setCredentials(providerCredentials);
+            if (this.providerCredentialsProvider != null) {
+                this.providerCredentialsProvider.setCredentials(providerCredentials);
             }
 
-            if (this.resourceOwnerMetricsPublisher == null) {
-                this.resourceOwnerMetricsPublisher = new MetricsPublisherImpl(this.resourceOwnerCloudWatchProvider,
-                                                                              this.loggerProxy, awsAccountId, resourceType);
+            if (this.providerMetricsPublisher == null) {
+                this.providerMetricsPublisher = new MetricsPublisherImpl(this.providerCloudWatchProvider, this.loggerProxy,
+                                                                         awsAccountId, resourceType);
             }
-            this.metricsPublisherProxy.addMetricsPublisher(this.resourceOwnerMetricsPublisher);
-            this.resourceOwnerMetricsPublisher.refreshClient();
+            this.metricsPublisherProxy.addMetricsPublisher(this.providerMetricsPublisher);
+            this.providerMetricsPublisher.refreshClient();
 
-            if (this.resourceOwnerEventsLogger == null) {
+            if (this.providerEventsLogger == null) {
                 this.cloudWatchLogHelper = new CloudWatchLogHelper(this.cloudWatchLogsProvider, providerLogGroupName,
                                                                    context.getLogger(), this.metricsPublisherProxy);
                 this.cloudWatchLogHelper.refreshClient();
 
-                this.resourceOwnerEventsLogger = new CloudWatchLogPublisher(this.cloudWatchLogsProvider, providerLogGroupName,
-                                                                            this.cloudWatchLogHelper.prepareLogStream(),
-                                                                            context.getLogger(), this.metricsPublisherProxy);
+                this.providerEventsLogger = new CloudWatchLogPublisher(this.cloudWatchLogsProvider, providerLogGroupName,
+                                                                       this.cloudWatchLogHelper.prepareLogStream(),
+                                                                       context.getLogger(), this.metricsPublisherProxy);
             }
-            this.loggerProxy.addLogPublisher(this.resourceOwnerEventsLogger);
-            this.resourceOwnerEventsLogger.refreshClient();
+            this.loggerProxy.addLogPublisher(this.providerEventsLogger);
+            this.providerEventsLogger.refreshClient();
         }
 
         if (this.callbackAdapter == null) {

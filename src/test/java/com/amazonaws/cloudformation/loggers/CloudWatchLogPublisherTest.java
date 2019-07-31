@@ -102,7 +102,7 @@ public class CloudWatchLogPublisherTest {
         when(cloudWatchLogsProvider.get()).thenReturn(cloudWatchLogsClient);
         when(cloudWatchLogsClient.putLogEvents(putLogEventsRequestArgumentCaptor.capture()))
             .thenThrow(new RuntimeException("AccessDenied"));
-        doNothing().when(metricsPublisherProxy).publishResourceOwnerLogDeliveryExceptionMetric(any(), any());
+        doNothing().when(metricsPublisherProxy).publishProviderLogDeliveryExceptionMetric(any(), any());
         doNothing().when(platformLambdaLogger).log(stringArgumentCaptor.capture());
 
         final String msgToLog = "How is it going?";
@@ -113,7 +113,7 @@ public class CloudWatchLogPublisherTest {
         assertThat(putLogEventsRequestArgumentCaptor.getValue().logEvents().get(0).message()).isEqualTo(msgToLog);
 
         verify(cloudWatchLogsClient).putLogEvents(putLogEventsRequestArgumentCaptor.getValue());
-        verify(metricsPublisherProxy).publishResourceOwnerLogDeliveryExceptionMetric(any(), any());
+        verify(metricsPublisherProxy).publishProviderLogDeliveryExceptionMetric(any(), any());
         assertThat(stringArgumentCaptor.getValue().contains("AccessDenied"));
         verifyNoMoreInteractions(cloudWatchLogsProvider);
     }
@@ -158,7 +158,7 @@ public class CloudWatchLogPublisherTest {
         assertThat(putLogEventsRequestArgumentCaptor.getValue().logEvents().get(0).message()).isEqualTo(msgToLog);
 
         verify(cloudWatchLogsClient).putLogEvents(putLogEventsRequestArgumentCaptor.getValue());
-        verify(metricsPublisherProxy, times(0)).publishResourceOwnerLogDeliveryExceptionMetric(any(), any());
+        verify(metricsPublisherProxy, times(0)).publishProviderLogDeliveryExceptionMetric(any(), any());
         assertThat(stringArgumentCaptor.getValue().contains("AccessDenied"));
         verifyNoMoreInteractions(cloudWatchLogsProvider, metricsPublisherProxy);
     }

@@ -75,16 +75,16 @@ public class LambdaWrapperTest {
     private CredentialsProvider platformCredentialsProvider;
 
     @Mock
-    private CredentialsProvider resourceOwnerLoggingCredentialsProvider;
+    private CredentialsProvider providerLoggingCredentialsProvider;
 
     @Mock
     private MetricsPublisher platformMetricsPublisher;
 
     @Mock
-    private MetricsPublisher resourceOwnerMetricsPublisher;
+    private MetricsPublisher providerMetricsPublisher;
 
     @Mock
-    private CloudWatchLogPublisher resourceOwnerEventsLogger;
+    private CloudWatchLogPublisher providerEventsLogger;
 
     @Mock
     private LogPublisher platformEventsLogger;
@@ -121,10 +121,10 @@ public class LambdaWrapperTest {
 
     private void verifyInitialiseRuntime() {
         verify(platformCredentialsProvider).setCredentials(any(Credentials.class));
-        verify(resourceOwnerLoggingCredentialsProvider).setCredentials(any(Credentials.class));
+        verify(providerLoggingCredentialsProvider).setCredentials(any(Credentials.class));
         verify(callbackAdapter).refreshClient();
         verify(platformMetricsPublisher).refreshClient();
-        verify(resourceOwnerMetricsPublisher).refreshClient();
+        verify(providerMetricsPublisher).refreshClient();
         verify(scheduler).refreshClient();
     }
 
@@ -145,9 +145,9 @@ public class LambdaWrapperTest {
 
     private void invokeHandler_nullResponse_returnsFailure(final String requestDataPath, final Action action) throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
 
         final TestModel model = new TestModel();
 
@@ -168,14 +168,14 @@ public class LambdaWrapperTest {
             // validation failure metric should be published for final error handling
             verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
                 any(TerminalException.class), any(HandlerErrorCode.class));
-            verify(resourceOwnerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
+            verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
                 any(TerminalException.class), any(HandlerErrorCode.class));
 
             // all metrics should be published even on terminal failure
             verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
             verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
-            verify(resourceOwnerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
-            verify(resourceOwnerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
+            verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
+            verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
@@ -185,9 +185,9 @@ public class LambdaWrapperTest {
             // no re-invocation via CloudWatch should occur
             verifyNoMoreInteractions(scheduler);
 
-            verify(resourceOwnerEventsLogger).refreshClient();
-            verify(resourceOwnerEventsLogger, times(3)).publishLogEvent(any());
-            verifyNoMoreInteractions(resourceOwnerEventsLogger);
+            verify(providerEventsLogger).refreshClient();
+            verify(providerEventsLogger, times(3)).publishLogEvent(any());
+            verifyNoMoreInteractions(providerEventsLogger);
 
             // verify output response
             verifyHandlerResponse(out, HandlerResponse.<TestModel>builder().bearerToken("123456").errorCode("InternalFailure")
@@ -228,9 +228,9 @@ public class LambdaWrapperTest {
     private void invokeHandler_without_customerLoggingCredentials(final String requestDataPath, final Action action)
         throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
 
         // a null response is a terminal fault
@@ -246,23 +246,23 @@ public class LambdaWrapperTest {
 
             // verify initialiseRuntime was called and initialised dependencies
             verify(platformCredentialsProvider).setCredentials(any(Credentials.class));
-            verify(resourceOwnerLoggingCredentialsProvider, times(0)).setCredentials(any(Credentials.class));
+            verify(providerLoggingCredentialsProvider, times(0)).setCredentials(any(Credentials.class));
             verify(callbackAdapter).refreshClient();
             verify(platformMetricsPublisher).refreshClient();
-            verify(resourceOwnerMetricsPublisher, times(0)).refreshClient();
+            verify(providerMetricsPublisher, times(0)).refreshClient();
             verify(scheduler).refreshClient();
 
             // validation failure metric should be published for final error handling
             verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
                 any(TerminalException.class), any(HandlerErrorCode.class));
-            verify(resourceOwnerMetricsPublisher, times(0)).publishExceptionMetric(any(Instant.class), any(),
+            verify(providerMetricsPublisher, times(0)).publishExceptionMetric(any(Instant.class), any(),
                 any(TerminalException.class), any(HandlerErrorCode.class));
 
             // all metrics should be published even on terminal failure
             verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
             verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
-            verify(resourceOwnerMetricsPublisher, times(0)).publishInvocationMetric(any(Instant.class), eq(action));
-            verify(resourceOwnerMetricsPublisher, times(0)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
+            verify(providerMetricsPublisher, times(0)).publishInvocationMetric(any(Instant.class), eq(action));
+            verify(providerMetricsPublisher, times(0)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
@@ -272,7 +272,7 @@ public class LambdaWrapperTest {
             // no re-invocation via CloudWatch should occur
             verifyNoMoreInteractions(scheduler);
 
-            verifyNoMoreInteractions(resourceOwnerEventsLogger);
+            verifyNoMoreInteractions(providerEventsLogger);
 
             // verify output response
             verifyHandlerResponse(out, HandlerResponse.<TestModel>builder().bearerToken("123456").errorCode("InternalFailure")
@@ -283,9 +283,9 @@ public class LambdaWrapperTest {
     private void invokeHandler_handlerFailed_returnsFailure(final String requestDataPath, final Action action)
         throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
 
         // explicit fault response is treated as an unsuccessful synchronous completion
         final ProgressEvent<TestModel, TestContext> pe = ProgressEvent.<TestModel, TestContext>builder()
@@ -326,9 +326,9 @@ public class LambdaWrapperTest {
     @Test
     public void invokeHandler_withNullInput() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
 
         // explicit fault response is treated as an unsuccessful synchronous completion
         final ProgressEvent<TestModel, TestContext> pe = ProgressEvent.<TestModel, TestContext>builder()
@@ -340,8 +340,8 @@ public class LambdaWrapperTest {
         try (final InputStream in = null; final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
             wrapper.handleRequest(in, out, context);
-            verifyNoMoreInteractions(callbackAdapter, platformMetricsPublisher, platformEventsLogger,
-                resourceOwnerMetricsPublisher, resourceOwnerEventsLogger);
+            verifyNoMoreInteractions(callbackAdapter, platformMetricsPublisher, platformEventsLogger, providerMetricsPublisher,
+                providerEventsLogger);
         }
     }
 
@@ -373,9 +373,9 @@ public class LambdaWrapperTest {
     private void invokeHandler_CompleteSynchronously_returnsSuccess(final String requestDataPath, final Action action)
         throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
 
         // if the handler responds Complete, this is treated as a successful synchronous
@@ -445,9 +445,9 @@ public class LambdaWrapperTest {
     private void invokeHandler_InProgress_returnsInProgress(final String requestDataPath, final Action action)
         throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
         final TestModel model = TestModel.builder().property1("abc").property2(123).build();
 
         // an InProgress response is always re-scheduled.
@@ -470,12 +470,12 @@ public class LambdaWrapperTest {
             // all metrics should be published, once for a single invocation
             verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
             verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
-            verify(resourceOwnerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
-            verify(resourceOwnerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
+            verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
+            verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
 
             // validation failure metric should not be published
             verifyNoMoreInteractions(platformMetricsPublisher);
-            verifyNoMoreInteractions(resourceOwnerMetricsPublisher);
+            verifyNoMoreInteractions(providerMetricsPublisher);
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
@@ -528,9 +528,9 @@ public class LambdaWrapperTest {
     private void reInvokeHandler_InProgress_returnsInProgress(final String requestDataPath, final Action action)
         throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
         final TestModel model = TestModel.builder().property1("abc").property2(123).build();
 
         // an InProgress response is always re-scheduled.
@@ -556,12 +556,12 @@ public class LambdaWrapperTest {
             verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
             verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
 
-            verify(resourceOwnerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
-            verify(resourceOwnerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
+            verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
+            verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
 
             // validation failure metric should not be published
             verifyNoMoreInteractions(platformMetricsPublisher);
-            verifyNoMoreInteractions(resourceOwnerMetricsPublisher);
+            verifyNoMoreInteractions(providerMetricsPublisher);
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
@@ -619,9 +619,9 @@ public class LambdaWrapperTest {
     private void invokeHandler_SchemaValidationFailure(final String requestDataPath, final Action action) throws IOException {
         doThrow(ValidationException.class).when(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
 
         wrapper.setTransformResponse(resourceHandlerRequest);
 
@@ -636,12 +636,12 @@ public class LambdaWrapperTest {
             // validation failure metric should be published but no others
             verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), eq(action),
                 any(Exception.class), any(HandlerErrorCode.class));
-            verify(resourceOwnerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), eq(action),
+            verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), eq(action),
                 any(Exception.class), any(HandlerErrorCode.class));
 
             // all metrics should be published, even for a single invocation
             verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
-            verify(resourceOwnerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
+            verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
 
             // duration metric only published when the provider handler is invoked
             verifyNoMoreInteractions(platformMetricsPublisher);
@@ -696,9 +696,9 @@ public class LambdaWrapperTest {
     public void invokeHandler_extraneousModelFields_causesSchemaValidationFailure() throws IOException {
         // use actual validator to verify behaviour
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, new Validator() {
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, new Validator() {
                                                             });
 
         wrapper.setTransformResponse(resourceHandlerRequest);
@@ -713,13 +713,13 @@ public class LambdaWrapperTest {
             verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), eq(Action.CREATE),
                 any(Exception.class), any(HandlerErrorCode.class));
 
-            verify(resourceOwnerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), eq(Action.CREATE),
+            verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), eq(Action.CREATE),
                 any(Exception.class), any(HandlerErrorCode.class));
 
             // all metrics should be published, even for a single invocation
             verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
 
-            verify(resourceOwnerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
+            verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
 
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
@@ -740,9 +740,9 @@ public class LambdaWrapperTest {
     @Test
     public void invokeHandler_withMalformedRequest_causesSchemaValidationFailure() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
 
         // an InProgress response is always re-scheduled.
@@ -772,9 +772,9 @@ public class LambdaWrapperTest {
     @Test
     public void invokeHandler_withoutPlatformCredentials_returnsFailure() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
 
         // without platform credentials the handler is unable to do
         // basic SDK initialization and any such request should fail fast
@@ -795,9 +795,9 @@ public class LambdaWrapperTest {
     @Test
     public void invokeHandler_withDefaultInjection_returnsSuccess() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
 
         final TestModel model = new TestModel();
         model.setProperty1("abc");
@@ -827,9 +827,9 @@ public class LambdaWrapperTest {
     @Test
     public void invokeHandler_withDefaultInjection_returnsInProgress() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
 
         final TestModel model = new TestModel();
         model.setProperty1("abc");
@@ -859,9 +859,9 @@ public class LambdaWrapperTest {
     @Test
     public void invokeHandler_failToRescheduleInvocation() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
         final TestModel model = new TestModel();
         model.setProperty1("abc");
         model.setProperty2(123);
@@ -892,9 +892,9 @@ public class LambdaWrapperTest {
     @Test
     public void invokeHandler_clientsRefreshedOnEveryInvoke() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
 
         Context context = getLambdaContext();
         try (InputStream in = loadRequestStream("create.request.json"); OutputStream out = new ByteArrayOutputStream()) {
@@ -919,9 +919,9 @@ public class LambdaWrapperTest {
     @Test
     public void invokeHandler_platformCredentialsRefreshedOnEveryInvoke() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
 
         Context context = getLambdaContext();
         try (InputStream in = loadRequestStream("create.request.json"); OutputStream out = new ByteArrayOutputStream()) {
@@ -947,9 +947,9 @@ public class LambdaWrapperTest {
     @Test
     public void invokeHandler_withNoResponseEndpoint_returnsFailure() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
 
         final TestModel model = new TestModel();
 
@@ -985,9 +985,9 @@ public class LambdaWrapperTest {
     @Test
     public void invokeHandler_localReinvokeWithSufficientRemainingTime() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
 
         final TestModel model = TestModel.builder().property1("abc").property2(123).build();
 
@@ -1019,13 +1019,12 @@ public class LambdaWrapperTest {
             verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
             verify(platformMetricsPublisher, times(2)).publishDurationMetric(any(Instant.class), eq(Action.CREATE), anyLong());
 
-            verify(resourceOwnerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
-            verify(resourceOwnerMetricsPublisher, times(2)).publishDurationMetric(any(Instant.class), eq(Action.CREATE),
-                anyLong());
+            verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
+            verify(providerMetricsPublisher, times(2)).publishDurationMetric(any(Instant.class), eq(Action.CREATE), anyLong());
 
             // validation failure metric should not be published
             verifyNoMoreInteractions(platformMetricsPublisher);
-            verifyNoMoreInteractions(resourceOwnerMetricsPublisher);
+            verifyNoMoreInteractions(providerMetricsPublisher);
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             verify(validator, times(1)).validateObject(any(JSONObject.class), any(JSONObject.class));
@@ -1073,9 +1072,9 @@ public class LambdaWrapperTest {
     public void invokeHandler_localReinvokeWithSufficientRemainingTimeForFirstIterationOnly_SchedulesViaCloudWatch()
         throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
 
         final TestModel model = TestModel.builder().property1("abc").property2(123).build();
 
@@ -1111,13 +1110,12 @@ public class LambdaWrapperTest {
             verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
             verify(platformMetricsPublisher, times(2)).publishDurationMetric(any(Instant.class), eq(Action.CREATE), anyLong());
 
-            verify(resourceOwnerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
-            verify(resourceOwnerMetricsPublisher, times(2)).publishDurationMetric(any(Instant.class), eq(Action.CREATE),
-                anyLong());
+            verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
+            verify(providerMetricsPublisher, times(2)).publishDurationMetric(any(Instant.class), eq(Action.CREATE), anyLong());
 
             // validation failure metric should not be published
             verifyNoMoreInteractions(platformMetricsPublisher);
-            verifyNoMoreInteractions(resourceOwnerMetricsPublisher);
+            verifyNoMoreInteractions(providerMetricsPublisher);
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             verify(validator, times(1)).validateObject(any(JSONObject.class), any(JSONObject.class));
@@ -1163,9 +1161,9 @@ public class LambdaWrapperTest {
     @Test
     public void invokeHandler_throwsAmazonServiceException_returnsServiceException() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
 
         final TestModel model = new TestModel();
 
@@ -1187,15 +1185,14 @@ public class LambdaWrapperTest {
             verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
             verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(Action.CREATE), anyLong());
 
-            verify(resourceOwnerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
-            verify(resourceOwnerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(Action.CREATE),
-                anyLong());
+            verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
+            verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(Action.CREATE), anyLong());
 
             // failure metric should be published
             verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
                 any(AmazonServiceException.class), any(HandlerErrorCode.class));
 
-            verify(resourceOwnerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
+            verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
                 any(AmazonServiceException.class), any(HandlerErrorCode.class));
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
@@ -1215,9 +1212,9 @@ public class LambdaWrapperTest {
     @Test
     public void invokeHandler_throwsResourceAlreadyExistsException_returnsAlreadyExists() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
 
         // exceptions are caught consistently by LambdaWrapper
         wrapper.setInvokeHandlerException(new ResourceAlreadyExistsException("AWS::Test::TestModel", "id-1234"));
@@ -1237,15 +1234,14 @@ public class LambdaWrapperTest {
             verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
             verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(Action.CREATE), anyLong());
 
-            verify(resourceOwnerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
-            verify(resourceOwnerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(Action.CREATE),
-                anyLong());
+            verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
+            verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(Action.CREATE), anyLong());
 
             // failure metric should be published
             verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
                 any(ResourceAlreadyExistsException.class), any(HandlerErrorCode.class));
 
-            verify(resourceOwnerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
+            verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
                 any(ResourceAlreadyExistsException.class), any(HandlerErrorCode.class));
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
@@ -1265,9 +1261,9 @@ public class LambdaWrapperTest {
     @Test
     public void invokeHandler_throwsResourceNotFoundException_returnsNotFound() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
         // exceptions are caught consistently by LambdaWrapper
         wrapper.setInvokeHandlerException(new ResourceNotFoundException("AWS::Test::TestModel", "id-1234"));
 
@@ -1286,15 +1282,14 @@ public class LambdaWrapperTest {
             verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
             verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(Action.CREATE), anyLong());
 
-            verify(resourceOwnerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
-            verify(resourceOwnerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(Action.CREATE),
-                anyLong());
+            verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
+            verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(Action.CREATE), anyLong());
 
             // failure metric should be published
             verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
                 any(ResourceNotFoundException.class), any(HandlerErrorCode.class));
 
-            verify(resourceOwnerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
+            verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
                 any(ResourceNotFoundException.class), any(HandlerErrorCode.class));
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
@@ -1314,9 +1309,9 @@ public class LambdaWrapperTest {
     @Test
     public void invokeHandler_metricPublisherThrowable_returnsFailureResponse() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
 
         // simulate runtime Errors in the metrics publisher (such as dependency
         // resolution conflicts)
@@ -1338,7 +1333,7 @@ public class LambdaWrapperTest {
 
             // no further calls to metrics publisher should occur
             verifyNoMoreInteractions(platformMetricsPublisher);
-            verifyNoMoreInteractions(resourceOwnerMetricsPublisher);
+            verifyNoMoreInteractions(providerMetricsPublisher);
 
             // verify output response
             verifyHandlerResponse(out,
@@ -1351,9 +1346,9 @@ public class LambdaWrapperTest {
     @Test
     public void invokeHandler_withInvalidPayload_returnsFailureResponse() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
 
         try (final InputStream in = new ByteArrayInputStream(new byte[0]); final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
@@ -1374,9 +1369,9 @@ public class LambdaWrapperTest {
     @Test
     public void invokeHandler_withNullInputStream_returnsFailureResponse() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
 
         try (final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
@@ -1396,9 +1391,9 @@ public class LambdaWrapperTest {
     @Test
     public void invokeHandler_withEmptyPayload_returnsFailure() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
 
         try (final InputStream in = loadRequestStream("empty.request.json");
             final OutputStream out = new ByteArrayOutputStream()) {
@@ -1419,9 +1414,9 @@ public class LambdaWrapperTest {
     @Test
     public void invokeHandler_withEmptyResourceProperties_returnsFailure() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
 
         try (final InputStream in = loadRequestStream("empty.resource.request.json");
             final OutputStream out = new ByteArrayOutputStream()) {
@@ -1449,9 +1444,9 @@ public class LambdaWrapperTest {
         // construct a valid POJO
         SchemaValidator validator = new Validator();
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
-                                                            resourceOwnerLoggingCredentialsProvider, platformEventsLogger,
-                                                            resourceOwnerEventsLogger, platformMetricsPublisher,
-                                                            resourceOwnerMetricsPublisher, scheduler, validator);
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
 
         // explicit fault response is treated as an unsuccessful synchronous completion
         final ProgressEvent<TestModel, TestContext> pe = ProgressEvent.<TestModel, TestContext>builder()

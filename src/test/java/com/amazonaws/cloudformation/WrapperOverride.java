@@ -58,16 +58,15 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
      */
     public WrapperOverride(final CallbackAdapter<TestModel> callbackAdapter,
                            final CredentialsProvider platformCredentialsProvider,
-                           final CredentialsProvider resourceOwnerLoggingCredentialsProvider,
+                           final CredentialsProvider providerLoggingCredentialsProvider,
                            final LogPublisher platformEventsLogger,
-                           final CloudWatchLogPublisher resourceOwnerEventsLogger,
+                           final CloudWatchLogPublisher providerEventsLogger,
                            final MetricsPublisher platformMetricsPublisher,
-                           final MetricsPublisher resourceOwnerMetricsPublisher,
+                           final MetricsPublisher providerMetricsPublisher,
                            final CloudWatchScheduler scheduler,
                            final SchemaValidator validator) {
-        super(callbackAdapter, platformCredentialsProvider, resourceOwnerLoggingCredentialsProvider, resourceOwnerEventsLogger,
-              platformEventsLogger, platformMetricsPublisher, resourceOwnerMetricsPublisher, scheduler, validator,
-              new Serializer());
+        super(callbackAdapter, platformCredentialsProvider, providerLoggingCredentialsProvider, providerEventsLogger,
+              platformEventsLogger, platformMetricsPublisher, providerMetricsPublisher, scheduler, validator, new Serializer());
     }
 
     @Override

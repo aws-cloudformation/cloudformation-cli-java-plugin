@@ -49,6 +49,6 @@ public abstract class MetricsPublisher {
     public void publishDurationMetric(final Instant timestamp, final Action action, final long milliseconds) {
     }
 
-    public void publishResourceOwnerLogDeliveryExceptionMetric(final Instant timestamp, final Throwable exception) {
+    public void publishProviderLogDeliveryExceptionMetric(final Instant timestamp, final Throwable exception) {
     }
 }

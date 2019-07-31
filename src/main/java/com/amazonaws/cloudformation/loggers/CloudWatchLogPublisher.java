@@ -87,7 +87,7 @@ public class CloudWatchLogPublisher extends LogPublisher {
 
     private void emitMetricsForLoggingFailure(final Exception ex) {
         if (this.metricsPublisherProxy != null) {
-            this.metricsPublisherProxy.publishResourceOwnerLogDeliveryExceptionMetric(Instant.now(), ex);
+            this.metricsPublisherProxy.publishProviderLogDeliveryExceptionMetric(Instant.now(), ex);
         }
     }
 }
