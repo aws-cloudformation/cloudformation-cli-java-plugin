@@ -38,6 +38,8 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
         new TypeReference<HandlerRequest<{{ pojo_name }}, CallbackContext>>() {};
     private final static TypeReference<{{ pojo_name }}> TYPE_REFERENCE =
         new TypeReference<{{ pojo_name }}>() {};
+    private final static TypeReference<ResourceHandlerTestPayload<{{ pojo_name }}, CallbackContext>> TEST_ENTRY_TYPE_REFERENCE =
+        new TypeReference<ResourceHandlerTestPayload<{{ pojo_name }}, CallbackContext>>() {};
 
 
     public HandlerWrapper() {
@@ -77,7 +79,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
             final ResourceHandlerTestPayload<{{ pojo_name }}, CallbackContext> payload =
                 this.serializer.deserialize(
                     input,
-                    new TypeReference<ResourceHandlerTestPayload<{{ pojo_name }}, CallbackContext>>() {});
+                    TEST_ENTRY_TYPE_REFERENCE);
 
             final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(
                 loggerProxy, payload.getCredentials(), () -> (long) context.getRemainingTimeInMillis());
