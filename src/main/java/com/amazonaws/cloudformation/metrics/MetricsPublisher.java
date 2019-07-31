@@ -24,7 +24,7 @@ public abstract class MetricsPublisher {
     protected String resourceTypeName;
     protected String resourceNamespace;
 
-    public void setResourceTypeName(final String resourceTypeName) {
+    public MetricsPublisher(final String resourceTypeName) {
         this.resourceTypeName = resourceTypeName;
         this.resourceNamespace = resourceTypeName.replace("::", "/");
     }
@@ -49,6 +49,6 @@ public abstract class MetricsPublisher {
     public void publishDurationMetric(final Instant timestamp, final Action action, final long milliseconds) {
     }
 
-    public void publishResourceOwnerLogDeliveryExceptionMetric(final Instant timestamp, final Throwable exception) {
+    public void publishProviderLogDeliveryExceptionMetric(final Instant timestamp, final Throwable exception) {
     }
 }

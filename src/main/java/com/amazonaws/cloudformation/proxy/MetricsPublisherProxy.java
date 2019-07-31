@@ -28,10 +28,6 @@ public class MetricsPublisherProxy {
         metricsPublishers.add(metricsPublisher);
     }
 
-    public void setResourceTypeName(final String resourceTypeName) {
-        metricsPublishers.stream().forEach(metricsPublisher -> metricsPublisher.setResourceTypeName(resourceTypeName));
-    }
-
     public void publishExceptionMetric(final Instant timestamp,
                                        final Action action,
                                        final Throwable e,
@@ -49,8 +45,8 @@ public class MetricsPublisherProxy {
             .forEach(metricsPublisher -> metricsPublisher.publishDurationMetric(timestamp, action, milliseconds));
     }
 
-    public void publishResourceOwnerLogDeliveryExceptionMetric(final Instant timestamp, final Throwable exception) {
+    public void publishProviderLogDeliveryExceptionMetric(final Instant timestamp, final Throwable exception) {
         metricsPublishers.stream()
-            .forEach(metricsPublisher -> metricsPublisher.publishResourceOwnerLogDeliveryExceptionMetric(timestamp, exception));
+            .forEach(metricsPublisher -> metricsPublisher.publishProviderLogDeliveryExceptionMetric(timestamp, exception));
     }
 }
