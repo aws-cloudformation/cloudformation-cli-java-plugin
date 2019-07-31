@@ -24,6 +24,7 @@ import java.util.Date;
 import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient;
 import software.amazon.awssdk.services.cloudwatchlogs.model.InputLogEvent;
 import software.amazon.awssdk.services.cloudwatchlogs.model.PutLogEventsRequest;
+import software.amazon.awssdk.services.cloudwatchlogs.model.PutLogEventsResponse;
 
 public class CloudWatchLogPublisher extends LogPublisher {
 
@@ -34,6 +35,12 @@ public class CloudWatchLogPublisher extends LogPublisher {
     private String logStreamName;
     private LambdaLogger platformLambdaLogger;
     private MetricsPublisherProxy metricsPublisherProxy;
+
+    // Note: PutLogEvents returns a result that includes a sequence number.
+    // That same sequence number must be used in the subsequent put for the same
+    // (log group, log stream) pair.
+    // Ref: https://forums.aws.amazon.com/message.jspa?messageID=676799
+    private String nextSequenceToken = null;
 
     public CloudWatchLogPublisher(final CloudWatchLogsProvider cloudWatchLogsProvider,
                                   final String logGroupName,
@@ -59,10 +66,11 @@ public class CloudWatchLogPublisher extends LogPublisher {
             }
             assert cloudWatchLogsClient != null : "cloudWatchLogsClient was not initialised. "
                 + "You must call refreshClient() first.";
+            PutLogEventsResponse putLogEventsResponse = cloudWatchLogsClient.putLogEvents(PutLogEventsRequest.builder()
+                .sequenceToken(nextSequenceToken).logGroupName(logGroupName).logStreamName(logStreamName)
+                .logEvents(InputLogEvent.builder().message(message).timestamp(new Date().getTime()).build()).build());
 
-            cloudWatchLogsClient
-                .putLogEvents(PutLogEventsRequest.builder().logGroupName(logGroupName).logStreamName(logStreamName)
-                    .logEvents(InputLogEvent.builder().message(message).timestamp(new Date().getTime()).build()).build());
+            nextSequenceToken = putLogEventsResponse.nextSequenceToken();
         } catch (final Exception ex) {
             platformLambdaLogger.log(
                 String.format("An error occurred while putting log events [%s] " + "to resource owner account, with error: %s",

@@ -41,7 +41,9 @@ public class MetricsPublisherImpl extends MetricsPublisher {
 
     public MetricsPublisherImpl(final CloudWatchProvider cloudWatchProvider,
                                 final Logger loggerProxy,
-                                final String providerAccountId) {
+                                final String providerAccountId,
+                                final String resourceTypeName) {
+        super(resourceTypeName);
         this.cloudWatchProvider = cloudWatchProvider;
         this.loggerProxy = loggerProxy;
         this.providerAccountId = providerAccountId;

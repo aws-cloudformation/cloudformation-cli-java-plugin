@@ -153,9 +153,10 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
      * This function initialises dependencies which are depending on credentials
      * passed at function invoke and not available during construction
      */
-    private void initialiseRuntime(final Credentials platformCredentials,
-                                   final Credentials resourceOwnerLoggingCredentials,
-                                   final String resourceOwnerLogGroupName,
+    private void initialiseRuntime(final String resourceType,
+                                   final Credentials platformCredentials,
+                                   final Credentials providerCredentials,
+                                   final String providerLogGroupName,
                                    final Context context,
                                    final String awsAccountId,
                                    final URI callbackEndpoint) {
@@ -176,34 +177,33 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             // platformMetricsPublisher needs aws account id to differentiate metrics
             // namespace
             this.platformMetricsPublisher = new MetricsPublisherImpl(this.platformCloudWatchProvider, this.loggerProxy,
-                                                                     awsAccountId);
+                                                                     awsAccountId, resourceType);
         }
         this.metricsPublisherProxy.addMetricsPublisher(this.platformMetricsPublisher);
         this.platformMetricsPublisher.refreshClient();
 
-        // NOTE: resourceOwnerLoggingCredentials and logGroupName are null/not null in
+        // NOTE: providerCredentials and providerLogGroupName are null/not null in
         // sync.
         // Both are required parameters when LoggingConfig (optional) is provided when
         // 'RegisterType'.
-        if (resourceOwnerLoggingCredentials != null) {
+        if (providerCredentials != null) {
             if (this.resourceOwnerLoggingCredentialsProvider != null) {
-                this.resourceOwnerLoggingCredentialsProvider.setCredentials(resourceOwnerLoggingCredentials);
+                this.resourceOwnerLoggingCredentialsProvider.setCredentials(providerCredentials);
             }
 
             if (this.resourceOwnerMetricsPublisher == null) {
                 this.resourceOwnerMetricsPublisher = new MetricsPublisherImpl(this.resourceOwnerCloudWatchProvider,
-                                                                              this.loggerProxy, awsAccountId);
+                                                                              this.loggerProxy, awsAccountId, resourceType);
             }
             this.metricsPublisherProxy.addMetricsPublisher(this.resourceOwnerMetricsPublisher);
             this.resourceOwnerMetricsPublisher.refreshClient();
 
             if (this.resourceOwnerEventsLogger == null) {
-                this.cloudWatchLogHelper = new CloudWatchLogHelper(this.cloudWatchLogsProvider, resourceOwnerLogGroupName,
+                this.cloudWatchLogHelper = new CloudWatchLogHelper(this.cloudWatchLogsProvider, providerLogGroupName,
                                                                    context.getLogger(), this.metricsPublisherProxy);
                 this.cloudWatchLogHelper.refreshClient();
 
-                this.resourceOwnerEventsLogger = new CloudWatchLogPublisher(this.cloudWatchLogsProvider,
-                                                                            resourceOwnerLogGroupName,
+                this.resourceOwnerEventsLogger = new CloudWatchLogPublisher(this.cloudWatchLogsProvider, providerLogGroupName,
                                                                             this.cloudWatchLogHelper.prepareLogStream(),
                                                                             context.getLogger(), this.metricsPublisherProxy);
             }
@@ -307,10 +307,9 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         }
 
         // initialise dependencies with platform credentials
-        initialiseRuntime(request.getRequestData().getPlatformCredentials(),
-            request.getRequestData().getResourceOwnerLoggingCredentials(),
-            request.getRequestData().getResourceOwnerLogGroupName(), context, request.getAwsAccountId(),
-            URI.create(request.getResponseEndpoint()));
+        initialiseRuntime(request.getResourceType(), request.getRequestData().getPlatformCredentials(),
+            request.getRequestData().getProviderCredentials(), request.getRequestData().getProviderLogGroupName(), context,
+            request.getAwsAccountId(), URI.create(request.getResponseEndpoint()));
 
         // transform the request object to pass to caller
         ResourceHandlerRequest<ResourceT> resourceHandlerRequest = transform(request);
@@ -326,10 +325,6 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             log(String.format("Cleaned up previous Request Context of Rule %s and Target %s",
                 requestContext.getCloudWatchEventsRuleName(), requestContext.getCloudWatchEventsTargetId()));
         }
-
-        // MetricsPublisher is initialised with the resource type name for metrics
-        // namespace
-        this.metricsPublisherProxy.setResourceTypeName(request.getResourceType());
 
         this.metricsPublisherProxy.publishInvocationMetric(Instant.now(), request.getAction());
 

@@ -28,10 +28,6 @@ public class MetricsPublisherProxy {
         metricsPublishers.add(metricsPublisher);
     }
 
-    public void setResourceTypeName(final String resourceTypeName) {
-        metricsPublishers.stream().forEach(metricsPublisher -> metricsPublisher.setResourceTypeName(resourceTypeName));
-    }
-
     public void publishExceptionMetric(final Instant timestamp,
                                        final Action action,
                                        final Throwable e,

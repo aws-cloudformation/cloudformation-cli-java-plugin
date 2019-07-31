@@ -24,7 +24,7 @@ public abstract class MetricsPublisher {
     protected String resourceTypeName;
     protected String resourceNamespace;
 
-    public void setResourceTypeName(final String resourceTypeName) {
+    public MetricsPublisher(final String resourceTypeName) {
         this.resourceTypeName = resourceTypeName;
         this.resourceNamespace = resourceTypeName.replace("::", "/");
     }

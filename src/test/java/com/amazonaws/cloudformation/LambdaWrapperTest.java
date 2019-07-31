@@ -172,10 +172,8 @@ public class LambdaWrapperTest {
                 any(TerminalException.class), any(HandlerErrorCode.class));
 
             // all metrics should be published even on terminal failure
-            verify(platformMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
             verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
             verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
-            verify(resourceOwnerMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
             verify(resourceOwnerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
             verify(resourceOwnerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
 
@@ -261,10 +259,8 @@ public class LambdaWrapperTest {
                 any(TerminalException.class), any(HandlerErrorCode.class));
 
             // all metrics should be published even on terminal failure
-            verify(platformMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
             verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
             verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
-            verify(resourceOwnerMetricsPublisher, times(0)).setResourceTypeName("AWS::Test::TestModel");
             verify(resourceOwnerMetricsPublisher, times(0)).publishInvocationMetric(any(Instant.class), eq(action));
             verify(resourceOwnerMetricsPublisher, times(0)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
 
@@ -307,7 +303,6 @@ public class LambdaWrapperTest {
             verifyInitialiseRuntime();
 
             // all metrics should be published, once for a single invocation
-            verify(platformMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
             verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
             verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
 
@@ -402,7 +397,6 @@ public class LambdaWrapperTest {
             verifyInitialiseRuntime();
 
             // all metrics should be published, once for a single invocation
-            verify(platformMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
             verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
             verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
 
@@ -474,10 +468,8 @@ public class LambdaWrapperTest {
             verifyInitialiseRuntime();
 
             // all metrics should be published, once for a single invocation
-            verify(platformMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
             verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
             verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
-            verify(resourceOwnerMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
             verify(resourceOwnerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
             verify(resourceOwnerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
 
@@ -561,11 +553,9 @@ public class LambdaWrapperTest {
             verifyInitialiseRuntime();
 
             // all metrics should be published, once for a single invocation
-            verify(platformMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
             verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
             verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
 
-            verify(resourceOwnerMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
             verify(resourceOwnerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
             verify(resourceOwnerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
 
@@ -650,9 +640,7 @@ public class LambdaWrapperTest {
                 any(Exception.class), any(HandlerErrorCode.class));
 
             // all metrics should be published, even for a single invocation
-            verify(platformMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
             verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
-            verify(resourceOwnerMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
             verify(resourceOwnerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
 
             // duration metric only published when the provider handler is invoked
@@ -729,10 +717,8 @@ public class LambdaWrapperTest {
                 any(Exception.class), any(HandlerErrorCode.class));
 
             // all metrics should be published, even for a single invocation
-            verify(platformMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
             verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
 
-            verify(resourceOwnerMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
             verify(resourceOwnerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
 
             // verify initialiseRuntime was called and initialised dependencies
@@ -1030,11 +1016,9 @@ public class LambdaWrapperTest {
             verifyInitialiseRuntime();
 
             // all metrics should be published, once for a single invocation
-            verify(platformMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
             verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
             verify(platformMetricsPublisher, times(2)).publishDurationMetric(any(Instant.class), eq(Action.CREATE), anyLong());
 
-            verify(resourceOwnerMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
             verify(resourceOwnerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
             verify(resourceOwnerMetricsPublisher, times(2)).publishDurationMetric(any(Instant.class), eq(Action.CREATE),
                 anyLong());
@@ -1124,11 +1108,9 @@ public class LambdaWrapperTest {
             verifyInitialiseRuntime();
 
             // all metrics should be published, once for a single invocation
-            verify(platformMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
             verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
             verify(platformMetricsPublisher, times(2)).publishDurationMetric(any(Instant.class), eq(Action.CREATE), anyLong());
 
-            verify(resourceOwnerMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
             verify(resourceOwnerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
             verify(resourceOwnerMetricsPublisher, times(2)).publishDurationMetric(any(Instant.class), eq(Action.CREATE),
                 anyLong());
@@ -1202,11 +1184,9 @@ public class LambdaWrapperTest {
             verifyInitialiseRuntime();
 
             // all metrics should be published, once for a single invocation
-            verify(platformMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
             verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
             verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(Action.CREATE), anyLong());
 
-            verify(resourceOwnerMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
             verify(resourceOwnerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
             verify(resourceOwnerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(Action.CREATE),
                 anyLong());
@@ -1254,11 +1234,9 @@ public class LambdaWrapperTest {
             verifyInitialiseRuntime();
 
             // all metrics should be published, once for a single invocation
-            verify(platformMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
             verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
             verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(Action.CREATE), anyLong());
 
-            verify(resourceOwnerMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
             verify(resourceOwnerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
             verify(resourceOwnerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(Action.CREATE),
                 anyLong());
@@ -1305,11 +1283,9 @@ public class LambdaWrapperTest {
             verifyInitialiseRuntime();
 
             // all metrics should be published, once for a single invocation
-            verify(platformMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
             verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
             verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(Action.CREATE), anyLong());
 
-            verify(resourceOwnerMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
             verify(resourceOwnerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
             verify(resourceOwnerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(Action.CREATE),
                 anyLong());
@@ -1359,10 +1335,6 @@ public class LambdaWrapperTest {
 
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
-
-            // metrics publisher will be setup, but throw Error on all methods
-            verify(platformMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
-            verify(resourceOwnerMetricsPublisher, times(1)).setResourceTypeName("AWS::Test::TestModel");
 
             // no further calls to metrics publisher should occur
             verifyNoMoreInteractions(platformMetricsPublisher);
