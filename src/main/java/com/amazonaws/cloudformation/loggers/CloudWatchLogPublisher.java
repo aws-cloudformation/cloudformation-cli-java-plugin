@@ -46,7 +46,9 @@ public class CloudWatchLogPublisher extends LogPublisher {
                                   final String logGroupName,
                                   final String logStreamName,
                                   final LambdaLogger platformLambdaLogger,
-                                  final MetricsPublisherProxy metricsPublisherProxy) {
+                                  final MetricsPublisherProxy metricsPublisherProxy,
+                                  final LogFilter... logFilters) {
+        super(logFilters);
         this.cloudWatchLogsProvider = cloudWatchLogsProvider;
         this.logGroupName = logGroupName;
         this.logStreamName = logStreamName;
