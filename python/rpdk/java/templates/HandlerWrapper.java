@@ -71,6 +71,8 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
             final OutputStream outputStream,
             final Context context) throws IOException {
 
+        this.loggerProxy = new LoggerProxy();
+
         ProgressEvent<{{ pojo_name }}, CallbackContext> response = ProgressEvent.failed(null, null, HandlerErrorCode.InternalFailure, "Uninitialized");
         try {
             final String input = IOUtils.toString(inputStream, "UTF-8");
