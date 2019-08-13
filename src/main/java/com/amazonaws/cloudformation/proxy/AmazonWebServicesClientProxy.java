@@ -229,16 +229,13 @@ public class AmazonWebServicesClientProxy implements CallChain {
                                         }
                                     } catch (Exception e) {
                                         event = exceptHandler.invoke(req, e, client, model, context);
-                                        if (event.isInProgress()) {
+                                        if (event.canContinueProgress()) {
                                             event = null; // wait
                                         }
                                     }
 
-                                    Instant opTime = Instant.now();
-                                    if (event != null) {
-                                        if (event.isFailed() || event.isSuccess()) {
-                                            return event;
-                                        }
+                                    if (event != null && (event.isFailed() || event.isSuccess())) {
+                                        return event;
                                     }
 
                                     if (inHandshakeMode) {
@@ -256,10 +253,8 @@ public class AmazonWebServicesClientProxy implements CallChain {
                                     // else we bail out. Assuming 3 DAYS for a DB to restore, that would be total of
                                     // 3 x 24 x 60 x 60 x 1000 ms, fits in 32 bit int.
                                     //
+                                    Instant opTime = Instant.now();
                                     long elapsed = ChronoUnit.MILLIS.between(now, opTime);
-                                    //
-                                    //
-                                    //
                                     Duration next = delay.nextDelay(attempt++);
                                     context.attempts(callGraph, attempt);
                                     if (next == Duration.ZERO) {
