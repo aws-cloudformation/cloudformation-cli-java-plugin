@@ -323,9 +323,9 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             String cloudWatchEventsRuleName = requestContext.getCloudWatchEventsRuleName();
             if (!StringUtils.isBlank(cloudWatchEventsRuleName)) {
                 this.scheduler.cleanupCloudWatchEvents(cloudWatchEventsRuleName, requestContext.getCloudWatchEventsTargetId());
+                log(String.format("Cleaned up previous Request Context of Rule %s and Target %s",
+                    requestContext.getCloudWatchEventsRuleName(), requestContext.getCloudWatchEventsTargetId()));
             }
-            log(String.format("Cleaned up previous Request Context of Rule %s and Target %s",
-                requestContext.getCloudWatchEventsRuleName(), requestContext.getCloudWatchEventsTargetId()));
         }
 
         this.metricsPublisherProxy.publishInvocationMetric(Instant.now(), request.getAction());
