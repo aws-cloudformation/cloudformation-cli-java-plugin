@@ -186,7 +186,7 @@ public class LambdaWrapperTest {
             verifyNoMoreInteractions(scheduler);
 
             verify(providerEventsLogger).refreshClient();
-            verify(providerEventsLogger, times(3)).publishLogEvent(any());
+            verify(providerEventsLogger, times(2)).publishLogEvent(any());
             verifyNoMoreInteractions(providerEventsLogger);
 
             // verify output response
