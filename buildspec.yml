@@ -1,6 +1,9 @@
 version: 0.2
 phases:
   install:
+    runtime-versions:
+      java: openjdk8
+      python: 3.7
     commands:
       # make sure pip/setuptools/wheel is up to date, awscli for SDK patching
       - cd "$CODEBUILD_SRC_DIR_RPDK"
@@ -17,14 +20,22 @@ phases:
     commands:
       # install internal SDK
       - >
-        mvn org.apache.maven.plugins:maven-install-plugin:3.0.0-M1:install-file --batch-mode
+        mvn org.apache.maven.plugins:maven-install-plugin:3.0.0-M1:install-file
+        --batch-mode
+        --no-transfer-progress
         -Dfile="$CODEBUILD_SRC_DIR_SDK/cloudformation-2.5.69.jar"
       # install aws-cloudformation-resource-schema
       - cd "$CODEBUILD_SRC_DIR_SCHEMA"
-      - mvn package org.apache.maven.plugins:maven-install-plugin:3.0.0-M1:install --batch-mode
+      - >
+        mvn package org.apache.maven.plugins:maven-install-plugin:3.0.0-M1:install
+        --batch-mode
+        --no-transfer-progress
       # install aws-cloudformation-rpdk-java-plugin and rpdk core
       - cd "$CODEBUILD_SRC_DIR"
-      - mvn package org.apache.maven.plugins:maven-install-plugin:3.0.0-M1:install --batch-mode
+      - >
+        mvn package org.apache.maven.plugins:maven-install-plugin:3.0.0-M1:install
+        --batch-mode
+        --no-transfer-progress
       - pip install "$CODEBUILD_SRC_DIR_RPDK" .
       - pre-commit run --all-files
       # ensure code was linted
