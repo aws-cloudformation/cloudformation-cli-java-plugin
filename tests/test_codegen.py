@@ -3,9 +3,9 @@
 import xml.etree.ElementTree as ET
 from unittest.mock import Mock, patch
 
-import pytest
 import yaml
 
+import pytest
 from rpdk.core.exceptions import InternalError, SysExitRecommendedError
 from rpdk.core.project import Project
 from rpdk.java.codegen import JavaArchiveNotFoundError, JavaLanguagePlugin
