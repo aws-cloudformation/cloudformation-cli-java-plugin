@@ -1,7 +1,6 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name
 import pytest
-
 from rpdk.core.exceptions import WizardValidationError
 from rpdk.java.utils import (
     safe_reserved,
