@@ -1,7 +1,6 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name,protected-access
 import pytest
-
 from rpdk.core.data_loaders import resource_json
 from rpdk.core.jsonutils.flattener import JsonSchemaFlattener
 from rpdk.java.pojo_resolver import (

@@ -14,7 +14,10 @@ For changes to the plugin, a Python virtual environment is recommended. You also
 python3 -m venv env
 source env/bin/activate
 # assuming aws-cloudformation-rpdk has already been cloned/downloaded
-pip install ../aws-cloudformation-rpdk -e . -r requirements.txt
+pip install \
+    -e ../aws-cloudformation-rpdk \
+    -r ../aws-cloudformation-rpdk/requirements.txt \
+    -e .
 pre-commit install
 ```
 
