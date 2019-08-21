@@ -61,11 +61,20 @@ public class AmazonWebServicesClientProxy implements CallChain {
     private final AWSCredentialsProvider v1CredentialsProvider;
     private final AwsCredentialsProvider v2CredentialsProvider;
     private final Supplier<Long> remainingTimeInMillis;
+    private final boolean inHandshakeMode;
     private LoggerProxy loggerProxy;
 
     public AmazonWebServicesClientProxy(final LoggerProxy loggerProxy,
                                         final Credentials credentials,
                                         final Supplier<Long> remainingTimeToExecute) {
+        this(false, loggerProxy, credentials, remainingTimeToExecute);
+    }
+
+    public AmazonWebServicesClientProxy(final boolean inHandshakeMode,
+                                        final LoggerProxy loggerProxy,
+                                        final Credentials credentials,
+                                        final Supplier<Long> remainingTimeToExecute) {
+        this.inHandshakeMode = inHandshakeMode;
         this.loggerProxy = loggerProxy;
         this.remainingTimeInMillis = remainingTimeToExecute;
 
@@ -204,6 +213,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
                             int attempt = context.attempts(callGraph);
                             RequestT req = null;
                             ResponseT res = null;
+                            ProgressEvent<ModelT, CallbackT> event = null;
                             try {
                                 for (;;) {
                                     Instant now = Instant.now();
@@ -212,18 +222,30 @@ public class AmazonWebServicesClientProxy implements CallChain {
                                         res = res == null ? resMaker.apply(req, client) : res;
                                         if (waitFor != null) {
                                             if (waitFor.invoke(req, res, client, model, context)) {
-                                                return callback.invoke(req, res, client, model, context);
+                                                event = callback.invoke(req, res, client, model, context);
                                             }
                                         } else {
-                                            return callback.invoke(req, res, client, model, context);
+                                            event = callback.invoke(req, res, client, model, context);
                                         }
                                     } catch (Exception e) {
-                                        ProgressEvent<ModelT,
-                                            CallbackT> handled = exceptHandler.invoke(req, e, client, model, context);
-                                        if (handled.isFailed() || handled.isSuccess()) {
-                                            return handled;
+                                        event = exceptHandler.invoke(req, e, client, model, context);
+                                        if (event.canContinueProgress()) {
+                                            event = null; // wait
                                         }
                                     }
+
+                                    if (event != null && (event.isFailed() || event.isSuccess())) {
+                                        return event;
+                                    }
+
+                                    if (inHandshakeMode) {
+                                        return ProgressEvent.defaultInProgressHandler(context, 60, model);
+                                    }
+
+                                    if (event != null) {
+                                        return event;
+                                    }
+
                                     //
                                     // The logic to wait is if next delay + 2 * time to run the operation sequence +
                                     // 100ms
@@ -245,7 +267,8 @@ public class AmazonWebServicesClientProxy implements CallChain {
                                         Uninterruptibles.sleepUninterruptibly(next.getSeconds(), TimeUnit.SECONDS);
                                         continue;
                                     }
-                                    return ProgressEvent.defaultInProgressHandler(context, (int) next.getSeconds(), model);
+                                    return ProgressEvent.defaultInProgressHandler(context, Math.max((int) next.getSeconds(), 60),
+                                        model);
                                 }
                             } finally {
                                 //

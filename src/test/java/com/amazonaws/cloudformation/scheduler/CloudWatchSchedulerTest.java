@@ -28,6 +28,7 @@ import com.amazonaws.cloudformation.injection.CloudWatchEventsProvider;
 import com.amazonaws.cloudformation.proxy.HandlerRequest;
 import com.amazonaws.cloudformation.proxy.Logger;
 import com.amazonaws.cloudformation.proxy.RequestContext;
+import com.amazonaws.cloudformation.resource.Serializer;
 
 import java.util.Arrays;
 import java.util.List;
@@ -52,6 +53,7 @@ public class CloudWatchSchedulerTest {
 
     @Mock
     private RequestContext<TestContext> requestContext;
+    private final Serializer serializer = new Serializer();
 
     private static final String FUNCTION_ARN = "arn:aws:lambda:region:account-id:function:function-name";
 
@@ -69,7 +71,7 @@ public class CloudWatchSchedulerTest {
         final CloudWatchEventsClient client = getCloudWatchEvents();
         when(provider.get()).thenReturn(client);
         final CronHelper cronHelper = getCronHelper();
-        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, loggerProxy, cronHelper);
+        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, loggerProxy, cronHelper, serializer);
         scheduler.refreshClient();
 
         scheduler.cleanupCloudWatchEvents(null, "targetid");
@@ -85,7 +87,7 @@ public class CloudWatchSchedulerTest {
         final CloudWatchEventsClient client = getCloudWatchEvents();
         when(provider.get()).thenReturn(client);
         final CronHelper cronHelper = getCronHelper();
-        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, loggerProxy, cronHelper);
+        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, loggerProxy, cronHelper, serializer);
         scheduler.refreshClient();
 
         scheduler.cleanupCloudWatchEvents("rulename", null);
@@ -101,7 +103,7 @@ public class CloudWatchSchedulerTest {
         final CloudWatchEventsClient client = getCloudWatchEvents();
         when(provider.get()).thenReturn(client);
         final CronHelper cronHelper = getCronHelper();
-        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, loggerProxy, cronHelper);
+        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, loggerProxy, cronHelper, serializer);
         scheduler.refreshClient();
 
         scheduler.cleanupCloudWatchEvents("rulename", "targetid");
@@ -117,7 +119,7 @@ public class CloudWatchSchedulerTest {
         final CloudWatchEventsClient client = getCloudWatchEvents();
         when(provider.get()).thenReturn(client);
         final CronHelper cronHelper = getCronHelper();
-        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, loggerProxy, cronHelper);
+        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, loggerProxy, cronHelper, serializer);
         when(client.deleteRule(ArgumentCaptor.forClass(DeleteRuleRequest.class).capture()))
             .thenThrow(new RuntimeException("AccessDenied"));
 
@@ -136,7 +138,7 @@ public class CloudWatchSchedulerTest {
         final CloudWatchEventsClient client = getCloudWatchEvents();
         when(provider.get()).thenReturn(client);
         final CronHelper cronHelper = getCronHelper();
-        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, null, cronHelper);
+        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, null, cronHelper, serializer);
         when(client.removeTargets(ArgumentCaptor.forClass(RemoveTargetsRequest.class).capture()))
             .thenThrow(new RuntimeException("AccessDenied"));
 
@@ -156,7 +158,7 @@ public class CloudWatchSchedulerTest {
         when(provider.get()).thenReturn(client);
         final CronHelper cronHelper = getCronHelper();
         when(cronHelper.generateOneTimeCronExpression(1)).thenReturn("cron(41 14 31 10 ? 2019)");
-        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, loggerProxy, cronHelper);
+        final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, loggerProxy, cronHelper, serializer);
         scheduler.refreshClient();
         final HandlerRequest<TestModel, TestContext> request = new HandlerRequest<>();
 

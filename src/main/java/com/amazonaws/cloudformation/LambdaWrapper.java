@@ -219,7 +219,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         this.callbackAdapter.refreshClient();
 
         if (this.scheduler == null) {
-            this.scheduler = new CloudWatchScheduler(this.platformCloudWatchEventsProvider, this.loggerProxy);
+            this.scheduler = new CloudWatchScheduler(this.platformCloudWatchEventsProvider, this.loggerProxy, serializer);
         }
         this.scheduler.refreshClient();
     }
@@ -357,8 +357,11 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // such as before a FAS token expires
 
         // last mile proxy creation with passed-in credentials
-        AmazonWebServicesClientProxy awsClientProxy = new AmazonWebServicesClientProxy(this.loggerProxy, request.getRequestData()
-            .getCallerCredentials(), () -> (long) context.getRemainingTimeInMillis());
+        AmazonWebServicesClientProxy awsClientProxy = new AmazonWebServicesClientProxy(requestContext == null, this.loggerProxy,
+                                                                                       request.getRequestData()
+                                                                                           .getCallerCredentials(),
+                                                                                       () -> (long) context
+                                                                                           .getRemainingTimeInMillis());
 
         boolean computeLocally = true;
         ProgressEvent<ResourceT, CallbackT> handlerResponse = null;
