@@ -143,13 +143,23 @@ public class ProgressEvent<ResourceT, CallbackT> {
     }
 
     @JsonIgnore
+    public boolean canContinueProgress() {
+        return status == OperationStatus.IN_PROGRESS && callbackDelaySeconds == 0;
+    }
+
+    public ProgressEvent<ResourceT, CallbackT>
+        then(Function<ProgressEvent<ResourceT, CallbackT>, ProgressEvent<ResourceT, CallbackT>> func) {
+        return canContinueProgress() ? func.apply(this) : this;
+    }
+
+    @JsonIgnore
     public boolean isSuccess() {
         return status == OperationStatus.SUCCESS;
     }
 
     @JsonIgnore
     public boolean isInProgressCallbackDelay() {
-        return isInProgress() && callbackDelaySeconds > 0;
+        return status == OperationStatus.IN_PROGRESS && callbackDelaySeconds > 0;
     }
 
 }

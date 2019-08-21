@@ -14,12 +14,15 @@
 */
 package com.amazonaws.cloudformation.resource;
 
+import com.amazonaws.cloudformation.proxy.aws.AWSServiceSerdeModule;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import java.io.IOException;
 
@@ -39,12 +42,15 @@ public class Serializer {
      */
     static {
         STRICT_OBJECT_MAPPER = new ObjectMapper();
+        STRICT_OBJECT_MAPPER.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, true);
         STRICT_OBJECT_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
         STRICT_OBJECT_MAPPER.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
         STRICT_OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_ABSENT);
         STRICT_OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
         STRICT_OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
         STRICT_OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        STRICT_OBJECT_MAPPER.registerModule(new AWSServiceSerdeModule());
+        STRICT_OBJECT_MAPPER.registerModule(new JavaTimeModule());
     }
 
     /**
@@ -58,12 +64,15 @@ public class Serializer {
      */
     static {
         OBJECT_MAPPER = new ObjectMapper();
+        OBJECT_MAPPER.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, true);
         OBJECT_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         OBJECT_MAPPER.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
         OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_ABSENT);
         OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
         OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
         OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        OBJECT_MAPPER.registerModule(new AWSServiceSerdeModule());
+        OBJECT_MAPPER.registerModule(new JavaTimeModule());
     }
 
     public <T> JSONObject serialize(final T modelObject) throws JsonProcessingException {

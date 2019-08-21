@@ -14,16 +14,18 @@
 */
 package com.amazonaws.cloudformation.scheduler;
 
+import com.amazonaws.cloudformation.exceptions.TerminalException;
 import com.amazonaws.cloudformation.injection.CloudWatchEventsProvider;
 import com.amazonaws.cloudformation.proxy.HandlerRequest;
 import com.amazonaws.cloudformation.proxy.Logger;
 import com.amazonaws.cloudformation.proxy.RequestContext;
+import com.amazonaws.cloudformation.resource.Serializer;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
+import java.util.Objects;
 import java.util.UUID;
 
 import lombok.Data;
-
-import org.json.JSONObject;
 
 import software.amazon.awssdk.services.cloudwatchevents.CloudWatchEventsClient;
 import software.amazon.awssdk.services.cloudwatchevents.model.DeleteRuleRequest;
@@ -43,24 +45,23 @@ public class CloudWatchScheduler {
     private final Logger loggerProxy;
 
     private final CronHelper cronHelper;
+    private final Serializer serializer;
     private CloudWatchEventsClient client;
 
     public CloudWatchScheduler(final CloudWatchEventsProvider cloudWatchEventsProvider,
-                               final Logger loggerProxy) {
-        this.cloudWatchEventsProvider = cloudWatchEventsProvider;
-        this.loggerProxy = loggerProxy;
-        this.cronHelper = new CronHelper();
+                               final Logger loggerProxy,
+                               Serializer serializer) {
+        this(cloudWatchEventsProvider, loggerProxy, new CronHelper(), serializer);
     }
 
-    /**
-     * This .ctor provided for testing
-     */
     public CloudWatchScheduler(final CloudWatchEventsProvider cloudWatchEventsProvider,
                                final Logger loggerProxy,
-                               final CronHelper cronHelper) {
+                               final CronHelper cronHelper,
+                               Serializer serializer) {
         this.cloudWatchEventsProvider = cloudWatchEventsProvider;
         this.loggerProxy = loggerProxy;
         this.cronHelper = cronHelper;
+        this.serializer = Objects.requireNonNull(serializer);
     }
 
     /**
@@ -99,7 +100,13 @@ public class CloudWatchScheduler {
         requestContext.setCloudWatchEventsRuleName(ruleName);
         requestContext.setCloudWatchEventsTargetId(targetId);
 
-        String jsonRequest = new JSONObject(handlerRequest).toString();
+        String jsonRequest;
+        try {
+            // expect return type to be non-null
+            jsonRequest = serializer.serialize(handlerRequest).toString();
+        } catch (JsonProcessingException e) {
+            throw new TerminalException("Unable to serialize the request for callback", e);
+        }
         this.log(String.format("Scheduling re-invoke at %s (%s)%n", cronRule, rescheduleId));
 
         PutRuleRequest putRuleRequest = PutRuleRequest.builder().name(ruleName).scheduleExpression(cronRule)
