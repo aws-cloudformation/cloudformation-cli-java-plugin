@@ -137,7 +137,7 @@ public class LambdaWrapperTest {
         assertThat(handlerResponse.getBearerToken()).isEqualTo(expected.getBearerToken());
         assertThat(handlerResponse.getErrorCode()).isEqualTo(expected.getErrorCode());
         assertThat(handlerResponse.getMessage()).isEqualTo(expected.getMessage());
-        assertThat(handlerResponse.getNextToken()).isEqualTo(expected.getNextToken());
+        assertThat(handlerResponse.getPaginationToken()).isEqualTo(expected.getPaginationToken());
         assertThat(handlerResponse.getOperationStatus()).isEqualTo(expected.getOperationStatus());
         assertThat(handlerResponse.getStabilizationData()).isEqualTo(expected.getStabilizationData());
         assertThat(handlerResponse.getResourceModel()).isEqualTo(expected.getResourceModel());
@@ -506,11 +506,6 @@ public class LambdaWrapperTest {
     }
 
     @Test
-    public void invokeHandlerForRead_InProgress_returnsInProgress() throws IOException {
-        invokeHandler_InProgress_returnsInProgress("read.request.json", Action.READ);
-    }
-
-    @Test
     public void invokeHandlerForUpdate_InProgress_returnsInProgress() throws IOException {
         invokeHandler_InProgress_returnsInProgress("update.request.json", Action.UPDATE);
     }
@@ -518,11 +513,6 @@ public class LambdaWrapperTest {
     @Test
     public void invokeHandlerForDelete_InProgress_returnsInProgress() throws IOException {
         invokeHandler_InProgress_returnsInProgress("delete.request.json", Action.DELETE);
-    }
-
-    @Test
-    public void invokeHandlerForList_InProgress_returnsInProgress() throws IOException {
-        invokeHandler_InProgress_returnsInProgress("list.request.json", Action.LIST);
     }
 
     private void reInvokeHandler_InProgress_returnsInProgress(final String requestDataPath, final Action action)

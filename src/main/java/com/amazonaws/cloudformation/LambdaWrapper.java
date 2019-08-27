@@ -379,9 +379,13 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             // long-poll creation checks
             computeLocally = scheduleReinvocation(request, handlerResponse, context);
 
-            // report the progress status back to configured endpoint
-            this.callbackAdapter.reportProgress(request.getBearerToken(), handlerResponse.getErrorCode(),
-                handlerResponse.getStatus(), handlerResponse.getResourceModel(), handlerResponse.getMessage());
+            // report the progress status back to configured endpoint on
+            // mutating/potentially asynchronous actions
+
+            if (MUTATING_ACTIONS.contains(request.getAction())) {
+                this.callbackAdapter.reportProgress(request.getBearerToken(), handlerResponse.getErrorCode(),
+                    handlerResponse.getStatus(), handlerResponse.getResourceModel(), handlerResponse.getMessage());
+            }
         }
 
         return handlerResponse;
@@ -451,6 +455,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         response.setResourceModel(progressEvent.getResourceModel());
         response.setErrorCode(progressEvent.getErrorCode());
         response.setBearerToken(bearerToken);
+        response.setResourceModels(progressEvent.getResourceModels());
+        response.setPaginationToken(progressEvent.getPaginationToken());
 
         return response;
     }

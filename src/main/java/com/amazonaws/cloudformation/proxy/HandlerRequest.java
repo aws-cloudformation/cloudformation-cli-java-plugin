@@ -28,7 +28,7 @@ public class HandlerRequest<ResourceT, CallbackT> {
     private Action action;
     private String awsAccountId;
     private String bearerToken;
-    private String nextToken;
+    private String paginationToken;
     private String region;
     private String responseEndpoint;
     private String resourceType;

@@ -17,6 +17,8 @@ package com.amazonaws.cloudformation;
 import com.amazonaws.cloudformation.proxy.HandlerErrorCode;
 import com.amazonaws.cloudformation.proxy.OperationStatus;
 
+import java.util.List;
+
 import lombok.Data;
 
 @Data
@@ -50,4 +52,14 @@ public class Response<ResourceT> {
      * and by CREATE/UPDATE/DELETE for final response validation/confirmation
      */
     private ResourceT resourceModel;
+
+    /**
+     * The output resource instances populated by a LIST for synchronous results
+     */
+    private List<ResourceT> resourceModels;
+
+    /**
+     * The token used to request additional pages of resources for a LIST operation
+     */
+    private String paginationToken;
 }

@@ -79,8 +79,8 @@ public class ServiceHandlerWrapper extends LambdaWrapper<Model, StdCallbackConte
             previousResourceState = null;
         }
 
-        return new ResourceHandlerRequest<>(request.getRequestData().getLogicalResourceId(), desiredResourceState,
-                                            previousResourceState, request.getBearerToken());
+        return new ResourceHandlerRequest<>(request.getBearerToken(), desiredResourceState, previousResourceState,
+                                            request.getRequestData().getLogicalResourceId(), request.getPaginationToken());
     }
 
     @Override

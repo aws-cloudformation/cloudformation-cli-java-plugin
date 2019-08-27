@@ -150,7 +150,7 @@ public class End2EndCallChainTest {
         request.setAction(Action.CREATE);
         request.setAwsAccountId("1234567891234");
         request.setBearerToken("dwezxdfgfgh");
-        request.setNextToken(null);
+        request.setPaginationToken(null);
         request.setRegion("us-east-2");
         request.setResourceType("AWS::Code::Repository");
         request.setStackId(UUID.randomUUID().toString());
