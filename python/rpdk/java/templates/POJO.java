@@ -48,7 +48,7 @@ public class {{ pojo_name|uppercase_first_letter }} {
         final JSONObject identifier = new JSONObject();
         {% for identifier in primaryIdentifier %}
         {% set components = identifier.split("/") %}
-        if (this.get{{components[2]}}() != null
+        if (this.get{{components[2]|uppercase_first_letter}}() != null
             {%- for i in range(4, components|length + 1) -%}
                 {#- #} && this
                 {%- for component in components[2:i] -%} .get{{component|uppercase_first_letter}}() {%- endfor -%}
