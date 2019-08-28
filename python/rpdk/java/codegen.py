@@ -6,10 +6,10 @@ import shutil
 from rpdk.core.data_loaders import resource_stream
 from rpdk.core.exceptions import InternalError, SysExitRecommendedError
 from rpdk.core.init import input_with_validation
-from rpdk.core.jsonutils.flattener import JsonSchemaFlattener
+from rpdk.core.jsonutils.resolver import resolve_models
 from rpdk.core.plugin_base import LanguagePlugin
 
-from .pojo_resolver import JavaPojoResolver
+from .resolver import translate_type
 from .utils import safe_reserved, validate_namespace
 
 LOG = logging.getLogger(__name__)
@@ -32,6 +32,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         self.env = self._setup_jinja_env(
             trim_blocks=True, lstrip_blocks=True, keep_trailing_newline=True
         )
+        self.env.filters["translate_type"] = translate_type
         self.namespace = None
         self.package_name = None
 
@@ -202,8 +203,6 @@ class JavaLanguagePlugin(LanguagePlugin):
 
         self._namespace_from_project(project)
 
-        objects = JsonSchemaFlattener(project.schema).flatten_schema()
-
         # clean generated files
         generated_root = self._get_generated_root(project)
         LOG.debug("Removing generated sources: %s", generated_root)
@@ -250,24 +249,35 @@ class JavaLanguagePlugin(LanguagePlugin):
         )
         project.overwrite(path, contents)
 
-        # generate pojos
-        pojo_resolver = JavaPojoResolver(objects, "ResourceModel")
-        pojos = pojo_resolver.resolve_pojos()
+        # generate POJOs
+        models = resolve_models(project.schema)
 
-        LOG.debug("Writing %d POJOs", len(pojos))
+        LOG.debug("Writing %d POJOs", len(models))
 
-        template = self.env.get_template("POJO.java")
-        for pojo_name, properties in pojos.items():
-            path = src / "{}.java".format(pojo_name)
-            LOG.debug("%s POJO: %s", pojo_name, path)
-            contents = template.render(
-                type_name=project.type_name,
-                package_name=self.package_name,
-                pojo_name=pojo_name,
-                properties=properties,
-                primaryIdentifier=project.schema.get("primaryIdentifier", []),
-                additionalIdentifiers=project.schema.get("additionalIdentifiers", []),
-            )
+        base_template = self.env.get_template("ResourceModel.java")
+        pojo_template = self.env.get_template("POJO.java")
+
+        for model_name, properties in models.items():
+            path = src / "{}.java".format(model_name)
+            LOG.debug("%s POJO: %s", model_name, path)
+
+            if model_name == "ResourceModel":
+                contents = base_template.render(
+                    type_name=project.type_name,
+                    package_name=self.package_name,
+                    model_name=model_name,
+                    properties=properties,
+                    primaryIdentifier=project.schema.get("primaryIdentifier", []),
+                    additionalIdentifiers=project.schema.get(
+                        "additionalIdentifiers", []
+                    ),
+                )
+            else:
+                contents = pojo_template.render(
+                    package_name=self.package_name,
+                    model_name=model_name,
+                    properties=properties,
+                )
             project.overwrite(path, contents)
 
         # generate pojo tests
