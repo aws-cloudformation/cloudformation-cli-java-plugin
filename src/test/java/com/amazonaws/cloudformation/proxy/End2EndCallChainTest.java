@@ -382,7 +382,7 @@ public class End2EndCallChainTest {
     @Test
     public void createHandlerThottleException() throws Exception {
         final HandlerRequest<Model, StdCallbackContext> request = prepareRequest(Model.builder().repoName("repository").build());
-        request.setAction(Action.READ);
+        request.setAction(Action.CREATE);
         final Serializer serializer = new Serializer();
         final InputStream stream = prepareStream(serializer, request);
         ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
@@ -463,7 +463,7 @@ public class End2EndCallChainTest {
     @Test
     public void createHandlerThottleExceptionEarlyInProgressBailout() throws Exception {
         final HandlerRequest<Model, StdCallbackContext> request = prepareRequest(Model.builder().repoName("repository").build());
-        request.setAction(Action.READ);
+        request.setAction(Action.CREATE);
         final Serializer serializer = new Serializer();
         final InputStream stream = prepareStream(serializer, request);
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
