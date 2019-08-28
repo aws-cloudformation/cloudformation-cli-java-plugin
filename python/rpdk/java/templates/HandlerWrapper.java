@@ -105,12 +105,12 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
 
     @Override
     protected ResourceHandlerRequest<{{ pojo_name }}> transform(final HandlerRequest<{{ pojo_name }}, CallbackContext> request) throws IOException {
-        final RequestData requestData = request.getRequestData();
+        final RequestData<{{ pojo_name }}> requestData = request.getRequestData();
 
         return new ResourceHandlerRequest<{{ pojo_name }}>(
             request.getBearerToken(),
-            requestData.getDesiredResourceState(),
-            requestData.getPreviousResourceState(),
+            requestData.getResourceProperties(),
+            requestData.getPreviousResourceProperties(),
             requestData.getLogicalResourceId(),
             request.getNextToken()
         );
