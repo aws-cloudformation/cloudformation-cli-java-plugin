@@ -11,6 +11,7 @@ import com.amazonaws.cloudformation.proxy.HandlerRequest;
 import com.amazonaws.cloudformation.proxy.LoggerProxy;
 import com.amazonaws.cloudformation.proxy.ProgressEvent;
 import com.amazonaws.cloudformation.proxy.RequestContext;
+import com.amazonaws.cloudformation.proxy.RequestData;
 import com.amazonaws.cloudformation.proxy.ResourceHandlerRequest;
 import com.amazonaws.cloudformation.proxy.ResourceHandlerTestPayload;
 import com.amazonaws.cloudformation.resource.SchemaValidator;
