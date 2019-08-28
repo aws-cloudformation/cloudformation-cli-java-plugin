@@ -61,5 +61,5 @@ public class Response<ResourceT> {
     /**
      * The token used to request additional pages of resources for a LIST operation
      */
-    private String paginationToken;
+    private String nextToken;
 }

@@ -137,7 +137,7 @@ public class LambdaWrapperTest {
         assertThat(handlerResponse.getBearerToken()).isEqualTo(expected.getBearerToken());
         assertThat(handlerResponse.getErrorCode()).isEqualTo(expected.getErrorCode());
         assertThat(handlerResponse.getMessage()).isEqualTo(expected.getMessage());
-        assertThat(handlerResponse.getPaginationToken()).isEqualTo(expected.getPaginationToken());
+        assertThat(handlerResponse.getNextToken()).isEqualTo(expected.getNextToken());
         assertThat(handlerResponse.getOperationStatus()).isEqualTo(expected.getOperationStatus());
         assertThat(handlerResponse.getStabilizationData()).isEqualTo(expected.getStabilizationData());
         assertThat(handlerResponse.getResourceModel()).isEqualTo(expected.getResourceModel());
@@ -473,36 +473,48 @@ public class LambdaWrapperTest {
             verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
             verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
 
-            // validation failure metric should not be published
-            verifyNoMoreInteractions(platformMetricsPublisher);
-            verifyNoMoreInteractions(providerMetricsPublisher);
-
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
                 verify(validator, times(1)).validateObject(any(JSONObject.class), any(JSONObject.class));
+
+                // re-invocation via CloudWatch should occur
+                verify(scheduler, times(1)).rescheduleAfterMinutes(anyString(), eq(0),
+                    ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
+
+                // CloudFormation should receive a callback invocation
+                verify(callbackAdapter, times(1)).reportProgress(eq("123456"), isNull(), eq(OperationStatus.IN_PROGRESS),
+                    eq(TestModel.builder().property1("abc").property2(123).build()), isNull());
+
+                // verify output response
+                verifyHandlerResponse(out,
+                    HandlerResponse.<TestModel>builder().bearerToken("123456").operationStatus(OperationStatus.IN_PROGRESS)
+                        .resourceModel(TestModel.builder().property1("abc").property2(123).build()).build());
+            } else {
+                verifyHandlerResponse(out,
+                    HandlerResponse.<TestModel>builder().bearerToken("123456").operationStatus(OperationStatus.FAILED)
+                        .errorCode(HandlerErrorCode.InternalFailure.name())
+                        .message("READ and LIST handlers must return synchronously.").build());
+                verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), eq(action),
+                    any(TerminalException.class), eq(HandlerErrorCode.InternalFailure));
+                verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), eq(action),
+                    any(TerminalException.class), eq(HandlerErrorCode.InternalFailure));
             }
-
-            // re-invocation via CloudWatch should occur
-            verify(scheduler, times(1)).rescheduleAfterMinutes(anyString(), eq(0),
-                ArgumentMatchers.<HandlerRequest<TestModel, TestContext>>any());
-
-            // this was a first invocation, so no cleanup is required
+            // validation failure metric should not be published
+            verifyNoMoreInteractions(platformMetricsPublisher);
+            verifyNoMoreInteractions(providerMetricsPublisher);
             verifyNoMoreInteractions(scheduler);
 
-            // CloudFormation should receive a callback invocation
-            verify(callbackAdapter, times(1)).reportProgress(eq("123456"), isNull(), eq(OperationStatus.IN_PROGRESS),
-                eq(TestModel.builder().property1("abc").property2(123).build()), isNull());
-
-            // verify output response
-            verifyHandlerResponse(out,
-                HandlerResponse.<TestModel>builder().bearerToken("123456").operationStatus(OperationStatus.IN_PROGRESS)
-                    .resourceModel(TestModel.builder().property1("abc").property2(123).build()).build());
         }
     }
 
     @Test
     public void invokeHandlerForCreate_InProgress_returnsInProgress() throws IOException {
         invokeHandler_InProgress_returnsInProgress("create.request.json", Action.CREATE);
+    }
+
+    @Test
+    public void invokeHandlerForRead_InProgress_returnsFailure() throws IOException {
+        invokeHandler_InProgress_returnsInProgress("read.request.json", Action.READ);
     }
 
     @Test
@@ -513,6 +525,11 @@ public class LambdaWrapperTest {
     @Test
     public void invokeHandlerForDelete_InProgress_returnsInProgress() throws IOException {
         invokeHandler_InProgress_returnsInProgress("delete.request.json", Action.DELETE);
+    }
+
+    @Test
+    public void invokeHandlerForList_InProgress_returnsFailure() throws IOException {
+        invokeHandler_InProgress_returnsInProgress("list.request.json", Action.LIST);
     }
 
     private void reInvokeHandler_InProgress_returnsInProgress(final String requestDataPath, final Action action)
@@ -583,13 +600,6 @@ public class LambdaWrapperTest {
     }
 
     @Test
-    public void reInvokeHandlerForRead_InProgress_returnsInProgress() throws IOException {
-        // TODO: READ handlers must return synchronously so this is probably a fault
-        // reInvokeHandler_InProgress_returnsInProgress("read.with-request-context.request.json",
-        // Action.READ);
-    }
-
-    @Test
     public void reInvokeHandlerForUpdate_InProgress_returnsInProgress() throws IOException {
         reInvokeHandler_InProgress_returnsInProgress("update.with-request-context.request.json", Action.UPDATE);
     }
@@ -597,13 +607,6 @@ public class LambdaWrapperTest {
     @Test
     public void reInvokeHandlerForDelete_InProgress_returnsInProgress() throws IOException {
         reInvokeHandler_InProgress_returnsInProgress("delete.with-request-context.request.json", Action.DELETE);
-    }
-
-    @Test
-    public void reInvokeHandlerForList_InProgress_returnsInProgress() throws IOException {
-        // TODO: LIST handlers must return synchronously so this is probably a fault
-        // reInvokeHandler_InProgress_returnsInProgress("list.with-request-context.request.json",
-        // Action.LIST);
     }
 
     private void invokeHandler_SchemaValidationFailure(final String requestDataPath, final Action action) throws IOException {
@@ -659,13 +662,6 @@ public class LambdaWrapperTest {
     }
 
     @Test
-    public void invokeHandlerForRead_SchemaValidationFailure() throws IOException {
-        // TODO: READ handlers must return synchronously so this is probably a fault
-        // invokeHandler_SchemaValidationFailure("read.with-request-context.request.json",
-        // Action.READ);
-    }
-
-    @Test
     public void invokeHandlerForUpdate_SchemaValidationFailure() throws IOException {
         invokeHandler_SchemaValidationFailure("update.request.json", Action.UPDATE);
     }
@@ -673,13 +669,6 @@ public class LambdaWrapperTest {
     @Test
     public void invokeHandlerForDelete_SchemaValidationFailure() throws IOException {
         invokeHandler_SchemaValidationFailure("delete.request.json", Action.DELETE);
-    }
-
-    @Test
-    public void invokeHandlerForList_SchemaValidationFailure() throws IOException {
-        // TODO: LIST handlers must return synchronously so this is probably a fault
-        // invokeHandler_SchemaValidationFailure("list.with-request-context.request.json",
-        // Action.LIST);
     }
 
     @Test

@@ -150,7 +150,7 @@ public class End2EndCallChainTest {
         request.setAction(Action.CREATE);
         request.setAwsAccountId("1234567891234");
         request.setBearerToken("dwezxdfgfgh");
-        request.setPaginationToken(null);
+        request.setNextToken(null);
         request.setRegion("us-east-2");
         request.setResourceType("AWS::Code::Repository");
         request.setStackId(UUID.randomUUID().toString());
@@ -382,7 +382,7 @@ public class End2EndCallChainTest {
     @Test
     public void createHandlerThottleException() throws Exception {
         final HandlerRequest<Model, StdCallbackContext> request = prepareRequest(Model.builder().repoName("repository").build());
-        request.setAction(Action.READ);
+        request.setAction(Action.CREATE);
         final Serializer serializer = new Serializer();
         final InputStream stream = prepareStream(serializer, request);
         ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
@@ -463,7 +463,7 @@ public class End2EndCallChainTest {
     @Test
     public void createHandlerThottleExceptionEarlyInProgressBailout() throws Exception {
         final HandlerRequest<Model, StdCallbackContext> request = prepareRequest(Model.builder().repoName("repository").build());
-        request.setAction(Action.READ);
+        request.setAction(Action.CREATE);
         final Serializer serializer = new Serializer();
         final InputStream stream = prepareStream(serializer, request);
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);

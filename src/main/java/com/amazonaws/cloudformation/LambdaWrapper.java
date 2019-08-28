@@ -267,7 +267,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             // CloudFormation)
             e.printStackTrace(); // for root causing - logs to LambdaLogger by default
             handlerResponse = ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.InternalFailure);
-            if (request != null && request.getRequestData() != null) {
+            if (request != null && request.getRequestData() != null && MUTATING_ACTIONS.contains(request.getAction())) {
                 handlerResponse.setResourceModel(request.getRequestData().getResourceProperties());
             }
             if (request != null) {
@@ -335,7 +335,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // NOTE: we validate the raw pre-deserialized payload to account for lenient
         // serialization.
         // Here, we want to surface ALL input validation errors to the caller.
-        if (MUTATING_ACTIONS.contains(request.getAction())) {
+        boolean isMutatingAction = MUTATING_ACTIONS.contains(request.getAction());
+        if (isMutatingAction) {
             // validate entire incoming payload, including extraneous fields which
             // are stripped by the Serializer (due to FAIL_ON_UNKNOWN_PROPERTIES setting)
             JSONObject rawModelObject = rawRequest.getJSONObject("requestData").getJSONObject("resourceProperties");
@@ -373,19 +374,20 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
             handlerResponse = wrapInvocationAndHandleErrors(awsClientProxy, resourceHandlerRequest, request, callbackContext);
 
+            // report the progress status back to configured endpoint on
+            // mutating/potentially asynchronous actions
+
+            if (isMutatingAction) {
+                this.callbackAdapter.reportProgress(request.getBearerToken(), handlerResponse.getErrorCode(),
+                    handlerResponse.getStatus(), handlerResponse.getResourceModel(), handlerResponse.getMessage());
+            } else if (handlerResponse.getStatus() == OperationStatus.IN_PROGRESS) {
+                throw new TerminalException("READ and LIST handlers must return synchronously.");
+            }
             // When the handler responses IN_PROGRESS with a callback delay, we trigger a
             // callback to re-invoke
             // the handler for the Resource type to implement stabilization checks and
             // long-poll creation checks
             computeLocally = scheduleReinvocation(request, handlerResponse, context);
-
-            // report the progress status back to configured endpoint on
-            // mutating/potentially asynchronous actions
-
-            if (MUTATING_ACTIONS.contains(request.getAction())) {
-                this.callbackAdapter.reportProgress(request.getBearerToken(), handlerResponse.getErrorCode(),
-                    handlerResponse.getStatus(), handlerResponse.getResourceModel(), handlerResponse.getMessage());
-            }
         }
 
         return handlerResponse;
@@ -456,7 +458,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         response.setErrorCode(progressEvent.getErrorCode());
         response.setBearerToken(bearerToken);
         response.setResourceModels(progressEvent.getResourceModels());
-        response.setPaginationToken(progressEvent.getPaginationToken());
+        response.setNextToken(progressEvent.getNextToken());
 
         return response;
     }

@@ -104,37 +104,14 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
 
     @Override
     protected ResourceHandlerRequest<{{ pojo_name }}> transform(final HandlerRequest<{{ pojo_name }}, CallbackContext> request) throws IOException {
-        final {{ pojo_name }} desiredResourceState;
-        final {{ pojo_name }} previousResourceState;
-        final String logicalResourceId;
-
-        if (request.getRequestData() != null &&
-            request.getRequestData().getResourceProperties() != null) {
-            desiredResourceState = request.getRequestData().getResourceProperties();
-        } else {
-            desiredResourceState = null;
-        }
-
-        if (request.getRequestData() != null &&
-            request.getRequestData().getPreviousResourceProperties() != null) {
-            previousResourceState = request.getRequestData().getPreviousResourceProperties();
-        } else {
-            previousResourceState = null;
-        }
-
-        if (request.getRequestData() != null &&
-            request.getRequestData().getLogicalResourceId() != null) {
-            logicalResourceId = request.getRequestData().getLogicalResourceId();
-        } else {
-            logicalResourceId = null;
-        }
+        final RequestData requestData = request.getRequestData();
 
         return new ResourceHandlerRequest<{{ pojo_name }}>(
             request.getBearerToken(),
-            desiredResourceState,
-            previousResourceState,
-            logicalResourceId,
-            request.getPaginationToken()
+            requestData.getDesiredResourceState(),
+            requestData.getPreviousResourceState(),
+            requestData.getLogicalResourceId(),
+            request.getNextToken()
         );
     }
 

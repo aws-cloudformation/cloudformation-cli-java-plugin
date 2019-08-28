@@ -32,7 +32,7 @@ public class HandlerResponse<ResourceT> {
     private String bearerToken;
     private String errorCode;
     private String message;
-    private String paginationToken;
+    private String nextToken;
     private OperationStatus operationStatus;
     private ResourceT resourceModel;
     private StabilizationData stabilizationData;
