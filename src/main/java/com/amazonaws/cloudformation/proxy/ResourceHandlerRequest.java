@@ -35,4 +35,5 @@ public class ResourceHandlerRequest<T> {
     private T desiredResourceState;
     private T previousResourceState;
     private String logicalResourceIdentifier;
+    private String nextToken;
 }

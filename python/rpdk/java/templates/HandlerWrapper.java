@@ -11,6 +11,7 @@ import com.amazonaws.cloudformation.proxy.HandlerRequest;
 import com.amazonaws.cloudformation.proxy.LoggerProxy;
 import com.amazonaws.cloudformation.proxy.ProgressEvent;
 import com.amazonaws.cloudformation.proxy.RequestContext;
+import com.amazonaws.cloudformation.proxy.RequestData;
 import com.amazonaws.cloudformation.proxy.ResourceHandlerRequest;
 import com.amazonaws.cloudformation.proxy.ResourceHandlerTestPayload;
 import com.amazonaws.cloudformation.resource.SchemaValidator;
@@ -104,28 +105,14 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
 
     @Override
     protected ResourceHandlerRequest<{{ pojo_name }}> transform(final HandlerRequest<{{ pojo_name }}, CallbackContext> request) throws IOException {
-        final {{ pojo_name }} desiredResourceState;
-        final {{ pojo_name }} previousResourceState;
-
-        if (request.getRequestData() != null &&
-            request.getRequestData().getResourceProperties() != null) {
-            desiredResourceState = request.getRequestData().getResourceProperties();
-        } else {
-            desiredResourceState = null;
-        }
-
-        if (request.getRequestData() != null &&
-            request.getRequestData().getPreviousResourceProperties() != null) {
-            previousResourceState = request.getRequestData().getPreviousResourceProperties();
-        } else {
-            previousResourceState = null;
-        }
+        final RequestData<{{ pojo_name }}> requestData = request.getRequestData();
 
         return new ResourceHandlerRequest<{{ pojo_name }}>(
             request.getBearerToken(),
-            desiredResourceState,
-            previousResourceState,
-            request.getRequestData().getLogicalResourceId()
+            requestData.getResourceProperties(),
+            requestData.getPreviousResourceProperties(),
+            requestData.getLogicalResourceId(),
+            request.getNextToken()
         );
     }
 

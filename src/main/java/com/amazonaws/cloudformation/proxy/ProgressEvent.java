@@ -74,6 +74,11 @@ public class ProgressEvent<ResourceT, CallbackT> {
     private List<ResourceT> resourceModels;
 
     /**
+     * The token used to request additional pages of resources for a LIST operation
+     */
+    private String nextToken;
+
+    /**
      * Convenience method for constructing a FAILED response
      */
     public static <ResourceT, CallbackT>
