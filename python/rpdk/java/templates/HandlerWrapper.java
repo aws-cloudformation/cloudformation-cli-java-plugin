@@ -49,7 +49,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
 
     private void initialiseHandlers() {
 {% for op in operations %}
-        handlers.put(Action.{{ op|upper }}, new {{ op }}Handler());
+        handlers.put(Action.{{ op|upper }}, new {{ op|uppercase_first_letter }}Handler());
 {% endfor %}
     }
 
