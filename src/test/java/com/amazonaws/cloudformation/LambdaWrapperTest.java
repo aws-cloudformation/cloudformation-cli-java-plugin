@@ -483,7 +483,7 @@ public class LambdaWrapperTest {
 
                 // CloudFormation should receive a callback invocation
                 verify(callbackAdapter, times(1)).reportProgress(eq("123456"), isNull(), eq(OperationStatus.IN_PROGRESS),
-                    eq(TestModel.builder().property1("abc").property2(123).build()), isNull());
+                    eq(OperationStatus.IN_PROGRESS), eq(TestModel.builder().property1("abc").property2(123).build()), isNull());
 
                 // verify output response
                 verifyHandlerResponse(out,
@@ -585,7 +585,7 @@ public class LambdaWrapperTest {
 
             // CloudFormation should receive a callback invocation
             verify(callbackAdapter, times(1)).reportProgress(eq("123456"), isNull(), eq(OperationStatus.IN_PROGRESS),
-                eq(TestModel.builder().property1("abc").property2(123).build()), isNull());
+                eq(OperationStatus.IN_PROGRESS), eq(TestModel.builder().property1("abc").property2(123).build()), isNull());
 
             // verify output response
             verifyHandlerResponse(out,
@@ -1023,7 +1023,8 @@ public class LambdaWrapperTest {
             final ArgumentCaptor<String> statusMessageCaptor = ArgumentCaptor.forClass(String.class);
 
             verify(callbackAdapter, times(2)).reportProgress(bearerTokenCaptor.capture(), errorCodeCaptor.capture(),
-                operationStatusCaptor.capture(), resourceModelCaptor.capture(), statusMessageCaptor.capture());
+                operationStatusCaptor.capture(), operationStatusCaptor.capture(), resourceModelCaptor.capture(),
+                statusMessageCaptor.capture());
 
             final List<String> bearerTokens = bearerTokenCaptor.getAllValues();
             final List<HandlerErrorCode> errorCodes = errorCodeCaptor.getAllValues();
@@ -1038,7 +1039,8 @@ public class LambdaWrapperTest {
             assertThat(resourceModels).containsExactly(TestModel.builder().property1("abc").property2(123).build(),
                 TestModel.builder().property1("abc").property2(123).build());
             assertThat(statusMessages).containsExactly(null, null);
-            assertThat(operationStatuses).containsExactly(OperationStatus.IN_PROGRESS, OperationStatus.SUCCESS);
+            assertThat(operationStatuses).containsExactly(OperationStatus.IN_PROGRESS, OperationStatus.IN_PROGRESS,
+                OperationStatus.SUCCESS, OperationStatus.IN_PROGRESS);
 
             // verify final output response is for success response
             verifyHandlerResponse(out,
@@ -1114,7 +1116,8 @@ public class LambdaWrapperTest {
             final ArgumentCaptor<String> statusMessageCaptor = ArgumentCaptor.forClass(String.class);
 
             verify(callbackAdapter, times(2)).reportProgress(bearerTokenCaptor.capture(), errorCodeCaptor.capture(),
-                operationStatusCaptor.capture(), resourceModelCaptor.capture(), statusMessageCaptor.capture());
+                operationStatusCaptor.capture(), operationStatusCaptor.capture(), resourceModelCaptor.capture(),
+                statusMessageCaptor.capture());
 
             final List<String> bearerTokens = bearerTokenCaptor.getAllValues();
             final List<HandlerErrorCode> errorCodes = errorCodeCaptor.getAllValues();
@@ -1128,7 +1131,8 @@ public class LambdaWrapperTest {
             assertThat(resourceModels).containsExactly(TestModel.builder().property1("abc").property2(123).build(),
                 TestModel.builder().property1("abc").property2(123).build());
             assertThat(statusMessages).containsExactly(null, null);
-            assertThat(operationStatuses).containsExactly(OperationStatus.IN_PROGRESS, OperationStatus.IN_PROGRESS);
+            assertThat(operationStatuses).containsExactly(OperationStatus.IN_PROGRESS, OperationStatus.IN_PROGRESS,
+                OperationStatus.IN_PROGRESS, OperationStatus.IN_PROGRESS);
 
             // verify final output response is for second IN_PROGRESS response
             verifyHandlerResponse(out,

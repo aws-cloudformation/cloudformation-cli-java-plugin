@@ -71,6 +71,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import software.amazon.awssdk.services.cloudformation.model.OperationStatusCheckFailedException;
 import software.amazon.awssdk.utils.StringUtils;
 
 public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStreamHandler {
@@ -262,6 +263,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             publishExceptionMetric(request == null ? null : request.getAction(), e, HandlerErrorCode.InvalidRequest);
             handlerResponse = ProgressEvent.defaultFailureHandler(new TerminalException(validationMessageBuilder.toString(), e),
                 HandlerErrorCode.InvalidRequest);
+        } catch (final OperationStatusCheckFailedException e) {
+            handlerResponse = ProgressEvent.failed(null, null, HandlerErrorCode.InternalFailure, e.getMessage());
         } catch (final Throwable e) {
             // Exceptions are wrapped as a consistent error response to the caller (i.e;
             // CloudFormation)
@@ -326,6 +329,10 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                 log(String.format("Cleaned up previous Request Context of Rule %s and Target %s",
                     requestContext.getCloudWatchEventsRuleName(), requestContext.getCloudWatchEventsTargetId()));
             }
+        } else {
+            // Acknowledge the task for first time invocation
+            this.callbackAdapter.reportProgress(request.getBearerToken(), null, OperationStatus.IN_PROGRESS,
+                OperationStatus.PENDING, null, null);
         }
 
         this.metricsPublisherProxy.publishInvocationMetric(Instant.now(), request.getAction());
@@ -379,7 +386,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
             if (isMutatingAction) {
                 this.callbackAdapter.reportProgress(request.getBearerToken(), handlerResponse.getErrorCode(),
-                    handlerResponse.getStatus(), handlerResponse.getResourceModel(), handlerResponse.getMessage());
+                    handlerResponse.getStatus(), OperationStatus.IN_PROGRESS, handlerResponse.getResourceModel(),
+                    handlerResponse.getMessage());
             } else if (handlerResponse.getStatus() == OperationStatus.IN_PROGRESS) {
                 throw new TerminalException("READ and LIST handlers must return synchronously.");
             }
