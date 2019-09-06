@@ -144,7 +144,7 @@ public class CloudFormationCallbackAdapterTest {
             TestModel> adapter = new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, loggerProxy);
         adapter.refreshClient();
 
-        adapter.reportProgress("bearer-token", null, OperationStatus.SUCCESS, null, null, "Succeeded");
+        adapter.reportProgress("bearer-token", null, OperationStatus.SUCCESS, OperationStatus.IN_PROGRESS, null, "Succeeded");
 
         final ArgumentCaptor<RecordHandlerProgressRequest> argument = ArgumentCaptor.forClass(RecordHandlerProgressRequest.class);
         verify(client).recordHandlerProgress(argument.capture());

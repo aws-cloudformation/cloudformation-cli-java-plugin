@@ -38,7 +38,6 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
         this.loggerProxy = loggerProxy;
     }
 
-    @Override
     public void refreshClient() {
         this.client = cloudFormationProvider.get();
     }

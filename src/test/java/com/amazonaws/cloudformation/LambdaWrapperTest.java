@@ -62,6 +62,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
 import software.amazon.awssdk.services.cloudformation.model.OperationStatusCheckFailedException;
 
 @ExtendWith(MockitoExtension.class)
@@ -648,7 +649,8 @@ public class LambdaWrapperTest {
             // no re-invocation via CloudWatch should occur
             verifyNoMoreInteractions(scheduler);
 
-            verify(callbackAdapter).reportProgress(any(), any(), eq(OperationStatus.IN_PROGRESS), eq(OperationStatus.PENDING), any(), any());
+            verify(callbackAdapter).reportProgress(any(), any(), eq(OperationStatus.IN_PROGRESS), eq(OperationStatus.PENDING),
+                any(), any());
 
             // CloudFormation should NOT receive a callback invocation
             verifyNoMoreInteractions(callbackAdapter);
@@ -710,7 +712,8 @@ public class LambdaWrapperTest {
             verifyNoMoreInteractions(scheduler);
 
             // Only report one time to acknowledge the task
-            verify(callbackAdapter).reportProgress(any(), any(), eq(OperationStatus.IN_PROGRESS), eq(OperationStatus.PENDING), any(), any());
+            verify(callbackAdapter).reportProgress(any(), any(), eq(OperationStatus.IN_PROGRESS), eq(OperationStatus.PENDING),
+                any(), any());
 
             verifyNoMoreInteractions(callbackAdapter);
 
@@ -1463,15 +1466,17 @@ public class LambdaWrapperTest {
                                                             providerEventsLogger, platformMetricsPublisher,
                                                             providerMetricsPublisher, scheduler, validator);
         final String errorMessage = "Unexpected status";
-        final OperationStatusCheckFailedException exception = OperationStatusCheckFailedException.builder().message(errorMessage).build();
+        final OperationStatusCheckFailedException exception = OperationStatusCheckFailedException.builder().message(errorMessage)
+            .build();
 
-        // simulate runtime Errors in the callback adapter (such as multiple handlers are invoked
+        // simulate runtime Errors in the callback adapter (such as multiple handlers
+        // are invoked
         // for single task by CloudFormation)
         doThrow(exception).when(callbackAdapter).reportProgress(any(), any(), eq(OperationStatus.IN_PROGRESS),
             eq(OperationStatus.PENDING), any(), any());
 
         try (final InputStream in = loadRequestStream("create.request.json");
-             final OutputStream out = new ByteArrayOutputStream()) {
+            final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
 
             try {
@@ -1486,15 +1491,15 @@ public class LambdaWrapperTest {
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
             // only calls to callback adapter to acknowledge the task
-            verify(callbackAdapter).reportProgress(any(), any(), eq(OperationStatus.IN_PROGRESS), eq(OperationStatus.PENDING), any(), any());
+            verify(callbackAdapter).reportProgress(any(), any(), eq(OperationStatus.IN_PROGRESS), eq(OperationStatus.PENDING),
+                any(), any());
 
             // no further calls to callback adapter should occur
             verifyNoMoreInteractions(callbackAdapter);
 
             // verify output response
-            verifyHandlerResponse(out,
-                HandlerResponse.<TestModel>builder().bearerToken("123456").errorCode("InternalFailure")
-                    .operationStatus(OperationStatus.FAILED).message(errorMessage).build());
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder().bearerToken("123456").errorCode("InternalFailure")
+                .operationStatus(OperationStatus.FAILED).message(errorMessage).build());
         }
     }
 
@@ -1505,15 +1510,17 @@ public class LambdaWrapperTest {
                                                             providerEventsLogger, platformMetricsPublisher,
                                                             providerMetricsPublisher, scheduler, validator);
         final String errorMessage = "Unexpected status";
-        final OperationStatusCheckFailedException exception = OperationStatusCheckFailedException.builder().message(errorMessage).build();
+        final OperationStatusCheckFailedException exception = OperationStatusCheckFailedException.builder().message(errorMessage)
+            .build();
 
-        // simulate runtime Errors in the callback adapter (such as multiple handlers are invoked
+        // simulate runtime Errors in the callback adapter (such as multiple handlers
+        // are invoked
         // for single task by CloudWatch)
         lenient().doThrow(exception).when(callbackAdapter).reportProgress(any(), any(), eq(OperationStatus.SUCCESS),
             eq(OperationStatus.IN_PROGRESS), any(), any());
 
         try (final InputStream in = loadRequestStream("create.request.json");
-             final OutputStream out = new ByteArrayOutputStream()) {
+            final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
 
             try {
@@ -1531,16 +1538,17 @@ public class LambdaWrapperTest {
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
             // only calls to callback adapter to acknowledge the task
-            verify(callbackAdapter).reportProgress(any(), any(), eq(OperationStatus.IN_PROGRESS), eq(OperationStatus.PENDING), any(), any());
-            verify(callbackAdapter).reportProgress(any(), any(), eq(OperationStatus.SUCCESS), eq(OperationStatus.IN_PROGRESS), any(), any());
+            verify(callbackAdapter).reportProgress(any(), any(), eq(OperationStatus.IN_PROGRESS), eq(OperationStatus.PENDING),
+                any(), any());
+            verify(callbackAdapter).reportProgress(any(), any(), eq(OperationStatus.SUCCESS), eq(OperationStatus.IN_PROGRESS),
+                any(), any());
 
             // no further calls to callback adapter should occur
             verifyNoMoreInteractions(callbackAdapter);
 
             // verify output response
-            verifyHandlerResponse(out,
-                HandlerResponse.<TestModel>builder().bearerToken("123456").errorCode("InternalFailure")
-                    .operationStatus(OperationStatus.FAILED).message(errorMessage).build());
+            verifyHandlerResponse(out, HandlerResponse.<TestModel>builder().bearerToken("123456").errorCode("InternalFailure")
+                .operationStatus(OperationStatus.FAILED).message(errorMessage).build());
         }
     }
 }

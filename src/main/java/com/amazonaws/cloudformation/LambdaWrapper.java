@@ -321,7 +321,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
         RequestContext<CallbackT> requestContext = request.getRequestContext();
 
-        if (requestContext == null || requestContext.getInvocation() == 0){
+        if (requestContext == null || requestContext.getInvocation() == 0) {
             // Acknowledge the task for first time invocation
             this.callbackAdapter.reportProgress(request.getBearerToken(), null, OperationStatus.IN_PROGRESS,
                 OperationStatus.PENDING, null, null);
