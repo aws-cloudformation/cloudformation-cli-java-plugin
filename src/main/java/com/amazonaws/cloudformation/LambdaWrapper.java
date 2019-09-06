@@ -320,6 +320,13 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         ResourceHandlerRequest<ResourceT> resourceHandlerRequest = transform(request);
 
         RequestContext<CallbackT> requestContext = request.getRequestContext();
+
+        if (requestContext == null || requestContext.getInvocation() == 0){
+            // Acknowledge the task for first time invocation
+            this.callbackAdapter.reportProgress(request.getBearerToken(), null, OperationStatus.IN_PROGRESS,
+                OperationStatus.PENDING, null, null);
+        }
+
         if (requestContext != null) {
             // If this invocation was triggered by a 're-invoke' CloudWatch Event, clean it
             // up
@@ -329,10 +336,6 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                 log(String.format("Cleaned up previous Request Context of Rule %s and Target %s",
                     requestContext.getCloudWatchEventsRuleName(), requestContext.getCloudWatchEventsTargetId()));
             }
-        } else {
-            // Acknowledge the task for first time invocation
-            this.callbackAdapter.reportProgress(request.getBearerToken(), null, OperationStatus.IN_PROGRESS,
-                OperationStatus.PENDING, null, null);
         }
 
         this.metricsPublisherProxy.publishInvocationMetric(Instant.now(), request.getAction());

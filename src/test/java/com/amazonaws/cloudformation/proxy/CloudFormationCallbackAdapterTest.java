@@ -91,6 +91,7 @@ public class CloudFormationCallbackAdapterTest {
         assertThat(argument.getValue().bearerToken()).isEqualTo("bearer-token");
         assertThat(argument.getValue().errorCode()).isEqualTo(INVALID_REQUEST);
         assertThat(argument.getValue().operationStatus()).isEqualTo(FAILED);
+        assertThat(argument.getValue().currentOperationStatus()).isEqualTo(IN_PROGRESS);
         assertThat(argument.getValue().resourceModel()).isNull();
         assertThat(argument.getValue().statusMessage()).isEqualTo("some error");
     }
@@ -151,6 +152,7 @@ public class CloudFormationCallbackAdapterTest {
         assertThat(argument.getValue().bearerToken()).isEqualTo("bearer-token");
         assertThat(argument.getValue().errorCode()).isNull();
         assertThat(argument.getValue().operationStatus()).isEqualTo(SUCCESS);
+        assertThat(argument.getValue().currentOperationStatus()).isEqualTo(IN_PROGRESS);
         assertThat(argument.getValue().resourceModel()).isNull();
         assertThat(argument.getValue().statusMessage()).isEqualTo("Succeeded");
     }
