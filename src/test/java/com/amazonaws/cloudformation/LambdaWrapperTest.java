@@ -649,10 +649,13 @@ public class LambdaWrapperTest {
             // no re-invocation via CloudWatch should occur
             verifyNoMoreInteractions(scheduler);
 
+            // first report to acknowledge the task
             verify(callbackAdapter).reportProgress(any(), any(), eq(OperationStatus.IN_PROGRESS), eq(OperationStatus.PENDING),
                 any(), any());
 
-            // CloudFormation should NOT receive a callback invocation
+            // second report to record validation failure
+            verify(callbackAdapter).reportProgress(any(), any(), eq(OperationStatus.FAILED), eq(OperationStatus.IN_PROGRESS),
+                any(), any());
             verifyNoMoreInteractions(callbackAdapter);
 
             // verify output response
@@ -711,8 +714,12 @@ public class LambdaWrapperTest {
             // no re-invocation via CloudWatch should occur
             verifyNoMoreInteractions(scheduler);
 
-            // Only report one time to acknowledge the task
+            // first report to acknowledge the task
             verify(callbackAdapter).reportProgress(any(), any(), eq(OperationStatus.IN_PROGRESS), eq(OperationStatus.PENDING),
+                any(), any());
+
+            // second report to record validation failure
+            verify(callbackAdapter).reportProgress(any(), any(), eq(OperationStatus.FAILED), eq(OperationStatus.IN_PROGRESS),
                 any(), any());
 
             verifyNoMoreInteractions(callbackAdapter);
