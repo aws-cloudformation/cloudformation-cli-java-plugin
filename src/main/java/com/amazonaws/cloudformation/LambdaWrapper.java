@@ -17,6 +17,7 @@ package com.amazonaws.cloudformation;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.cloudformation.exceptions.FileScrubberException;
 import com.amazonaws.cloudformation.exceptions.ResourceAlreadyExistsException;
 import com.amazonaws.cloudformation.exceptions.ResourceNotFoundException;
 import com.amazonaws.cloudformation.exceptions.TerminalException;
@@ -612,6 +613,11 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     protected abstract TypeReference<ResourceT> getModelTypeReference();
 
     protected void scrubFiles() throws IOException {
-        FileUtils.cleanDirectory(FileUtils.getTempDirectory());
+        try {
+            FileUtils.cleanDirectory(FileUtils.getTempDirectory());
+        } catch (IOException e) {
+            log(e.getMessage());
+            publishExceptionMetric(null, new FileScrubberException(e), HandlerErrorCode.InternalFailure);
+        }
     }
 }
