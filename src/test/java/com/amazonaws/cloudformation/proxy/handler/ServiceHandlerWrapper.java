@@ -120,4 +120,7 @@ public class ServiceHandlerWrapper extends LambdaWrapper<Model, StdCallbackConte
         return new TypeReference<Model>() {
         };
     }
+
+    @Override
+    protected void scrubFiles() {}
 }

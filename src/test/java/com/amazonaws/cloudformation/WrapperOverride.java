@@ -125,4 +125,7 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
         return new TypeReference<TestModel>() {
         };
     }
+
+    @Override
+    protected void scrubFiles() {}
 }
