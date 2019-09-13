@@ -24,7 +24,6 @@ import static org.mockito.Mockito.when;
 import static software.amazon.awssdk.services.cloudformation.model.HandlerErrorCode.*;
 import static software.amazon.awssdk.services.cloudformation.model.OperationStatus.FAILED;
 import static software.amazon.awssdk.services.cloudformation.model.OperationStatus.IN_PROGRESS;
-import static software.amazon.awssdk.services.cloudformation.model.OperationStatus.PENDING;
 import static software.amazon.awssdk.services.cloudformation.model.OperationStatus.SUCCESS;
 
 import com.amazonaws.cloudformation.TestModel;
@@ -59,8 +58,7 @@ public class CloudFormationCallbackAdapterTest {
         final CloudFormationCallbackAdapter<
             TestModel> adapter = new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, loggerProxy);
         final AssertionError expectedException = assertThrows(AssertionError.class, () -> adapter.reportProgress("bearer-token",
-            HandlerErrorCode.InvalidRequest, OperationStatus.FAILED, OperationStatus.IN_PROGRESS, null, "some error"),
-            "Expected assertion exception");
+            HandlerErrorCode.InvalidRequest, OperationStatus.FAILED, null, "some error"), "Expected assertion exception");
         assertEquals(expectedException.getMessage(),
             "CloudWatchEventsClient was not initialised. You must call refreshClient() first.");
     }
@@ -82,8 +80,7 @@ public class CloudFormationCallbackAdapterTest {
             TestModel> adapter = new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, loggerProxy);
         adapter.refreshClient();
 
-        adapter.reportProgress("bearer-token", HandlerErrorCode.InvalidRequest, OperationStatus.FAILED,
-            OperationStatus.IN_PROGRESS, null, "some error");
+        adapter.reportProgress("bearer-token", HandlerErrorCode.InvalidRequest, OperationStatus.FAILED, null, "some error");
 
         final ArgumentCaptor<RecordHandlerProgressRequest> argument = ArgumentCaptor.forClass(RecordHandlerProgressRequest.class);
         verify(client).recordHandlerProgress(argument.capture());
@@ -91,7 +88,6 @@ public class CloudFormationCallbackAdapterTest {
         assertThat(argument.getValue().bearerToken()).isEqualTo("bearer-token");
         assertThat(argument.getValue().errorCode()).isEqualTo(INVALID_REQUEST);
         assertThat(argument.getValue().operationStatus()).isEqualTo(FAILED);
-        assertThat(argument.getValue().currentOperationStatus()).isEqualTo(IN_PROGRESS);
         assertThat(argument.getValue().resourceModel()).isNull();
         assertThat(argument.getValue().statusMessage()).isEqualTo("some error");
     }
@@ -114,8 +110,8 @@ public class CloudFormationCallbackAdapterTest {
 
         adapter.refreshClient();
 
-        adapter.reportProgress("bearer-token", HandlerErrorCode.InvalidRequest, OperationStatus.IN_PROGRESS,
-            OperationStatus.PENDING, new TestModel(), "doing it");
+        adapter.reportProgress("bearer-token", HandlerErrorCode.InvalidRequest, OperationStatus.IN_PROGRESS, new TestModel(),
+            "doing it");
 
         final ArgumentCaptor<RecordHandlerProgressRequest> argument = ArgumentCaptor.forClass(RecordHandlerProgressRequest.class);
         verify(client).recordHandlerProgress(argument.capture());
@@ -123,7 +119,6 @@ public class CloudFormationCallbackAdapterTest {
         assertThat(argument.getValue().bearerToken()).isEqualTo("bearer-token");
         assertThat(argument.getValue().errorCode()).isEqualTo(INVALID_REQUEST);
         assertThat(argument.getValue().operationStatus()).isEqualTo(IN_PROGRESS);
-        assertThat(argument.getValue().currentOperationStatus()).isEqualTo(PENDING);
         assertThat(argument.getValue().statusMessage()).isEqualTo("doing it");
     }
 
@@ -144,7 +139,7 @@ public class CloudFormationCallbackAdapterTest {
             TestModel> adapter = new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, loggerProxy);
         adapter.refreshClient();
 
-        adapter.reportProgress("bearer-token", null, OperationStatus.SUCCESS, OperationStatus.IN_PROGRESS, null, "Succeeded");
+        adapter.reportProgress("bearer-token", null, OperationStatus.SUCCESS, null, "Succeeded");
 
         final ArgumentCaptor<RecordHandlerProgressRequest> argument = ArgumentCaptor.forClass(RecordHandlerProgressRequest.class);
         verify(client).recordHandlerProgress(argument.capture());
@@ -152,7 +147,6 @@ public class CloudFormationCallbackAdapterTest {
         assertThat(argument.getValue().bearerToken()).isEqualTo("bearer-token");
         assertThat(argument.getValue().errorCode()).isNull();
         assertThat(argument.getValue().operationStatus()).isEqualTo(SUCCESS);
-        assertThat(argument.getValue().currentOperationStatus()).isEqualTo(IN_PROGRESS);
         assertThat(argument.getValue().resourceModel()).isNull();
         assertThat(argument.getValue().statusMessage()).isEqualTo("Succeeded");
     }
