@@ -17,6 +17,7 @@ package com.amazonaws.cloudformation;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.cloudformation.exceptions.FileScrubberException;
 import com.amazonaws.cloudformation.exceptions.ResourceAlreadyExistsException;
 import com.amazonaws.cloudformation.exceptions.ResourceNotFoundException;
 import com.amazonaws.cloudformation.exceptions.TerminalException;
@@ -234,7 +235,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         this.lambdaLogger = context.getLogger();
         ProgressEvent<ResourceT, CallbackT> handlerResponse = null;
         HandlerRequest<ResourceT, CallbackT> request = null;
-
+        scrubFiles();
         try {
             if (inputStream == null) {
                 throw new TerminalException("No request object received");
@@ -629,4 +630,13 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     protected abstract TypeReference<HandlerRequest<ResourceT, CallbackT>> getTypeReference();
 
     protected abstract TypeReference<ResourceT> getModelTypeReference();
+
+    protected void scrubFiles() throws IOException {
+        try {
+            FileUtils.cleanDirectory(FileUtils.getTempDirectory());
+        } catch (IOException e) {
+            log(e.getMessage());
+            publishExceptionMetric(null, new FileScrubberException(e), HandlerErrorCode.InternalFailure);
+        }
+    }
 }
