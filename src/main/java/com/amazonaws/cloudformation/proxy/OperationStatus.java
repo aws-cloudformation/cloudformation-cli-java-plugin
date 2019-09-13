@@ -15,7 +15,6 @@
 package com.amazonaws.cloudformation.proxy;
 
 public enum OperationStatus {
-    PENDING,
     IN_PROGRESS,
     SUCCESS,
     FAILED

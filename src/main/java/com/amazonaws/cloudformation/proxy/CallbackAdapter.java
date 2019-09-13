@@ -41,7 +41,6 @@ public interface CallbackAdapter<T> {
     void reportProgress(String bearerToken,
                         HandlerErrorCode errorCode,
                         OperationStatus operationStatus,
-                        OperationStatus currentOperationStatus,
                         T resourceModel,
                         String statusMessage);
 }
