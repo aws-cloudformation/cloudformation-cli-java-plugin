@@ -68,11 +68,13 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import software.amazon.awssdk.services.cloudformation.model.OperationStatusCheckFailedException;
 import software.amazon.awssdk.utils.StringUtils;
 
 public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStreamHandler {
@@ -245,25 +247,10 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
             // deserialize incoming payload to modelled request
             request = this.serializer.deserialize(input, typeReference);
-
             handlerResponse = processInvocation(rawInput, request, context);
-        } catch (final ValidationException e) {
-            // TODO: we'll need a better way to expose the stack of causing exceptions for
-            // user feedback
-            StringBuilder validationMessageBuilder = new StringBuilder();
-            if (!StringUtils.isEmpty(e.getMessage())) {
-                validationMessageBuilder.append(String.format("Model validation failed (%s)", e.getMessage()));
-            } else {
-                validationMessageBuilder.append("Model validation failed with unknown cause.");
-            }
-            if (e.getCausingExceptions() != null) {
-                for (ValidationException cause : e.getCausingExceptions()) {
-                    validationMessageBuilder.append(String.format("%n%s (%s)", cause.getMessage(), cause.getSchemaLocation()));
-                }
-            }
-            publishExceptionMetric(request == null ? null : request.getAction(), e, HandlerErrorCode.InvalidRequest);
-            handlerResponse = ProgressEvent.defaultFailureHandler(new TerminalException(validationMessageBuilder.toString(), e),
-                HandlerErrorCode.InvalidRequest);
+        } catch (final OperationStatusCheckFailedException e) {
+            // Task is picked by other handlers, exit safely
+            handlerResponse = ProgressEvent.failed(null, null, HandlerErrorCode.InternalFailure, e.getMessage());
         } catch (final Throwable e) {
             // Exceptions are wrapped as a consistent error response to the caller (i.e;
             // CloudFormation)
@@ -319,6 +306,13 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         ResourceHandlerRequest<ResourceT> resourceHandlerRequest = transform(request);
 
         RequestContext<CallbackT> requestContext = request.getRequestContext();
+
+        if (requestContext == null || requestContext.getInvocation() == 0) {
+            // Acknowledge the task for first time invocation
+            this.callbackAdapter.reportProgress(request.getBearerToken(), null, OperationStatus.IN_PROGRESS,
+                OperationStatus.PENDING, null, null);
+        }
+
         if (requestContext != null) {
             // If this invocation was triggered by a 're-invoke' CloudWatch Event, clean it
             // up
@@ -342,7 +336,32 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             // validate entire incoming payload, including extraneous fields which
             // are stripped by the Serializer (due to FAIL_ON_UNKNOWN_PROPERTIES setting)
             JSONObject rawModelObject = rawRequest.getJSONObject("requestData").getJSONObject("resourceProperties");
-            validateModel(rawModelObject);
+            try {
+                validateModel(rawModelObject);
+            } catch (final ValidationException e) {
+                // TODO: we'll need a better way to expose the stack of causing exceptions for
+                // user feedback
+                StringBuilder validationMessageBuilder = new StringBuilder();
+                if (!StringUtils.isEmpty(e.getMessage())) {
+                    validationMessageBuilder.append(String.format("Model validation failed (%s)", e.getMessage()));
+                } else {
+                    validationMessageBuilder.append("Model validation failed with unknown cause.");
+                }
+                List<ValidationException> es = e.getCausingExceptions();
+                if (CollectionUtils.isNotEmpty(es)) {
+                    for (RuntimeException cause : es) {
+                        if (cause instanceof ValidationException) {
+                            validationMessageBuilder.append(String.format("%n%s (%s)", cause.getMessage(),
+                                ((ValidationException) cause).getSchemaLocation()));
+                        }
+                    }
+                }
+                publishExceptionMetric(request.getAction(), e, HandlerErrorCode.InvalidRequest);
+                this.callbackAdapter.reportProgress(request.getBearerToken(), HandlerErrorCode.InvalidRequest,
+                    OperationStatus.FAILED, OperationStatus.IN_PROGRESS, null, validationMessageBuilder.toString());
+                return ProgressEvent.defaultFailureHandler(new TerminalException(validationMessageBuilder.toString(), e),
+                    HandlerErrorCode.InvalidRequest);
+            }
         }
 
         // TODO: implement decryption of request and returned callback context
@@ -381,7 +400,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
             if (isMutatingAction) {
                 this.callbackAdapter.reportProgress(request.getBearerToken(), handlerResponse.getErrorCode(),
-                    handlerResponse.getStatus(), handlerResponse.getResourceModel(), handlerResponse.getMessage());
+                    handlerResponse.getStatus(), OperationStatus.IN_PROGRESS, handlerResponse.getResourceModel(),
+                    handlerResponse.getMessage());
             } else if (handlerResponse.getStatus() == OperationStatus.IN_PROGRESS) {
                 throw new TerminalException("READ and LIST handlers must return synchronously.");
             }
