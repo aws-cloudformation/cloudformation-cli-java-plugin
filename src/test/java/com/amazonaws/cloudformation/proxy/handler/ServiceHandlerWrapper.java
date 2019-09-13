@@ -122,5 +122,6 @@ public class ServiceHandlerWrapper extends LambdaWrapper<Model, StdCallbackConte
     }
 
     @Override
-    protected void scrubFiles() {}
+    protected void scrubFiles() {
+    }
 }
