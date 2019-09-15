@@ -226,7 +226,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         template = self.env.get_template("HandlerWrapper.java")
         contents = template.render(
             package_name=self.package_name,
-            operations=project.schema.get("handlers", {}).keys(),
+            operations=project.schema.get("handlers", dict.fromkeys(OPERATIONS, {})).keys(),
             pojo_name="ResourceModel",
         )
         project.overwrite(path, contents)
