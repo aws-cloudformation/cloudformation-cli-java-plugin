@@ -33,7 +33,6 @@ import com.amazonaws.cloudformation.resource.Serializer;
 import java.io.IOException;
 import java.util.UUID;
 
-import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -108,7 +107,7 @@ public class CloudFormationCallbackAdapterTest {
         when(response.responseMetadata()).thenReturn(responseMetadata);
 
         when(cloudFormationProvider.get()).thenReturn(client);
-        when(serializer.serialize(any())).thenReturn(new JSONObject());
+        when(serializer.serialize(any())).thenReturn("");
 
         when(client.recordHandlerProgress(any(RecordHandlerProgressRequest.class))).thenReturn(response);
 

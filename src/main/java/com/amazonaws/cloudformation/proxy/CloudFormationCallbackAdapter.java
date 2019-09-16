@@ -58,7 +58,7 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
             .operationStatus(translate(operationStatus)).statusMessage(statusMessage);
 
         if (resourceModel != null) {
-            requestBuilder.resourceModel(this.serializer.serialize(resourceModel).toString());
+            requestBuilder.resourceModel(this.serializer.serialize(resourceModel));
         }
 
         if (errorCode != null) {
