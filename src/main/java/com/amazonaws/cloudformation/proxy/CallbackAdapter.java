@@ -14,6 +14,8 @@
 */
 package com.amazonaws.cloudformation.proxy;
 
+import java.io.IOException;
+
 /**
  * Interface used to abstract the function of reporting back provisioning
  * progress to the handler caller
@@ -42,5 +44,6 @@ public interface CallbackAdapter<T> {
                         HandlerErrorCode errorCode,
                         OperationStatus operationStatus,
                         T resourceModel,
-                        String statusMessage);
+                        String statusMessage)
+        throws IOException;
 }

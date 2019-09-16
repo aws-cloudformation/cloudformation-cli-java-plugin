@@ -15,8 +15,9 @@
 package com.amazonaws.cloudformation.proxy;
 
 import com.amazonaws.cloudformation.injection.CloudFormationProvider;
+import com.amazonaws.cloudformation.resource.Serializer;
 
-import org.json.JSONObject;
+import java.io.IOException;
 
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressRequest;
@@ -30,10 +31,14 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
 
     private CloudFormationClient client;
 
+    private Serializer serializer;
+
     public CloudFormationCallbackAdapter(final CloudFormationProvider cloudFormationProvider,
-                                         final LoggerProxy loggerProxy) {
+                                         final LoggerProxy loggerProxy,
+                                         final Serializer serializer) {
         this.cloudFormationProvider = cloudFormationProvider;
         this.loggerProxy = loggerProxy;
+        this.serializer = serializer;
     }
 
     public void refreshClient() {
@@ -45,14 +50,15 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
                                final HandlerErrorCode errorCode,
                                final OperationStatus operationStatus,
                                final T resourceModel,
-                               final String statusMessage) {
+                               final String statusMessage)
+        throws IOException {
         assert client != null : "CloudWatchEventsClient was not initialised. You must call refreshClient() first.";
 
         RecordHandlerProgressRequest.Builder requestBuilder = RecordHandlerProgressRequest.builder().bearerToken(bearerToken)
             .operationStatus(translate(operationStatus)).statusMessage(statusMessage);
 
         if (resourceModel != null) {
-            requestBuilder.resourceModel(new JSONObject(resourceModel).toString());
+            requestBuilder.resourceModel(this.serializer.serialize(resourceModel).toString());
         }
 
         if (errorCode != null) {

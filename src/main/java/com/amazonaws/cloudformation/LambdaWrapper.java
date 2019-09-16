@@ -216,12 +216,13 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         }
 
         if (this.callbackAdapter == null) {
-            this.callbackAdapter = new CloudFormationCallbackAdapter<ResourceT>(this.cloudFormationProvider, this.loggerProxy);
+            this.callbackAdapter = new CloudFormationCallbackAdapter<ResourceT>(this.cloudFormationProvider, this.loggerProxy,
+                                                                                this.serializer);
         }
         this.callbackAdapter.refreshClient();
 
         if (this.scheduler == null) {
-            this.scheduler = new CloudWatchScheduler(this.platformCloudWatchEventsProvider, this.loggerProxy, serializer);
+            this.scheduler = new CloudWatchScheduler(this.platformCloudWatchEventsProvider, this.loggerProxy, this.serializer);
         }
         this.scheduler.refreshClient();
     }

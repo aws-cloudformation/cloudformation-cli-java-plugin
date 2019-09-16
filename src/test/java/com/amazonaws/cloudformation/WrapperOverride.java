@@ -127,5 +127,6 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
     }
 
     @Override
-    protected void scrubFiles() {}
+    protected void scrubFiles() {
+    }
 }
