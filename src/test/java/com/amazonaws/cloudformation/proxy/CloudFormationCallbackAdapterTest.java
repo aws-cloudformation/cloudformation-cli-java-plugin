@@ -29,8 +29,8 @@ import static software.amazon.awssdk.services.cloudformation.model.OperationStat
 import com.amazonaws.cloudformation.TestModel;
 import com.amazonaws.cloudformation.injection.CloudFormationProvider;
 import com.amazonaws.cloudformation.resource.Serializer;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
-import java.io.IOException;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -69,7 +69,7 @@ public class CloudFormationCallbackAdapterTest {
     }
 
     @Test
-    public void testReportProgress_Failed() throws IOException {
+    public void testReportProgress_Failed() {
         final CloudFormationClient client = mock(CloudFormationClient.class);
 
         final RecordHandlerProgressResponse response = mock(RecordHandlerProgressResponse.class);
@@ -98,7 +98,7 @@ public class CloudFormationCallbackAdapterTest {
     }
 
     @Test
-    public void testReportProgress_IN_PROGRESS() throws IOException {
+    public void testReportProgress_IN_PROGRESS() throws JsonProcessingException {
         final CloudFormationClient client = mock(CloudFormationClient.class);
 
         final RecordHandlerProgressResponse response = mock(RecordHandlerProgressResponse.class);
@@ -129,7 +129,7 @@ public class CloudFormationCallbackAdapterTest {
     }
 
     @Test
-    public void testReportProgress_SUCCESS() throws IOException {
+    public void testReportProgress_SUCCESS() {
         final CloudFormationClient client = mock(CloudFormationClient.class);
 
         final RecordHandlerProgressResponse response = mock(RecordHandlerProgressResponse.class);

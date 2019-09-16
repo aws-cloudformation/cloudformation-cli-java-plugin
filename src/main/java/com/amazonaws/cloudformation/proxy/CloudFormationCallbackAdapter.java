@@ -14,10 +14,10 @@
 */
 package com.amazonaws.cloudformation.proxy;
 
+import com.amazonaws.cloudformation.exceptions.TerminalException;
 import com.amazonaws.cloudformation.injection.CloudFormationProvider;
 import com.amazonaws.cloudformation.resource.Serializer;
-
-import java.io.IOException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressRequest;
@@ -50,15 +50,19 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
                                final HandlerErrorCode errorCode,
                                final OperationStatus operationStatus,
                                final T resourceModel,
-                               final String statusMessage)
-        throws IOException {
+                               final String statusMessage) {
         assert client != null : "CloudWatchEventsClient was not initialised. You must call refreshClient() first.";
 
         RecordHandlerProgressRequest.Builder requestBuilder = RecordHandlerProgressRequest.builder().bearerToken(bearerToken)
             .operationStatus(translate(operationStatus)).statusMessage(statusMessage);
 
         if (resourceModel != null) {
-            requestBuilder.resourceModel(this.serializer.serialize(resourceModel));
+            try {
+                // expect return type to be non-null
+                requestBuilder.resourceModel(this.serializer.serialize(resourceModel));
+            } catch (JsonProcessingException e) {
+                throw new TerminalException("Unable to serialize resource model for reporting progress", e);
+            }
         }
 
         if (errorCode != null) {
