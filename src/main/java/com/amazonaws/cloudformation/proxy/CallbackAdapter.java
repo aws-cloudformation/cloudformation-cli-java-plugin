@@ -44,6 +44,5 @@ public interface CallbackAdapter<T> {
                         HandlerErrorCode errorCode,
                         OperationStatus operationStatus,
                         T resourceModel,
-                        String statusMessage)
-        throws IOException;
+                        String statusMessage);
 }
