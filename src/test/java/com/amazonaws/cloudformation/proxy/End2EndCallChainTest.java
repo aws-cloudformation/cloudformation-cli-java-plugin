@@ -52,7 +52,6 @@ import java.time.Duration;
 import java.util.UUID;
 
 import org.joda.time.Instant;
-import org.json.JSONObject;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -172,8 +171,8 @@ public class End2EndCallChainTest {
         ByteArrayOutputStream out = new ByteArrayOutputStream(2048);
         Writer writer = new OutputStreamWriter(out, StandardCharsets.UTF_8);
 
-        JSONObject value = serializer.serialize(request);
-        value.write(writer);
+        String value = serializer.serialize(request);
+        writer.write(value);
         writer.flush();
         writer.close();
 

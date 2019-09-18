@@ -14,6 +14,8 @@
 */
 package com.amazonaws.cloudformation.proxy;
 
+import java.io.IOException;
+
 /**
  * Interface used to abstract the function of reporting back provisioning
  * progress to the handler caller

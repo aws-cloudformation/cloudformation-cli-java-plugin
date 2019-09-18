@@ -216,12 +216,13 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         }
 
         if (this.callbackAdapter == null) {
-            this.callbackAdapter = new CloudFormationCallbackAdapter<ResourceT>(this.cloudFormationProvider, this.loggerProxy);
+            this.callbackAdapter = new CloudFormationCallbackAdapter<ResourceT>(this.cloudFormationProvider, this.loggerProxy,
+                                                                                this.serializer);
         }
         this.callbackAdapter.refreshClient();
 
         if (this.scheduler == null) {
-            this.scheduler = new CloudWatchScheduler(this.platformCloudWatchEventsProvider, this.loggerProxy, serializer);
+            this.scheduler = new CloudWatchScheduler(this.platformCloudWatchEventsProvider, this.loggerProxy, this.serializer);
         }
         this.scheduler.refreshClient();
     }
@@ -467,8 +468,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
     private void writeResponse(final OutputStream outputStream, final Response<ResourceT> response) throws IOException {
 
-        JSONObject output = this.serializer.serialize(response);
-        outputStream.write(output.toString().getBytes(Charset.forName("UTF-8")));
+        String output = this.serializer.serialize(response);
+        outputStream.write(output.getBytes(Charset.forName("UTF-8")));
         outputStream.close();
     }
 
@@ -490,7 +491,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
         }
 
-        JSONObject serializedModel = this.serializer.serialize(deserializedModel);
+        JSONObject serializedModel = new JSONObject(this.serializer.serialize(deserializedModel));
         this.validator.validateObject(serializedModel, resourceSchemaJSONObject);
     }
 

@@ -26,8 +26,6 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import java.io.IOException;
 
-import org.json.JSONObject;
-
 public class Serializer {
 
     private static final ObjectMapper OBJECT_MAPPER;
@@ -75,12 +73,8 @@ public class Serializer {
         OBJECT_MAPPER.registerModule(new JavaTimeModule());
     }
 
-    public <T> JSONObject serialize(final T modelObject) throws JsonProcessingException {
-        if (modelObject instanceof JSONObject) {
-            return (JSONObject) modelObject;
-        }
-
-        return new JSONObject(OBJECT_MAPPER.writeValueAsString(modelObject));
+    public <T> String serialize(final T modelObject) throws JsonProcessingException {
+        return OBJECT_MAPPER.writeValueAsString(modelObject);
     }
 
     public <T> T deserialize(final String s, final TypeReference<?> reference) throws IOException {

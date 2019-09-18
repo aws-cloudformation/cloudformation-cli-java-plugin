@@ -92,8 +92,8 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
             e.printStackTrace();
             response = ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.InternalFailure);
         } finally {
-            final JSONObject output = this.serializer.serialize(response);
-            outputStream.write(output.toString().getBytes(Charset.forName("UTF-8")));
+            final String output = this.serializer.serialize(response);
+            outputStream.write(output.getBytes(Charset.forName("UTF-8")));
             outputStream.close();
         }
     }

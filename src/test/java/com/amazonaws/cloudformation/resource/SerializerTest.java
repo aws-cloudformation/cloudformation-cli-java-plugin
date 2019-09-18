@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import org.apache.commons.io.IOUtils;
-import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
 public class SerializerTest {
@@ -59,7 +58,7 @@ public class SerializerTest {
     @Test
     public void testSerialize() throws JsonProcessingException {
         final Serializer serializer = new Serializer();
-        serializer.serialize(new JSONObject());
+        serializer.serialize(new TestModel());
     }
 
     @Test

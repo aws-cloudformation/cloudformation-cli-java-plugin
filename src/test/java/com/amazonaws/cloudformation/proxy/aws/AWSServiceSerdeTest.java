@@ -33,7 +33,6 @@ import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -66,8 +65,8 @@ public class AWSServiceSerdeTest {
                 .kinesisParameters(KinesisParameters.builder().partitionKeyPath("blah/blah").build()).build())
             .build();
 
-        JSONObject json = serializer.serialize(request);
-        PutTargetsRequest deser = serializer.deserialize(json.toString(), new TypeReference<PutTargetsRequest>() {
+        String json = serializer.serialize(request);
+        PutTargetsRequest deser = serializer.deserialize(json, new TypeReference<PutTargetsRequest>() {
         });
         assertThat(deser).isEqualTo(request);
     }
@@ -78,8 +77,8 @@ public class AWSServiceSerdeTest {
             .failedEntries(PutTargetsResultEntry.builder().targetId(UUID.randomUUID().toString()).errorCode("blue/blue").build())
             .build();
 
-        JSONObject serialized = serializer.serialize(response);
-        PutTargetsResponse deser = serializer.deserialize(serialized.toString(), new TypeReference<PutTargetsResponse>() {
+        String serialized = serializer.serialize(response);
+        PutTargetsResponse deser = serializer.deserialize(serialized, new TypeReference<PutTargetsResponse>() {
         });
         assertThat(deser).isEqualTo(response);
     }
@@ -88,8 +87,8 @@ public class AWSServiceSerdeTest {
     public void serdeAwsRequestWithMultipleInList() throws Exception {
         PutRuleRequest request = PutRuleRequest.builder().description("desc").eventPattern("*/**")
             .tags(Tag.builder().key("one").value("1").build(), Tag.builder().key("two").value("2").build()).build();
-        JSONObject serialized = serializer.serialize(request);
-        PutRuleRequest deser = serializer.deserialize(serialized.toString(), new TypeReference<PutRuleRequest>() {
+        String serialized = serializer.serialize(request);
+        PutRuleRequest deser = serializer.deserialize(serialized, new TypeReference<PutRuleRequest>() {
         });
         assertThat(deser).isEqualTo(request);
     }
@@ -187,8 +186,8 @@ public class AWSServiceSerdeTest {
                 .inputTransformer(InputTransformer.builder().inputPathsMap(paths).build()).build())
             .build();
 
-        JSONObject json = serializer.serialize(request);
-        PutTargetsRequest deserialized = serializer.deserialize(json.toString(), new TypeReference<PutTargetsRequest>() {
+        String json = serializer.serialize(request);
+        PutTargetsRequest deserialized = serializer.deserialize(json, new TypeReference<PutTargetsRequest>() {
         });
         assertThat(deserialized).isEqualTo(request);
     }
@@ -355,8 +354,8 @@ public class AWSServiceSerdeTest {
             .booleanValue(false).longValue(10L).doubleValue(100.5)
             .byteValue(SdkBytes.fromByteArray("to here".getBytes(StandardCharsets.UTF_8))).build();
 
-        JSONObject json = serializer.serialize(primitives);
-        AllPrimitives deserialized = serializer.deserialize(json.toString(), new TypeReference<AllPrimitives>() {
+        String json = serializer.serialize(primitives);
+        AllPrimitives deserialized = serializer.deserialize(json, new TypeReference<AllPrimitives>() {
         });
         assertThat(deserialized).isEqualTo(primitives);
     }
@@ -368,8 +367,8 @@ public class AWSServiceSerdeTest {
             .booleanValue(false).longValue(10L).doubleValue(100.0d) // serializes to 100
             .byteValue(SdkBytes.fromByteArray("to here".getBytes(StandardCharsets.UTF_8))).build();
 
-        JSONObject json = serializer.serialize(primitives);
-        AllPrimitives deserialized = serializer.deserialize(json.toString(), new TypeReference<AllPrimitives>() {
+        String json = serializer.serialize(primitives);
+        AllPrimitives deserialized = serializer.deserialize(json, new TypeReference<AllPrimitives>() {
         });
         assertThat(deserialized).isEqualTo(primitives);
     }
@@ -381,8 +380,8 @@ public class AWSServiceSerdeTest {
             .booleanValue(false).longValue(10L).doubleValue(100.0d) // serializes to 100
             .byteValue(SdkBytes.fromByteArray("to here".getBytes(StandardCharsets.UTF_8)))
             .bigDecimalValue(BigDecimal.valueOf(100.505d)).build();
-        JSONObject json = serializer.serialize(primitives);
-        AllPrimitives deserialized = serializer.deserialize(json.toString(), new TypeReference<AllPrimitives>() {
+        String json = serializer.serialize(primitives);
+        AllPrimitives deserialized = serializer.deserialize(json, new TypeReference<AllPrimitives>() {
         });
         assertThat(deserialized).isEqualTo(primitives);
     }
@@ -393,8 +392,8 @@ public class AWSServiceSerdeTest {
                                                                                                                   // 10
             .booleanValue(false).longValue(10L).doubleValue(100.0d) // serializes to 100
             .byteValue(SdkBytes.fromByteArray("to here".getBytes(StandardCharsets.UTF_8))).instantValue(Instant.now()).build();
-        JSONObject json = serializer.serialize(primitives);
-        AllPrimitives deserialized = serializer.deserialize(json.toString(), new TypeReference<AllPrimitives>() {
+        String json = serializer.serialize(primitives);
+        AllPrimitives deserialized = serializer.deserialize(json, new TypeReference<AllPrimitives>() {
         });
         assertThat(deserialized).isEqualTo(primitives);
 

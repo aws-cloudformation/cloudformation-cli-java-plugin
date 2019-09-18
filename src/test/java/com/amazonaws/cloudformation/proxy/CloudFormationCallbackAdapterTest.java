@@ -28,6 +28,8 @@ import static software.amazon.awssdk.services.cloudformation.model.OperationStat
 
 import com.amazonaws.cloudformation.TestModel;
 import com.amazonaws.cloudformation.injection.CloudFormationProvider;
+import com.amazonaws.cloudformation.resource.Serializer;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.util.UUID;
 
@@ -51,12 +53,15 @@ public class CloudFormationCallbackAdapterTest {
     @Mock
     private LoggerProxy loggerProxy;
 
+    @Mock
+    private Serializer serializer;
+
     @Test
     public void testReportProgress_withoutRefreshingClient() {
         final CloudFormationClient client = mock(CloudFormationClient.class);
 
         final CloudFormationCallbackAdapter<
-            TestModel> adapter = new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, loggerProxy);
+            TestModel> adapter = new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, loggerProxy, serializer);
         final AssertionError expectedException = assertThrows(AssertionError.class, () -> adapter.reportProgress("bearer-token",
             HandlerErrorCode.InvalidRequest, OperationStatus.FAILED, null, "some error"), "Expected assertion exception");
         assertEquals(expectedException.getMessage(),
@@ -77,7 +82,7 @@ public class CloudFormationCallbackAdapterTest {
         when(client.recordHandlerProgress(any(RecordHandlerProgressRequest.class))).thenReturn(response);
 
         final CloudFormationCallbackAdapter<
-            TestModel> adapter = new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, loggerProxy);
+            TestModel> adapter = new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, loggerProxy, serializer);
         adapter.refreshClient();
 
         adapter.reportProgress("bearer-token", HandlerErrorCode.InvalidRequest, OperationStatus.FAILED, null, "some error");
@@ -93,7 +98,7 @@ public class CloudFormationCallbackAdapterTest {
     }
 
     @Test
-    public void testReportProgress_IN_PROGRESS() {
+    public void testReportProgress_IN_PROGRESS() throws JsonProcessingException {
         final CloudFormationClient client = mock(CloudFormationClient.class);
 
         final RecordHandlerProgressResponse response = mock(RecordHandlerProgressResponse.class);
@@ -102,11 +107,12 @@ public class CloudFormationCallbackAdapterTest {
         when(response.responseMetadata()).thenReturn(responseMetadata);
 
         when(cloudFormationProvider.get()).thenReturn(client);
+        when(serializer.serialize(any())).thenReturn("");
 
         when(client.recordHandlerProgress(any(RecordHandlerProgressRequest.class))).thenReturn(response);
 
         final CloudFormationCallbackAdapter<
-            TestModel> adapter = new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, loggerProxy);
+            TestModel> adapter = new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, loggerProxy, serializer);
 
         adapter.refreshClient();
 
@@ -136,7 +142,7 @@ public class CloudFormationCallbackAdapterTest {
         when(client.recordHandlerProgress(any(RecordHandlerProgressRequest.class))).thenReturn(response);
 
         final CloudFormationCallbackAdapter<
-            TestModel> adapter = new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, loggerProxy);
+            TestModel> adapter = new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, loggerProxy, serializer);
         adapter.refreshClient();
 
         adapter.reportProgress("bearer-token", null, OperationStatus.SUCCESS, null, "Succeeded");
