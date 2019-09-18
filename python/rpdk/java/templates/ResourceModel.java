@@ -37,7 +37,7 @@ public class {{ model_name|uppercase_first_letter }} {
 
     {% for name, type in properties.items() %}
     @JsonProperty("{{ name }}")
-    private {{ type|translate_type }} {{ name|lowercase_first_letter }};
+    private {{ type|translate_type }} {{ name|lowercase_first_letter|safe_reserved }};
 
     {% endfor %}
     @JsonIgnore

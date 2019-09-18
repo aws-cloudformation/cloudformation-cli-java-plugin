@@ -33,6 +33,7 @@ class JavaLanguagePlugin(LanguagePlugin):
             trim_blocks=True, lstrip_blocks=True, keep_trailing_newline=True
         )
         self.env.filters["translate_type"] = translate_type
+        self.env.filters["safe_reserved"] = safe_reserved
         self.namespace = None
         self.package_name = None
 
