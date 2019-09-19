@@ -1,7 +1,10 @@
 // This is a generated file. Modifications will be overwritten.
 package {{ package_name }};
 
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.cloudformation.Action;
+import com.amazonaws.cloudformation.exceptions.ResourceAlreadyExistsException;
+import com.amazonaws.cloudformation.exceptions.ResourceNotFoundException;
 import com.amazonaws.cloudformation.LambdaWrapper;
 import com.amazonaws.cloudformation.metrics.MetricsPublisher;
 import com.amazonaws.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -88,6 +91,12 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
                 loggerProxy, payload.getCredentials(), () -> (long) context.getRemainingTimeInMillis());
 
             response = invokeHandler(proxy, payload.getRequest(), payload.getAction(), payload.getCallbackContext());
+        } catch (final ResourceAlreadyExistsException e) {
+            response = ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.AlreadyExists);
+        } catch (final ResourceNotFoundException e) {
+            response = ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.NotFound);
+        } catch (final AmazonServiceException e) {
+            response = ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.GeneralServiceException);
         } catch (final Throwable e) {
             e.printStackTrace();
             response = ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.InternalFailure);
