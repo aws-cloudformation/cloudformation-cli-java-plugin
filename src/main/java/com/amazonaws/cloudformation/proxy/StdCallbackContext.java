@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.annotations.VisibleForTesting;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -133,7 +134,7 @@ public class StdCallbackContext {
                 throw new JsonParseException(p, "Expected start of object for Map got " + p.currentToken());
             }
             try {
-                Map<String, Object> value = (Map<String, Object>) type.newInstance();
+                Map<String, Object> value = (Map<String, Object>) type.getDeclaredConstructor().newInstance();
                 JsonToken next = p.nextToken();
                 while (next != JsonToken.END_OBJECT) {
                     if (next != JsonToken.FIELD_NAME) {
@@ -146,12 +147,14 @@ public class StdCallbackContext {
                     next = p.nextToken();
                 }
                 return value;
-            } catch (InstantiationException | IllegalAccessException e) {
+            } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
                 throw new IOException("Can not create empty map for class " + type + " @ " + p.getCurrentLocation(), e);
             }
         }
 
-        private Object readObject(JsonParser p, DeserializationContext ctxt) throws IOException {
+        private Object readObject(JsonParser p, DeserializationContext ctxt) throws IOException,
+            NoSuchMethodException,
+            InvocationTargetException {
             Object val = null;
             JsonToken next = p.currentToken();
             switch (next) {
@@ -222,14 +225,14 @@ public class StdCallbackContext {
                 throw new JsonParseException(p, "Expected array for encoded object got " + p.currentToken());
             }
             try {
-                Collection<Object> value = (Collection<Object>) type.newInstance();
+                Collection<Object> value = (Collection<Object>) type.getDeclaredConstructor().newInstance();
                 p.nextToken(); // move to next token
                 do {
                     Object val = readObject(p, ctxt);
                     value.add(val);
                 } while (p.nextToken() != JsonToken.END_ARRAY);
                 return value;
-            } catch (IllegalAccessException | InstantiationException e) {
+            } catch (IllegalAccessException | InstantiationException | NoSuchMethodException | InvocationTargetException e) {
                 throw new IOException("Can not create empty constructor collection class " + type + " @ "
                     + p.getCurrentLocation(), e);
             }

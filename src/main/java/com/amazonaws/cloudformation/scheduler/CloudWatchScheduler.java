@@ -103,7 +103,7 @@ public class CloudWatchScheduler {
         String jsonRequest;
         try {
             // expect return type to be non-null
-            jsonRequest = serializer.serialize(handlerRequest).toString();
+            jsonRequest = serializer.serialize(handlerRequest);
         } catch (JsonProcessingException e) {
             throw new TerminalException("Unable to serialize the request for callback", e);
         }

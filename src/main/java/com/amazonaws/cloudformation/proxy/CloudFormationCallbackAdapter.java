@@ -14,11 +14,10 @@
 */
 package com.amazonaws.cloudformation.proxy;
 
+import com.amazonaws.cloudformation.exceptions.TerminalException;
 import com.amazonaws.cloudformation.injection.CloudFormationProvider;
-
-import java.util.UUID;
-
-import org.json.JSONObject;
+import com.amazonaws.cloudformation.resource.Serializer;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressRequest;
@@ -32,10 +31,14 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
 
     private CloudFormationClient client;
 
+    private Serializer serializer;
+
     public CloudFormationCallbackAdapter(final CloudFormationProvider cloudFormationProvider,
-                                         final LoggerProxy loggerProxy) {
+                                         final LoggerProxy loggerProxy,
+                                         final Serializer serializer) {
         this.cloudFormationProvider = cloudFormationProvider;
         this.loggerProxy = loggerProxy;
+        this.serializer = serializer;
     }
 
     public void refreshClient() {
@@ -56,7 +59,12 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
             .clientRequestToken(UUID.randomUUID().toString());
 
         if (resourceModel != null) {
-            requestBuilder.resourceModel(new JSONObject(resourceModel).toString());
+            try {
+                // expect return type to be non-null
+                requestBuilder.resourceModel(this.serializer.serialize(resourceModel));
+            } catch (JsonProcessingException e) {
+                throw new TerminalException("Unable to serialize resource model for reporting progress", e);
+            }
         }
 
         if (errorCode != null) {

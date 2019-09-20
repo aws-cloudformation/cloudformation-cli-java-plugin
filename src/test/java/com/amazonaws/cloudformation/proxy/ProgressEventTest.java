@@ -22,7 +22,6 @@ import com.amazonaws.cloudformation.exceptions.ResourceNotFoundException;
 import com.amazonaws.cloudformation.resource.Serializer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
-import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
 public class ProgressEventTest {
@@ -141,10 +140,10 @@ public class ProgressEventTest {
     public void progressEvent_serialize_shouldReturnJson() throws JsonProcessingException {
         final ProgressEvent<String, String> progressEvent = ProgressEvent.defaultSuccessHandler("");
         final Serializer serializer = new Serializer();
-        final JSONObject json = serializer.serialize(progressEvent);
+        final String json = serializer.serialize(progressEvent);
 
         // careful if you add new properties here. downstream has to be able to handle
         // them
-        assertThat(json).hasToString("{\"callbackDelaySeconds\":0,\"resourceModel\":\"\",\"status\":\"SUCCESS\"}");
+        assertThat(json).isEqualTo("{\"status\":\"SUCCESS\",\"callbackDelaySeconds\":0,\"resourceModel\":\"\"}");
     }
 }

@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
 public class StdCallackContextTest {
@@ -97,8 +96,8 @@ public class StdCallackContextTest {
         cxt.setCallGraphs(callGraphs);
 
         Serializer serializer = new Serializer();
-        JSONObject serialized = serializer.serialize(cxt);
-        StdCallbackContext deserialized = serializer.deserialize(serialized.toString(), new TypeReference<StdCallbackContext>() {
+        String serialized = serializer.serialize(cxt);
+        StdCallbackContext deserialized = serializer.deserialize(serialized, new TypeReference<StdCallbackContext>() {
         });
         assertThat(cxt).isEqualTo(deserialized);
     }
@@ -119,8 +118,8 @@ public class StdCallackContextTest {
         StdCallbackContext cxt = new StdCallbackContext();
         cxt.setCallGraphs(callGraphs);
         Serializer serializer = new Serializer();
-        JSONObject serialized = serializer.serialize(cxt);
-        StdCallbackContext deserialized = serializer.deserialize(serialized.toString(), new TypeReference<StdCallbackContext>() {
+        String serialized = serializer.serialize(cxt);
+        StdCallbackContext deserialized = serializer.deserialize(serialized, new TypeReference<StdCallbackContext>() {
         });
         assertThat(deserialized).isEqualTo(cxt);
     }
@@ -136,8 +135,8 @@ public class StdCallackContextTest {
         StdCallbackContext cxt = new StdCallbackContext();
         cxt.setCallGraphs(callGraphs);
         Serializer serializer = new Serializer();
-        JSONObject serialized = serializer.serialize(cxt);
-        StdCallbackContext deserialized = serializer.deserialize(serialized.toString(), new TypeReference<StdCallbackContext>() {
+        String serialized = serializer.serialize(cxt);
+        StdCallbackContext deserialized = serializer.deserialize(serialized, new TypeReference<StdCallbackContext>() {
         });
         assertThat(deserialized).isEqualTo(cxt);
     }
@@ -153,8 +152,8 @@ public class StdCallackContextTest {
         StdCallbackContext cxt = new StdCallbackContext();
         cxt.setCallGraphs(callGraphs);
         Serializer serializer = new Serializer();
-        JSONObject serialized = serializer.serialize(cxt);
-        StdCallbackContext deserialized = serializer.deserialize(serialized.toString(), new TypeReference<StdCallbackContext>() {
+        String serialized = serializer.serialize(cxt);
+        StdCallbackContext deserialized = serializer.deserialize(serialized, new TypeReference<StdCallbackContext>() {
         });
         assertThat(deserialized).isEqualTo(cxt);
     }
@@ -171,8 +170,8 @@ public class StdCallackContextTest {
         StdCallbackContext cxt = new StdCallbackContext();
         cxt.setCallGraphs(callGraphs);
         Serializer serializer = new Serializer();
-        JSONObject serialized = serializer.serialize(cxt);
-        StdCallbackContext deserialized = serializer.deserialize(serialized.toString(), new TypeReference<StdCallbackContext>() {
+        String serialized = serializer.serialize(cxt);
+        StdCallbackContext deserialized = serializer.deserialize(serialized, new TypeReference<StdCallbackContext>() {
         });
         assertThat(deserialized).isEqualTo(cxt);
     }
@@ -236,7 +235,7 @@ public class StdCallackContextTest {
             });
         });
         assertThat(ioException.getMessage()).contains("Can not create empty map");
-        assertThat(ioException.getCause()).isExactlyInstanceOf(InstantiationException.class);
+        assertThat(ioException.getCause()).isExactlyInstanceOf(NoSuchMethodException.class);
 
         String json = "{\"callGraphs\": {\"foo\": 1, \"bar\": [\"java.util.ArrayList\", [1, 2, 3]]}}";
         StdCallbackContext cxt = serializer.deserialize(json, new TypeReference<StdCallbackContext>() {
