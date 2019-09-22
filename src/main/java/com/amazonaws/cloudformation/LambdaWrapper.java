@@ -249,21 +249,16 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
             handlerResponse = processInvocation(rawInput, request, context);
         } catch (final ValidationException e) {
-            // TODO: we'll need a better way to expose the stack of causing exceptions for
-            // user feedback
-            StringBuilder validationMessageBuilder = new StringBuilder();
-            if (!StringUtils.isEmpty(e.getMessage())) {
-                validationMessageBuilder.append(String.format("Model validation failed (%s)", e.getMessage()));
+            String message;
+            String fullExceptionMessage = ValidationException.buildFullExceptionMessage(e);
+            if (!StringUtils.isEmpty(fullExceptionMessage)) {
+                message = String.format("Model validation failed (%s)", fullExceptionMessage);
             } else {
-                validationMessageBuilder.append("Model validation failed with unknown cause.");
+                message = ("Model validation failed with unknown cause.");
             }
-            if (e.getCausingExceptions() != null) {
-                for (ValidationException cause : e.getCausingExceptions()) {
-                    validationMessageBuilder.append(String.format("%n%s (%s)", cause.getMessage(), cause.getSchemaLocation()));
-                }
-            }
+
             publishExceptionMetric(request == null ? null : request.getAction(), e, HandlerErrorCode.InvalidRequest);
-            handlerResponse = ProgressEvent.defaultFailureHandler(new TerminalException(validationMessageBuilder.toString(), e),
+            handlerResponse = ProgressEvent.defaultFailureHandler(new TerminalException(message, e),
                 HandlerErrorCode.InvalidRequest);
         } catch (final Throwable e) {
             // Exceptions are wrapped as a consistent error response to the caller (i.e;
@@ -487,7 +482,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             deserializedModel = this.serializer.deserializeStrict(modelObject.toString(), modelTypeReference);
         } catch (UnrecognizedPropertyException e) {
             throw new ValidationException(String.format("#: extraneous key [%s] is not permitted", e.getPropertyName()),
-                                          e.getPropertyName(), "#");
+                                          "additionalProperties", "#");
 
         }
 
