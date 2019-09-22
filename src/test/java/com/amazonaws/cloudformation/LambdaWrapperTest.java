@@ -58,6 +58,8 @@ import java.util.List;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
@@ -143,7 +145,12 @@ public class LambdaWrapperTest {
         assertThat(handlerResponse.getResourceModel()).isEqualTo(expected.getResourceModel());
     }
 
-    private void invokeHandler_nullResponse_returnsFailure(final String requestDataPath, final Action action) throws IOException {
+    @ParameterizedTest
+    @CsvSource({ "create.request.json,CREATE", "update.request.json,UPDATE", "delete.request.json,DELETE",
+        "read.request.json,READ", "list.request.json,LIST" })
+    public void invokeHandler_nullResponse_returnsFailure(final String requestDataPath, final String actionAsString)
+        throws IOException {
+        final Action action = Action.valueOf(actionAsString);
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
                                                             providerLoggingCredentialsProvider, platformEventsLogger,
                                                             providerEventsLogger, platformMetricsPublisher,
@@ -198,31 +205,6 @@ public class LambdaWrapperTest {
     @Test
     public void invokeHandlerForCreate_without_customer_loggingCredentials() throws IOException {
         invokeHandler_without_customerLoggingCredentials("create.request-without-logging-credentials.json", Action.CREATE);
-    }
-
-    @Test
-    public void invokeHandlerForCreate_nullResponse_returnsFailure() throws IOException {
-        invokeHandler_nullResponse_returnsFailure("create.request.json", Action.CREATE);
-    }
-
-    @Test
-    public void invokeHandlerForRead_nullResponse_returnsFailure() throws IOException {
-        invokeHandler_nullResponse_returnsFailure("read.request.json", Action.READ);
-    }
-
-    @Test
-    public void invokeHandlerForUpdate_nullResponse_returnsFailure() throws IOException {
-        invokeHandler_nullResponse_returnsFailure("update.request.json", Action.UPDATE);
-    }
-
-    @Test
-    public void invokeHandlerForDelete_nullResponse_returnsFailure() throws IOException {
-        invokeHandler_nullResponse_returnsFailure("delete.request.json", Action.DELETE);
-    }
-
-    @Test
-    public void invokeHandlerForList_nullResponse_returnsFailure() throws IOException {
-        invokeHandler_nullResponse_returnsFailure("list.request.json", Action.LIST);
     }
 
     private void invokeHandler_without_customerLoggingCredentials(final String requestDataPath, final Action action)
@@ -280,8 +262,12 @@ public class LambdaWrapperTest {
         }
     }
 
-    private void invokeHandler_handlerFailed_returnsFailure(final String requestDataPath, final Action action)
+    @ParameterizedTest
+    @CsvSource({ "create.request.json,CREATE", "update.request.json,UPDATE", "delete.request.json,DELETE",
+        "read.request.json,READ", "list.request.json,LIST" })
+    public void invokeHandler_handlerFailed_returnsFailure(final String requestDataPath, final String actionAsString)
         throws IOException {
+        final Action action = Action.valueOf(actionAsString);
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
                                                             providerLoggingCredentialsProvider, platformEventsLogger,
                                                             providerEventsLogger, platformMetricsPublisher,
@@ -345,33 +331,12 @@ public class LambdaWrapperTest {
         }
     }
 
-    @Test
-    public void invokeHandlerForCreate_handlerFailed_returnsFailure() throws IOException {
-        invokeHandler_handlerFailed_returnsFailure("create.request.json", Action.CREATE);
-    }
-
-    @Test
-    public void invokeHandlerForRead_handlerFailed_returnsFailure() throws IOException {
-        invokeHandler_handlerFailed_returnsFailure("read.request.json", Action.READ);
-    }
-
-    @Test
-    public void invokeHandlerForUpdate_handlerFailed_returnsFailure() throws IOException {
-        invokeHandler_handlerFailed_returnsFailure("update.request.json", Action.UPDATE);
-    }
-
-    @Test
-    public void invokeHandlerForDelete_handlerFailed_returnsFailure() throws IOException {
-        invokeHandler_handlerFailed_returnsFailure("delete.request.json", Action.DELETE);
-    }
-
-    @Test
-    public void invokeHandlerForList_handlerFailed_returnsFailure() throws IOException {
-        invokeHandler_handlerFailed_returnsFailure("list.request.json", Action.LIST);
-    }
-
-    private void invokeHandler_CompleteSynchronously_returnsSuccess(final String requestDataPath, final Action action)
+    @ParameterizedTest
+    @CsvSource({ "create.request.json,CREATE", "update.request.json,UPDATE", "delete.request.json,DELETE",
+        "read.request.json,READ", "list.request.json,LIST" })
+    public void invokeHandler_CompleteSynchronously_returnsSuccess(final String requestDataPath, final String actionAsString)
         throws IOException {
+        final Action action = Action.valueOf(actionAsString);
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
                                                             providerLoggingCredentialsProvider, platformEventsLogger,
                                                             providerEventsLogger, platformMetricsPublisher,
@@ -417,33 +382,12 @@ public class LambdaWrapperTest {
         }
     }
 
-    @Test
-    public void invokeHandlerForCreate_CompleteSynchronously_returnsSuccess() throws IOException {
-        invokeHandler_CompleteSynchronously_returnsSuccess("create.request.json", Action.CREATE);
-    }
-
-    @Test
-    public void invokeHandlerForRead_CompleteSynchronously_returnsSuccess() throws IOException {
-        invokeHandler_CompleteSynchronously_returnsSuccess("read.request.json", Action.READ);
-    }
-
-    @Test
-    public void invokeHandlerForUpdate_CompleteSynchronously_returnsSuccess() throws IOException {
-        invokeHandler_CompleteSynchronously_returnsSuccess("update.request.json", Action.UPDATE);
-    }
-
-    @Test
-    public void invokeHandlerForDelete_CompleteSynchronously_returnsSuccess() throws IOException {
-        invokeHandler_CompleteSynchronously_returnsSuccess("delete.request.json", Action.DELETE);
-    }
-
-    @Test
-    public void invokeHandlerForList_CompleteSynchronously_returnsSuccess() throws IOException {
-        invokeHandler_CompleteSynchronously_returnsSuccess("list.request.json", Action.LIST);
-    }
-
-    private void invokeHandler_InProgress_returnsInProgress(final String requestDataPath, final Action action)
+    @ParameterizedTest
+    @CsvSource({ "create.request.json,CREATE", "update.request.json,UPDATE", "delete.request.json,DELETE",
+        "read.request.json,READ", "list.request.json,LIST" })
+    public void invokeHandler_InProgress_returnsInProgress(final String requestDataPath, final String actionAsString)
         throws IOException {
+        final Action action = Action.valueOf(actionAsString);
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
                                                             providerLoggingCredentialsProvider, platformEventsLogger,
                                                             providerEventsLogger, platformMetricsPublisher,
@@ -507,33 +451,12 @@ public class LambdaWrapperTest {
         }
     }
 
-    @Test
-    public void invokeHandlerForCreate_InProgress_returnsInProgress() throws IOException {
-        invokeHandler_InProgress_returnsInProgress("create.request.json", Action.CREATE);
-    }
-
-    @Test
-    public void invokeHandlerForRead_InProgress_returnsFailure() throws IOException {
-        invokeHandler_InProgress_returnsInProgress("read.request.json", Action.READ);
-    }
-
-    @Test
-    public void invokeHandlerForUpdate_InProgress_returnsInProgress() throws IOException {
-        invokeHandler_InProgress_returnsInProgress("update.request.json", Action.UPDATE);
-    }
-
-    @Test
-    public void invokeHandlerForDelete_InProgress_returnsInProgress() throws IOException {
-        invokeHandler_InProgress_returnsInProgress("delete.request.json", Action.DELETE);
-    }
-
-    @Test
-    public void invokeHandlerForList_InProgress_returnsFailure() throws IOException {
-        invokeHandler_InProgress_returnsInProgress("list.request.json", Action.LIST);
-    }
-
-    private void reInvokeHandler_InProgress_returnsInProgress(final String requestDataPath, final Action action)
+    @ParameterizedTest
+    @CsvSource({ "create.with-request-context.request.json,CREATE", "update.with-request-context.request.json,UPDATE",
+        "delete.with-request-context.request.json,DELETE" })
+    public void reInvokeHandler_InProgress_returnsInProgress(final String requestDataPath, final String actionAsString)
         throws IOException {
+        final Action action = Action.valueOf(actionAsString);
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
                                                             providerLoggingCredentialsProvider, platformEventsLogger,
                                                             providerEventsLogger, platformMetricsPublisher,
@@ -594,22 +517,11 @@ public class LambdaWrapperTest {
         }
     }
 
-    @Test
-    public void reInvokeHandlerForCreate_InProgress_returnsInProgress() throws IOException {
-        reInvokeHandler_InProgress_returnsInProgress("create.with-request-context.request.json", Action.CREATE);
-    }
-
-    @Test
-    public void reInvokeHandlerForUpdate_InProgress_returnsInProgress() throws IOException {
-        reInvokeHandler_InProgress_returnsInProgress("update.with-request-context.request.json", Action.UPDATE);
-    }
-
-    @Test
-    public void reInvokeHandlerForDelete_InProgress_returnsInProgress() throws IOException {
-        reInvokeHandler_InProgress_returnsInProgress("delete.with-request-context.request.json", Action.DELETE);
-    }
-
-    private void invokeHandler_SchemaValidationFailure(final String requestDataPath, final Action action) throws IOException {
+    @ParameterizedTest
+    @CsvSource({ "create.request.json,CREATE", "update.request.json,UPDATE", "delete.request.json,DELETE" })
+    public void invokeHandler_SchemaValidationFailure(final String requestDataPath, final String actionAsString)
+        throws IOException {
+        final Action action = Action.valueOf(actionAsString);
         doThrow(ValidationException.class).when(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
                                                             providerLoggingCredentialsProvider, platformEventsLogger,
@@ -654,21 +566,6 @@ public class LambdaWrapperTest {
             verifyHandlerResponse(out, HandlerResponse.<TestModel>builder().bearerToken("123456").errorCode("InvalidRequest")
                 .operationStatus(OperationStatus.FAILED).message("Model validation failed with unknown cause.").build());
         }
-    }
-
-    @Test
-    public void invokeHandlerForSchema_SchemaValidationFailure() throws IOException {
-        invokeHandler_SchemaValidationFailure("create.request.json", Action.CREATE);
-    }
-
-    @Test
-    public void invokeHandlerForUpdate_SchemaValidationFailure() throws IOException {
-        invokeHandler_SchemaValidationFailure("update.request.json", Action.UPDATE);
-    }
-
-    @Test
-    public void invokeHandlerForDelete_SchemaValidationFailure() throws IOException {
-        invokeHandler_SchemaValidationFailure("delete.request.json", Action.DELETE);
     }
 
     @Test

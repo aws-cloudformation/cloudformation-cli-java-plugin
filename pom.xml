@@ -46,7 +46,7 @@
         <dependency>
             <groupId>com.amazonaws.cloudformation</groupId>
             <artifactId>aws-cloudformation-resource-schema</artifactId>
-            <version>1.0.2</version>
+            <version>1.0.3</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.dataformat/jackson-databind -->
         <dependency>
