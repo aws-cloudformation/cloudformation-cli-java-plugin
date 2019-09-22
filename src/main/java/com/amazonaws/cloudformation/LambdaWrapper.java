@@ -254,7 +254,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             if (!StringUtils.isEmpty(fullExceptionMessage)) {
                 message = String.format("Model validation failed (%s)", fullExceptionMessage);
             } else {
-                message = ("Model validation failed with unknown cause.");
+                message = "Model validation failed with unknown cause.";
             }
 
             publishExceptionMetric(request == null ? null : request.getAction(), e, HandlerErrorCode.InvalidRequest);
