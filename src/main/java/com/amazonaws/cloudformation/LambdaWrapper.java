@@ -249,9 +249,18 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             // deserialize incoming payload to modelled request
             request = this.serializer.deserialize(input, typeReference);
             handlerResponse = processInvocation(rawInput, request, context);
-        } catch (final OperationStatusCheckFailedException e) {
-            // Task is picked by other handlers, exit safely
-            handlerResponse = ProgressEvent.failed(null, null, HandlerErrorCode.InternalFailure, e.getMessage());
+        } catch (final ValidationException e) {
+            String message;
+            String fullExceptionMessage = ValidationException.buildFullExceptionMessage(e);
+            if (!StringUtils.isEmpty(fullExceptionMessage)) {
+                message = String.format("Model validation failed (%s)", fullExceptionMessage);
+            } else {
+                message = "Model validation failed with unknown cause.";
+            }
+
+            publishExceptionMetric(request == null ? null : request.getAction(), e, HandlerErrorCode.InvalidRequest);
+            handlerResponse = ProgressEvent.defaultFailureHandler(new TerminalException(message, e),
+                HandlerErrorCode.InvalidRequest);
         } catch (final Throwable e) {
             // Exceptions are wrapped as a consistent error response to the caller (i.e;
             // CloudFormation)
@@ -507,7 +516,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             deserializedModel = this.serializer.deserializeStrict(modelObject.toString(), modelTypeReference);
         } catch (UnrecognizedPropertyException e) {
             throw new ValidationException(String.format("#: extraneous key [%s] is not permitted", e.getPropertyName()),
-                                          e.getPropertyName(), "#");
+                                          "additionalProperties", "#");
 
         }
 

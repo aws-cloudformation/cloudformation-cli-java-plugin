@@ -26,6 +26,7 @@ class JavaLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
     RUNTIME = "java8"
     ENTRY_POINT = "{}.HandlerWrapper::handleRequest"
+    TEST_ENTRY_POINT = "{}.HandlerWrapper::testEntrypoint"
     CODE_URI = "./target/{}-1.0-SNAPSHOT.jar"
 
     def __init__(self):
@@ -70,8 +71,7 @@ class JavaLanguagePlugin(LanguagePlugin):
 
         self._prompt_for_namespace(project)
 
-        project.runtime = self.RUNTIME
-        project.entrypoint = self.ENTRY_POINT.format(self.package_name)
+        self.init_settings(project)
 
         # .gitignore
         path = project.root / ".gitignore"
@@ -190,6 +190,11 @@ class JavaLanguagePlugin(LanguagePlugin):
                 pojo_name="ResourceModel",
             )
             project.safewrite(path, contents)
+
+    def init_settings(self, project):
+        project.runtime = self.RUNTIME
+        project.entrypoint = self.ENTRY_POINT.format(self.package_name)
+        project.test_entrypoint = self.TEST_ENTRY_POINT.format(self.package_name)
 
     @staticmethod
     def _get_generated_root(project):
