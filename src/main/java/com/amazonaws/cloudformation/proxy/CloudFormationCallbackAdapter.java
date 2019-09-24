@@ -19,6 +19,8 @@ import com.amazonaws.cloudformation.injection.CloudFormationProvider;
 import com.amazonaws.cloudformation.resource.Serializer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
+import java.util.UUID;
+
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressRequest;
 import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressResponse;
@@ -49,12 +51,14 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
     public void reportProgress(final String bearerToken,
                                final HandlerErrorCode errorCode,
                                final OperationStatus operationStatus,
+                               final OperationStatus currentOperationStatus,
                                final T resourceModel,
                                final String statusMessage) {
         assert client != null : "CloudWatchEventsClient was not initialised. You must call refreshClient() first.";
 
         RecordHandlerProgressRequest.Builder requestBuilder = RecordHandlerProgressRequest.builder().bearerToken(bearerToken)
-            .operationStatus(translate(operationStatus)).statusMessage(statusMessage);
+            .operationStatus(translate(operationStatus)).statusMessage(statusMessage)
+            .clientRequestToken(UUID.randomUUID().toString());
 
         if (resourceModel != null) {
             try {
@@ -69,6 +73,9 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
             requestBuilder.errorCode(translate(errorCode));
         }
 
+        if (currentOperationStatus != null) {
+            requestBuilder.currentOperationStatus(translate(currentOperationStatus));
+        }
         // TODO: be far more fault tolerant, do retries, emit logs and metrics, etc.
         RecordHandlerProgressResponse response = this.client.recordHandlerProgress(requestBuilder.build());
         loggerProxy.log(String.format("Record Handler Progress with Request Id %s and Request: {%s}",
@@ -120,6 +127,8 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
                 return software.amazon.awssdk.services.cloudformation.model.OperationStatus.FAILED;
             case IN_PROGRESS:
                 return software.amazon.awssdk.services.cloudformation.model.OperationStatus.IN_PROGRESS;
+            case PENDING:
+                return software.amazon.awssdk.services.cloudformation.model.OperationStatus.PENDING;
             default:
                 // default will be to fail on unknown status
                 return software.amazon.awssdk.services.cloudformation.model.OperationStatus.FAILED;

@@ -15,7 +15,12 @@
 package com.amazonaws.cloudformation;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 import com.amazonaws.AmazonServiceException;
@@ -64,6 +69,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import software.amazon.awssdk.services.cloudformation.model.OperationStatusCheckFailedException;
 
 @ExtendWith(MockitoExtension.class)
 public class LambdaWrapperTest {
@@ -427,7 +434,7 @@ public class LambdaWrapperTest {
 
                 // CloudFormation should receive a callback invocation
                 verify(callbackAdapter, times(1)).reportProgress(eq("123456"), isNull(), eq(OperationStatus.IN_PROGRESS),
-                    eq(TestModel.builder().property1("abc").property2(123).build()), isNull());
+                    eq(OperationStatus.IN_PROGRESS), eq(TestModel.builder().property1("abc").property2(123).build()), isNull());
 
                 // verify output response
                 verifyHandlerResponse(out,
@@ -508,7 +515,7 @@ public class LambdaWrapperTest {
 
             // CloudFormation should receive a callback invocation
             verify(callbackAdapter, times(1)).reportProgress(eq("123456"), isNull(), eq(OperationStatus.IN_PROGRESS),
-                eq(TestModel.builder().property1("abc").property2(123).build()), isNull());
+                eq(OperationStatus.IN_PROGRESS), eq(TestModel.builder().property1("abc").property2(123).build()), isNull());
 
             // verify output response
             verifyHandlerResponse(out,
@@ -559,7 +566,13 @@ public class LambdaWrapperTest {
             // no re-invocation via CloudWatch should occur
             verifyNoMoreInteractions(scheduler);
 
-            // CloudFormation should NOT receive a callback invocation
+            // first report to acknowledge the task
+            verify(callbackAdapter).reportProgress(any(), any(), eq(OperationStatus.IN_PROGRESS), eq(OperationStatus.PENDING),
+                any(), any());
+
+            // second report to record validation failure
+            verify(callbackAdapter).reportProgress(any(), any(), eq(OperationStatus.FAILED), eq(OperationStatus.IN_PROGRESS),
+                any(), any());
             verifyNoMoreInteractions(callbackAdapter);
 
             // verify output response
@@ -603,7 +616,14 @@ public class LambdaWrapperTest {
             // no re-invocation via CloudWatch should occur
             verifyNoMoreInteractions(scheduler);
 
-            // CloudFormation should NOT receive a callback invocation
+            // first report to acknowledge the task
+            verify(callbackAdapter).reportProgress(any(), any(), eq(OperationStatus.IN_PROGRESS), eq(OperationStatus.PENDING),
+                any(), any());
+
+            // second report to record validation failure
+            verify(callbackAdapter).reportProgress(any(), any(), eq(OperationStatus.FAILED), eq(OperationStatus.IN_PROGRESS),
+                any(), any());
+
             verifyNoMoreInteractions(callbackAdapter);
 
             // verify output response
@@ -920,7 +940,8 @@ public class LambdaWrapperTest {
             final ArgumentCaptor<String> statusMessageCaptor = ArgumentCaptor.forClass(String.class);
 
             verify(callbackAdapter, times(2)).reportProgress(bearerTokenCaptor.capture(), errorCodeCaptor.capture(),
-                operationStatusCaptor.capture(), resourceModelCaptor.capture(), statusMessageCaptor.capture());
+                operationStatusCaptor.capture(), operationStatusCaptor.capture(), resourceModelCaptor.capture(),
+                statusMessageCaptor.capture());
 
             final List<String> bearerTokens = bearerTokenCaptor.getAllValues();
             final List<HandlerErrorCode> errorCodes = errorCodeCaptor.getAllValues();
@@ -935,7 +956,8 @@ public class LambdaWrapperTest {
             assertThat(resourceModels).containsExactly(TestModel.builder().property1("abc").property2(123).build(),
                 TestModel.builder().property1("abc").property2(123).build());
             assertThat(statusMessages).containsExactly(null, null);
-            assertThat(operationStatuses).containsExactly(OperationStatus.IN_PROGRESS, OperationStatus.SUCCESS);
+            assertThat(operationStatuses).containsExactly(OperationStatus.IN_PROGRESS, OperationStatus.IN_PROGRESS,
+                OperationStatus.SUCCESS, OperationStatus.IN_PROGRESS);
 
             // verify final output response is for success response
             verifyHandlerResponse(out,
@@ -1011,7 +1033,8 @@ public class LambdaWrapperTest {
             final ArgumentCaptor<String> statusMessageCaptor = ArgumentCaptor.forClass(String.class);
 
             verify(callbackAdapter, times(2)).reportProgress(bearerTokenCaptor.capture(), errorCodeCaptor.capture(),
-                operationStatusCaptor.capture(), resourceModelCaptor.capture(), statusMessageCaptor.capture());
+                operationStatusCaptor.capture(), operationStatusCaptor.capture(), resourceModelCaptor.capture(),
+                statusMessageCaptor.capture());
 
             final List<String> bearerTokens = bearerTokenCaptor.getAllValues();
             final List<HandlerErrorCode> errorCodes = errorCodeCaptor.getAllValues();
@@ -1025,7 +1048,8 @@ public class LambdaWrapperTest {
             assertThat(resourceModels).containsExactly(TestModel.builder().property1("abc").property2(123).build(),
                 TestModel.builder().property1("abc").property2(123).build());
             assertThat(statusMessages).containsExactly(null, null);
-            assertThat(operationStatuses).containsExactly(OperationStatus.IN_PROGRESS, OperationStatus.IN_PROGRESS);
+            assertThat(operationStatuses).containsExactly(OperationStatus.IN_PROGRESS, OperationStatus.IN_PROGRESS,
+                OperationStatus.IN_PROGRESS, OperationStatus.IN_PROGRESS);
 
             // verify final output response is for second IN_PROGRESS response
             verifyHandlerResponse(out,
@@ -1341,6 +1365,45 @@ public class LambdaWrapperTest {
             verifyHandlerResponse(out, HandlerResponse.<TestModel>builder().bearerToken("123456").message("Handler was invoked")
                 .operationStatus(OperationStatus.SUCCESS).build());
 
+        }
+    }
+
+    @Test
+    public void handleRequest_apiThrowsOperationStatusException_returnsFailedStatus() throws IOException {
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
+        final String errorMessage = "Unexpected status";
+        final OperationStatusCheckFailedException exception = OperationStatusCheckFailedException.builder().message(errorMessage)
+            .build();
+
+        // simulate runtime Errors in the callback adapter (such as multiple handlers
+        // are invoked
+        // for single task by CloudFormation)
+        doThrow(exception).when(callbackAdapter).reportProgress(any(), any(), eq(OperationStatus.IN_PROGRESS),
+            eq(OperationStatus.PENDING), any(), any());
+
+        try (final InputStream in = loadRequestStream("create.request.json");
+            final OutputStream out = new ByteArrayOutputStream()) {
+            final Context context = getLambdaContext();
+
+            wrapper.handleRequest(in, out, context);
+
+            // verify initialiseRuntime was called and initialised dependencies
+            verifyInitialiseRuntime();
+            // only calls to callback adapter to acknowledge the task
+            verify(callbackAdapter).reportProgress(any(), any(), eq(OperationStatus.IN_PROGRESS), eq(OperationStatus.PENDING),
+                any(), any());
+
+            // no further calls to callback adapter should occur
+            verifyNoMoreInteractions(callbackAdapter);
+
+            // verify output response
+            verifyHandlerResponse(out,
+                HandlerResponse.<TestModel>builder().bearerToken("123456").errorCode("InternalFailure")
+                    .operationStatus(OperationStatus.FAILED).message(errorMessage)
+                    .resourceModel(TestModel.builder().property1("abc").property2(123).build()).build());
         }
     }
 }
