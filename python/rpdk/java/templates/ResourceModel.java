@@ -52,7 +52,7 @@ public class {{ model_name|uppercase_first_letter }} {
                 {#- #} != null
             {%- endfor -%}
         ) {
-            identifier.append(IDENTIFIER_KEY_{{ components[2:]|join('_')|upper }}, this{% for component in components[2:] %}.get{{component|uppercase_first_letter}}(){% endfor %});
+            identifier.put(IDENTIFIER_KEY_{{ components[2:]|join('_')|upper }}, this{% for component in components[2:] %}.get{{component|uppercase_first_letter}}(){% endfor %});
         }
 
         {% endfor %}
@@ -85,7 +85,7 @@ public class {{ model_name|uppercase_first_letter }} {
                 {#- #} != null
             {%- endfor -%}
         ) {
-            identifier.append(IDENTIFIER_KEY_{{ components[2:]|join('_')|upper }}, this{% for component in components[2:] %}.get{{component|uppercase_first_letter}}(){% endfor %});
+            identifier.put(IDENTIFIER_KEY_{{ components[2:]|join('_')|upper }}, this{% for component in components[2:] %}.get{{component|uppercase_first_letter}}(){% endfor %});
         }
 
         {% endfor %}
