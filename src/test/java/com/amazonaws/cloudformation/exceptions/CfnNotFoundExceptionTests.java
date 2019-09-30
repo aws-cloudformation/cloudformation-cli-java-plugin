@@ -15,91 +15,70 @@
 package com.amazonaws.cloudformation.exceptions;
 
 import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import com.amazonaws.cloudformation.proxy.HandlerErrorCode;
 
 import org.junit.jupiter.api.Test;
 
 public class CfnNotFoundExceptionTests {
-    private static final String EXPECTED_EXCEPTION_MESSAGE = "Resource of type 'AWS::Type::Resource' with identifier 'myId' was not found.";
-
     @Test
     public void resourceNotFoundException_isCfnNotFoundException() {
-        try {
+        assertThatExceptionOfType(CfnNotFoundException.class).isThrownBy(() -> {
             throw new ResourceNotFoundException("AWS::Type::Resource", "myId", new RuntimeException());
-        } catch (final CfnNotFoundException e) {
-            assertEquals(e.getMessage(), EXPECTED_EXCEPTION_MESSAGE);
-            assertNotNull(e.getCause());
-        }
+        }).withCauseInstanceOf(RuntimeException.class).withMessageContaining("AWS::Type::Resource").withMessageContaining("myId")
+            .withMessageContaining("not found");
     }
 
     @Test
     public void resourceNotFoundException_singleArgConstructorHasNoMessage() {
-        try {
+        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() -> {
             throw new ResourceNotFoundException(new RuntimeException());
-        } catch (final ResourceNotFoundException e) {
-            assertNull(e.getMessage());
-            assertNotNull(e.getCause());
-        }
+        }).withCauseInstanceOf(RuntimeException.class).withMessage(null);
     }
 
     @Test
     public void resourceNotFoundException_noCauseGiven() {
-        try {
+        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() -> {
             throw new ResourceNotFoundException("AWS::Type::Resource", "myId");
-        } catch (final ResourceNotFoundException e) {
-            assertEquals(e.getMessage(), EXPECTED_EXCEPTION_MESSAGE);
-            assertNull(e.getCause());
-        }
+        }).withNoCause().withMessageContaining("AWS::Type::Resource").withMessageContaining("myId")
+            .withMessageContaining("not found");
     }
 
     @Test
     public void resourceNotFoundException_errorCodeIsAppropriate() {
-        try {
-            throw new ResourceNotFoundException("AWS::Type::Resource", "myId", new RuntimeException());
-        } catch (final ResourceNotFoundException e) {
-            assertEquals(e.getErrorCode(), HandlerErrorCode.NotFound);
-        }
+        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() -> {
+            throw new ResourceNotFoundException(new RuntimeException());
+        }).satisfies(exception -> assertEquals(HandlerErrorCode.NotFound, exception.getErrorCode()));
     }
 
     @Test
     public void cfnNotFoundException_isBaseHandlerException() {
-        try {
+        assertThatExceptionOfType(BaseHandlerException.class).isThrownBy(() -> {
             throw new CfnNotFoundException("AWS::Type::Resource", "myId", new RuntimeException());
-        } catch (final BaseHandlerException e) {
-            assertEquals(e.getMessage(), EXPECTED_EXCEPTION_MESSAGE);
-            assertNotNull(e.getCause());
-        }
+        }).withCauseInstanceOf(RuntimeException.class).withMessageContaining("AWS::Type::Resource").withMessageContaining("myId")
+            .withMessageContaining("not found");
     }
 
     @Test
     public void cfnNotFoundException_singleArgConstructorHasNoMessage() {
-        try {
+        assertThatExceptionOfType(CfnNotFoundException.class).isThrownBy(() -> {
             throw new CfnNotFoundException(new RuntimeException());
-        } catch (final CfnNotFoundException e) {
-            assertNull(e.getMessage());
-            assertNotNull(e.getCause());
-        }
+        }).withCauseInstanceOf(RuntimeException.class).withMessage(null);
     }
 
     @Test
     public void cfnNotFoundException_noCauseGiven() {
-        try {
+        assertThatExceptionOfType(CfnNotFoundException.class).isThrownBy(() -> {
             throw new CfnNotFoundException("AWS::Type::Resource", "myId");
-        } catch (final CfnNotFoundException e) {
-            assertEquals(e.getMessage(), EXPECTED_EXCEPTION_MESSAGE);
-            assertNull(e.getCause());
-        }
+        }).withNoCause().withMessageContaining("AWS::Type::Resource").withMessageContaining("myId")
+            .withMessageContaining("not found");
     }
 
     @Test
     public void cfnNotFoundException_errorCodeIsAppropriate() {
-        try {
-            throw new CfnNotFoundException("AWS::Type::Resource", "myId", new RuntimeException());
-        } catch (final CfnNotFoundException e) {
-            assertEquals(e.getErrorCode(), HandlerErrorCode.NotFound);
-        }
+        assertThatExceptionOfType(CfnNotFoundException.class).isThrownBy(() -> {
+            throw new CfnNotFoundException(new RuntimeException());
+        }).satisfies(exception -> assertEquals(HandlerErrorCode.NotFound, exception.getErrorCode()));
     }
 }

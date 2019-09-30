@@ -16,39 +16,25 @@ package com.amazonaws.cloudformation.exceptions;
 
 import com.amazonaws.cloudformation.proxy.HandlerErrorCode;
 
-public class BaseHandlerException extends RuntimeException {
+import lombok.Getter;
+
+@Getter
+public abstract class BaseHandlerException extends RuntimeException {
 
     private static final long serialVersionUID = -1646136434112354328L;
 
     private HandlerErrorCode errorCode;
 
-    BaseHandlerException(final Throwable cause,
-                         final HandlerErrorCode errorCode) {
+    protected BaseHandlerException(final Throwable cause,
+                                   final HandlerErrorCode errorCode) {
         super(null, cause);
         this.errorCode = errorCode;
     }
 
-    BaseHandlerException(final String resourceTypeName,
-                         final String resourceIdentifier,
-                         final HandlerErrorCode errorCode) {
-        this(resourceTypeName, resourceIdentifier, null, errorCode);
-    }
-
-    BaseHandlerException(final String resourceTypeName,
-                         final String resourceIdentifier,
-                         final Throwable cause,
-                         final HandlerErrorCode errorCode) {
-        this(String.format(ExceptionMessages.GENERIC, resourceTypeName, resourceIdentifier), cause, errorCode);
-    }
-
-    BaseHandlerException(final String message,
-                         final Throwable cause,
-                         final HandlerErrorCode errorCode) {
+    protected BaseHandlerException(final String message,
+                                   final Throwable cause,
+                                   final HandlerErrorCode errorCode) {
         super(message, cause);
         this.errorCode = errorCode;
-    }
-
-    public HandlerErrorCode getErrorCode() {
-        return errorCode;
     }
 }

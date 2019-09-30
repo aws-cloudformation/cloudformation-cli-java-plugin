@@ -16,7 +16,6 @@ package com.amazonaws.cloudformation.exceptions;
 
 final class ExceptionMessages {
     static final String ALREADY_EXISTS = "Resource of type '%s' with identifier '%s' already exists.";
-    static final String GENERIC = "Resource of type '%s' with identifier '%s' encountered an error.";
     static final String NOT_FOUND = "Resource of type '%s' with identifier '%s' was not found.";
 
     private ExceptionMessages() {

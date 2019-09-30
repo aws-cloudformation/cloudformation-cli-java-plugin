@@ -15,89 +15,70 @@
 package com.amazonaws.cloudformation.exceptions;
 
 import static junit.framework.Assert.*;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import com.amazonaws.cloudformation.proxy.HandlerErrorCode;
 
 import org.junit.jupiter.api.Test;
 
 public class CfnAlreadyExistsExceptionTests {
-    private static final String EXPECTED_EXCEPTION_MESSAGE = "Resource of type 'AWS::Type::Resource' with identifier 'myId' already exists.";
-
     @Test
     public void resourceAlreadyExistsException_isCfnAlreadyExistsException() {
-        try {
+        assertThatExceptionOfType(CfnAlreadyExistsException.class).isThrownBy(() -> {
             throw new ResourceAlreadyExistsException("AWS::Type::Resource", "myId", new RuntimeException());
-        } catch (final CfnAlreadyExistsException e) {
-            assertEquals(e.getMessage(), EXPECTED_EXCEPTION_MESSAGE);
-            assertNotNull(e.getCause());
-        }
+        }).withCauseInstanceOf(RuntimeException.class).withMessageContaining("AWS::Type::Resource").withMessageContaining("myId")
+            .withMessageContaining("already exists");
     }
 
     @Test
     public void resourceAlreadyExistsException_singleArgConstructorHasNoMessage() {
-        try {
+        assertThatExceptionOfType(ResourceAlreadyExistsException.class).isThrownBy(() -> {
             throw new ResourceAlreadyExistsException(new RuntimeException());
-        } catch (final ResourceAlreadyExistsException e) {
-            assertNull(e.getMessage());
-            assertNotNull(e.getCause());
-        }
+        }).withCauseInstanceOf(RuntimeException.class).withMessage(null);
     }
 
     @Test
     public void resourceAlreadyExistsException_noCauseGiven() {
-        try {
+        assertThatExceptionOfType(ResourceAlreadyExistsException.class).isThrownBy(() -> {
             throw new ResourceAlreadyExistsException("AWS::Type::Resource", "myId");
-        } catch (final ResourceAlreadyExistsException e) {
-            assertEquals(e.getMessage(), EXPECTED_EXCEPTION_MESSAGE);
-            assertNull(e.getCause());
-        }
+        }).withNoCause().withMessageContaining("AWS::Type::Resource").withMessageContaining("myId")
+            .withMessageContaining("already exists");
     }
 
     @Test
     public void resourceAlreadyExistsException_errorCodeIsAppropriate() {
-        try {
-            throw new ResourceAlreadyExistsException("AWS::Type::Resource", "myId", new RuntimeException());
-        } catch (final ResourceAlreadyExistsException e) {
-            assertEquals(e.getErrorCode(), HandlerErrorCode.AlreadyExists);
-        }
+        assertThatExceptionOfType(ResourceAlreadyExistsException.class).isThrownBy(() -> {
+            throw new ResourceAlreadyExistsException(new RuntimeException());
+        }).satisfies(exception -> assertEquals(HandlerErrorCode.AlreadyExists, exception.getErrorCode()));
     }
 
     @Test
     public void cfnAlreadyExistsException_isBaseHandlerException() {
-        try {
+        assertThatExceptionOfType(BaseHandlerException.class).isThrownBy(() -> {
             throw new CfnAlreadyExistsException("AWS::Type::Resource", "myId", new RuntimeException());
-        } catch (final BaseHandlerException e) {
-            assertEquals(e.getMessage(), EXPECTED_EXCEPTION_MESSAGE);
-            assertNotNull(e.getCause());
-        }
+        }).withCauseInstanceOf(RuntimeException.class).withMessageContaining("AWS::Type::Resource").withMessageContaining("myId")
+            .withMessageContaining("already exists");
     }
 
     @Test
     public void cfnAlreadyExistsException_singleArgConstructorHasNoMessage() {
-        try {
+        assertThatExceptionOfType(CfnAlreadyExistsException.class).isThrownBy(() -> {
             throw new CfnAlreadyExistsException(new RuntimeException());
-        } catch (final CfnAlreadyExistsException e) {
-            assertNull(e.getMessage());
-            assertNotNull(e.getCause());
-        }
+        }).withCauseInstanceOf(RuntimeException.class).withMessage(null);
     }
 
     @Test
     public void cfnAlreadyExistsException_noCauseGiven() {
-        try {
+        assertThatExceptionOfType(CfnAlreadyExistsException.class).isThrownBy(() -> {
             throw new CfnAlreadyExistsException("AWS::Type::Resource", "myId");
-        } catch (final CfnAlreadyExistsException e) {
-            assertEquals(e.getMessage(), EXPECTED_EXCEPTION_MESSAGE);
-            assertNull(e.getCause());
-        }
+        }).withNoCause().withMessageContaining("AWS::Type::Resource").withMessageContaining("myId")
+            .withMessageContaining("already exists");
     }
 
     @Test
     public void cfnAlreadyExistsException_errorCodeIsAppropriate() {
-        try {
-            throw new CfnAlreadyExistsException("AWS::Type::Resource", "myId", new RuntimeException());
-        } catch (final CfnAlreadyExistsException e) {
-            assertEquals(e.getErrorCode(), HandlerErrorCode.AlreadyExists);
-        }
+        assertThatExceptionOfType(CfnAlreadyExistsException.class).isThrownBy(() -> {
+            throw new CfnAlreadyExistsException(new RuntimeException());
+        }).satisfies(exception -> assertEquals(HandlerErrorCode.AlreadyExists, exception.getErrorCode()));
     }
 }
