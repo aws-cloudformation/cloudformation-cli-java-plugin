@@ -14,12 +14,18 @@
 */
 package com.amazonaws.cloudformation.exceptions;
 
-public class ResourceAlreadyExistsException extends RuntimeException {
+/**
+ * Uses for this exception class should delegate instead to
+ * CfnAlreadyExistsException. Many APIs use exception classes titled
+ * ResourceAlreadyExistsException, and if handler authors use this class,
+ * they'll often need to use the fully qualified exception name.
+ */
+public class ResourceAlreadyExistsException extends CfnAlreadyExistsException {
 
     private static final long serialVersionUID = -1646136434112354328L;
 
     public ResourceAlreadyExistsException(final Throwable cause) {
-        super(null, cause);
+        super(cause);
     }
 
     public ResourceAlreadyExistsException(final String resourceTypeName,
@@ -30,7 +36,6 @@ public class ResourceAlreadyExistsException extends RuntimeException {
     public ResourceAlreadyExistsException(final String resourceTypeName,
                                           final String resourceIdentifier,
                                           final Throwable cause) {
-        super(String.format("Resource of type '%s' with identifier '%s' already exists.", resourceTypeName, resourceIdentifier),
-              cause);
+        super(resourceTypeName, resourceIdentifier, cause);
     }
 }
