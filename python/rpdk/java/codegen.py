@@ -71,7 +71,7 @@ class JavaLanguagePlugin(LanguagePlugin):
 
         self._prompt_for_namespace(project)
 
-        self.init_settings(project)
+        self._init_settings(project)
 
         # .gitignore
         path = project.root / ".gitignore"
@@ -122,9 +122,7 @@ class JavaLanguagePlugin(LanguagePlugin):
                 "TypeFunction": handler_params,
                 "TestEntrypoint": {
                     **handler_params,
-                    "Handler": handler_params["Handler"].replace(
-                        "handleRequest", "testEntrypoint"
-                    ),
+                    "Handler": project.test_entrypoint,
                 },
             },
         )
@@ -191,7 +189,7 @@ class JavaLanguagePlugin(LanguagePlugin):
             )
             project.safewrite(path, contents)
 
-    def init_settings(self, project):
+    def _init_settings(self, project):
         project.runtime = self.RUNTIME
         project.entrypoint = self.ENTRY_POINT.format(self.package_name)
         project.test_entrypoint = self.TEST_ENTRY_POINT.format(self.package_name)
