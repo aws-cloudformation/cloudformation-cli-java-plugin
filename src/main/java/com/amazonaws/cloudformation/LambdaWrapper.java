@@ -17,9 +17,8 @@ package com.amazonaws.cloudformation;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.cloudformation.exceptions.BaseHandlerException;
 import com.amazonaws.cloudformation.exceptions.FileScrubberException;
-import com.amazonaws.cloudformation.exceptions.ResourceAlreadyExistsException;
-import com.amazonaws.cloudformation.exceptions.ResourceNotFoundException;
 import com.amazonaws.cloudformation.exceptions.TerminalException;
 import com.amazonaws.cloudformation.injection.CloudFormationProvider;
 import com.amazonaws.cloudformation.injection.CloudWatchEventsProvider;
@@ -454,15 +453,10 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             }
 
             return handlerResponse;
-
-        } catch (final ResourceAlreadyExistsException e) {
-            publishExceptionMetric(request.getAction(), e, HandlerErrorCode.AlreadyExists);
-            logUnhandledError("An existing resource was found", request, e);
-            return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.AlreadyExists);
-        } catch (final ResourceNotFoundException e) {
-            publishExceptionMetric(request.getAction(), e, HandlerErrorCode.NotFound);
-            logUnhandledError("A requested resource was not found", request, e);
-            return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.NotFound);
+        } catch (final BaseHandlerException e) {
+            publishExceptionMetric(request.getAction(), e, e.getErrorCode());
+            logUnhandledError(e.getMessage(), request, e);
+            return ProgressEvent.defaultFailureHandler(e, e.getErrorCode());
         } catch (final AmazonServiceException e) {
             publishExceptionMetric(request.getAction(), e, HandlerErrorCode.GeneralServiceException);
             logUnhandledError("A downstream service error occurred", request, e);

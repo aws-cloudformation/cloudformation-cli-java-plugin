@@ -14,28 +14,25 @@
 */
 package com.amazonaws.cloudformation.exceptions;
 
-/**
- * Uses for this exception class should delegate instead to
- * CfnNotFoundException. Many APIs use exception classes titled
- * ResourceNotFoundException, and if handler authors use this class, they'll
- * often need to use the fully qualified exception name.
- */
-public class ResourceNotFoundException extends CfnNotFoundException {
+import com.amazonaws.cloudformation.proxy.HandlerErrorCode;
+
+public class CfnAlreadyExistsException extends BaseHandlerException {
 
     private static final long serialVersionUID = -1646136434112354328L;
+    private static final HandlerErrorCode ERROR_CODE = HandlerErrorCode.AlreadyExists;
 
-    public ResourceNotFoundException(final Throwable cause) {
-        super(cause);
+    public CfnAlreadyExistsException(final Throwable cause) {
+        super(cause, ERROR_CODE);
     }
 
-    public ResourceNotFoundException(final String resourceTypeName,
+    public CfnAlreadyExistsException(final String resourceTypeName,
                                      final String resourceIdentifier) {
         this(resourceTypeName, resourceIdentifier, null);
     }
 
-    public ResourceNotFoundException(final String resourceTypeName,
+    public CfnAlreadyExistsException(final String resourceTypeName,
                                      final String resourceIdentifier,
                                      final Throwable cause) {
-        super(resourceTypeName, resourceIdentifier, cause);
+        super(String.format(ExceptionMessages.ALREADY_EXISTS, resourceTypeName, resourceIdentifier), cause, ERROR_CODE);
     }
 }
