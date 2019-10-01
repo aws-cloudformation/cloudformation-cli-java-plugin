@@ -31,6 +31,6 @@ public class CfnServiceInternalErrorException extends BaseHandlerException {
 
     public CfnServiceInternalErrorException(final String operation,
                                             final Throwable cause) {
-        super(String.format(ExceptionMessages.SERVICE_INTERNAL_ERROR, operation), cause, ERROR_CODE);
+        super(String.format(ERROR_CODE.getMessage(), operation), cause, ERROR_CODE);
     }
 }

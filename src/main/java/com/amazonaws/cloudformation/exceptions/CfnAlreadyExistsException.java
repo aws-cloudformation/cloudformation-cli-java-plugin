@@ -33,6 +33,6 @@ public class CfnAlreadyExistsException extends BaseHandlerException {
     public CfnAlreadyExistsException(final String resourceTypeName,
                                      final String resourceIdentifier,
                                      final Throwable cause) {
-        super(String.format(ExceptionMessages.ALREADY_EXISTS, resourceTypeName, resourceIdentifier), cause, ERROR_CODE);
+        super(String.format(ERROR_CODE.getMessage(), resourceTypeName, resourceIdentifier), cause, ERROR_CODE);
     }
 }

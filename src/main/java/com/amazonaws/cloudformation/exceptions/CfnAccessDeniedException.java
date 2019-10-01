@@ -31,6 +31,6 @@ public class CfnAccessDeniedException extends BaseHandlerException {
 
     public CfnAccessDeniedException(final String operation,
                                     final Throwable cause) {
-        super(String.format(ExceptionMessages.ACCESS_DENIED, operation), cause, ERROR_CODE);
+        super(String.format(ERROR_CODE.getMessage(), operation), cause, ERROR_CODE);
     }
 }

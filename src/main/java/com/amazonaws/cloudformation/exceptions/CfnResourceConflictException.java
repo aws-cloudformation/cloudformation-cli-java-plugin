@@ -35,7 +35,6 @@ public class CfnResourceConflictException extends BaseHandlerException {
                                         final String resourceIdentifier,
                                         final String conflictReason,
                                         final Throwable cause) {
-        super(String.format(ExceptionMessages.RESOURCE_CONFLICT, resourceTypeName, resourceIdentifier, conflictReason), cause,
-              ERROR_CODE);
+        super(String.format(ERROR_CODE.getMessage(), resourceTypeName, resourceIdentifier, conflictReason), cause, ERROR_CODE);
     }
 }

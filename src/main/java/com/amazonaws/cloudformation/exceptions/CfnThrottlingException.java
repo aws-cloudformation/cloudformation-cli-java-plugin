@@ -31,6 +31,6 @@ public class CfnThrottlingException extends BaseHandlerException {
 
     public CfnThrottlingException(final String operation,
                                   final Throwable cause) {
-        super(String.format(ExceptionMessages.THROTTLING, operation), cause, ERROR_CODE);
+        super(String.format(ERROR_CODE.getMessage(), operation), cause, ERROR_CODE);
     }
 }

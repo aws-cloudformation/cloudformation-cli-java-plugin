@@ -26,6 +26,6 @@ public class CfnInternalFailureException extends BaseHandlerException {
     }
 
     public CfnInternalFailureException(final Throwable cause) {
-        super(ExceptionMessages.INTERNAL_FAILURE, cause, ERROR_CODE);
+        super(ERROR_CODE.getMessage(), cause, ERROR_CODE);
     }
 }

@@ -31,6 +31,6 @@ public class CfnInvalidRequestException extends BaseHandlerException {
 
     public CfnInvalidRequestException(final String requestBody,
                                       final Throwable cause) {
-        super(String.format(ExceptionMessages.INVALID_REQUEST, requestBody), cause, ERROR_CODE);
+        super(String.format(ERROR_CODE.getMessage(), requestBody), cause, ERROR_CODE);
     }
 }

@@ -33,6 +33,6 @@ public class CfnNotUpdatableException extends BaseHandlerException {
     public CfnNotUpdatableException(final String resourceTypeName,
                                     final String resourceIdentifier,
                                     final Throwable cause) {
-        super(String.format(ExceptionMessages.NOT_UPDATABLE, resourceTypeName, resourceIdentifier), cause, ERROR_CODE);
+        super(String.format(ERROR_CODE.getMessage(), resourceTypeName, resourceIdentifier), cause, ERROR_CODE);
     }
 }

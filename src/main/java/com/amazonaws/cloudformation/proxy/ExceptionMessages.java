@@ -12,7 +12,7 @@
 * express or implied. See the License for the specific language governing
 * permissions and limitations under the License.
 */
-package com.amazonaws.cloudformation.exceptions;
+package com.amazonaws.cloudformation.proxy;
 
 final class ExceptionMessages {
     static final String ACCESS_DENIED = "Access denied for operation '%s'.";

@@ -33,6 +33,6 @@ public class CfnNotFoundException extends BaseHandlerException {
     public CfnNotFoundException(final String resourceTypeName,
                                 final String resourceIdentifier,
                                 final Throwable cause) {
-        super(String.format(ExceptionMessages.NOT_FOUND, resourceTypeName, resourceIdentifier), cause, ERROR_CODE);
+        super(String.format(ERROR_CODE.getMessage(), resourceTypeName, resourceIdentifier), cause, ERROR_CODE);
     }
 }

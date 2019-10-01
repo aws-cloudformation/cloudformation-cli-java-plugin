@@ -26,6 +26,6 @@ public class CfnInvalidCredentialsException extends BaseHandlerException {
     }
 
     public CfnInvalidCredentialsException(final Throwable cause) {
-        super(ExceptionMessages.INVALID_CREDENTIALS, cause, ERROR_CODE);
+        super(ERROR_CODE.getMessage(), cause, ERROR_CODE);
     }
 }

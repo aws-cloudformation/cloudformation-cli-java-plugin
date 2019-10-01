@@ -31,6 +31,6 @@ public class CfnGeneralServiceException extends BaseHandlerException {
 
     public CfnGeneralServiceException(final String operation,
                                       final Throwable cause) {
-        super(String.format(ExceptionMessages.GENERAL_SERVICE_EXCEPTION, operation), cause, ERROR_CODE);
+        super(String.format(ERROR_CODE.getMessage(), operation), cause, ERROR_CODE);
     }
 }

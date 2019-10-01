@@ -33,6 +33,6 @@ public class CfnServiceLimitExceededException extends BaseHandlerException {
     public CfnServiceLimitExceededException(final String resourceTypeName,
                                             final String reason,
                                             final Throwable cause) {
-        super(String.format(ExceptionMessages.SERVICE_LIMIT_EXCEEDED, resourceTypeName, reason), cause, ERROR_CODE);
+        super(String.format(ERROR_CODE.getMessage(), resourceTypeName, reason), cause, ERROR_CODE);
     }
 }

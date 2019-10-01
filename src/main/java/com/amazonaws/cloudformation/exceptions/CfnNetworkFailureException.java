@@ -31,6 +31,6 @@ public class CfnNetworkFailureException extends BaseHandlerException {
 
     public CfnNetworkFailureException(final String operation,
                                       final Throwable cause) {
-        super(String.format(ExceptionMessages.NETWORK_FAILURE, operation), cause, ERROR_CODE);
+        super(String.format(ERROR_CODE.getMessage(), operation), cause, ERROR_CODE);
     }
 }
