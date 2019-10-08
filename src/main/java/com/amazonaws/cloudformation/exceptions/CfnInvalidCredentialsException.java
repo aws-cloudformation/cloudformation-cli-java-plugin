@@ -14,10 +14,18 @@
 */
 package com.amazonaws.cloudformation.exceptions;
 
-final class ExceptionMessages {
-    static final String ALREADY_EXISTS = "Resource of type '%s' with identifier '%s' already exists.";
-    static final String NOT_FOUND = "Resource of type '%s' with identifier '%s' was not found.";
+import com.amazonaws.cloudformation.proxy.HandlerErrorCode;
 
-    private ExceptionMessages() {
+public class CfnInvalidCredentialsException extends BaseHandlerException {
+
+    private static final long serialVersionUID = -1646136434112354328L;
+    private static final HandlerErrorCode ERROR_CODE = HandlerErrorCode.InvalidCredentials;
+
+    public CfnInvalidCredentialsException() {
+        this(null);
+    }
+
+    public CfnInvalidCredentialsException(final Throwable cause) {
+        super(ERROR_CODE.getMessage(), cause, ERROR_CODE);
     }
 }

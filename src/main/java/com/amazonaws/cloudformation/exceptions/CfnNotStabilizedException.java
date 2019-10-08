@@ -16,23 +16,23 @@ package com.amazonaws.cloudformation.exceptions;
 
 import com.amazonaws.cloudformation.proxy.HandlerErrorCode;
 
-public class CfnNotFoundException extends BaseHandlerException {
+public class CfnNotStabilizedException extends BaseHandlerException {
 
     private static final long serialVersionUID = -1646136434112354328L;
-    private static final HandlerErrorCode ERROR_CODE = HandlerErrorCode.NotFound;
+    private static final HandlerErrorCode ERROR_CODE = HandlerErrorCode.NotStabilized;
 
-    public CfnNotFoundException(final Throwable cause) {
+    public CfnNotStabilizedException(final Throwable cause) {
         super(cause, ERROR_CODE);
     }
 
-    public CfnNotFoundException(final String resourceTypeName,
-                                final String resourceIdentifier) {
+    public CfnNotStabilizedException(final String resourceTypeName,
+                                     final String resourceIdentifier) {
         this(resourceTypeName, resourceIdentifier, null);
     }
 
-    public CfnNotFoundException(final String resourceTypeName,
-                                final String resourceIdentifier,
-                                final Throwable cause) {
+    public CfnNotStabilizedException(final String resourceTypeName,
+                                     final String resourceIdentifier,
+                                     final Throwable cause) {
         super(String.format(ERROR_CODE.getMessage(), resourceTypeName, resourceIdentifier), cause, ERROR_CODE);
     }
 }
