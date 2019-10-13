@@ -105,6 +105,18 @@
                 <version>1.6.0</version>
                 <executions>
                     <execution>
+                        <id>validate</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>{{ executable }}</executable>
+                            <commandlineArgs>validate</commandlineArgs>
+                            <workingDirectory>${project.basedir}</workingDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>generate</id>
                         <phase>generate-sources</phase>
                         <goals>
