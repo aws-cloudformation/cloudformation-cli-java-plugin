@@ -63,7 +63,9 @@ import java.nio.charset.Charset;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -595,6 +597,14 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     protected abstract JSONObject provideResourceSchemaJSONObject();
 
     /**
+     * Handler implementation should implement this method to provide any
+     * resource-level tags defined for their resource type
+     *
+     * @return An JSONObject of the resource schema for the provider
+     */
+    protected abstract Map<String, String> provideResourceDefinedTags(ResourceT resourceModel);
+
+    /**
      * Implemented by the handler package as the key entry point.
      */
     public abstract ProgressEvent<ResourceT, CallbackT> invokeHandler(AmazonWebServicesClientProxy proxy,
@@ -635,7 +645,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
     protected abstract TypeReference<ResourceT> getModelTypeReference();
 
-    protected void scrubFiles() throws IOException {
+    protected void scrubFiles() {
         try {
             FileUtils.cleanDirectory(FileUtils.getTempDirectory());
         } catch (IOException e) {
@@ -643,4 +653,37 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             publishExceptionMetric(null, new FileScrubberException(e), HandlerErrorCode.InternalFailure);
         }
     }
+
+    /**
+     * Combines the tags supplied by the caller (e.g; CloudFormation) into a single
+     * Map which represents the desired final set of tags to be applied to this
+     * resource. User-defined tags
+     *
+     * @param request The request object contains the new set of tags to be applied
+     *            at a Stack level. These will be overridden with any resource-level
+     *            tags which are specified as a direct resource property.
+     * @return a Map of Tag names to Tag values
+     */
+    protected Map<String, String> getDesiredResourceTags(final HandlerRequest<ResourceT, CallbackT> request) {
+        Map<String, String> desiredResourceTags = new HashMap<>();
+
+        if (request != null && request.getRequestData() != null) {
+            replaceInMap(desiredResourceTags, request.getRequestData().getStackTags());
+            replaceInMap(desiredResourceTags, provideResourceDefinedTags(request.getRequestData().getResourceProperties()));
+        }
+
+        return desiredResourceTags;
+    }
+
+    private void replaceInMap(final Map<String, String> targetMap, final Map<String, String> sourceMap) {
+        if (targetMap == null || targetMap.isEmpty()) {
+            return;
+        }
+        if (sourceMap == null || sourceMap.isEmpty()) {
+            return;
+        }
+
+        targetMap.putAll(sourceMap);
+    }
+
 }

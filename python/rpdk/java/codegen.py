@@ -141,7 +141,9 @@ class JavaLanguagePlugin(LanguagePlugin):
         LOG.debug("Writing configuration: %s", path)
         template = self.env.get_template("StubConfiguration.java")
         contents = template.render(
-            package_name=self.package_name, schema_file_name=project.schema_filename
+            package_name=self.package_name,
+            schema_file_name=project.schema_filename,
+            pojo_name="ResourceModel",
         )
         project.safewrite(path, contents)
 

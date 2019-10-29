@@ -34,7 +34,7 @@ import com.amazonaws.cloudformation.resource.Serializer;
 import com.amazonaws.cloudformation.scheduler.CloudWatchScheduler;
 import com.fasterxml.jackson.core.type.TypeReference;
 
-import java.io.IOException;
+import java.util.Map;
 
 import org.json.JSONObject;
 import org.json.JSONTokener;
@@ -61,10 +61,10 @@ public class ServiceHandlerWrapper extends LambdaWrapper<Model, StdCallbackConte
     }
 
     @Override
-    protected ResourceHandlerRequest<Model> transform(final HandlerRequest<Model, StdCallbackContext> request)
-        throws IOException {
+    protected ResourceHandlerRequest<Model> transform(final HandlerRequest<Model, StdCallbackContext> request) {
         final Model desiredResourceState;
         final Model previousResourceState;
+        final Map<String, String> systemTags;
 
         if (request != null && request.getRequestData() != null && request.getRequestData().getResourceProperties() != null) {
             desiredResourceState = request.getRequestData().getResourceProperties();
@@ -79,8 +79,16 @@ public class ServiceHandlerWrapper extends LambdaWrapper<Model, StdCallbackConte
             previousResourceState = null;
         }
 
-        return new ResourceHandlerRequest<>(request.getBearerToken(), desiredResourceState, previousResourceState,
-                                            request.getRequestData().getLogicalResourceId(), request.getNextToken());
+        if (request != null && request.getRequestData() != null && request.getRequestData().getSystemTags() != null) {
+            systemTags = request.getRequestData().getSystemTags();
+        } else {
+            systemTags = null;
+        }
+
+        return ResourceHandlerRequest.<Model>builder().clientRequestToken(request.getBearerToken())
+            .desiredResourceState(desiredResourceState).previousResourceState(previousResourceState)
+            .desiredResourceTags(getDesiredResourceTags(request)).systemTags(systemTags)
+            .logicalResourceIdentifier(request.getRequestData().getLogicalResourceId()).nextToken(request.getNextToken()).build();
     }
 
     @Override
@@ -89,11 +97,15 @@ public class ServiceHandlerWrapper extends LambdaWrapper<Model, StdCallbackConte
     }
 
     @Override
+    public Map<String, String> provideResourceDefinedTags(final Model resourceModel) {
+        return null;
+    }
+
+    @Override
     public ProgressEvent<Model, StdCallbackContext> invokeHandler(final AmazonWebServicesClientProxy proxy,
                                                                   final ResourceHandlerRequest<Model> request,
                                                                   final Action action,
-                                                                  final StdCallbackContext callbackContext)
-        throws Exception {
+                                                                  final StdCallbackContext callbackContext) {
         switch (action) {
             case CREATE:
                 return new CreateHandler(serviceClient).handleRequest(proxy, request, callbackContext,

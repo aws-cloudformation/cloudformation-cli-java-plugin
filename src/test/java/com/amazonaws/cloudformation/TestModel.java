@@ -14,6 +14,8 @@
 */
 package com.amazonaws.cloudformation;
 
+import java.util.Map;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -29,4 +31,5 @@ public class TestModel {
 
     private Integer property2;
 
+    private Map<String, String> tags;
 }

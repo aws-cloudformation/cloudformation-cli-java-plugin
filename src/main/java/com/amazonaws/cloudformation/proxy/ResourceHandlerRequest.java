@@ -14,6 +14,8 @@
 */
 package com.amazonaws.cloudformation.proxy;
 
+import java.util.Map;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -34,6 +36,8 @@ public class ResourceHandlerRequest<T> {
     private String clientRequestToken;
     private T desiredResourceState;
     private T previousResourceState;
+    private Map<String, String> desiredResourceTags;
+    private Map<String, String> systemTags;
     private String logicalResourceIdentifier;
     private String nextToken;
 }
