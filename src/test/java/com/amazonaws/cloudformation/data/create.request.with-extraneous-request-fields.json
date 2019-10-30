@@ -4,7 +4,7 @@
     "region": "us-east-1",
     "action": "CREATE",
     "thisFieldShouldBeIgnored": "IGNOREME",
-    "responseEndpoint": "cloudformation.us-west-2.amazonaws.com",
+    "responseEndpoint": "https://cloudformation.us-west-2.amazonaws.com",
     "resourceType": "AWS::Test::TestModel",
     "resourceTypeVersion": "1.0",
     "requestContext": {},

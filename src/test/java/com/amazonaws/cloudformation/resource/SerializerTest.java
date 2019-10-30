@@ -76,7 +76,7 @@ public class SerializerTest {
         assertThat(r.getRegion()).isEqualTo("us-east-1");
         assertThat(r.getRequestContext()).isNotNull();
         assertThat(r.getRequestData()).isNotNull();
-        assertThat(r.getResponseEndpoint()).isEqualTo("cloudformation.us-west-2.amazonaws.com");
+        assertThat(r.getResponseEndpoint()).isEqualTo("https://cloudformation.us-west-2.amazonaws.com");
         assertThat(r.getResourceType()).isEqualTo("AWS::Test::TestModel");
         assertThat(r.getResourceTypeVersion()).isEqualTo("1.0");
         assertThat(r.getStackId())
@@ -126,7 +126,7 @@ public class SerializerTest {
         assertThat(r.getRegion()).isEqualTo("us-east-1");
         assertThat(r.getRequestContext()).isNotNull();
         assertThat(r.getRequestData()).isNotNull();
-        assertThat(r.getResponseEndpoint()).isEqualTo("cloudformation.us-west-2.amazonaws.com");
+        assertThat(r.getResponseEndpoint()).isEqualTo("https://cloudformation.us-west-2.amazonaws.com");
         assertThat(r.getResourceType()).isEqualTo("AWS::Test::TestModel");
         assertThat(r.getResourceTypeVersion()).isEqualTo("1.0");
         assertThat(r.getStackId())
@@ -177,7 +177,7 @@ public class SerializerTest {
         assertThat(r.getRegion()).isEqualTo("us-east-1");
         assertThat(r.getRequestContext()).isNotNull();
         assertThat(r.getRequestData()).isNotNull();
-        assertThat(r.getResponseEndpoint()).isEqualTo("cloudformation.us-west-2.amazonaws.com");
+        assertThat(r.getResponseEndpoint()).isEqualTo("https://cloudformation.us-west-2.amazonaws.com");
         assertThat(r.getResourceType()).isEqualTo("AWS::Test::TestModel");
         assertThat(r.getResourceTypeVersion()).isEqualTo("1.0");
         assertThat(r.getStackId())
