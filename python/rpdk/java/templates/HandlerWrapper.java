@@ -120,8 +120,8 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
 
         return ResourceHandlerRequest.<{{ pojo_name }}>builder()
             .clientRequestToken(request.getBearerToken())
-            .desiredResourceState(desiredResourceState)
-            .previousResourceState(previousResourceState)
+            .desiredResourceState(requestData.getResourceProperties())
+            .previousResourceState(requestData.getPreviousResourceProperties())
             .desiredResourceTags(getDesiredResourceTags(request))
             .systemTags(request.getRequestData().getSystemTags())
             .logicalResourceIdentifier(request.getRequestData().getLogicalResourceId())
