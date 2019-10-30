@@ -389,6 +389,46 @@ public class LambdaWrapperTest {
         }
     }
 
+    @Test
+    public void invokeHandler_DependenciesInitialised_CompleteSynchronously_returnsSuccess() throws IOException {
+        final Action action = Action.CREATE;
+        final WrapperOverride wrapper = new WrapperOverride();
+        final TestModel model = new TestModel();
+
+        // if the handler responds Complete, this is treated as a successful synchronous
+        // completion
+        final ProgressEvent<TestModel,
+            TestContext> pe = ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.SUCCESS).build();
+        wrapper.setInvokeHandlerResponse(pe);
+
+        lenient().when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
+
+        wrapper.setTransformResponse(resourceHandlerRequest);
+
+        // use a request context in our payload to bypass certain callbacks
+        try (final InputStream in = loadRequestStream("create.with-request-context.request.json");
+            final OutputStream out = new ByteArrayOutputStream()) {
+            final Context context = getLambdaContext();
+
+            wrapper.handleRequest(in, out, context);
+
+            // simply ensure all dependencies were setup correctly - behaviour is tested
+            // through mocks
+            assertThat(wrapper.serializer).isNotNull();
+            assertThat(wrapper.loggerProxy).isNotNull();
+            assertThat(wrapper.metricsPublisherProxy).isNotNull();
+            assertThat(wrapper.lambdaLogger).isNotNull();
+            assertThat(wrapper.platformCredentialsProvider).isNotNull();
+            assertThat(wrapper.providerCredentialsProvider).isNotNull();
+            assertThat(wrapper.cloudFormationProvider).isNotNull();
+            assertThat(wrapper.platformCloudWatchProvider).isNotNull();
+            assertThat(wrapper.providerCloudWatchProvider).isNotNull();
+            assertThat(wrapper.platformCloudWatchEventsProvider).isNotNull();
+            assertThat(wrapper.cloudWatchLogsProvider).isNotNull();
+            assertThat(wrapper.validator).isNotNull();
+        }
+    }
+
     @ParameterizedTest
     @CsvSource({ "create.request.json,CREATE", "update.request.json,UPDATE", "delete.request.json,DELETE",
         "read.request.json,READ", "list.request.json,LIST" })

@@ -90,16 +90,16 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
     // provider... prefix indicates credential provided by resource owner
 
-    private final CredentialsProvider platformCredentialsProvider;
-    private final CredentialsProvider providerCredentialsProvider;
+    final CredentialsProvider platformCredentialsProvider;
+    final CredentialsProvider providerCredentialsProvider;
 
-    private final CloudFormationProvider cloudFormationProvider;
-    private final CloudWatchProvider platformCloudWatchProvider;
-    private final CloudWatchProvider providerCloudWatchProvider;
-    private final CloudWatchEventsProvider platformCloudWatchEventsProvider;
-    private final CloudWatchLogsProvider cloudWatchLogsProvider;
-    private final SchemaValidator validator;
-    private final TypeReference<HandlerRequest<ResourceT, CallbackT>> typeReference;
+    final CloudFormationProvider cloudFormationProvider;
+    final CloudWatchProvider platformCloudWatchProvider;
+    final CloudWatchProvider providerCloudWatchProvider;
+    final CloudWatchEventsProvider platformCloudWatchEventsProvider;
+    final CloudWatchLogsProvider cloudWatchLogsProvider;
+    final SchemaValidator validator;
+    final TypeReference<HandlerRequest<ResourceT, CallbackT>> typeReference;
 
     private CallbackAdapter<ResourceT> callbackAdapter;
     private MetricsPublisher platformMetricsPublisher;
@@ -218,8 +218,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         }
 
         if (this.callbackAdapter == null) {
-            this.callbackAdapter = new CloudFormationCallbackAdapter<ResourceT>(this.cloudFormationProvider, this.loggerProxy,
-                                                                                this.serializer);
+            this.callbackAdapter = new CloudFormationCallbackAdapter<>(this.cloudFormationProvider, this.loggerProxy,
+                                                                       this.serializer);
         }
         this.callbackAdapter.refreshClient();
 
