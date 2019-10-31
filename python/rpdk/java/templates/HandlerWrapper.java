@@ -5,6 +5,7 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.cloudformation.Action;
 import com.amazonaws.cloudformation.exceptions.BaseHandlerException;
 import com.amazonaws.cloudformation.LambdaWrapper;
+import com.amazonaws.cloudformation.loggers.LambdaLogPublisher;
 import com.amazonaws.cloudformation.metrics.MetricsPublisher;
 import com.amazonaws.cloudformation.proxy.AmazonWebServicesClientProxy;
 import com.amazonaws.cloudformation.proxy.CallbackAdapter;
@@ -77,6 +78,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
             final Context context) throws IOException {
 
         this.loggerProxy = new LoggerProxy();
+        this.loggerProxy.addLogPublisher(new LambdaLogPublisher(context.getLogger()));
 
         ProgressEvent<{{ pojo_name }}, CallbackContext> response = ProgressEvent.failed(null, null, HandlerErrorCode.InternalFailure, "Uninitialized");
         try {
