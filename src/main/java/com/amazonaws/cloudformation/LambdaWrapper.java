@@ -388,12 +388,14 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // within that period,
         // such as before a FAS token expires
 
-        // last mile proxy creation with passed-in credentials
-        AmazonWebServicesClientProxy awsClientProxy = new AmazonWebServicesClientProxy(requestContext == null, this.loggerProxy,
-                                                                                       request.getRequestData()
-                                                                                           .getCallerCredentials(),
-                                                                                       () -> (long) context
-                                                                                           .getRemainingTimeInMillis());
+        // last mile proxy creation with passed-in credentials (unless we are operating
+        // in a non-AWS model)
+        AmazonWebServicesClientProxy awsClientProxy = null;
+        if (request.getRequestData().getCallerCredentials() != null) {
+            awsClientProxy = new AmazonWebServicesClientProxy(requestContext == null, this.loggerProxy,
+                                                              request.getRequestData().getCallerCredentials(),
+                                                              () -> (long) context.getRemainingTimeInMillis());
+        }
 
         boolean computeLocally = true;
         ProgressEvent<ResourceT, CallbackT> handlerResponse = null;

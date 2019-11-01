@@ -206,6 +206,12 @@ public class LambdaWrapperTest {
             // verify output response
             verifyHandlerResponse(out, HandlerResponse.<TestModel>builder().bearerToken("123456").errorCode("InternalFailure")
                 .operationStatus(OperationStatus.FAILED).message("Handler failed to provide a response.").build());
+
+            // assert handler receives correct injections
+            assertThat(wrapper.awsClientProxy).isNotNull();
+            assertThat(wrapper.getRequest()).isEqualTo(resourceHandlerRequest);
+            assertThat(wrapper.action).isEqualTo(action);
+            assertThat(wrapper.callbackContext).isNull();
         }
     }
 
@@ -313,6 +319,12 @@ public class LambdaWrapperTest {
             // verify output response
             verifyHandlerResponse(out, HandlerResponse.<TestModel>builder().bearerToken("123456").errorCode("InternalFailure")
                 .operationStatus(OperationStatus.FAILED).message("Custom Fault").build());
+
+            // assert handler receives correct injections
+            assertThat(wrapper.awsClientProxy).isNotNull();
+            assertThat(wrapper.getRequest()).isEqualTo(resourceHandlerRequest);
+            assertThat(wrapper.action).isEqualTo(action);
+            assertThat(wrapper.callbackContext).isNull();
         }
     }
 
@@ -386,6 +398,12 @@ public class LambdaWrapperTest {
             // verify output response
             verifyHandlerResponse(out,
                 HandlerResponse.<TestModel>builder().bearerToken("123456").operationStatus(OperationStatus.SUCCESS).build());
+
+            // assert handler receives correct injections
+            assertThat(wrapper.awsClientProxy).isNotNull();
+            assertThat(wrapper.getRequest()).isEqualTo(resourceHandlerRequest);
+            assertThat(wrapper.action).isEqualTo(action);
+            assertThat(wrapper.callbackContext).isNull();
         }
     }
 
@@ -495,6 +513,11 @@ public class LambdaWrapperTest {
             verifyNoMoreInteractions(providerMetricsPublisher);
             verifyNoMoreInteractions(scheduler);
 
+            // assert handler receives correct injections
+            assertThat(wrapper.awsClientProxy).isNotNull();
+            assertThat(wrapper.getRequest()).isEqualTo(resourceHandlerRequest);
+            assertThat(wrapper.action).isEqualTo(action);
+            assertThat(wrapper.callbackContext).isNull();
         }
     }
 
@@ -729,6 +752,41 @@ public class LambdaWrapperTest {
     }
 
     @Test
+    public void invokeHandler_withoutCallerCredentials_passesNoAWSProxy() throws IOException {
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
+
+        final TestModel model = new TestModel();
+        model.setProperty1("abc");
+        model.setProperty2(123);
+        wrapper.setTransformResponse(resourceHandlerRequest);
+
+        // respond with immediate success to avoid callback invocation
+        final ProgressEvent<TestModel, TestContext> pe = ProgressEvent.<TestModel, TestContext>builder()
+            .status(OperationStatus.SUCCESS).resourceModel(model).build();
+        wrapper.setInvokeHandlerResponse(pe);
+
+        // without platform credentials the handler is unable to do
+        // basic SDK initialization and any such request should fail fast
+        try (final InputStream in = loadRequestStream("create.request-without-caller-credentials.json");
+            final OutputStream out = new ByteArrayOutputStream()) {
+            final Context context = getLambdaContext();
+
+            wrapper.handleRequest(in, out, context);
+
+            // verify output response
+            verifyHandlerResponse(out,
+                HandlerResponse.<TestModel>builder().bearerToken("123456").operationStatus(OperationStatus.SUCCESS)
+                    .resourceModel(TestModel.builder().property1("abc").property2(123).build()).build());
+
+            // proxy should be null by virtue of having not had callerCredentials passed in
+            assertThat(wrapper.awsClientProxy).isNull();
+        }
+    }
+
+    @Test
     public void invokeHandler_withDefaultInjection_returnsSuccess() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
                                                             providerLoggingCredentialsProvider, platformEventsLogger,
@@ -757,6 +815,9 @@ public class LambdaWrapperTest {
             verifyHandlerResponse(out,
                 HandlerResponse.<TestModel>builder().bearerToken("123456").operationStatus(OperationStatus.SUCCESS)
                     .resourceModel(TestModel.builder().property1("abc").property2(123).build()).build());
+
+            // proxy uses caller credentials and will be injected
+            assertThat(wrapper.awsClientProxy).isNotNull();
         }
     }
 
