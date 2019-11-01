@@ -81,6 +81,11 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
                                                                final Action action,
                                                                final TestContext callbackContext)
         throws Exception {
+        this.awsClientProxy = awsClientProxy;
+        this.request = request;
+        this.action = action;
+        this.callbackContext = callbackContext;
+
         if (invokeHandlerException != null) {
             throw invokeHandlerException;
         } else if (invokeHandlerResponses == null) {
@@ -88,7 +93,14 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
         } else {
             return invokeHandlerResponses.remove();
         }
+
     }
+
+    // lets tests assert on the passed in arguments
+    public AmazonWebServicesClientProxy awsClientProxy;
+    public ResourceHandlerRequest<TestModel> request;
+    public Action action;
+    public TestContext callbackContext;
 
     // allows test to have the invoke throw an exception
     public Exception invokeHandlerException;
