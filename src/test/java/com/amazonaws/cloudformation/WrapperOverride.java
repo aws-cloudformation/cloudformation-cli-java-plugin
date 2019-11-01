@@ -32,6 +32,7 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.Charset;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 
 import lombok.Data;
@@ -110,6 +111,11 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
     @Override
     protected ResourceHandlerRequest<TestModel> transform(final HandlerRequest<TestModel, TestContext> request) {
         return transformResponse;
+    }
+
+    @Override
+    protected Map<String, String> provideResourceDefinedTags(final TestModel resourceModel) {
+        return resourceModel.getTags();
     }
 
     public ResourceHandlerRequest<TestModel> transformResponse;

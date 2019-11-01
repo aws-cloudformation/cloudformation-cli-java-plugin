@@ -112,16 +112,23 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
     }
 
     @Override
+    public Map<String, String> provideResourceDefinedTags(final {{ pojo_name}} resourceModel) {
+        return this.configuration.resourceDefinedTags(resourceModel);
+    }
+
+    @Override
     protected ResourceHandlerRequest<{{ pojo_name }}> transform(final HandlerRequest<{{ pojo_name }}, CallbackContext> request) throws IOException {
         final RequestData<{{ pojo_name }}> requestData = request.getRequestData();
 
-        return new ResourceHandlerRequest<{{ pojo_name }}>(
-            request.getBearerToken(),
-            requestData.getResourceProperties(),
-            requestData.getPreviousResourceProperties(),
-            requestData.getLogicalResourceId(),
-            request.getNextToken()
-        );
+        return ResourceHandlerRequest.<{{ pojo_name }}>builder()
+            .clientRequestToken(request.getBearerToken())
+            .desiredResourceState(requestData.getResourceProperties())
+            .previousResourceState(requestData.getPreviousResourceProperties())
+            .desiredResourceTags(getDesiredResourceTags(request))
+            .systemTags(request.getRequestData().getSystemTags())
+            .logicalResourceIdentifier(request.getRequestData().getLogicalResourceId())
+            .nextToken(request.getNextToken())
+            .build();
     }
 
     @Override

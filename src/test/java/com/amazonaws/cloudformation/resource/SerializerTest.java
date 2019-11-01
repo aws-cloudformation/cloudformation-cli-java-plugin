@@ -76,7 +76,7 @@ public class SerializerTest {
         assertThat(r.getRegion()).isEqualTo("us-east-1");
         assertThat(r.getRequestContext()).isNotNull();
         assertThat(r.getRequestData()).isNotNull();
-        assertThat(r.getResponseEndpoint()).isEqualTo("cloudformation.us-west-2.amazonaws.com");
+        assertThat(r.getResponseEndpoint()).isEqualTo("https://cloudformation.us-west-2.amazonaws.com");
         assertThat(r.getResourceType()).isEqualTo("AWS::Test::TestModel");
         assertThat(r.getResourceTypeVersion()).isEqualTo("1.0");
         assertThat(r.getStackId())
@@ -101,9 +101,7 @@ public class SerializerTest {
         assertThat(requestData.getPlatformCredentials().getSessionToken())
             .isEqualTo("gqe6eIsFPHOlfhc3RKl5s5Y6Dy9PYvN1CEYsswz5TQUsE8WfHD6LPK549euXm4Vn4INBY9nMJ1cJe2mxTYFdhWHSnkOQv2SHemal");
         assertThat(requestData.getLogicalResourceId()).isEqualTo("myBucket");
-        assertThat(requestData.getPreviousStackTags()).containsExactly(entry("tag1", "def"));
         assertThat(requestData.getStackTags()).containsExactly(entry("tag1", "abc"));
-        assertThat(requestData.getSystemTags()).containsExactly(entry("aws:cloudformation:stack-id", "SampleStack"));
         assertThat(requestData.getPreviousResourceProperties()).isNull();
         assertThat(requestData.getResourceProperties()).isNotNull();
         assertThat(requestData.getResourceProperties().getProperty1()).isEqualTo("abc");
@@ -128,7 +126,7 @@ public class SerializerTest {
         assertThat(r.getRegion()).isEqualTo("us-east-1");
         assertThat(r.getRequestContext()).isNotNull();
         assertThat(r.getRequestData()).isNotNull();
-        assertThat(r.getResponseEndpoint()).isEqualTo("cloudformation.us-west-2.amazonaws.com");
+        assertThat(r.getResponseEndpoint()).isEqualTo("https://cloudformation.us-west-2.amazonaws.com");
         assertThat(r.getResourceType()).isEqualTo("AWS::Test::TestModel");
         assertThat(r.getResourceTypeVersion()).isEqualTo("1.0");
         assertThat(r.getStackId())
@@ -153,9 +151,7 @@ public class SerializerTest {
         assertThat(requestData.getPlatformCredentials().getSessionToken())
             .isEqualTo("gqe6eIsFPHOlfhc3RKl5s5Y6Dy9PYvN1CEYsswz5TQUsE8WfHD6LPK549euXm4Vn4INBY9nMJ1cJe2mxTYFdhWHSnkOQv2SHemal");
         assertThat(requestData.getLogicalResourceId()).isEqualTo("myBucket");
-        assertThat(requestData.getPreviousStackTags()).containsExactly(entry("tag1", "def"));
         assertThat(requestData.getStackTags()).containsExactly(entry("tag1", "abc"));
-        assertThat(requestData.getSystemTags()).containsExactly(entry("aws:cloudformation:stack-id", "SampleStack"));
 
         assertThat(requestData.getPreviousResourceProperties()).isNull();
         assertThat(requestData.getResourceProperties()).isNotNull();
@@ -181,7 +177,7 @@ public class SerializerTest {
         assertThat(r.getRegion()).isEqualTo("us-east-1");
         assertThat(r.getRequestContext()).isNotNull();
         assertThat(r.getRequestData()).isNotNull();
-        assertThat(r.getResponseEndpoint()).isEqualTo("cloudformation.us-west-2.amazonaws.com");
+        assertThat(r.getResponseEndpoint()).isEqualTo("https://cloudformation.us-west-2.amazonaws.com");
         assertThat(r.getResourceType()).isEqualTo("AWS::Test::TestModel");
         assertThat(r.getResourceTypeVersion()).isEqualTo("1.0");
         assertThat(r.getStackId())
@@ -206,9 +202,7 @@ public class SerializerTest {
         assertThat(requestData.getPlatformCredentials().getSessionToken())
             .isEqualTo("gqe6eIsFPHOlfhc3RKl5s5Y6Dy9PYvN1CEYsswz5TQUsE8WfHD6LPK549euXm4Vn4INBY9nMJ1cJe2mxTYFdhWHSnkOQv2SHemal");
         assertThat(requestData.getLogicalResourceId()).isEqualTo("myBucket");
-        assertThat(requestData.getPreviousStackTags()).containsExactly(entry("tag1", "def"));
         assertThat(requestData.getStackTags()).containsExactly(entry("tag1", "abc"));
-        assertThat(requestData.getSystemTags()).containsExactly(entry("aws:cloudformation:stack-id", "SampleStack"));
 
         assertThat(requestData.getPreviousResourceProperties()).isNull();
         assertThat(requestData.getResourceProperties()).isNotNull();
