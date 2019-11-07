@@ -69,7 +69,10 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
 
         final BaseHandler<CallbackContext> handler = handlers.get(action);
 
-        return handler.handleRequest(proxy, request, callbackContext, loggerProxy);
+        loggerProxy.log(String.format("[%s] invoking handler...", actionName));
+        final ProgressEvent<{{ pojo_name }}, CallbackContext> result = handler.handleRequest(proxy, request, callbackContext, loggerProxy);
+        loggerProxy.log(String.format("[%s] handler invoked", actionName));
+        return result;
     }
 
     public void testEntrypoint(
