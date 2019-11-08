@@ -54,6 +54,7 @@ import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
+import com.google.common.annotations.VisibleForTesting;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -666,6 +667,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
      *            tags which are specified as a direct resource property.
      * @return a Map of Tag names to Tag values
      */
+    @VisibleForTesting
     protected Map<String, String> getDesiredResourceTags(final HandlerRequest<ResourceT, CallbackT> request) {
         Map<String, String> desiredResourceTags = new HashMap<>();
 
@@ -678,7 +680,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     }
 
     private void replaceInMap(final Map<String, String> targetMap, final Map<String, String> sourceMap) {
-        if (targetMap == null || targetMap.isEmpty()) {
+        if (targetMap == null) {
             return;
         }
         if (sourceMap == null || sourceMap.isEmpty()) {
