@@ -38,6 +38,7 @@ import com.amazonaws.cloudformation.proxy.HandlerRequest;
 import com.amazonaws.cloudformation.proxy.HandlerResponse;
 import com.amazonaws.cloudformation.proxy.OperationStatus;
 import com.amazonaws.cloudformation.proxy.ProgressEvent;
+import com.amazonaws.cloudformation.proxy.RequestData;
 import com.amazonaws.cloudformation.proxy.ResourceHandlerRequest;
 import com.amazonaws.cloudformation.resource.SchemaValidator;
 import com.amazonaws.cloudformation.resource.Serializer;
@@ -58,7 +59,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
@@ -1506,5 +1509,58 @@ public class LambdaWrapperTest {
                     .operationStatus(OperationStatus.FAILED).message(errorMessage)
                     .resourceModel(TestModel.builder().property1("abc").property2(123).build()).build());
         }
+    }
+
+    @Test
+    public void getDesiredResourceTags_oneStackTagAndOneResourceTag() {
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
+
+        final Map<String, String> stackTags = new HashMap<>();
+        stackTags.put("Tag1", "Value1");
+
+        final Map<String, String> resourceTags = new HashMap<>();
+        resourceTags.put("Tag2", "Value2");
+        final TestModel model = TestModel.builder().tags(resourceTags).build();
+
+        final HandlerRequest<TestModel, TestContext> request = new HandlerRequest<>();
+        final RequestData<TestModel> requestData = new RequestData<>();
+        requestData.setResourceProperties(model);
+        requestData.setStackTags(stackTags);
+        request.setRequestData(requestData);
+
+        final Map<String, String> tags = wrapper.getDesiredResourceTags(request);
+        assertThat(tags).isNotNull();
+        assertThat(tags.size()).isEqualTo(2);
+        assertThat(tags.get("Tag1")).isEqualTo("Value1");
+        assertThat(tags.get("Tag2")).isEqualTo("Value2");
+    }
+
+    @Test
+    public void getDesiredResourceTags_resourceTagOverridesStackTag() {
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, validator);
+
+        final Map<String, String> stackTags = new HashMap<>();
+        stackTags.put("Tag1", "Value1");
+
+        final Map<String, String> resourceTags = new HashMap<>();
+        resourceTags.put("Tag1", "Value2");
+        final TestModel model = TestModel.builder().tags(resourceTags).build();
+
+        final HandlerRequest<TestModel, TestContext> request = new HandlerRequest<>();
+        final RequestData<TestModel> requestData = new RequestData<>();
+        requestData.setResourceProperties(model);
+        requestData.setStackTags(stackTags);
+        request.setRequestData(requestData);
+
+        final Map<String, String> tags = wrapper.getDesiredResourceTags(request);
+        assertThat(tags).isNotNull();
+        assertThat(tags.size()).isEqualTo(1);
+        assertThat(tags.get("Tag1")).isEqualTo("Value2");
     }
 }
