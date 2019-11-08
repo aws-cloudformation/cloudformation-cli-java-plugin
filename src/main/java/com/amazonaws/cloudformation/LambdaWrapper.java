@@ -69,6 +69,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import lombok.NonNull;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -679,7 +680,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         return desiredResourceTags;
     }
 
-    private void replaceInMap(final Map<String, String> targetMap, final Map<String, String> sourceMap) {
+    private void replaceInMap(@NonNull final Map<String, String> targetMap,
+                              @NonNull final Map<String, String> sourceMap) {
         if (targetMap == null) {
             return;
         }
