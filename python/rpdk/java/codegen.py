@@ -306,7 +306,9 @@ class JavaLanguagePlugin(LanguagePlugin):
         path = test_src / "ResourceModelTest.java"
         LOG.debug("Writing ResourceModelTest: %s", path)
         contents = template.render(
-            type_name=project.type_name, package_name=self.package_name
+            type_name=project.type_name,
+            package_name=self.package_name,
+            pojo_name="ResourceModel",
         )
         project.overwrite(path, contents)
 
