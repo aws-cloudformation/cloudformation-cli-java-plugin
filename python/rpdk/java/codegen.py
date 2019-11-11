@@ -15,7 +15,7 @@ from .utils import safe_reserved, validate_namespace
 LOG = logging.getLogger(__name__)
 
 OPERATIONS = ("Create", "Read", "Update", "Delete", "List")
-EXECUTABLE = "cfn-cli"
+EXECUTABLE = "cfn"
 
 
 class JavaArchiveNotFoundError(SysExitRecommendedError):
