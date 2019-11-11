@@ -38,6 +38,9 @@ public class ResourceHandlerRequest<T> {
     private T previousResourceState;
     private Map<String, String> desiredResourceTags;
     private Map<String, String> systemTags;
+    private String awsAccountId;
+    private String awsPartition;
     private String logicalResourceIdentifier;
     private String nextToken;
+    private String region;
 }
