@@ -473,6 +473,7 @@ public class LambdaWrapperTest {
 
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
+            when(context.getRemainingTimeInMillis()).thenReturn(60000, 0);
 
             wrapper.handleRequest(in, out, context);
 
@@ -549,6 +550,7 @@ public class LambdaWrapperTest {
 
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
+            when(context.getRemainingTimeInMillis()).thenReturn(60000, 0);
 
             wrapper.handleRequest(in, out, context);
 
@@ -582,6 +584,10 @@ public class LambdaWrapperTest {
             // CloudFormation should receive a callback invocation
             verify(callbackAdapter, times(1)).reportProgress(eq("123456"), isNull(), eq(OperationStatus.IN_PROGRESS),
                 eq(OperationStatus.IN_PROGRESS), eq(TestModel.builder().property1("abc").property2(123).build()), isNull());
+
+            // Time remaining should be retrieve twice, once for setting the initial time,
+            // another for calculating the elapsed time after operation
+            verify(context, times(2)).getRemainingTimeInMillis();
 
             // verify output response
             verifyHandlerResponse(out,
@@ -846,7 +852,7 @@ public class LambdaWrapperTest {
         try (final InputStream in = loadRequestStream("create.request.json");
             final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
-
+            when(context.getRemainingTimeInMillis()).thenReturn(60000, 0);
             wrapper.handleRequest(in, out, context);
 
             // verify output response
@@ -877,6 +883,7 @@ public class LambdaWrapperTest {
         try (final InputStream in = loadRequestStream("create.request.json");
             final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
+            when(context.getRemainingTimeInMillis()).thenReturn(60000, 0);
 
             wrapper.handleRequest(in, out, context);
 
@@ -1008,7 +1015,7 @@ public class LambdaWrapperTest {
             final OutputStream out = new ByteArrayOutputStream()) {
 
             final Context context = getLambdaContext();
-            when(context.getRemainingTimeInMillis()).thenReturn(60000); // ~1 minute
+            when(context.getRemainingTimeInMillis()).thenReturn(60000,50000); // simulates 10 seconds elapsing
 
             wrapper.handleRequest(in, out, context);
 
@@ -1100,8 +1107,8 @@ public class LambdaWrapperTest {
             final OutputStream out = new ByteArrayOutputStream()) {
 
             final Context context = getLambdaContext();
-            when(context.getRemainingTimeInMillis()).thenReturn(60000, // 60 seconds
-                6000); // 6 seconds is <= 1.2 * 5 seconds requested, causes CWE reinvoke
+            // simulates 10 seconds elapsing, then 55, which with the callback delay hits 60 seconds
+            when(context.getRemainingTimeInMillis()).thenReturn(60000,50000, 5000);
 
             wrapper.handleRequest(in, out, context);
 

@@ -57,8 +57,7 @@ public class ProgressEvent<ResourceT, CallbackT> {
 
     /**
      * A callback will be scheduled with an initial delay of no less than the number
-     * of seconds specified in the progress event. Set this value to <= 0 to
-     * indicate no callback should be made.
+     * of seconds specified in the progress event.
      */
     private int callbackDelaySeconds;
 

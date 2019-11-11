@@ -81,6 +81,7 @@ import software.amazon.awssdk.utils.StringUtils;
 public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStreamHandler {
 
     private static final List<Action> MUTATING_ACTIONS = Arrays.asList(Action.CREATE, Action.DELETE, Action.UPDATE);
+    private static final int INVOCATION_TIMEOUT_MS = 60000;
 
     protected final Serializer serializer;
     protected LoggerProxy loggerProxy;
@@ -110,6 +111,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     private LogPublisher platformLambdaLogger;
     private CloudWatchLogHelper cloudWatchLogHelper;
     private CloudWatchLogPublisher providerEventsLogger;
+
+    private int initialRemainingTime;
 
     protected LambdaWrapper() {
         this.platformCredentialsProvider = new SessionCredentialsProvider();
@@ -228,6 +231,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             this.scheduler = new CloudWatchScheduler(this.platformCloudWatchEventsProvider, this.loggerProxy, this.serializer);
         }
         this.scheduler.refreshClient();
+
+        this.initialRemainingTime = context.getRemainingTimeInMillis();
     }
 
     @Override
@@ -557,8 +562,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // has enough runtime (with 20% buffer), we can reschedule from a thread wait
         // otherwise we re-invoke through CloudWatchEvents which have a granularity of
         // minutes
-        if ((handlerResponse.getCallbackDelaySeconds() < 60)
-            && (context.getRemainingTimeInMillis() / 1000d) > handlerResponse.getCallbackDelaySeconds() * 1.2) {
+        if (this.initialRemainingTime - context.getRemainingTimeInMillis()
+            + handlerResponse.getCallbackDelaySeconds() * 1200 < INVOCATION_TIMEOUT_MS) {
             log(String.format("Scheduling re-invoke locally after %s seconds, with Context {%s}",
                 handlerResponse.getCallbackDelaySeconds(), reinvocationContext.toString()));
             sleepUninterruptibly(handlerResponse.getCallbackDelaySeconds(), TimeUnit.SECONDS);
