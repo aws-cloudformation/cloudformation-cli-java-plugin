@@ -66,7 +66,6 @@ class JavaLanguagePlugin(LanguagePlugin):
         project.settings["namespace"] = self.namespace
         self.package_name = ".".join(self.namespace)
 
-    # pylint: disable=too-many-statements
     def init(self, project):
         LOG.debug("Init started")
 
@@ -147,16 +146,6 @@ class JavaLanguagePlugin(LanguagePlugin):
             pojo_name="ResourceModel",
         )
         project.safewrite(path, contents)
-
-        # generate tests
-        template = self.env.get_template("StubConfigurationTest.java")
-
-        path = tst / "ConfigurationTest.java"
-        LOG.debug("Writing ConfigurationTest: %s", path)
-        contents = template.render(
-            package_name=self.package_name, pojo_name="ResourceModel"
-        )
-        project.overwrite(path, contents)
 
         # generated docs
         path = project.root / "README.md"
@@ -299,16 +288,6 @@ class JavaLanguagePlugin(LanguagePlugin):
                     properties=properties,
                 )
             project.overwrite(path, contents)
-
-        # generate pojo tests
-        template = self.env.get_template("ResourceModelTest.java")
-
-        path = test_src / "ResourceModelTest.java"
-        LOG.debug("Writing ResourceModelTest: %s", path)
-        contents = template.render(
-            type_name=project.type_name, package_name=self.package_name
-        )
-        project.overwrite(path, contents)
 
         LOG.debug("Generate complete")
 
