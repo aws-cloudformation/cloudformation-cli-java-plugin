@@ -112,8 +112,6 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     private CloudWatchLogHelper cloudWatchLogHelper;
     private CloudWatchLogPublisher providerEventsLogger;
 
-    private int initialRemainingTime;
-
     protected LambdaWrapper() {
         this.platformCredentialsProvider = new SessionCredentialsProvider();
         this.providerCredentialsProvider = new SessionCredentialsProvider();
@@ -231,8 +229,6 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             this.scheduler = new CloudWatchScheduler(this.platformCloudWatchEventsProvider, this.loggerProxy, this.serializer);
         }
         this.scheduler.refreshClient();
-
-        this.initialRemainingTime = context.getRemainingTimeInMillis();
     }
 
     @Override
@@ -562,8 +558,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // has enough runtime (with 20% buffer), we can reschedule from a thread wait
         // otherwise we re-invoke through CloudWatchEvents which have a granularity of
         // minutes
-        if (this.initialRemainingTime - context.getRemainingTimeInMillis()
-            + handlerResponse.getCallbackDelaySeconds() * 1200 < INVOCATION_TIMEOUT_MS) {
+        if ((handlerResponse.getCallbackDelaySeconds() < 60)
+            && context.getRemainingTimeInMillis() > handlerResponse.getCallbackDelaySeconds() * 1200 + INVOCATION_TIMEOUT_MS) {
             log(String.format("Scheduling re-invoke locally after %s seconds, with Context {%s}",
                 handlerResponse.getCallbackDelaySeconds(), reinvocationContext.toString()));
             sleepUninterruptibly(handlerResponse.getCallbackDelaySeconds(), TimeUnit.SECONDS);

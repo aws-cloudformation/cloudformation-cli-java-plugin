@@ -473,7 +473,6 @@ public class LambdaWrapperTest {
 
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
-            when(context.getRemainingTimeInMillis()).thenReturn(60000, 0);
 
             wrapper.handleRequest(in, out, context);
 
@@ -550,7 +549,6 @@ public class LambdaWrapperTest {
 
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
-            when(context.getRemainingTimeInMillis()).thenReturn(60000, 0);
 
             wrapper.handleRequest(in, out, context);
 
@@ -852,7 +850,6 @@ public class LambdaWrapperTest {
         try (final InputStream in = loadRequestStream("create.request.json");
             final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
-            when(context.getRemainingTimeInMillis()).thenReturn(60000, 0);
             wrapper.handleRequest(in, out, context);
 
             // verify output response
@@ -883,7 +880,6 @@ public class LambdaWrapperTest {
         try (final InputStream in = loadRequestStream("create.request.json");
             final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
-            when(context.getRemainingTimeInMillis()).thenReturn(60000, 0);
 
             wrapper.handleRequest(in, out, context);
 
@@ -1015,7 +1011,7 @@ public class LambdaWrapperTest {
             final OutputStream out = new ByteArrayOutputStream()) {
 
             final Context context = getLambdaContext();
-            when(context.getRemainingTimeInMillis()).thenReturn(60000,50000); // simulates 10 seconds elapsing
+            when(context.getRemainingTimeInMillis()).thenReturn(75000, 50000); // simulates 25 seconds elapsing, after which
 
             wrapper.handleRequest(in, out, context);
 
@@ -1107,8 +1103,9 @@ public class LambdaWrapperTest {
             final OutputStream out = new ByteArrayOutputStream()) {
 
             final Context context = getLambdaContext();
-            // simulates 10 seconds elapsing, then 55, which with the callback delay hits 60 seconds
-            when(context.getRemainingTimeInMillis()).thenReturn(60000,50000, 5000);
+            // simulates 10 seconds elapsing, then 55, which with the callback delay hits 60
+            // seconds
+            when(context.getRemainingTimeInMillis()).thenReturn(70000, 5000);
 
             wrapper.handleRequest(in, out, context);
 
