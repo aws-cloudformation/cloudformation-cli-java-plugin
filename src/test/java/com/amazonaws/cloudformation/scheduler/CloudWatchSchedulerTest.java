@@ -176,6 +176,5 @@ public class CloudWatchSchedulerTest {
             .putTargets(argThat(new PutTargetsRequestMatcher("reinvoke-handler-", new TargetsListMatcher(targetMatchers))));
         verify(client, times(1))
             .putRule(argThat(new PutRuleRequestMatcher("reinvoke-handler-", "cron(41 14 31 10 ? 2019)", RuleState.ENABLED)));
-        verify(client, times(1)).describeRule(argThat(new DescribeRuleRequestMatcher("reinvoke-handler-")));
     }
 }
