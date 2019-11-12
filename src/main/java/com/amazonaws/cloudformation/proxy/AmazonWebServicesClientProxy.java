@@ -44,6 +44,7 @@ import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.exception.NonRetryableException;
+import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.http.HttpStatusCode;
 
 /**
@@ -335,6 +336,24 @@ public class AmazonWebServicesClientProxy implements CallChain {
         CompletableFuture<ResultT>
         injectCredentialsAndInvokeV2Async(final RequestT request,
                                           final Function<RequestT, CompletableFuture<ResultT>> requestFunction) {
+
+        AwsRequestOverrideConfiguration overrideConfiguration = AwsRequestOverrideConfiguration.builder()
+            .credentialsProvider(v2CredentialsProvider).build();
+
+        @SuppressWarnings("unchecked")
+        RequestT wrappedRequest = (RequestT) request.toBuilder().overrideConfiguration(overrideConfiguration).build();
+
+        try {
+            return requestFunction.apply(wrappedRequest);
+        } catch (final Throwable e) {
+            loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
+            throw e;
+        }
+    }
+
+    public <RequestT extends AwsRequest, ResultT extends AwsResponse, IterableT extends SdkIterable<ResultT>>
+        IterableT
+        injectCredentialsAndInvokeIterableV2(final RequestT request, final Function<RequestT, IterableT> requestFunction) {
 
         AwsRequestOverrideConfiguration overrideConfiguration = AwsRequestOverrideConfiguration.builder()
             .credentialsProvider(v2CredentialsProvider).build();
