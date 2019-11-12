@@ -558,6 +558,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // has enough runtime (with 20% buffer), we can reschedule from a thread wait
         // otherwise we re-invoke through CloudWatchEvents which have a granularity of
         // minutes
+        // This also guarantees a maximum of a minute of execution time per local reinvocation
         if ((handlerResponse.getCallbackDelaySeconds() < 60)
             && context.getRemainingTimeInMillis() > handlerResponse.getCallbackDelaySeconds() * 1200 + INVOCATION_TIMEOUT_MS) {
             log(String.format("Scheduling re-invoke locally after %s seconds, with Context {%s}",

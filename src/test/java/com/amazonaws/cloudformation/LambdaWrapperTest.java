@@ -583,10 +583,6 @@ public class LambdaWrapperTest {
             verify(callbackAdapter, times(1)).reportProgress(eq("123456"), isNull(), eq(OperationStatus.IN_PROGRESS),
                 eq(OperationStatus.IN_PROGRESS), eq(TestModel.builder().property1("abc").property2(123).build()), isNull());
 
-            // Time remaining should be retrieve twice, once for setting the initial time,
-            // another for calculating the elapsed time after operation
-            verify(context, times(2)).getRemainingTimeInMillis();
-
             // verify output response
             verifyHandlerResponse(out,
                 HandlerResponse.<TestModel>builder().bearerToken("123456").operationStatus(OperationStatus.IN_PROGRESS)
@@ -1103,8 +1099,7 @@ public class LambdaWrapperTest {
             final OutputStream out = new ByteArrayOutputStream()) {
 
             final Context context = getLambdaContext();
-            // simulates 10 seconds elapsing, then 55, which with the callback delay hits 60
-            // seconds
+            // first remaining time allows for a local reinvocation, whereas the latter will force the second invocation to be via CWE
             when(context.getRemainingTimeInMillis()).thenReturn(70000, 5000);
 
             wrapper.handleRequest(in, out, context);
