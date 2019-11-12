@@ -29,7 +29,6 @@ import lombok.Data;
 
 import software.amazon.awssdk.services.cloudwatchevents.CloudWatchEventsClient;
 import software.amazon.awssdk.services.cloudwatchevents.model.DeleteRuleRequest;
-import software.amazon.awssdk.services.cloudwatchevents.model.DescribeRuleRequest;
 import software.amazon.awssdk.services.cloudwatchevents.model.PutRuleRequest;
 import software.amazon.awssdk.services.cloudwatchevents.model.PutTargetsRequest;
 import software.amazon.awssdk.services.cloudwatchevents.model.RemoveTargetsRequest;
@@ -116,9 +115,6 @@ public class CloudWatchScheduler {
         Target target = Target.builder().arn(functionArn).id(targetId).input(jsonRequest).build();
         PutTargetsRequest putTargetsRequest = PutTargetsRequest.builder().targets(target).rule(putRuleRequest.name()).build();
         this.client.putTargets(putTargetsRequest);
-
-        DescribeRuleRequest describeRuleRequest = DescribeRuleRequest.builder().name(ruleName).build();
-        this.client.describeRule(describeRuleRequest);
     }
 
     /**
