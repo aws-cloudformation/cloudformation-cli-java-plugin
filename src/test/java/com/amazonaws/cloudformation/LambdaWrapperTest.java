@@ -1099,7 +1099,8 @@ public class LambdaWrapperTest {
             final OutputStream out = new ByteArrayOutputStream()) {
 
             final Context context = getLambdaContext();
-            // first remaining time allows for a local reinvocation, whereas the latter will force the second invocation to be via CWE
+            // first remaining time allows for a local reinvocation, whereas the latter will
+            // force the second invocation to be via CWE
             when(context.getRemainingTimeInMillis()).thenReturn(70000, 5000);
 
             wrapper.handleRequest(in, out, context);
