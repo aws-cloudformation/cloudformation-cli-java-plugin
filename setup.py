@@ -22,7 +22,7 @@ def find_version(*file_paths):
 
 
 setup(
-    name="aws-cloudformation-rpdk-java-plugin",
+    name="aws-cfn-cli-java-plugin",
     version=find_version("python", "rpdk", "java", "__init__.py"),
     description=__doc__,
     long_description=read("README.md"),
@@ -38,7 +38,7 @@ setup(
     entry_points={"rpdk.v1.languages": ["java = rpdk.java.codegen:JavaLanguagePlugin"]},
     license="Apache License 2.0",
     classifiers=(
-        "Development Status :: 2 - Pre-Alpha",
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",
         "Natural Language :: English",
