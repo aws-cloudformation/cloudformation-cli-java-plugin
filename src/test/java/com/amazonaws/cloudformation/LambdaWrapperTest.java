@@ -1007,7 +1007,8 @@ public class LambdaWrapperTest {
             final OutputStream out = new ByteArrayOutputStream()) {
 
             final Context context = getLambdaContext();
-            when(context.getRemainingTimeInMillis()).thenReturn(75000, 50000); // simulates 25 seconds elapsing, after which
+            // give enough time to invoke again locally
+            when(context.getRemainingTimeInMillis()).thenReturn(75000);
 
             wrapper.handleRequest(in, out, context);
 
