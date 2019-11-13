@@ -34,7 +34,7 @@ setup(
     # package_data -> use MANIFEST.in instead
     include_package_data=True,
     zip_safe=True,
-    install_requires=["aws-cloudformation-rpdk>=0.1,<0.2"],
+    install_requires=["cloudformation-cli>=0.1,<0.2"],
     entry_points={"rpdk.v1.languages": ["java = rpdk.java.codegen:JavaLanguagePlugin"]},
     license="Apache License 2.0",
     classifiers=(
