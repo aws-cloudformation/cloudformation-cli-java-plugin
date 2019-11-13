@@ -560,8 +560,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // minutes
         // This also guarantees a maximum of a minute of execution time per local
         // reinvocation
-        if ((handlerResponse.getCallbackDelaySeconds() < 60)
-            && context.getRemainingTimeInMillis() > handlerResponse.getCallbackDelaySeconds() * 1200 + INVOCATION_TIMEOUT_MS) {
+        if ((handlerResponse.getCallbackDelaySeconds() < 60) && context
+            .getRemainingTimeInMillis() > Math.abs(handlerResponse.getCallbackDelaySeconds()) * 1200 + INVOCATION_TIMEOUT_MS) {
             log(String.format("Scheduling re-invoke locally after %s seconds, with Context {%s}",
                 handlerResponse.getCallbackDelaySeconds(), reinvocationContext.toString()));
             sleepUninterruptibly(handlerResponse.getCallbackDelaySeconds(), TimeUnit.SECONDS);
@@ -570,7 +570,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
         log(String.format("Scheduling re-invoke with Context {%s}", reinvocationContext.toString()));
         try {
-            int callbackDelayMinutes = handlerResponse.getCallbackDelaySeconds() / 60;
+            int callbackDelayMinutes = Math.abs(handlerResponse.getCallbackDelaySeconds() / 60);
             this.scheduler.rescheduleAfterMinutes(context.getInvokedFunctionArn(), callbackDelayMinutes, request);
         } catch (final Throwable e) {
             this.log(String.format("Failed to schedule re-invoke, caused by %s", e.toString()));
