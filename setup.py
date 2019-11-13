@@ -22,7 +22,7 @@ def find_version(*file_paths):
 
 
 setup(
-    name="aws-cfn-cli-java-plugin",
+    name="cloudformation-cli-java-plugin",
     version=find_version("python", "rpdk", "java", "__init__.py"),
     description=__doc__,
     long_description=read("README.md"),
