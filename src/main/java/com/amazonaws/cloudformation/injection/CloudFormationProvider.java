@@ -34,10 +34,7 @@ public class CloudFormationProvider extends AmazonWebServicesProvider {
 
     public CloudFormationClient get() {
         return CloudFormationClient.builder().credentialsProvider(this.getCredentialsProvider())
-            .endpointOverride(this.callbackEndpoint).overrideConfiguration(ClientOverrideConfiguration.builder()
-                // Default Retry Condition of Retry Policy retries on Throttling and ClockSkew
-                // Exceptions
-                .retryPolicy(RetryPolicy.builder().numRetries(16).build()).build())
+            .endpointOverride(this.callbackEndpoint)
             .build();
     }
 }
