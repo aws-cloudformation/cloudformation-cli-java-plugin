@@ -16,8 +16,6 @@ package com.amazonaws.cloudformation.injection;
 
 import java.net.URI;
 
-import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
-import software.amazon.awssdk.core.retry.RetryPolicy;
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 
 public class CloudFormationProvider extends AmazonWebServicesProvider {
@@ -33,8 +31,9 @@ public class CloudFormationProvider extends AmazonWebServicesProvider {
     }
 
     public CloudFormationClient get() {
-        return CloudFormationClient.builder().credentialsProvider(this.getCredentialsProvider())
-            .endpointOverride(this.callbackEndpoint)
-            .build();
+        return CloudFormationClient.builder()
+                .credentialsProvider(this.getCredentialsProvider())
+                .endpointOverride(this.callbackEndpoint)
+                .build();
     }
 }
