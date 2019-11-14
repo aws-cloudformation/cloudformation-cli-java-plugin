@@ -846,7 +846,6 @@ public class LambdaWrapperTest {
         try (final InputStream in = loadRequestStream("create.request.json");
             final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
-
             wrapper.handleRequest(in, out, context);
 
             // verify output response
@@ -1008,7 +1007,8 @@ public class LambdaWrapperTest {
             final OutputStream out = new ByteArrayOutputStream()) {
 
             final Context context = getLambdaContext();
-            when(context.getRemainingTimeInMillis()).thenReturn(60000); // ~1 minute
+            // give enough time to invoke again locally
+            when(context.getRemainingTimeInMillis()).thenReturn(75000);
 
             wrapper.handleRequest(in, out, context);
 
@@ -1100,8 +1100,9 @@ public class LambdaWrapperTest {
             final OutputStream out = new ByteArrayOutputStream()) {
 
             final Context context = getLambdaContext();
-            when(context.getRemainingTimeInMillis()).thenReturn(60000, // 60 seconds
-                6000); // 6 seconds is <= 1.2 * 5 seconds requested, causes CWE reinvoke
+            // first remaining time allows for a local reinvocation, whereas the latter will
+            // force the second invocation to be via CWE
+            when(context.getRemainingTimeInMillis()).thenReturn(70000, 5000);
 
             wrapper.handleRequest(in, out, context);
 
