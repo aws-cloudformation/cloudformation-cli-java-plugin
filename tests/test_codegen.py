@@ -23,7 +23,7 @@ def project(tmpdir):
     ), patch(
         "rpdk.java.codegen.input_with_validation",
         autospec=True,
-        return_value=("com", "amazonaws", "foo", RESOURCE.lower()),
+        return_value=("software", "amazon", "foo", RESOURCE.lower()),
     ):
         project.init("AWS::Foo::{}".format(RESOURCE), "test")
     return project
@@ -40,7 +40,7 @@ def test_initialize(project):
     pom_tree = ET.parse(str(project.root / "pom.xml"))
     namespace = {"maven": "http://maven.apache.org/POM/4.0.0"}
     actual_group_id = pom_tree.find("maven:groupId", namespace)
-    expected_group_id = "com.amazonaws.foo.{}".format(RESOURCE.lower())
+    expected_group_id = "software.amazon.foo.{}".format(RESOURCE.lower())
     assert actual_group_id.text == expected_group_id
     path = project.root / "template.yml"
     with path.open("r", encoding="utf-8") as f:
@@ -136,7 +136,7 @@ def test__prompt_for_namespace_aws_default():
 
     mock_input.assert_called_once()
 
-    assert project.settings == {"namespace": ("com", "amazonaws", "clown", "service")}
+    assert project.settings == {"namespace": ("software", "amazon", "clown", "service")}
 
 
 def test__prompt_for_namespace_aws_overwritten():

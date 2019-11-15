@@ -52,7 +52,7 @@ class JavaLanguagePlugin(LanguagePlugin):
 
     def _prompt_for_namespace(self, project):
         if project.type_info[0] == "AWS":
-            namespace = ("com", "amazonaws") + project.type_info[1:]
+            namespace = ("software", "amazon") + project.type_info[1:]
         else:
             namespace = ("com",) + project.type_info
 
