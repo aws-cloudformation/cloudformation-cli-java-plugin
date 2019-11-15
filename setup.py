@@ -27,7 +27,8 @@ setup(
     description=__doc__,
     long_description=read("README.md"),
     author="Amazon Web Services",
-    url="https://aws.amazon.com/cloudformation/",
+    author_email="aws-cloudformation-developers@amazon.com",
+    url="https://github.com/aws-cloudformation/aws-cloudformation-rpdk-java-plugin/",
     # https://packaging.python.org/guides/packaging-namespace-packages/
     packages=["rpdk.java"],
     package_dir={"": "python"},
@@ -35,10 +36,12 @@ setup(
     include_package_data=True,
     zip_safe=True,
     install_requires=["cloudformation-cli>=0.1,<0.2"],
+    python_requires=">=3.6",
     entry_points={"rpdk.v1.languages": ["java = rpdk.java.codegen:JavaLanguagePlugin"]},
     license="Apache License 2.0",
-    classifiers=(
+    classifiers=[
         "Development Status :: 4 - Beta",
+        "Environment :: Console",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",
         "Natural Language :: English",
@@ -48,6 +51,7 @@ setup(
         "Programming Language :: Python :: 3 :: Only",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
-    ),
+        "Programming Language :: Python :: 3.8",
+    ],
     keywords="Amazon Web Services AWS CloudFormation",
 )
