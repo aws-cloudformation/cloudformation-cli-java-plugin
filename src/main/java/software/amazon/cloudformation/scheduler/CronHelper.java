@@ -44,12 +44,13 @@ public class CronHelper {
      * NOTE: CloudWatchEvents only support a 1minute granularity for re-invoke
      * Anything less should be handled inside the original handler request
      *
+     * Expression is of form cron(minutes, hours, day-of-month, month, day-of-year,
+     * year) where day-of-year is not necessary when the day-of-month and
+     * month-of-year fields are supplied
+     *
      * @param minutesFromNow The number of minutes from now for building the cron
      *            expression
      * @return A cron expression for use with CloudWatchEvents putRule(..) API
-     * @apiNote Expression is of form cron(minutes, hours, day-of-month, month,
-     *          day-of-year, year) where day-of-year is not necessary when the
-     *          day-of-month and month-of-year fields are supplied
      */
     public String generateOneTimeCronExpression(final int minutesFromNow) {
         // Add additional 1 minute, since rule can be created after scheduled time, like
