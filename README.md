@@ -8,16 +8,19 @@ This plugin library helps to provide runtime bindings for the execution of your 
 Development
 -----------
 
-For changes to the plugin, a Python virtual environment is recommended. You also need to download `aws-cloudformation-rpdk` and install it first, as it isn't currently available on PyPI, but is a required dependency:
+First, you will need to install the (CloudFormation CLI)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk] and install it first, as it is a required dependency:
+
+```
+pip install -e ../cloudformation-cli
+```
+
+For changes to the plugin, a Python virtual environment is recommended.
 
 ```
 python3 -m venv env
 source env/bin/activate
-# assuming aws-cloudformation-rpdk has already been cloned/downloaded
-pip install \
-    -e ../aws-cloudformation-rpdk \
-    -r ../aws-cloudformation-rpdk/requirements.txt \
-    -e .
+# assuming aws-cloudformation-rpdk has already been installed
+pip -e .
 pre-commit install
 ```
 
