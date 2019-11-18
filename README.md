@@ -11,7 +11,7 @@ If you are using this package to build resource providers for CloudFormation, si
 
 ```
 pip install cloudformation-cli
-pip install aws-cloudformation-rpdk-java-plugin
+pip install cloudformation-cli-java-plugin
 ```
 
 Refer to the documentation for the [CloudFormation CLI](https://github.com/aws-cloudformation/aws-cloudformation-rpdk) for usage instructions.
@@ -30,7 +30,7 @@ For changes to the plugin, a Python virtual environment is recommended.
 ```
 python3 -m venv env
 source env/bin/activate
-# assuming aws-cloudformation-rpdk has already been cloned/downloaded
+# assuming cloudformation-cli has already been cloned/downloaded
 pip install -e .
 pre-commit install
 ```

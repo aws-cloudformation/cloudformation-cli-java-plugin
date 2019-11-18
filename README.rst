@@ -19,7 +19,7 @@ Plugin)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk-java-plugi
 .. code-block:: bash
 
    pip install cloudformation-cli
-   pip install aws-cloudformation-rpdk-java-plugin
+   pip install cloudformation-cli-java-plugin
 
 Refer to the documentation for the `CloudFormation CLI`_ for usage
 instructions.
@@ -41,7 +41,7 @@ For changes to the plugin, a Python virtual environment is recommended.
 
    python3 -m venv env
    source env/bin/activate
-   # assuming aws-cloudformation-rpdk has already been cloned/downloaded
+   # assuming cloudformation-cli has already been cloned/downloaded
    pip install -e .
    pre-commit install
 
