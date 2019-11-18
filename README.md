@@ -1,23 +1,37 @@
 ## AWS CloudFormation Resource Provider Java Plugin
 
+The CloudFormation CLI (cfn) allows you to author your own resource providers that can be used by CloudFormation.
 
-The CloudFormation Resource Provider Development Kit (RPDK) allows you to author your own resource providers that can be used by CloudFormation.
+This plugin library helps to provide Java runtime bindings for the execution of your providers by CloudFormation.
 
-This plugin library helps to provide runtime bindings for the execution of your providers by CloudFormation.
+Usage
+-----
+
+If you are using this package to build resource providers for CloudFormation, install the (CloudFormation CLI)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk] and the (CloudFormation CLI Java Plugin)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk-java-plugin]
+
+```
+pip install cloudformation-cli
+pip install cloudformation-cli-java-plugin
+```
+
+Refer to the documentation for the [CloudFormation CLI](https://github.com/aws-cloudformation/aws-cloudformation-rpdk) for usage instructions.
 
 Development
 -----------
 
-For changes to the plugin, a Python virtual environment is recommended. You also need to download `aws-cloudformation-rpdk` and install it first, as it isn't currently available on PyPI, but is a required dependency:
+First, you will need to install the (CloudFormation CLI)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk], as it is a required dependency:
+
+```
+pip install cloudformation-cli
+```
+
+For changes to the plugin, a Python virtual environment is recommended.
 
 ```
 python3 -m venv env
 source env/bin/activate
-# assuming aws-cloudformation-rpdk has already been cloned/downloaded
-pip install \
-    -e ../aws-cloudformation-rpdk \
-    -r ../aws-cloudformation-rpdk/requirements.txt \
-    -e .
+# assuming cloudformation-cli has already been cloned/downloaded
+pip install -e .
 pre-commit install
 ```
 
