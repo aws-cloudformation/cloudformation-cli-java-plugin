@@ -17,12 +17,6 @@ phases:
       - cd "$WD"
   build:
     commands:
-      # install aws-cloudformation-resource-schema
-      - cd "$CODEBUILD_SRC_DIR_SCHEMA"
-      - >
-        mvn verify org.apache.maven.plugins:maven-install-plugin:3.0.0-M1:install
-        --batch-mode
-        --no-transfer-progress
       # install aws-cloudformation-rpdk-java-plugin and rpdk core
       - cd "$CODEBUILD_SRC_DIR"
       - >

@@ -10,8 +10,8 @@ Usage
 If you are using this package to build resource providers for CloudFormation, simply install the (CloudFormation CLI)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk] and the (CloudFormation RPDK Java Plugin)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk-java-plugin]
 
 ```
-pip install -e ../cloudformation-cli
-pip install -e ../aws-cloudformation-rpdk-java-plugin
+pip install cloudformation-cli
+pip install aws-cloudformation-rpdk-java-plugin
 ```
 
 Refer to the documentation for the [CloudFormation CLI](https://github.com/aws-cloudformation/aws-cloudformation-rpdk) for usage instructions.
@@ -22,7 +22,7 @@ Development
 First, you will need to install the (CloudFormation CLI)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk], as it is a required dependency:
 
 ```
-pip install -e ../cloudformation-cli
+pip install cloudformation-cli
 ```
 
 For changes to the plugin, a Python virtual environment is recommended.
