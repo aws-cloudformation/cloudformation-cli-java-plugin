@@ -26,6 +26,7 @@ setup(
     version=find_version("python", "rpdk", "java", "__init__.py"),
     description=__doc__,
     long_description=read("README.md"),
+    long_description_content_type="text/markdown",
     author="Amazon Web Services",
     author_email="aws-cloudformation-developers@amazon.com",
     url="https://github.com/aws-cloudformation/aws-cloudformation-rpdk-java-plugin/",
