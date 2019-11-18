@@ -18,8 +18,8 @@ Plugin)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk-java-plugi
 
 .. code-block:: bash
 
-   pip install cloudformation-cli
-   pip install cloudformation-cli-java-plugin
+   pip3 install cloudformation-cli
+   pip3 install cloudformation-cli-java-plugin
 
 Refer to the documentation for the `CloudFormation CLI`_ for usage
 instructions.
@@ -33,7 +33,7 @@ it is a required dependency:
 
 .. code-block:: bash
 
-   pip install cloudformation-cli
+   pip3 install cloudformation-cli
 
 For changes to the plugin, a Python virtual environment is recommended.
 
@@ -42,7 +42,7 @@ For changes to the plugin, a Python virtual environment is recommended.
    python3 -m venv env
    source env/bin/activate
    # assuming cloudformation-cli has already been cloned/downloaded
-   pip install -e .
+   pip3 install -e .
    pre-commit install
 
 Linting and running unit tests is done via `pre-commit`_, and so is
