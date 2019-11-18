@@ -25,41 +25,6 @@ import java.util.function.Function;
  * a fluent API * design that ensure that right sequence of steps is followed
  * for making a service call.
  *
- * {@code
- *     public class CreateHandler extends BaseHandler<CallbackContext> {
- *
- * @Override public ProgressEvent<ResourceModel, CallbackContext> handleRequest(
- * final AmazonWebServicesClientProxy proxy, final
- * ResourceHandlerRequest<ResourceModel> request, final CallbackContext
- * callbackContext, final Logger logger) {
- *
- * final ProxyClient<KinesisClient> client =
- * proxy.newProxy(KinesisClient::create); final ResourceModel model =
- * request.getDesiredResourceState(); ProgressEvent<ResourceModel,
- * CallbackContext> created = proxy.initiate( "kinesis:CreateStream", client,
- * model, callbackContext)
- *
- * // // create request for a new stream // .request( (m) ->
- * CreateStreamRequest.builder() .streamName(m.getName())
- * .shardCount(m.getShardCount()).build() )
- *
- * // // Making the call via injection of credentials to make scoped credentials
- * work // .call((r, c) -> c.injectCredentialsAndInvokeV2(r,
- * c.client()::createStream))
- *
- * // // Currently any failure to stabilize will be propagated over as failure
- * to create. This means that // there is a likely hood that the stream could
- * have been created but we timed out. Any attempt to re-create // this resource
- * will fail with an already exists stream name. The stabiliserCreate provides
- * the // ARN in the model (side effect, maybe change model later to be
- * functional) from the describe calls. // So exceptions during stabilizes with
- * report event with FAILED, but the model has the ARN to // indicate successful
- * creation. So CFN can call us back with DELETE correctly. // IMP: if we do not
- * have read permissions during create, this will fail causing the resources to
- * // leak. // .stabilize( new Delay.Exponential(2, 2^5, TimeUnit.SECONDS),
- * this::stabilizeCreate) .done(CallChain.Callback.progress());
- *
- * } } }
  *
  * Any service call should use {@link AmazonWebServicesClientProxy}. Here is the
  * minimum sequence for the calls.
@@ -196,9 +161,8 @@ public interface CallChain {
          * @param handler, a lambda expression that take the web request, response,
          *            client, model and context and says continue or fail operation by
          *            providing the appropriate {@link ProgressEvent} back.
-         * @return {@link ProgressEvent#getStatus()} is
-         *         {@link OperationStatus#IN_PROGRESS} we will attempt another retry.
-         *         Otherwise failure is propagated.
+         * @return If status is {@link OperationStatus#IN_PROGRESS} we will attempt
+         *         another retry. Otherwise failure is propagated.
          */
         Completed<RequestT, ResponseT, ClientT, ModelT, CallbackT> exceptHandler(Callback<? super RequestT, Exception, ClientT,
             ModelT, CallbackT, ProgressEvent<ModelT, CallbackT>> handler);
