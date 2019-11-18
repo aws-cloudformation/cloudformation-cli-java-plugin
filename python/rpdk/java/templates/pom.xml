@@ -26,7 +26,7 @@
     </repositories>
 
     <dependencies>
-        <!-- https://github.com/awslabs/aws-cloudformation-rpdk-java-plugin/ -->
+	<!-- https://mvnrepository.com/artifact/software.amazon.cloudformation/aws-cloudformation-rpdk-java-plugin -->
         <dependency>
             <groupId>software.amazon.cloudformation</groupId>
             <artifactId>aws-cloudformation-rpdk-java-plugin</artifactId>
