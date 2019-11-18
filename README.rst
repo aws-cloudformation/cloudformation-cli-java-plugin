@@ -11,9 +11,9 @@ Usage
 -----
 
 If you are using this package to build resource providers for
-CloudFormation, simply install the (CloudFormation
+CloudFormation, install the (CloudFormation
 CLI)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk] and
-the (CloudFormation RPDK Java
+the (CloudFormation CLI Java
 Plugin)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk-java-plugin]
 
 .. code-block:: bash

@@ -7,7 +7,7 @@ This plugin library helps to provide Java runtime bindings for the execution of 
 Usage
 -----
 
-If you are using this package to build resource providers for CloudFormation, simply install the (CloudFormation CLI)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk] and the (CloudFormation RPDK Java Plugin)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk-java-plugin]
+If you are using this package to build resource providers for CloudFormation, install the (CloudFormation CLI)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk] and the (CloudFormation CLI Java Plugin)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk-java-plugin]
 
 ```
 pip install cloudformation-cli
