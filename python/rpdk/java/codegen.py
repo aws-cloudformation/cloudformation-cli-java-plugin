@@ -294,9 +294,7 @@ class JavaLanguagePlugin(LanguagePlugin):
     @staticmethod
     def _find_jar(project):
         jar_glob = list(
-            (project.root / "target").glob(
-                "{}-*-SNAPSHOT.jar".format(project.hypenated_name)
-            )
+            (project.root / "target").glob("{}-*.jar".format(project.hypenated_name))
         )
         if not jar_glob:
             LOG.debug("No Java ARchives match")
