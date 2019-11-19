@@ -295,7 +295,7 @@ class JavaLanguagePlugin(LanguagePlugin):
     def _find_jar(project):
         jar_glob = list(
             (project.root / "target").glob(
-                "{}-*-SNAPSHOT.jar".format(project.hypenated_name)
+                "{}-*.jar".format(project.hypenated_name)
             )
         )
         if not jar_glob:
