@@ -7,9 +7,9 @@ This plugin library helps to provide Java runtime bindings for the execution of 
 Usage
 -----
 
-If you are using this package to build resource providers for CloudFormation, install the (CloudFormation CLI)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk] and the (CloudFormation CLI Java Plugin)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk-java-plugin]
+If you are using this package to build resource providers for CloudFormation, install the [CloudFormation CLI](https://github.com/aws-cloudformation/aws-cloudformation-rpdk) and the [CloudFormation CLI Java Plugin](https://github.com/aws-cloudformation/aws-cloudformation-rpdk-java-plugin)
 
-```
+```shell
 pip3 install cloudformation-cli
 pip3 install cloudformation-cli-java-plugin
 ```
@@ -19,15 +19,15 @@ Refer to the documentation for the [CloudFormation CLI](https://github.com/aws-c
 Development
 -----------
 
-First, you will need to install the (CloudFormation CLI)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk], as it is a required dependency:
+First, you will need to install the [CloudFormation CLI](https://github.com/aws-cloudformation/aws-cloudformation-rpdk), as it is a required dependency:
 
-```
+```shell
 pip3 install cloudformation-cli
 ```
 
 For changes to the plugin, a Python virtual environment is recommended.
 
-```
+```shell
 python3 -m venv env
 source env/bin/activate
 # assuming cloudformation-cli has already been cloned/downloaded
@@ -37,7 +37,7 @@ pre-commit install
 
 Linting and running unit tests is done via [pre-commit](https://pre-commit.com/), and so is performed automatically on commit. The continuous integration also runs these checks. Manual options are available so you don't have to commit):
 
-```
+```shell
 # run all hooks on all files, mirrors what the CI runs
 pre-commit run --all-files
 # run unit tests only. can also be used for other hooks, e.g. black, flake8, pylint-local
