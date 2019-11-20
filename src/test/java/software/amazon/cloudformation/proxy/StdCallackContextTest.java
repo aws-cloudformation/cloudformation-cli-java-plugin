@@ -236,6 +236,7 @@ public class StdCallackContextTest {
             });
         });
         assertThat(ioException.getMessage()).contains("Can not create empty map");
+        assertThat(ioException.getCause()).isExactlyInstanceOf(NoSuchMethodException.class);
 
         String json = "{\"callGraphs\": {\"foo\": 1, \"bar\": [\"java.util.ArrayList\", [1, 2, 3]]}}";
         StdCallbackContext cxt = serializer.deserialize(json, new TypeReference<StdCallbackContext>() {

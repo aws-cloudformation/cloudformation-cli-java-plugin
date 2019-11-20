@@ -21,6 +21,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -148,7 +149,8 @@ public class StdCallbackContext {
                 }
                 return value;
             } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
-                throw new IOException("Can not create empty map for class " + type + " @ " + p.getCurrentLocation(), e);
+                throw new JsonMappingException(p, "Can not create empty map for class " + type + " @ " + p.getCurrentLocation(),
+                                               e);
             }
         }
 
