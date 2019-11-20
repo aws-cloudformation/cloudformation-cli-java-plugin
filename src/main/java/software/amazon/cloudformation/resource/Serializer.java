@@ -78,11 +78,11 @@ public class Serializer {
         return OBJECT_MAPPER.writeValueAsString(modelObject);
     }
 
-    public <T> T deserialize(final String s, final TypeReference<?> reference) throws IOException {
+    public <T> T deserialize(final String s, final TypeReference<T> reference) throws IOException {
         return OBJECT_MAPPER.readValue(s, reference);
     }
 
-    public <T> T deserializeStrict(final String s, final TypeReference<?> reference) throws IOException {
+    public <T> T deserializeStrict(final String s, final TypeReference<T> reference) throws IOException {
         return STRICT_OBJECT_MAPPER.readValue(s, reference);
     }
 }

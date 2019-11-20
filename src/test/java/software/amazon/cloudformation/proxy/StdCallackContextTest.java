@@ -230,7 +230,7 @@ public class StdCallackContextTest {
         parseException = (JsonParseException) exception.getCause();
         assertThat(parseException.getMessage()).contains("Encoded Class value not present");
 
-        IOException ioException = assertThrows(IOException.class, () -> {
+        JsonMappingException ioException = assertThrows(JsonMappingException.class, () -> {
             String json = "{\"callGraphs\": {\"foo\": 1, \"bar\": [\"java.util.Map\", { \"1\": 2 }]}}";
             serializer.deserialize(json, new TypeReference<StdCallbackContext>() {
             });
