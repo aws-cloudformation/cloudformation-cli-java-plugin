@@ -376,20 +376,6 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             }
         }
 
-        // TODO: implement decryption of request and returned callback context
-        // using KMS Key accessible by the Lambda execution Role
-
-        // TODO: implement the handler invocation inside a time check which will abort
-        // and automatically
-        // reschedule a callback if the handler does not respond within the 15 minute
-        // invocation window
-
-        // TODO: ensure that any credential expiry time is also considered in the time
-        // check to
-        // automatically fail a request if the handler will not be able to complete
-        // within that period,
-        // such as before a FAS token expires
-
         // last mile proxy creation with passed-in credentials (unless we are operating
         // in a non-AWS model)
         AmazonWebServicesClientProxy awsClientProxy = null;
