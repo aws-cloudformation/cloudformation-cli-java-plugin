@@ -1,0 +1,45 @@
+dist: bionic
+jdk: openjdk11
+cache:
+  - pip
+  - directories:
+    - $HOME/.m2
+env:
+  global:
+  - AWS_REGION="us-east-1"
+  - AWS_DEFAULT_REGION=$AWS_REGION
+before_install:
+  - >
+    pip install --upgrade pip 'attrs==19.2.0'
+    -r https://raw.githubusercontent.com/aws-cloudformation/cloudformation-cli/master/requirements.txt
+install:
+  - pip install .
+
+script:
+  - pre-commit run --all-files
+
+jobs:
+  include:
+    - language: python
+      python: "3.6"
+    - language: python
+      python: "3.7"
+    - language: python
+      python: "3.8"
+    - language: java
+      before_install: skip
+      install: skip
+      script: mvn verify
+    - stage: integ
+      language: python
+      python: "3.6"
+      install:
+        - mvn install
+        - pip install .
+      script:
+        - DIR=$(mktemp -d)
+        - cd "$DIR"
+        - ls -la
+        - printf "AWS::Foo::Bar\n\n" | cfn init -vv
+        - mvn verify
+        - ls -la
