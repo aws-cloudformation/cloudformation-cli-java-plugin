@@ -41,7 +41,7 @@ setup(
     entry_points={"rpdk.v1.languages": ["java = rpdk.java.codegen:JavaLanguagePlugin"]},
     license="Apache License 2.0",
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Environment :: Console",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",
