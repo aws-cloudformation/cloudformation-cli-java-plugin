@@ -29,6 +29,7 @@ import com.fasterxml.jackson.databind.ser.Serializers;
 import software.amazon.awssdk.core.SdkPojo;
 import software.amazon.awssdk.utils.builder.SdkBuilder;
 
+@SuppressWarnings("checkstyle:AbbreviationAsWordInName")
 public class AWSServiceSerdeModule extends Module {
 
     public static class AWSSerializers extends Serializers.Base {

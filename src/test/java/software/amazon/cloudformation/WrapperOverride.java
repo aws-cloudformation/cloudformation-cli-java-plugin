@@ -17,7 +17,7 @@ package software.amazon.cloudformation;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.io.ByteArrayInputStream;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +29,7 @@ import lombok.EqualsAndHashCode;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.cloudformation.injection.CredentialsProvider;
 import software.amazon.cloudformation.loggers.CloudWatchLogPublisher;
 import software.amazon.cloudformation.loggers.LogPublisher;
@@ -66,15 +67,17 @@ public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
                            final MetricsPublisher platformMetricsPublisher,
                            final MetricsPublisher providerMetricsPublisher,
                            final CloudWatchScheduler scheduler,
-                           final SchemaValidator validator) {
+                           final SchemaValidator validator,
+                           final SdkHttpClient httpClient) {
         super(callbackAdapter, platformCredentialsProvider, providerLoggingCredentialsProvider, providerEventsLogger,
-              platformEventsLogger, platformMetricsPublisher, providerMetricsPublisher, scheduler, validator, new Serializer());
+              platformEventsLogger, platformMetricsPublisher, providerMetricsPublisher, scheduler, validator, new Serializer(),
+              httpClient);
     }
 
     @Override
     protected JSONObject provideResourceSchemaJSONObject() {
         return new JSONObject(new JSONTokener(new ByteArrayInputStream("{ \"properties\": { \"property1\": { \"type\": \"string\" }, \"property2\": { \"type\": \"integer\" } }, \"additionalProperties\": false }"
-            .getBytes(Charset.forName("UTF8")))));
+            .getBytes(StandardCharsets.UTF_8))));
     }
 
     @Override

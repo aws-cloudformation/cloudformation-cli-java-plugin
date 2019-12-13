@@ -16,14 +16,16 @@ package software.amazon.cloudformation.injection;
 
 import java.net.URI;
 
+import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 
 public class CloudFormationProvider extends AmazonWebServicesProvider {
 
     private URI callbackEndpoint;
 
-    public CloudFormationProvider(final CredentialsProvider credentialsProvider) {
-        super(credentialsProvider);
+    public CloudFormationProvider(final CredentialsProvider credentialsProvider,
+                                  final SdkHttpClient httpClient) {
+        super(credentialsProvider, httpClient);
     }
 
     public void setCallbackEndpoint(final URI callbackEndpoint) {
@@ -31,7 +33,7 @@ public class CloudFormationProvider extends AmazonWebServicesProvider {
     }
 
     public CloudFormationClient get() {
-        return CloudFormationClient.builder().credentialsProvider(this.getCredentialsProvider())
+        return CloudFormationClient.builder().credentialsProvider(this.getCredentialsProvider()).httpClient(httpClient)
             .endpointOverride(this.callbackEndpoint).build();
     }
 }

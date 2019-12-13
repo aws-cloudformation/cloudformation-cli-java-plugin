@@ -36,8 +36,11 @@
                   value="${checkstyle.suppressions.file}"
                   default="checkstyle-suppressions.xml"/>
     </module>
-
+    <!-- Enable @SuppressWarnings annotation -->
+    <module name="SuppressWarningsFilter" />
     <module name="TreeWalker">
+        <!-- Enable @SuppressWarnings annotation -->
+        <module name="SuppressWarningsHolder" />
 
         <!-- Allow suppressing rules via comments. -->
         <module name="SuppressionCommentFilter"/>

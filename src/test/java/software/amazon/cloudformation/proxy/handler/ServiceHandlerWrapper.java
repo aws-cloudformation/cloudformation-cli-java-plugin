@@ -22,6 +22,7 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.mockito.Mockito;
 
+import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.cloudformation.Action;
 import software.amazon.cloudformation.LambdaWrapper;
 import software.amazon.cloudformation.injection.CredentialsProvider;
@@ -55,9 +56,11 @@ public class ServiceHandlerWrapper extends LambdaWrapper<Model, StdCallbackConte
                                  final CloudWatchScheduler scheduler,
                                  final SchemaValidator validator,
                                  final Serializer serializer,
-                                 final ServiceClient client) {
+                                 final ServiceClient client,
+                                 final SdkHttpClient httpClient) {
         super(callbackAdapter, platformCredentialsProvider, providerLoggingCredentialsProvider, providerEventsLogger,
-              platformEventsLogger, platformMetricsPublisher, providerMetricsPublisher, scheduler, validator, serializer);
+              platformEventsLogger, platformMetricsPublisher, providerMetricsPublisher, scheduler, validator, serializer,
+              httpClient);
         this.serviceClient = client;
     }
 

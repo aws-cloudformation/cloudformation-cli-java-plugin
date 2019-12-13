@@ -14,22 +14,17 @@
 */
 package software.amazon.cloudformation.injection;
 
-import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
-import software.amazon.awssdk.core.retry.RetryPolicy;
+import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient;
 
 public class CloudWatchLogsProvider extends AmazonWebServicesProvider {
 
-    public CloudWatchLogsProvider(final CredentialsProvider credentialsProvider) {
-        super(credentialsProvider);
+    public CloudWatchLogsProvider(final CredentialsProvider credentialsProvider,
+                                  final SdkHttpClient httpClient) {
+        super(credentialsProvider, httpClient);
     }
 
     public CloudWatchLogsClient get() {
-        return CloudWatchLogsClient.builder().credentialsProvider(this.getCredentialsProvider())
-            .overrideConfiguration(ClientOverrideConfiguration.builder()
-                // Default Retry Condition of Retry Policy retries on Throttling and ClockSkew
-                // Exceptions
-                .retryPolicy(RetryPolicy.builder().numRetries(16).build()).build())
-            .build();
+        return defaultClient(CloudWatchLogsClient.builder()).build();
     }
 }
