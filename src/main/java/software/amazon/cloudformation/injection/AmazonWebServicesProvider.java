@@ -25,9 +25,7 @@ import software.amazon.awssdk.http.SdkHttpClient;
 public abstract class AmazonWebServicesProvider {
 
     protected static final ClientOverrideConfiguration CONFIGURATION = ClientOverrideConfiguration.builder()
-        // Default Retry Condition of Retry Policy retries on Throttling and ClockSkew
-        // Exceptions
-        .retryPolicy(RetryPolicy.builder().numRetries(16).build()).build();
+        .retryPolicy(RetryPolicy.defaultRetryPolicy()).build();
 
     protected final CredentialsProvider credentialsProvider;
     protected final SdkHttpClient httpClient;
