@@ -28,7 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Date;
@@ -44,6 +44,8 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import software.amazon.awssdk.http.SdkHttpClient;
+import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.cloudformation.exceptions.BaseHandlerException;
 import software.amazon.cloudformation.exceptions.FileScrubberException;
@@ -80,6 +82,8 @@ import software.amazon.cloudformation.scheduler.CloudWatchScheduler;
 
 public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStreamHandler {
 
+    public static final SdkHttpClient HTTP_CLIENT = ApacheHttpClient.builder().build();
+
     private static final List<Action> MUTATING_ACTIONS = Arrays.asList(Action.CREATE, Action.DELETE, Action.UPDATE);
     private static final int INVOCATION_TIMEOUT_MS = 60000;
 
@@ -115,11 +119,11 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     protected LambdaWrapper() {
         this.platformCredentialsProvider = new SessionCredentialsProvider();
         this.providerCredentialsProvider = new SessionCredentialsProvider();
-        this.cloudFormationProvider = new CloudFormationProvider(this.platformCredentialsProvider);
-        this.platformCloudWatchProvider = new CloudWatchProvider(this.platformCredentialsProvider);
-        this.providerCloudWatchProvider = new CloudWatchProvider(this.providerCredentialsProvider);
-        this.platformCloudWatchEventsProvider = new CloudWatchEventsProvider(this.platformCredentialsProvider);
-        this.cloudWatchLogsProvider = new CloudWatchLogsProvider(this.providerCredentialsProvider);
+        this.cloudFormationProvider = new CloudFormationProvider(this.platformCredentialsProvider, HTTP_CLIENT);
+        this.platformCloudWatchProvider = new CloudWatchProvider(this.platformCredentialsProvider, HTTP_CLIENT);
+        this.providerCloudWatchProvider = new CloudWatchProvider(this.providerCredentialsProvider, HTTP_CLIENT);
+        this.platformCloudWatchEventsProvider = new CloudWatchEventsProvider(this.platformCredentialsProvider, HTTP_CLIENT);
+        this.cloudWatchLogsProvider = new CloudWatchLogsProvider(this.providerCredentialsProvider, HTTP_CLIENT);
         this.serializer = new Serializer();
         this.validator = new Validator();
         this.typeReference = getTypeReference();
@@ -137,16 +141,17 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                          final MetricsPublisher providerMetricsPublisher,
                          final CloudWatchScheduler scheduler,
                          final SchemaValidator validator,
-                         final Serializer serializer) {
+                         final Serializer serializer,
+                         final SdkHttpClient httpClient) {
 
         this.callbackAdapter = callbackAdapter;
         this.platformCredentialsProvider = platformCredentialsProvider;
         this.providerCredentialsProvider = providerCredentialsProvider;
-        this.cloudFormationProvider = new CloudFormationProvider(this.platformCredentialsProvider);
-        this.platformCloudWatchProvider = new CloudWatchProvider(this.platformCredentialsProvider);
-        this.providerCloudWatchProvider = new CloudWatchProvider(this.providerCredentialsProvider);
-        this.platformCloudWatchEventsProvider = new CloudWatchEventsProvider(this.platformCredentialsProvider);
-        this.cloudWatchLogsProvider = new CloudWatchLogsProvider(this.providerCredentialsProvider);
+        this.cloudFormationProvider = new CloudFormationProvider(this.platformCredentialsProvider, httpClient);
+        this.platformCloudWatchProvider = new CloudWatchProvider(this.platformCredentialsProvider, httpClient);
+        this.providerCloudWatchProvider = new CloudWatchProvider(this.providerCredentialsProvider, httpClient);
+        this.platformCloudWatchEventsProvider = new CloudWatchEventsProvider(this.platformCredentialsProvider, httpClient);
+        this.cloudWatchLogsProvider = new CloudWatchLogsProvider(this.providerCredentialsProvider, httpClient);
         this.providerEventsLogger = providerEventsLogger;
         this.platformLambdaLogger = platformEventsLogger;
         this.platformMetricsPublisher = platformMetricsPublisher;
@@ -245,7 +250,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                 throw new TerminalException("No request object received");
             }
 
-            String input = IOUtils.toString(inputStream, "UTF-8");
+            String input = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
             JSONObject rawInput = new JSONObject(new JSONTokener(input));
 
             // deserialize incoming payload to modelled request
@@ -483,7 +488,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     private void writeResponse(final OutputStream outputStream, final Response<ResourceT> response) throws IOException {
 
         String output = this.serializer.serialize(response);
-        outputStream.write(output.getBytes(Charset.forName("UTF-8")));
+        outputStream.write(output.getBytes(StandardCharsets.UTF_8));
         outputStream.close();
     }
 

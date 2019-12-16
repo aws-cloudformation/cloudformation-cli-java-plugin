@@ -16,16 +16,33 @@ package software.amazon.cloudformation.injection;
 
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
+import software.amazon.awssdk.awscore.client.builder.AwsSyncClientBuilder;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.core.retry.RetryPolicy;
+import software.amazon.awssdk.http.SdkHttpClient;
 
 public abstract class AmazonWebServicesProvider {
 
-    protected final CredentialsProvider credentialsProvider;
+    protected static final ClientOverrideConfiguration CONFIGURATION = ClientOverrideConfiguration.builder()
+        .retryPolicy(RetryPolicy.defaultRetryPolicy()).build();
 
-    protected AmazonWebServicesProvider(final CredentialsProvider credentialsProvider) {
+    protected final CredentialsProvider credentialsProvider;
+    protected final SdkHttpClient httpClient;
+
+    protected AmazonWebServicesProvider(final CredentialsProvider credentialsProvider,
+                                        final SdkHttpClient httpClient) {
         this.credentialsProvider = credentialsProvider;
+        this.httpClient = httpClient;
     }
 
     protected AwsCredentialsProvider getCredentialsProvider() {
         return StaticCredentialsProvider.create(this.credentialsProvider.get());
+    }
+
+    protected <BuilderT extends AwsClientBuilder<BuilderT, ClientT> & AwsSyncClientBuilder<BuilderT, ClientT>,
+        ClientT> BuilderT defaultClient(final BuilderT builder) {
+        return builder.credentialsProvider(this.getCredentialsProvider()).overrideConfiguration(CONFIGURATION)
+            .httpClient(httpClient);
     }
 }
