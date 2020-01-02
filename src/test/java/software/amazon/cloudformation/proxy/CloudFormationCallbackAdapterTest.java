@@ -31,6 +31,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.util.UUID;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -43,6 +44,7 @@ import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgres
 import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressResponse;
 import software.amazon.cloudformation.TestModel;
 import software.amazon.cloudformation.injection.CloudFormationProvider;
+import software.amazon.cloudformation.resource.ResourceTypeSchema;
 import software.amazon.cloudformation.resource.Serializer;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,12 +59,15 @@ public class CloudFormationCallbackAdapterTest {
     @Mock
     private Serializer serializer;
 
+    @Mock
+    private ResourceTypeSchema resourceTypeSchema;
+
     @Test
     public void testReportProgress_withoutRefreshingClient() {
-        final CloudFormationClient client = mock(CloudFormationClient.class);
 
         final CloudFormationCallbackAdapter<
-            TestModel> adapter = new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, loggerProxy, serializer);
+            TestModel> adapter = new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, loggerProxy, serializer,
+                                                                              resourceTypeSchema);
         final AssertionError expectedException = assertThrows(AssertionError.class, () -> adapter.reportProgress("bearer-token",
             HandlerErrorCode.InvalidRequest, OperationStatus.FAILED, OperationStatus.IN_PROGRESS, null, "some error"),
             "Expected assertion exception");
@@ -84,7 +89,8 @@ public class CloudFormationCallbackAdapterTest {
         when(client.recordHandlerProgress(any(RecordHandlerProgressRequest.class))).thenReturn(response);
 
         final CloudFormationCallbackAdapter<
-            TestModel> adapter = new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, loggerProxy, serializer);
+            TestModel> adapter = new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, loggerProxy, serializer,
+                                                                              resourceTypeSchema);
         adapter.refreshClient();
 
         adapter.reportProgress("bearer-token", HandlerErrorCode.InvalidRequest, OperationStatus.FAILED,
@@ -111,12 +117,13 @@ public class CloudFormationCallbackAdapterTest {
         when(response.responseMetadata()).thenReturn(responseMetadata);
 
         when(cloudFormationProvider.get()).thenReturn(client);
-        when(serializer.serialize(any())).thenReturn("");
+        when(serializer.serialize(any())).thenReturn("{}");
 
         when(client.recordHandlerProgress(any(RecordHandlerProgressRequest.class))).thenReturn(response);
 
         final CloudFormationCallbackAdapter<
-            TestModel> adapter = new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, loggerProxy, serializer);
+            TestModel> adapter = new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, loggerProxy, serializer,
+                                                                              resourceTypeSchema);
 
         adapter.refreshClient();
 
@@ -131,6 +138,8 @@ public class CloudFormationCallbackAdapterTest {
         assertThat(argument.getValue().operationStatus()).isEqualTo(IN_PROGRESS);
         assertThat(argument.getValue().currentOperationStatus()).isEqualTo(PENDING);
         assertThat(argument.getValue().statusMessage()).isEqualTo("doing it");
+
+        verify(resourceTypeSchema).removeWriteOnlyProperties(any(JSONObject.class));
     }
 
     @Test
@@ -147,7 +156,8 @@ public class CloudFormationCallbackAdapterTest {
         when(client.recordHandlerProgress(any(RecordHandlerProgressRequest.class))).thenReturn(response);
 
         final CloudFormationCallbackAdapter<
-            TestModel> adapter = new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, loggerProxy, serializer);
+            TestModel> adapter = new CloudFormationCallbackAdapter<TestModel>(cloudFormationProvider, loggerProxy, serializer,
+                                                                              resourceTypeSchema);
         adapter.refreshClient();
 
         adapter.reportProgress("bearer-token", null, OperationStatus.SUCCESS, OperationStatus.IN_PROGRESS, null, "Succeeded");
