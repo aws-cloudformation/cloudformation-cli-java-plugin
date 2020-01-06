@@ -497,7 +497,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     private void validateModel(final JSONObject modelObject) throws ValidationException, IOException {
         JSONObject resourceSchemaJSONObject = provideResourceSchemaJSONObject();
         if (resourceSchemaJSONObject == null) {
-            throw new ValidationException("Unable to validate incoming model as no schema was provided.", null, null);
+            throw new TerminalException("Unable to validate incoming model as no schema was provided.");
         }
 
         TypeReference<ResourceT> modelTypeReference = getModelTypeReference();
@@ -509,7 +509,6 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         } catch (UnrecognizedPropertyException e) {
             throw new ValidationException(String.format("#: extraneous key [%s] is not permitted", e.getPropertyName()),
                                           "additionalProperties", "#");
-
         }
 
         JSONObject serializedModel = new JSONObject(this.serializer.serialize(deserializedModel));
