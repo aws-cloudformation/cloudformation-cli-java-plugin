@@ -37,6 +37,7 @@ import org.json.JSONObject;
 public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, CallbackContext> {
 
     private final Configuration configuration = new Configuration();
+    private JSONObject resourceSchema;
     private final Map<Action, BaseHandler<CallbackContext>> handlers = new HashMap<>();
     private final static TypeReference<HandlerRequest<{{ pojo_name }}, CallbackContext>> REQUEST_REFERENCE =
         new TypeReference<HandlerRequest<{{ pojo_name }}, CallbackContext>>() {};
@@ -111,7 +112,10 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
 
     @Override
     public JSONObject provideResourceSchemaJSONObject() {
-        return this.configuration.resourceSchemaJSONObject();
+        if (resourceSchema == null) {
+            resourceSchema = this.configuration.resourceSchemaJSONObject();
+        }
+        return resourceSchema;
     }
 
     @Override

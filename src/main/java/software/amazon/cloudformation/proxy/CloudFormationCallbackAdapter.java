@@ -18,11 +18,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.util.UUID;
 
+import org.json.JSONObject;
+
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressRequest;
 import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressResponse;
 import software.amazon.cloudformation.exceptions.TerminalException;
 import software.amazon.cloudformation.injection.CloudFormationProvider;
+import software.amazon.cloudformation.resource.ResourceTypeSchema;
 import software.amazon.cloudformation.resource.Serializer;
 
 public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
@@ -35,12 +38,16 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
 
     private Serializer serializer;
 
+    private ResourceTypeSchema resourceTypeSchema;
+
     public CloudFormationCallbackAdapter(final CloudFormationProvider cloudFormationProvider,
                                          final LoggerProxy loggerProxy,
-                                         final Serializer serializer) {
+                                         final Serializer serializer,
+                                         final ResourceTypeSchema resourceTypeSchema) {
         this.cloudFormationProvider = cloudFormationProvider;
         this.loggerProxy = loggerProxy;
         this.serializer = serializer;
+        this.resourceTypeSchema = resourceTypeSchema;
     }
 
     public void refreshClient() {
@@ -62,8 +69,10 @@ public class CloudFormationCallbackAdapter<T> implements CallbackAdapter<T> {
 
         if (resourceModel != null) {
             try {
+                JSONObject jsonModel = new JSONObject(this.serializer.serialize(resourceModel));
+                resourceTypeSchema.removeWriteOnlyProperties(jsonModel);
                 // expect return type to be non-null
-                requestBuilder.resourceModel(this.serializer.serialize(resourceModel));
+                requestBuilder.resourceModel(jsonModel.toString());
             } catch (JsonProcessingException e) {
                 throw new TerminalException("Unable to serialize resource model for reporting progress", e);
             }
