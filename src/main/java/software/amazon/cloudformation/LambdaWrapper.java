@@ -74,6 +74,7 @@ import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.RequestContext;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.cloudformation.resource.ResourceTypeSchema;
 import software.amazon.cloudformation.resource.SchemaValidator;
 import software.amazon.cloudformation.resource.Serializer;
 import software.amazon.cloudformation.resource.Validator;
@@ -226,7 +227,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
         if (this.callbackAdapter == null) {
             this.callbackAdapter = new CloudFormationCallbackAdapter<>(this.cloudFormationProvider, this.loggerProxy,
-                                                                       this.serializer);
+                                                                       this.serializer, ResourceTypeSchema
+                                                                           .load(provideResourceSchemaJSONObject()));
         }
         this.callbackAdapter.refreshClient();
 
@@ -495,7 +497,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     private void validateModel(final JSONObject modelObject) throws ValidationException, IOException {
         JSONObject resourceSchemaJSONObject = provideResourceSchemaJSONObject();
         if (resourceSchemaJSONObject == null) {
-            throw new ValidationException("Unable to validate incoming model as no schema was provided.", null, null);
+            throw new TerminalException("Unable to validate incoming model as no schema was provided.");
         }
 
         TypeReference<ResourceT> modelTypeReference = getModelTypeReference();
@@ -507,7 +509,6 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         } catch (UnrecognizedPropertyException e) {
             throw new ValidationException(String.format("#: extraneous key [%s] is not permitted", e.getPropertyName()),
                                           "additionalProperties", "#");
-
         }
 
         JSONObject serializedModel = new JSONObject(this.serializer.serialize(deserializedModel));
