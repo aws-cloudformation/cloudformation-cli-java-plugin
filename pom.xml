@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>software.amazon.cloudformation</groupId>
     <artifactId>aws-cloudformation-rpdk-java-plugin</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.2</version>
     <name>AWS CloudFormation RPDK Java Plugin</name>
     <description>The CloudFormation Resource Provider Development Kit (RPDK) allows you to author your own resource providers that can be used by CloudFormation. This plugin library helps to provide runtime bindings for the execution of your providers by CloudFormation.
     </description>
@@ -37,7 +37,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <awssdk.version>2.10.19</awssdk.version>
+        <awssdk.version>2.10.49</awssdk.version>
         <checkstyle.version>8.18</checkstyle.version>
         <commons-io.version>2.6</commons-io.version>
         <jackson.version>2.10.1</jackson.version>
@@ -61,7 +61,7 @@
         </dependencies>
     </dependencyManagement>
     <dependencies>
-        <!-- https://mvnrepository.com/artifact/com.github.everit-org.json-schema/org.everit.json.schema -->
+        <!-- https://mvnrepository.com/artifact/software.amazon.cloudformation/aws-cloudformation-resource-schema -->
         <dependency>
             <groupId>software.amazon.cloudformation</groupId>
             <artifactId>aws-cloudformation-resource-schema</artifactId>
