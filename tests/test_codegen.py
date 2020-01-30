@@ -8,7 +8,13 @@ import yaml
 import pytest
 from rpdk.core.exceptions import InternalError, SysExitRecommendedError
 from rpdk.core.project import Project
-from rpdk.java.codegen import JavaArchiveNotFoundError, JavaLanguagePlugin
+from rpdk.java.codegen import (
+    InvalidMavenPOMError,
+    JavaArchiveNotFoundError,
+    JavaLanguagePlugin,
+    JavaPluginNotFoundError,
+    JavaPluginVersionNotSupportedError,
+)
 
 RESOURCE = "DZQWCC"
 
@@ -84,6 +90,36 @@ def test_generate(project):
     assert not test_file.is_file()
 
 
+def test_protocol_version_is_set(project):
+    assert project.settings["protocolVersion"] == "2.0.0"
+
+
+def test_generate_low_protocol_version_is_updated(project):
+    project.settings["protocolVersion"] = "1.0.0"
+    project.generate()
+    assert project.settings["protocolVersion"] == "2.0.0"
+
+
+def update_pom_with_plugin_version(project, version_id):
+    pom_tree = ET.parse(project.root / "pom.xml")
+    root = pom_tree.getroot()
+    namespace = {"mvn": "http://maven.apache.org/POM/4.0.0"}
+    version = root.find(
+        "./mvn:dependencies/mvn:dependency"
+        "/[mvn:artifactId='aws-cloudformation-rpdk-java-plugin']/mvn:version",
+        namespace,
+    )
+    version.text = version_id
+    pom_tree.write(project.root / "pom.xml")
+
+
+def test_generate_with_not_support_version(project):
+    update_pom_with_plugin_version(project, "1.0.0")
+
+    with pytest.raises(JavaPluginVersionNotSupportedError):
+        project.generate()
+
+
 def make_target(project, count):
     target = project.root / "target"
     target.mkdir(exist_ok=True)
@@ -112,6 +148,33 @@ def test__find_jar_two(project):
     make_target(project, 2)
     with pytest.raises(InternalError):
         project._plugin._find_jar(project)
+
+
+def make_pom_xml_without_plugin(project):
+    pom_tree = ET.parse(project.root / "pom.xml")
+    root = pom_tree.getroot()
+    namespace = {"mvn": "http://maven.apache.org/POM/4.0.0"}
+    plugin = root.find(
+        ".//mvn:dependency/[mvn:artifactId='aws-cloudformation-rpdk-java-plugin']",
+        namespace,
+    )
+    dependencies = root.find("mvn:dependencies", namespace)
+    dependencies.remove(plugin)
+    pom_tree.write(project.root / "pom.xml")
+
+
+def test__get_plugin_version_not_found(project):
+    make_pom_xml_without_plugin(project)
+    with pytest.raises(JavaPluginNotFoundError):
+        project._plugin._get_java_plugin_dependency_version(project)
+
+
+def test__get_plugin_version_invalid_pom(project):
+    pom = open(project.root / "pom.xml", "w")
+    pom.write("invalid pom")
+    pom.close()
+    with pytest.raises(InvalidMavenPOMError):
+        project._plugin._get_java_plugin_dependency_version(project)
 
 
 def test_package(project):
