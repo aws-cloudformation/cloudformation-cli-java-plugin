@@ -3,6 +3,7 @@
 import logging
 import shutil
 
+import defusedxml.ElementTree as ET
 from rpdk.core.data_loaders import resource_stream
 from rpdk.core.exceptions import InternalError, SysExitRecommendedError
 from rpdk.core.init import input_with_validation
@@ -19,6 +20,10 @@ EXECUTABLE = "cfn"
 
 
 class JavaArchiveNotFoundError(SysExitRecommendedError):
+    pass
+
+
+class PluginVersionNotSupportedError(SysExitRecommendedError):
     pass
 
 
@@ -313,6 +318,18 @@ class JavaLanguagePlugin(LanguagePlugin):
 
         return jar_glob[0]
 
+    @staticmethod
+    def _get_plugin_version(project):
+        tree = ET.parse(project.root / "pom.xml")
+        root = tree.getroot()
+        namespace = {"mvn": "http://maven.apache.org/POM/4.0.0"}
+        for dependency in root.findall(".//mvn:dependency", namespace):
+            artifact_id = dependency.find("mvn:artifactId", namespace).text
+            version = dependency.find("mvn:version", namespace).text
+            if artifact_id == "aws-cloudformation-rpdk-java-plugin":
+                return version
+        raise InternalError("Java plugin not found.")
+
     def package(self, project, zip_file):
         LOG.info("Packaging Java project")
 
@@ -323,6 +340,15 @@ class JavaLanguagePlugin(LanguagePlugin):
         jar = self._find_jar(project)
         write_with_relative_path(jar)
         write_with_relative_path(project.root / "pom.xml")
+
+        # Require java plugin to be 1.1+
+        plugin_version = self._get_plugin_version(project)
+        if plugin_version < "1.1":
+            raise PluginVersionNotSupportedError(
+                "Not support aws-cloudformation-rpdk-java-plugin 1.0\n"
+                "Please upgrade to 1.1+."
+            )
+        zip_file.writestr(".platform_version", "1.1.0")
 
         for path in (project.root / "src").rglob("*"):
             if path.is_file():

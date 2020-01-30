@@ -8,7 +8,11 @@ import yaml
 import pytest
 from rpdk.core.exceptions import InternalError, SysExitRecommendedError
 from rpdk.core.project import Project
-from rpdk.java.codegen import JavaArchiveNotFoundError, JavaLanguagePlugin
+from rpdk.java.codegen import (
+    JavaArchiveNotFoundError,
+    JavaLanguagePlugin,
+    PluginVersionNotSupportedError,
+)
 
 RESOURCE = "DZQWCC"
 
@@ -108,6 +112,52 @@ def test__find_jar_two(project):
     make_target(project, 2)
     with pytest.raises(InternalError):
         project._plugin._find_jar(project)
+
+
+def parse_pom_xml_plugin(root):
+    namespace = {"maven": "http://maven.apache.org/POM/4.0.0"}
+    for dependency in root.findall(".//maven:dependency", namespace):
+        artifact_id = dependency.find("maven:artifactId", namespace).text
+        if artifact_id == "aws-cloudformation-rpdk-java-plugin":
+            return dependency
+    raise InternalError("Cannot find java plugin")
+
+
+def make_pom_xml_without_plugin(project):
+    pom_tree = ET.parse(str(project.root / "pom.xml"))
+    root = pom_tree.getroot()
+    plugin = parse_pom_xml_plugin(root)
+    namespace = {"maven": "http://maven.apache.org/POM/4.0.0"}
+    dependencies = root.find("maven:dependencies", namespace)
+    dependencies.remove(plugin)
+    pom_tree.write(project.root / "pom.xml")
+
+
+def test__get_plugin_version_not_found(project):
+    make_pom_xml_without_plugin(project)
+    with pytest.raises(InternalError):
+        project._plugin._get_plugin_version(project)
+
+
+def update_pom_with_plugin_version(project, version):
+    pom_tree = ET.parse(str(project.root / "pom.xml"))
+    root = pom_tree.getroot()
+    plugin = parse_pom_xml_plugin(root)
+    namespace = {"maven": "http://maven.apache.org/POM/4.0.0"}
+    version = plugin.find("maven:version", namespace)
+    version.text = "1.0.0"
+    pom_tree.write(project.root / "pom.xml")
+
+
+def test_pacakge_with_not_support_version(project):
+    project.load_schema()
+    project.generate()
+    make_target(project, 1)
+    update_pom_with_plugin_version(project, "1.0.0")
+
+    zip_file = Mock()
+    with pytest.raises(PluginVersionNotSupportedError):
+        project._plugin.package(project, zip_file)
 
 
 def test_package(project):
