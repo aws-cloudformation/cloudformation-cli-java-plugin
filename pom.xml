@@ -38,7 +38,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <awssdk.version>2.10.49</awssdk.version>
-        <checkstyle.version>8.18</checkstyle.version>
+        <checkstyle.version>8.29</checkstyle.version>
         <commons-io.version>2.6</commons-io.version>
         <jackson.version>2.10.1</jackson.version>
         <maven-checkstyle-plugin.version>3.1.0</maven-checkstyle-plugin.version>
