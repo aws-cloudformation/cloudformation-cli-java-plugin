@@ -69,6 +69,7 @@ public class CloudWatchLogPublisher extends LogPublisher {
             assert cloudWatchLogsClient != null : "cloudWatchLogsClient was not initialised. "
                 + "You must call refreshClient() first.";
             PutLogEventsResponse putLogEventsResponse = cloudWatchLogsClient.putLogEvents(PutLogEventsRequest.builder()
+                .overrideConfiguration(builder -> builder.putHeader("x-amzn-logs-format", "json/emf"))
                 .sequenceToken(nextSequenceToken).logGroupName(logGroupName).logStreamName(logStreamName)
                 .logEvents(InputLogEvent.builder().message(message).timestamp(new Date().getTime()).build()).build());
 
