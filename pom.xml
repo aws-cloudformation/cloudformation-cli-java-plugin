@@ -211,7 +211,6 @@
         </dependency>
     </dependencies>
     <pluginRepositories>
-        <!-- Supports software.amazon.awssdk:build-tools -->
         <pluginRepository>
             <id>jitpack.io</id>
             <url>https://jitpack.io</url>
@@ -226,6 +225,11 @@
                 <version>${spotless.version}</version>
                 <configuration>
                     <java>
+                        <!-- this automatically inserts line breaks, so apply it before eclipse formatter! -->
+                        <importOrder>
+                            <order>com,java,javax,org,software</order>
+                        </importOrder>
+                        <removeUnusedImports/>
                         <eclipse>
                             <!-- This formatter covers alot of linting, but not 100% of what checkstyle will enforce -->
                             <file>${basedir}/src/main/resources/com/amazonaws/cloudformation/eclipse-java-formatter.xml</file>
@@ -234,10 +238,6 @@
                         <licenseHeader>
                             <file>licenseHeader</file>
                         </licenseHeader>
-                        <removeUnusedImports/>
-                        <importOrder>
-                            <order>com,java,javax,org,software</order>
-                        </importOrder>
                     </java>
                 </configuration>
                 <executions>

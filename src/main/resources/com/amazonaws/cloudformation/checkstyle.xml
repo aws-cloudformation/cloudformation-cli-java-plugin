@@ -279,7 +279,8 @@
         <!-- Static imports must occur before external package imports. -->
         <module name="CustomImportOrder">
             <property name="sortImportsInGroupAlphabetically" value="true"/>
-            <property name="separateLineBetweenGroups" value="true"/>
+            <!-- this is plain up broken in 8.29 when set to true -->
+            <property name="separateLineBetweenGroups" value="false"/>
             <property name="customImportOrderRules" value="STATIC###THIRD_PARTY_PACKAGE"/>
         </module>
 
