@@ -26,18 +26,14 @@ import static software.amazon.awssdk.services.cloudformation.model.OperationStat
 import static software.amazon.awssdk.services.cloudformation.model.OperationStatus.IN_PROGRESS;
 import static software.amazon.awssdk.services.cloudformation.model.OperationStatus.PENDING;
 import static software.amazon.awssdk.services.cloudformation.model.OperationStatus.SUCCESS;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
-
 import java.util.UUID;
-
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 import software.amazon.awssdk.services.cloudformation.model.CloudFormationResponseMetadata;
 import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressRequest;

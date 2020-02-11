@@ -15,7 +15,6 @@
 package software.amazon.cloudformation.proxy;
 
 import java.util.Map;
-
 import lombok.Data;
 import lombok.NoArgsConstructor;
 

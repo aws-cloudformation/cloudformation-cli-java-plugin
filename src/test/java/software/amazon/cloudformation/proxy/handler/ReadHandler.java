@@ -15,7 +15,6 @@
 package software.amazon.cloudformation.proxy.handler;
 
 import java.time.Duration;
-
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.LoggerProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;

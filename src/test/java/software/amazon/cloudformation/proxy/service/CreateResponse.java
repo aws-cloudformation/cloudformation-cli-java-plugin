@@ -16,7 +16,6 @@ package software.amazon.cloudformation.proxy.service;
 
 import java.util.Collections;
 import java.util.List;
-
 import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.core.SdkField;
 

@@ -25,7 +25,6 @@ import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.SerializationConfig;
 import com.fasterxml.jackson.databind.deser.Deserializers;
 import com.fasterxml.jackson.databind.ser.Serializers;
-
 import software.amazon.awssdk.core.SdkPojo;
 import software.amazon.awssdk.utils.builder.SdkBuilder;
 

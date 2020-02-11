@@ -15,20 +15,16 @@
 package software.amazon.cloudformation;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-
 import org.json.JSONObject;
 import org.json.JSONTokener;
-
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.cloudformation.injection.CredentialsProvider;
 import software.amazon.cloudformation.loggers.CloudWatchLogPublisher;

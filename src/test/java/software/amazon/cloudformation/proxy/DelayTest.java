@@ -15,14 +15,11 @@
 package software.amazon.cloudformation.proxy;
 
 import static org.assertj.core.api.Assertions.*;
-
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
-
 import software.amazon.cloudformation.proxy.delay.Blended;
 import software.amazon.cloudformation.proxy.delay.Constant;
 import software.amazon.cloudformation.proxy.delay.Exponential;

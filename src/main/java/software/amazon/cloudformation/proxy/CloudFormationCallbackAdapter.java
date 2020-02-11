@@ -15,11 +15,8 @@
 package software.amazon.cloudformation.proxy;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-
 import java.util.UUID;
-
 import org.json.JSONObject;
-
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressRequest;
 import software.amazon.awssdk.services.cloudformation.model.RecordHandlerProgressResponse;

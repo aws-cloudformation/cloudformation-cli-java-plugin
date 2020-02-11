@@ -17,7 +17,6 @@ package software.amazon.cloudformation.proxy;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-
 import software.amazon.cloudformation.Action;
 import software.amazon.cloudformation.metrics.MetricsPublisher;
 

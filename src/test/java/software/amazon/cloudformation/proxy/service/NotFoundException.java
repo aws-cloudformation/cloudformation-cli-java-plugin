@@ -15,7 +15,6 @@
 package software.amazon.cloudformation.proxy.service;
 
 import org.mockito.Mockito;
-
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.http.SdkHttpResponse;

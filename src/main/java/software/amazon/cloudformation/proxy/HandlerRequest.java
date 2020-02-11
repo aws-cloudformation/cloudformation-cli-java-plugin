@@ -16,7 +16,6 @@ package software.amazon.cloudformation.proxy;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 import software.amazon.cloudformation.Action;
 
 /**

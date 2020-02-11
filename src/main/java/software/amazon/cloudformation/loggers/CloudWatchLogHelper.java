@@ -15,10 +15,8 @@
 package software.amazon.cloudformation.loggers;
 
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
-
 import java.time.Instant;
 import java.util.UUID;
-
 import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient;
 import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogGroupRequest;
 import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogStreamRequest;

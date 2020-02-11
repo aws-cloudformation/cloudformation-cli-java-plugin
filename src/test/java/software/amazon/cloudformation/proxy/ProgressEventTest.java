@@ -15,11 +15,8 @@
 package software.amazon.cloudformation.proxy;
 
 import static org.assertj.core.api.Assertions.assertThat;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
-
 import org.junit.jupiter.api.Test;
-
 import software.amazon.cloudformation.TestContext;
 import software.amazon.cloudformation.TestModel;
 import software.amazon.cloudformation.exceptions.ResourceNotFoundException;
