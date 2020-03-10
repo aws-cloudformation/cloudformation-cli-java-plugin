@@ -15,7 +15,6 @@
 package software.amazon.cloudformation.metrics;
 
 import java.time.Instant;
-
 import software.amazon.cloudformation.Action;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 

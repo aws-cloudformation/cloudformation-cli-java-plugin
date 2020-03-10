@@ -17,12 +17,10 @@ package software.amazon.cloudformation.scheduler;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-
 import org.junit.jupiter.api.Test;
 
 public class CronHelperTest {

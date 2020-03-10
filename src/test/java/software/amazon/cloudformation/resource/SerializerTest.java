@@ -16,19 +16,15 @@ package software.amazon.cloudformation.resource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.entry;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Test;
-
 import software.amazon.cloudformation.Action;
 import software.amazon.cloudformation.TestContext;
 import software.amazon.cloudformation.TestModel;

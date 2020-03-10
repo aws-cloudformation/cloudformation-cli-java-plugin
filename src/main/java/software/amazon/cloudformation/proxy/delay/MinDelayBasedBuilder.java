@@ -15,7 +15,6 @@
 package software.amazon.cloudformation.proxy.delay;
 
 import java.time.Duration;
-
 import software.amazon.cloudformation.proxy.Delay;
 
 /**

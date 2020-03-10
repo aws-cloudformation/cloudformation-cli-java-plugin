@@ -16,7 +16,6 @@ package software.amazon.cloudformation.proxy;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
-
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
 

@@ -15,7 +15,6 @@
 package software.amazon.cloudformation;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
@@ -23,7 +22,6 @@ import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.google.common.annotations.VisibleForTesting;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -36,14 +34,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONObject;
 import org.json.JSONTokener;
-
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.utils.StringUtils;

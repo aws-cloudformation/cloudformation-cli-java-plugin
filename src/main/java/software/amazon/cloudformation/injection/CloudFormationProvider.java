@@ -15,7 +15,6 @@
 package software.amazon.cloudformation.injection;
 
 import java.net.URI;
-
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 

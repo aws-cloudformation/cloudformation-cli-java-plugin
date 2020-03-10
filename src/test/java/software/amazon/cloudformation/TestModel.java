@@ -15,7 +15,6 @@
 package software.amazon.cloudformation;
 
 import java.util.Map;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

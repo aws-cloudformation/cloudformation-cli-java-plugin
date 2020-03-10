@@ -15,9 +15,7 @@
 package software.amazon.cloudformation;
 
 import java.util.List;
-
 import lombok.Data;
-
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.OperationStatus;
 

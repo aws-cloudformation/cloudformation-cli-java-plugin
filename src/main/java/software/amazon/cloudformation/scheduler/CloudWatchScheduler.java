@@ -15,12 +15,9 @@
 package software.amazon.cloudformation.scheduler;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-
 import java.util.Objects;
 import java.util.UUID;
-
 import lombok.Data;
-
 import software.amazon.awssdk.services.cloudwatchevents.CloudWatchEventsClient;
 import software.amazon.awssdk.services.cloudwatchevents.model.DeleteRuleRequest;
 import software.amazon.awssdk.services.cloudwatchevents.model.PutRuleRequest;

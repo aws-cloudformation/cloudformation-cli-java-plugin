@@ -16,7 +16,6 @@ package software.amazon.cloudformation.proxy;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import software.amazon.cloudformation.loggers.LogPublisher;
 
 public class LoggerProxy implements Logger {

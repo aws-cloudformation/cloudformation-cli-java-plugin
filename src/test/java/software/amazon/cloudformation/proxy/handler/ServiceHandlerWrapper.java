@@ -15,13 +15,10 @@
 package software.amazon.cloudformation.proxy.handler;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-
 import java.util.Map;
-
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.mockito.Mockito;
-
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.cloudformation.Action;
 import software.amazon.cloudformation.LambdaWrapper;

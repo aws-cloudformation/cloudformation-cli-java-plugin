@@ -22,9 +22,7 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
 import java.io.IOException;
-
 import software.amazon.cloudformation.proxy.aws.AWSServiceSerdeModule;
 
 public class Serializer {

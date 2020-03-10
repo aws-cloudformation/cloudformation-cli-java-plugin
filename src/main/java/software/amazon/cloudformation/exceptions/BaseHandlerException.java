@@ -15,7 +15,6 @@
 package software.amazon.cloudformation.exceptions;
 
 import lombok.Getter;
-
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 
 @Getter
