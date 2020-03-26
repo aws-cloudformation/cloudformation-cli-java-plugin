@@ -196,3 +196,39 @@ def test__namespace_from_project_old_settings():
 
     assert plugin.namespace == ("com", "balloon", "clown", "service")
     assert plugin.package_name == "com.balloon.clown.service"
+
+
+def test__prompt_for_codegen_model_no_selection():
+    project = Mock(type_info=("AWS", "Clown", "Service"), settings={})
+    plugin = JavaLanguagePlugin()
+
+    with patch("rpdk.core.init.input", return_value="") as mock_input:
+        plugin._prompt_for_codegen_model(project)
+
+    mock_input.assert_called_once()
+
+    assert project.settings == {"codegen_template_path": "default"}
+
+
+def test__prompt_for_codegen_model_default():
+    project = Mock(type_info=("AWS", "Clown", "Service"), settings={})
+    plugin = JavaLanguagePlugin()
+
+    with patch("rpdk.core.init.input", return_value="1") as mock_input:
+        plugin._prompt_for_codegen_model(project)
+
+    mock_input.assert_called_once()
+
+    assert project.settings == {"codegen_template_path": "default"}
+
+
+def test__prompt_for_codegen_model_guided_aws():
+    project = Mock(type_info=("AWS", "Clown", "Service"), settings={})
+    plugin = JavaLanguagePlugin()
+
+    with patch("rpdk.core.init.input", return_value="2") as mock_input:
+        plugin._prompt_for_codegen_model(project)
+
+    mock_input.assert_called_once()
+
+    assert project.settings == {"codegen_template_path": "guided-aws"}

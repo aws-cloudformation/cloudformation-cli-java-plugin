@@ -97,3 +97,19 @@ def validate_namespace(default):
         return tuple(namespace)
 
     return _validate_namespace
+
+
+def validate_codegen_model(default):
+    pattern = r"^[1-2]$"
+
+    def _validate_codegen_model(value):
+        if not value:
+            return default
+
+        match = re.match(pattern, value)
+        if not match:
+            raise WizardValidationError("Invalid selection.")
+
+        return value
+
+    return _validate_codegen_model
