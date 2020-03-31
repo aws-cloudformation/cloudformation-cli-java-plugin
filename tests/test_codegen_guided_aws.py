@@ -8,7 +8,7 @@ import yaml
 import pytest
 from rpdk.core.exceptions import InternalError, SysExitRecommendedError
 from rpdk.core.project import Project
-from rpdk.java.codegen import JavaArchiveNotFoundError, JavaLanguagePlugin, CODEGEN
+from rpdk.java.codegen import JavaArchiveNotFoundError, JavaLanguagePlugin
 
 RESOURCE = "DZQWCC"
 
@@ -23,20 +23,13 @@ def project(tmpdir):
     ), patch(
         "rpdk.java.codegen.input_with_validation",
         autospec=True,
-        mock_input_with_validation
+        return_value=("software", "amazon", "foo", RESOURCE.lower()),
+    ), patch(
+        "rpdk.core.init.input",
+        return_value=("2"), # guided_aws codegen
     ):
         project.init("AWS::Foo::{}".format(RESOURCE), "test")
     return project
-
-
-@patch("rpdk.java.codegen.input_with_validation")
-def mock_input_with_validation(prompt, validate, description = ""):
-    if (prompt.startswith("Enter a package name")):
-       return ("software", "amazon", "foo", RESOURCE.lower())
-    elif (prompt.startswith("Choose codegen model")):
-        return "1"
-    else:
-        return ""
 
 
 def test_java_language_plugin_module_is_set():

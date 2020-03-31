@@ -8,6 +8,6 @@ public class Translator {
   static Object describeSampleResourceRequest(final Object input) {
     return input;
   }
-  
+
   // TODO: requests per {Create, Delete, Update, Read, List}
 }
