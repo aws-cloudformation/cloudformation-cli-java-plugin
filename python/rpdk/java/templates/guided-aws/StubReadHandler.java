@@ -1,5 +1,6 @@
 package {{ package_name }};
 
+import java.util.function.Function;
 import software.amazon.awssdk.core.SdkClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
@@ -19,13 +20,24 @@ public class {{ operation }}Handler extends BaseHandlerStd {
 
         // TODO: Adjust Progress Chain according to your implementation
 
-        return proxy.initiate("Service-Name::{{ operation }}-Custom-Resource", proxyClient, model, callbackContext)
-            .request(SAMPLE_REQUEST) // construct a body of a request
+        return proxy.initiate("Service-Name::{{operation}}-Custom-Resource", proxyClient, model, callbackContext)
+            .request(DESCRIBE_REQUEST) // construct a body of a describe request
             .call(EXECUTE_SAMPLE_REQUEST) // make an api call
-            .stabilize(STABILIZE_RESOURCE) // stabilize is describing the resource until it is in a certain status
-            .progress()
-            .then(SAMPLE_UPDATE); // post stabilization update
+            .done(POST_EXECUTE); // gather all properties of the resource
     }
 
-    // put additional logic that is {{ operation }}Handler specific
+    // Sample lambda function to construct a describe request
+    final Function<ResourceModel, Object> DESCRIBE_REQUEST = Translator::describeSampleResourceRequest;
+    final Function<Object, ProgressEvent<ResourceModel, CallbackContext>> POST_EXECUTE =
+        (
+            final Object response // AwsResponse
+        ) -> {
+        // Construct resource model that contains all non-writeOnly properties
+        final ResourceModel model = ResourceModel.builder()
+            /*...*/
+            .build();
+        return ProgressEvent.defaultSuccessHandler(model);
+    };
+
+    // put additional logic that is {{operation}}Handler specific
 }

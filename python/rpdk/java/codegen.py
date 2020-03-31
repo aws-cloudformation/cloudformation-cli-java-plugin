@@ -3,6 +3,7 @@
 import logging
 import shutil
 
+from collections import namedtuple
 from rpdk.core.data_loaders import resource_stream
 from rpdk.core.exceptions import InternalError, SysExitRecommendedError
 from rpdk.core.init import input_with_validation
@@ -16,7 +17,9 @@ LOG = logging.getLogger(__name__)
 
 OPERATIONS = ("Create", "Read", "Update", "Delete", "List")
 EXECUTABLE = "cfn"
-
+AWSCODEGEN = namedtuple('AWSCODEGEN', 'default guided default_code guided_code',
+                        defaults=('default', 'guided-aws', '1', '2'))
+CODEGEN = AWSCODEGEN()
 
 class JavaArchiveNotFoundError(SysExitRecommendedError):
     pass
@@ -70,19 +73,22 @@ class JavaLanguagePlugin(LanguagePlugin):
     def _prompt_for_codegen_model(self, project):
         prompt = "Choose codegen model - 1 (default) or 2 (guided-aws): "
 
-        codegen_model = input_with_validation(prompt, validate_codegen_model("1"))
-        if codegen_model == "1":
-            self.codegen_template_path = "default"
-        elif codegen_model == "2":
-            self.codegen_template_path = "guided-aws"
-        else:
-            self.codegen_template_path = "default"
+        codegen_model = input_with_validation(prompt, validate_codegen_model(CODEGEN.default))
+
+        self.codegen_template_path = CODEGEN.default
+        
+        if codegen_model == CODEGEN.guided_code:
+            self.codegen_template_path = CODEGEN.guided
+        
         project.settings["codegen_template_path"] = self.codegen_template_path
 
     def _get_template(self, project, name):
         return self.env.get_template(
             project.settings["codegen_template_path"] + "/" + name
         )
+
+    def _is_aws_guided(self, project: object) -> bool:
+        return project.settings["codegen_template_path"] == CODEGEN.guided
 
     def init(self, project):
         LOG.debug("Init started")
@@ -150,6 +156,31 @@ class JavaLanguagePlugin(LanguagePlugin):
         )
         project.safewrite(path, contents)
 
+        if self._is_aws_guided(project):
+            LOG.debug("Writing translator")
+            template = self._get_template(project, "Translator.java")
+            path = src / "Translator.java"
+            contents = template.render(package_name=self.package_name)
+            project.safewrite(path, contents)
+
+            LOG.debug("Writing client builder")
+            template = self._get_template(project, "ClientBuilder.java")
+            path = src / "ClientBuilder.java"
+            contents = template.render(package_name=self.package_name)
+            project.safewrite(path, contents)
+
+            LOG.debug("Writing base handler std")
+            template = self._get_template(project, "BaseHandlerStd.java")
+            path = src / "BaseHandlerStd.java"
+            contents = template.render(package_name=self.package_name)
+            project.safewrite(path, contents)
+
+            LOG.debug("Writing abstract test base")
+            template = self._get_template(project, "AbstractTestBase.java")
+            path = tst / "AbstractTestBase.java"
+            contents = template.render(package_name=self.package_name)
+            project.safewrite(path, contents)
+
         LOG.debug("Writing handlers and tests")
         self.init_handlers(project, src, tst)
 
@@ -187,6 +218,8 @@ class JavaLanguagePlugin(LanguagePlugin):
         for operation in OPERATIONS:
             if operation == "List":
                 template = self._get_template(project, "StubListHandler.java")
+            elif self._is_aws_guided(project) and operation == "Read":
+                template = self._get_template(project, "StubReadHandler.java")
             else:
                 template = self._get_template(project, "StubHandler.java")
             path = src / "{}Handler.java".format(operation)
