@@ -96,7 +96,7 @@ public class End2EndCallChainTest {
 
         ProgressEvent<Model,
             StdCallbackContext> event = proxy.initiate("client:createRepository", client, model, context)
-                .request((m) -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
+                .translate((m) -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
                 .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository))
                 .done(r -> ProgressEvent.success(model, context));
 
@@ -104,7 +104,7 @@ public class End2EndCallChainTest {
 
         // replay, should get the same result.
         event = proxy.initiate("client:createRepository", client, model, context)
-            .request((m) -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
+            .translate((m) -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
             .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository))
             .done(r -> ProgressEvent.success(model, context));
         //
@@ -133,7 +133,7 @@ public class End2EndCallChainTest {
         when(serviceClient.createRepository(any(CreateRequest.class))).thenThrow(exists);
         StdCallbackContext newContext = new StdCallbackContext();
         event = proxy.initiate("client:createRepository", client, model, newContext)
-            .request((m) -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
+            .translate((m) -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
             .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository))
             .done(r -> ProgressEvent.success(model, context));
 
@@ -382,7 +382,7 @@ public class End2EndCallChainTest {
 
     @Order(30)
     @Test
-    public void createHandlerThottleException() throws Exception {
+    public void createHandlerThrottleException() throws Exception {
         final HandlerRequest<Model, StdCallbackContext> request = prepareRequest(Model.builder().repoName("repository").build());
         request.setAction(Action.CREATE);
         final Serializer serializer = new Serializer();

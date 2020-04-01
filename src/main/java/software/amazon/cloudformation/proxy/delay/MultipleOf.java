@@ -19,8 +19,8 @@ import java.time.Duration;
 
 /**
  * Provides constant fixed delay seconds which is a multiple of the delay for
- * each attempt until {@link #timeout} has been reached. After which it will
- * return {@link Duration#ZERO}
+ * each attempt until {@link MultipleOf#timeout} has been reached. After which
+ * it will return {@link Duration#ZERO}
  */
 public class MultipleOf extends Constant {
 

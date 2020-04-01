@@ -77,6 +77,12 @@ public class ProgressEvent<ResourceT, CallbackT> {
 
     /**
      * Convenience method for constructing a FAILED response
+     *
+     * @param e actual service exception
+     * @param handlerErrorCode error code to return to CloudFormation
+     * @param <ResourceT> The type for the resource model
+     * @param <CallbackT> the type for the callback context
+     * @return {@link ProgressEvent} failed status code
      */
     public static <ResourceT, CallbackT>
         ProgressEvent<ResourceT, CallbackT>
@@ -98,6 +104,15 @@ public class ProgressEvent<ResourceT, CallbackT> {
 
     /**
      * Convenience method for constructing a IN_PROGRESS response
+     *
+     * @param callbackContext callback context
+     * @param callbackDelaySeconds how much time to wait before calling back the
+     *            handler
+     * @param resourceModel the actual resource model state
+     * @param <ResourceT> The type for the resource model
+     * @param <CallbackT> the type for the callback context
+     * @return {@link ProgressEvent} with {@link OperationStatus#IN_PROGRESS} with
+     *         delay
      */
     public static <ResourceT, CallbackT>
         ProgressEvent<ResourceT, CallbackT>
@@ -115,6 +130,12 @@ public class ProgressEvent<ResourceT, CallbackT> {
 
     /**
      * Convenience method for constructing a SUCCESS response
+     *
+     * @param resourceModel the current resource model state
+     * @param <ResourceT> The type for the resource model
+     * @param <CallbackT> the type for the callback context
+     * @return {@link ProgressEvent} with {@link OperationStatus#SUCCESS} indicating
+     *         successful completion for operation
      */
     public static <ResourceT,
         CallbackT> ProgressEvent<ResourceT, CallbackT> defaultSuccessHandler(final ResourceT resourceModel) {
