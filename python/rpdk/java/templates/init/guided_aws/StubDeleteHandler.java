@@ -22,17 +22,18 @@ public class {{ operation }}Handler extends BaseHandlerStd {
 
         // TODO: Adjust Progress Chain according to your implementation
 
-        return proxy.initiate("Service-Name::{{operation}}-Custom-Resource", proxyClient, model, callbackContext)
-            .request(describeResourceRequest) // construct a body of a describe request
-            .call(executeDescribeRequest) // make an api call
-            .done(postExecution); // gather all properties of the resource
+        return proxy.initiate("Service-Name::{{ operation }}-Custom-Resource", proxyClient, model, callbackContext)
+            .request(deleteResourceRequest) // construct a body of a request
+            .call(executeDeleteRequest) // make an api call
+            .stabilize(commonStabilizer) // stabilize is describing the resource until it is in a certain status
+            .success(); // success if stabilized
     }
 
-    // Sample lambda function to construct a describe request
-    final Function<ResourceModel, Object> describeResourceRequest = Translator::sampleDescribeResourceRequest;
+    // Sample lambda function to construct a delete request
+    final Function<ResourceModel, Object> deleteResourceRequest = Translator::sampleDeleteResourceRequest;
 
     // Inputs: {AwsRequest, SampleSdkClient} | Output: {AwsResponse}
-    final BiFunction<Object, ProxyClient<SdkClient>, Object> executeDescribeRequest =
+    final BiFunction<Object, ProxyClient<SdkClient>, Object> executeDeleteRequest =
         (
             final Object awsRequest, // AwsRequest
             final ProxyClient<SdkClient> proxyClient
@@ -43,16 +44,5 @@ public class {{ operation }}Handler extends BaseHandlerStd {
             return awsResponse; // AwsResponse
         };
 
-    final Function<Object, ProgressEvent<ResourceModel, CallbackContext>> postExecution =
-        (
-            final Object response // AwsResponse
-        ) -> {
-        // Construct resource model that contains all non-writeOnly properties
-        final ResourceModel model = ResourceModel.builder()
-            /*...*/
-            .build();
-        return ProgressEvent.defaultSuccessHandler(model);
-    };
-
-    // put additional logic that is {{operation}}Handler specific
+    // put additional logic that is {{ operation }}Handler specific
 }
