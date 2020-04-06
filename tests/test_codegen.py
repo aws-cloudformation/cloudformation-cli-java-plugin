@@ -1,14 +1,14 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name,protected-access
 import xml.etree.ElementTree as ET
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import yaml
 
 import pytest
 from rpdk.core.exceptions import InternalError, SysExitRecommendedError
 from rpdk.core.project import Project
-from rpdk.java.codegen import JavaArchiveNotFoundError, JavaLanguagePlugin, CODEGEN
+from rpdk.java.codegen import JavaArchiveNotFoundError, JavaLanguagePlugin
 
 RESOURCE = "DZQWCC"
 
@@ -16,27 +16,22 @@ RESOURCE = "DZQWCC"
 @pytest.fixture
 def project(tmpdir):
     project = Project(root=tmpdir)
+    mock_cli = MagicMock(side_effect=mock_input_with_validation)
     with patch.dict(
         "rpdk.core.plugin_registry.PLUGIN_REGISTRY",
         {"test": lambda: JavaLanguagePlugin},
         clear=True,
-    ), patch(
-        "rpdk.java.codegen.input_with_validation",
-        autospec=True,
-        mock_input_with_validation
-    ):
+    ), patch("rpdk.java.codegen.input_with_validation", new=mock_cli):
         project.init("AWS::Foo::{}".format(RESOURCE), "test")
     return project
 
 
-@patch("rpdk.java.codegen.input_with_validation")
-def mock_input_with_validation(prompt, validate, description = ""):
-    if (prompt.startswith("Enter a package name")):
-       return ("software", "amazon", "foo", RESOURCE.lower())
-    elif (prompt.startswith("Choose codegen model")):
+def mock_input_with_validation(prompt, validate):  # pylint: disable=unused-argument
+    if prompt.startswith("Enter a package name"):
+        return ("software", "amazon", "foo", RESOURCE.lower())
+    if prompt.startswith("Choose codegen model"):
         return "1"
-    else:
-        return ""
+    return ""
 
 
 def test_java_language_plugin_module_is_set():

@@ -70,9 +70,7 @@ class JavaLanguagePlugin(LanguagePlugin):
             ".".join(namespace)
         )
 
-        self.namespace = input_with_validation(
-            prompt, validate_namespace(namespace)
-        )
+        self.namespace = input_with_validation(prompt, validate_namespace(namespace))
         project.settings["namespace"] = self.namespace
         self.package_name = ".".join(self.namespace)
 
@@ -115,7 +113,7 @@ class JavaLanguagePlugin(LanguagePlugin):
 
         # initialize shared files
         LOG.debug("Writing project configuration")
-        self.init_shared(project, src, tst)
+        self.init_shared(project, src)
 
         # write specialized generated files
         if self._is_aws_guided(project):
@@ -125,7 +123,7 @@ class JavaLanguagePlugin(LanguagePlugin):
 
         LOG.debug("Init complete")
 
-    def init_shared(self, project, src, tst):
+    def init_shared(self, project, src):
         # .gitignore
         path = project.root / ".gitignore"
         LOG.debug("Writing .gitignore: %s", path)

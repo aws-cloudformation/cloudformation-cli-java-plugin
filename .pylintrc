@@ -12,6 +12,8 @@ disable=
     bad-continuation,           # clashes with black
     too-few-public-methods,     # triggers when inheriting
     ungrouped-imports,          # clashes with isort
+    no-self-use,                # clashes with E0213
+    duplicate-code,             # duplicate test code - can't be ignored inline (https://github.com/PyCQA/pylint/issues/214)
 
 [BASIC]
 
