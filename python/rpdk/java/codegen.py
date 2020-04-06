@@ -24,18 +24,20 @@ AWSCODEGEN = namedtuple(
 )
 CODEGEN = AWSCODEGEN()
 
+
 def logdebug(func: object):
-    ENTRY_MESSAGE = '{} started'
-    WRITING_MESSAGE = 'Writing {}'
-    EXIT_MESSAGE = '{} complete'
     def wrapper(*args, **kwargs):
         log_msg = func.__name__ if not func.__doc__ else func.__doc__
-        LOG.debug(ENTRY_MESSAGE.format(log_msg))
-        if 'entity' in kwargs:
-            LOG.debug(WRITING_MESSAGE.format(kwargs['entity']))
+        entry_message = "{} started".format(log_msg)
+        LOG.debug(entry_message)
+        if "entity" in kwargs:
+            writing_message = "Writing {}".format(kwargs["entity"])
+            LOG.debug(writing_message)
         result = func(*args, **kwargs)
-        LOG.debug(EXIT_MESSAGE.format(log_msg))
+        exit_message = "{} complete".format(log_msg)
+        LOG.debug(exit_message)
         return result
+
     return wrapper
 
 
@@ -84,13 +86,12 @@ class JavaLanguagePlugin(LanguagePlugin):
             ".".join(namespace)
         )
 
-        self.namespace = input_with_validation(
-            prompt, validate_namespace(namespace)
-        )
+        self.namespace = input_with_validation(prompt, validate_namespace(namespace))
         project.settings["namespace"] = self.namespace
         self.package_name = ".".join(self.namespace)
 
-    def _prompt_for_codegen_model(self, project):
+    @staticmethod
+    def _prompt_for_codegen_model(project):
         prompt = "Choose codegen model - 1 (default) or 2 (guided-aws): "
 
         codegen_model = input_with_validation(
@@ -107,23 +108,29 @@ class JavaLanguagePlugin(LanguagePlugin):
             stage + "/" + project.settings["codegen_template_path"] + "/" + name
         )
 
-    def _is_aws_guided(self, project: object) -> bool:
+    @staticmethod
+    def _is_aws_guided(project: object) -> bool:
         return project.settings["codegen_template_path"] == CODEGEN.guided
 
     @logdebug
-    def _writing_component(self,  project: object,  src: str,  entity:str, stub_entity:str=None, operation:str=None,  pojo_name:str=None) -> None:
+    def _writing_component(
+        self, project: object, src: str, entity: str, **kwargs,
+    ) -> None:
         """Writing module"""
-        if not stub_entity: 
+
+        stub_entity: str = kwargs.get("stub_entity")
+        operation: str = kwargs.get("operation")
+        pojo_name: str = kwargs.get("pojo_name")
+
+        if not stub_entity:
             stub_entity = entity
+
         template = self._get_template(project, "init", stub_entity)
         path = src / entity
         contents = template.render(
-            package_name=self.package_name,
-            operation=operation,
-            pojo_name="ResourceModel",
+            package_name=self.package_name, operation=operation, pojo_name=pojo_name,
         )
         project.safewrite(path, contents)
-
 
     @logdebug
     def init(self, project):
@@ -143,16 +150,16 @@ class JavaLanguagePlugin(LanguagePlugin):
         tst.mkdir(parents=True, exist_ok=True)
 
         # initialize shared files
-        self.init_shared(project, src, tst)
+        self.init_shared(project, src)
 
         # write specialized generated files
         if self._is_aws_guided(project):
             self.init_guided_aws(project, src, tst)
         else:
             self.init_default(project, src, tst)
-    
+
     @logdebug
-    def init_shared(self, project, src, tst):
+    def init_shared(self, project, src):
         """Writing project configuration"""
         # .gitignore
         path = project.root / ".gitignore"
@@ -246,7 +253,6 @@ class JavaLanguagePlugin(LanguagePlugin):
         self._writing_component(project, src, entity="BaseHandlerStd.java")
         self._writing_component(project, tst, entity="AbstractTestBase.java")
 
-    
     @logdebug
     def init_handlers(self, project, src, tst):
         """Writing stub handlers and tests"""
@@ -254,16 +260,30 @@ class JavaLanguagePlugin(LanguagePlugin):
         for operation in OPERATIONS:
             entity = "{}Handler.java".format(operation)
             entity_test = "{}HandlerTest.java".format(operation)
-            
+
             stub_entity = "Stub{}Handler.java".format(
                 operation if operation == "List" or self._is_aws_guided(project) else ""
             )
             stub_entity_test = "Stub{}HandlerTest.java".format(
                 operation if operation == "List" else ""
             )
-            
-            self._writing_component(project, src, entity=entity, stub_entity=stub_entity, operation=operation, pojo_name=pojo_name)
-            self._writing_component(project, tst, entity=entity_test, stub_entity=stub_entity_test, operation=operation, pojo_name=pojo_name)
+
+            self._writing_component(
+                project,
+                src,
+                entity=entity,
+                stub_entity=stub_entity,
+                operation=operation,
+                pojo_name=pojo_name,
+            )
+            self._writing_component(
+                project,
+                tst,
+                entity=entity_test,
+                stub_entity=stub_entity_test,
+                operation=operation,
+                pojo_name=pojo_name,
+            )
 
     def _init_settings(self, project):
         project.runtime = self.RUNTIME
@@ -362,7 +382,6 @@ class JavaLanguagePlugin(LanguagePlugin):
                     properties=properties,
                 )
             project.overwrite(path, contents)
-
 
     @staticmethod
     def _find_jar(project):
