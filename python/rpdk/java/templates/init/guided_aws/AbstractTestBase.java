@@ -19,13 +19,11 @@ public class AbstractTestBase {
     logger = new LoggerProxy();
   }
   static ProxyClient<SdkClient> MOCK_PROXY(
-      final AmazonWebServicesClientProxy proxy,
-      final SdkClient sdkClient
-                  ) {
+    final AmazonWebServicesClientProxy proxy,
+    final ServiceSdkClient sdkClient) {
     return new ProxyClient<SdkClient>() {
       @Override
-      public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
-      ResponseT
+      public <RequestT extends AwsRequest, ResponseT extends AwsResponse> ResponseT
       injectCredentialsAndInvokeV2(RequestT request, Function<RequestT, ResponseT> requestFunction) {
         return proxy.injectCredentialsAndInvokeV2(request, requestFunction);
       }
@@ -33,13 +31,12 @@ public class AbstractTestBase {
       @Override
       public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
       CompletableFuture<ResponseT>
-      injectCredentialsAndInvokeV2Aync(RequestT request,
-          Function<RequestT, CompletableFuture<ResponseT>> requestFunction) {
+      injectCredentialsAndInvokeV2Aync(RequestT request, Function<RequestT, CompletableFuture<ResponseT>> requestFunction) {
         throw new UnsupportedOperationException();
       }
 
       @Override
-      public SdkClient client() {
+      public ServiceSdkClient client() {
         return sdkClient;
       }
     };

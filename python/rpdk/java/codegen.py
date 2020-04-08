@@ -17,12 +17,8 @@ LOG = logging.getLogger(__name__)
 
 OPERATIONS = ("Create", "Read", "Update", "Delete", "List")
 EXECUTABLE = "cfn"
-AWSCODEGEN = namedtuple(
-    "AWSCODEGEN",
-    "default guided default_code guided_code",
-    defaults=("default", "guided_aws", "1", "2"),
-)
-CODEGEN = AWSCODEGEN()
+AWSCODEGEN = namedtuple("AWSCODEGEN", "default guided default_code guided_code")
+CODEGEN = AWSCODEGEN("default", "guided_aws", "1", "2")
 
 
 def logdebug(func: object):

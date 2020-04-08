@@ -1,7 +1,6 @@
 package {{ package_name }};
 
 import java.time.Duration;
-import software.amazon.awssdk.core.SdkClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -26,12 +25,12 @@ public class {{ operation }}HandlerTest extends AbstractTestBase {
     private ProxyClient<SdkClient> proxyClient;
 
     @Mock
-    SdkClient sdkClient;
+    ServiceSdkClient sdkClient;
 
     @BeforeEach
     public void setup() {
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
-        sdkClient = mock(SdkClient.class);
+        sdkClient = mock(ServiceSdkClient.class);
         proxyClient = MOCK_PROXY(proxy, sdkClient);
     }
 
