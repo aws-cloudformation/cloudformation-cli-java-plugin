@@ -1,12 +1,16 @@
 package {{ package_name }};
 
+// TODO: replace all usage of SdkClient with your service client type, e.g; YourServiceAsyncClient
+//import com.amzn.my.resource.ClientBuilder.SdkClient;
+
 import java.util.Objects;
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.SdkClient;
 import software.amazon.cloudformation.exceptions.CfnAlreadyExistsException;
-import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
+import software.amazon.cloudformation.exceptions.CfnGeneralServiceException;
 import software.amazon.cloudformation.exceptions.CfnNotFoundException;
-import software.amazon.cloudformation.exceptions.CfnResourceConflictException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -14,14 +18,16 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 
 public class {{ operation }}Handler extends BaseHandlerStd {
-    private static final String CREATED_RESOURCE_STATUS = "available";
+    // CallGraph value helps tracking the execution flow within the callback
+    // TODO: change this if you care, or leave it
+    private static final String CALL_GRAPH_VALUE = "{{ call_graph }}::{{ operation }}";
     private Logger logger;
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
         final AmazonWebServicesClientProxy proxy,
         final ResourceHandlerRequest<ResourceModel> request,
         final CallbackContext callbackContext,
-        final ProxyClient<ServiceSdkClient> proxyClient,
+        final ProxyClient<SdkClient> proxyClient,
         final Logger logger) {
 
         this.logger = logger;
@@ -30,17 +36,30 @@ public class {{ operation }}Handler extends BaseHandlerStd {
 
         // TODO: Adjust Progress Chain according to your implementation
 
+
         return ProgressEvent.progress(model, callbackContext)
-            .then(progress -> checkForPreCreateResourceExistence(proxy, request, progress))
+
+            // STEP 1 [check if resource already exists]
+            // if target API does not support 'ResourceAlreadyExistsException' then following check is required
+            //.then(progress -> checkForPreCreateResourceExistence(proxy, request, progress))
+
+            // STEP 2 [create/stabilize progress chain - required for resource creation]
             .then(progress ->
                 // If your service API throws 'ResourceAlreadyExistsException' for create requests then CreateHandler can return just proxy.initiate construction
-                proxy.initiate("Service-Name::{{ operation }}-Custom-Resource", proxyClient, model, callbackContext)
-                    .request(Translator::translateToCreateRequest) // construct a body of a request
-                    .call(this::createResource) // make an api call
-                    .stabilize(this::stabilizeOnCreate) // stabilize is describing the resource until it is in a certain status
-                    .progress()
-                    .then(progress -> postCreateUpdate(progress, proxyClient)); // post stabilization update
-                )
+                // STEP 2.0 [initialize a proxy context]
+                proxy.initiate(CALL_GRAPH_VALUE, proxyClient, model, callbackContext)
+
+                    // STEP 2.1 [TODO: construct a body of a request]
+                    .request(Translator::translateToCreateRequest)
+
+                    // STEP 2.2 [TODO: make an api call]
+                    .call(this::createResource)
+
+                    // STEP 2.3 [TODO: stabilize is describing the resource until it is in a certain status]
+                    .stabilize(this::stabilizedOnCreate)
+                    .progress())
+
+            // STEP 3 [TODO: describe call/chain to return the resource model]
             .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 
@@ -48,15 +67,19 @@ public class {{ operation }}Handler extends BaseHandlerStd {
      * If your service API does not distinguish duplicate create requests against some identifier (e.g; resource Name)
      * and instead returns a 200 even though a resource already exists, you must first check if the resource exists here
      * NOTE: If your service API throws 'ResourceAlreadyExistsException' for create requests this method is not necessary
-     * @param model
+     * @param proxy Amazon webservice proxy to inject credentials correctly.
+     * @param request incoming resource handler request
+     * @param progressEvent event of the previous state indicating success, in progress with delay callback or failed state
+     * @return progressEvent indicating success, in progress with delay callback or failed state
      */
-    ProgressEvent<ResourceModel, CallbackContext> checkForPreCreateResourceExistence(
+    private ProgressEvent<ResourceModel, CallbackContext> checkForPreCreateResourceExistence(
         final AmazonWebServicesClientProxy proxy,
         final ResourceHandlerRequest<ResourceModel> request,
         final ProgressEvent<ResourceModel, CallbackContext> progressEvent) {
         final ResourceModel model = progressEvent.getResourceModel();
         final CallbackContext callbackContext = progressEvent.getCallbackContext();
         try {
+            // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/ReadHandler.java#L40-L46
             new ReadHandler().handleRequest(proxy, request, callbackContext, logger);
             throw new CfnAlreadyExistsException(ResourceModel.TYPE_NAME, Objects.toString(model.getPrimaryIdentifier()));
         } catch (CfnNotFoundException e) {
@@ -68,64 +91,52 @@ public class {{ operation }}Handler extends BaseHandlerStd {
     /**
      * Implement client invocation of the create request through the proxyClient, which is already initialised with
      * caller credentials, correct region and retry settings
-     * @param awsRequest
-     * @param proxyClient
-     * @return
+     * @param awsRequest the aws service request to create a resource
+     * @param proxyClient the aws service client to make the call
+     * @return awsResponse create resource response
      */
-    AwsResponse createResource(
+    private AwsResponse createResource(
         final AwsRequest awsRequest,
-        final ProxyClient<ServiceSdkClient> proxyClient) {
-        AwsResponse awsResponse;
+        final ProxyClient<SdkClient> proxyClient) {
+        AwsResponse awsResponse = null;
         try {
-            awsResponse = proxyClient.injectCredentialsAndInvokeV2(awsRequest, ClientBuilder.getClient()::executeCreateRequest);
-        } catch (final CfnResourceConflictException e) {
-            throw new CfnInvalidRequestException(ResourceModel.TYPE_NAME, Objects.toString(model.getPrimaryIdentifier()));
+            // TODO: add custom create resource logic
+            // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/CreateHandler.java#L37-L43
+
+        // Proxy framework handles the majority of standardized aws exceptions
+        // Example of error handling in case of a non-standardized exception
+        } catch (final AwsServiceException e) {
+            throw new CfnGeneralServiceException(ResourceModel.TYPE_NAME, e);
         }
 
-        final String message = String.format("%s [%s] successfully created.", ResourceModel.TYPE_NAME, model.getPrimaryIdentifier());
-        logger.log(message);
-
+        logger.log(String.format("%s successfully created.", ResourceModel.TYPE_NAME));
         return awsResponse;
     }
 
     /**
-     * To account for eventual consistency, ensure you stabilize your create request so that a
-     * subsequent Read will successfully describe the resource state that was provisioned
+     * If your service does not provide strong consistency, you will need to account for eventual consistency issues
+     * ensure you stabilize your Create request so that a subsequent Read will successfully describe the resource state that was provisioned
+     * @param awsRequest the aws service request to create a resource
+     * @param awsResponse the aws service response to create a resource
+     * @param proxyClient the aws service client to make the call
+     * @param model resource model
+     * @param callbackContext callback context
+     * @return boolean state of stabilized or not
      */
-    boolean stabilizeOnCreate(
+    private boolean stabilizedOnCreate(
+        final AwsRequest awsRequest,
+        final AwsResponse awsResponse,
+        final ProxyClient<SdkClient> proxyClient,
         final ResourceModel model,
-        final ProxyClient<ServiceSdkClient> proxyClient) {
-        final AwsRequest readRequest = Translator.translateToReadRequest(model);
-        final AwsResponse readResponse = proxyClient.injectCredentialsAndInvokeV2(readRequest, ClientBuilder.getClient()::executeReadRequest);
+        final CallbackContext callbackContext) {
 
-        final status = readRequest.getResourceStatus();
+        // TODO: add custom stabilization logic
 
-        final boolean stabilized = status.equals(CREATED_RESOURCE_STATUS);
+        // hint: for some resources just describing current status would be enough
+        // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/ReadHandler.java#L40-L46
 
-        if (stabalized) {
-            logger.log(String.format("%s [%s] is in %s state. Stabilized.", ResourceModel.TYPE_NAME, model.getPrimaryIdentifier(), CREATED_RESOURCE_STATUS));
-        } else {
-            logger.log(String.format("%s [%s] is in %s state. Stabilization is in progress.", ResourceModel.TYPE_NAME, model.getPrimaryIdentifier(), status));
-        }
+        final boolean stabilized = true;
+        logger.log(String.format("%s [%s] has been stabilized.", ResourceModel.TYPE_NAME, model.getPrimaryIdentifier()));
         return stabilized;
-    }
-
-    /**
-     * If your resource is provisioned through multiple API calls, you will need to apply each post-create update
-     * step in a discrete call/stabilize chain to ensure the entire resource is provisioned as intended.
-     * @param progressEvent
-     * @return
-     */
-    ProgressEvent<ResourceModel, CallbackContext> postCreateUpdate(
-        final ProgressEvent<ResourceModel, CallbackContext> progressEvent,
-        final ProxyClient<ServiceSdkClient> proxyClient) {
-        try {
-            proxyClient.injectCredentialsAndInvokeV2(Translator.translateToUpdateRequest(model), ClientBuilder.getClient()::executeUpdateResource);
-        } catch (final CfnResourceConflictException e) {
-            throw new CfnInvalidRequestException(ResourceModel.TYPE_NAME, Objects.toString(model.getPrimaryIdentifier()));
-        }
-
-        final String message = String.format("%s [%s] successfully updated.", ResourceModel.TYPE_NAME, model.getPrimaryIdentifier());
-        logger.log(message);
     }
 }

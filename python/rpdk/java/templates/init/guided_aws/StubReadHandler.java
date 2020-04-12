@@ -1,6 +1,14 @@
 package {{ package_name }};
 
-import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
+// TODO: replace all usage of SdkClient with your service client type, e.g; YourServiceAsyncClient
+//import com.amzn.my.resource.ClientBuilder.SdkClient;
+
+import java.util.Objects;
+import software.amazon.awssdk.awscore.AwsRequest;
+import software.amazon.awssdk.awscore.AwsResponse;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.SdkClient;
+import software.amazon.cloudformation.exceptions.CfnGeneralServiceException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -8,13 +16,16 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 
 public class {{ operation }}Handler extends BaseHandlerStd {
+    // CallGraph value helps tracking the execution flow within the callback
+    // TODO: change this if you care, or leave it
+    private static final String CALL_GRAPH_VALUE = "{{ call_graph }}::{{ operation }}";
     private Logger logger;
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
         final AmazonWebServicesClientProxy proxy,
         final ResourceHandlerRequest<ResourceModel> request,
         final CallbackContext callbackContext,
-        final ProxyClient<ServiceSdkClient> proxyClient,
+        final ProxyClient<SdkClient> proxyClient,
         final Logger logger) {
 
         this.logger = logger;
@@ -23,43 +34,53 @@ public class {{ operation }}Handler extends BaseHandlerStd {
 
         // TODO: Adjust Progress Chain according to your implementation
 
-        return proxy.initiate("Service-Name::Read-Custom-Resource", proxyClient, model, callbackContext)
-            .request(Translator::translateToReadRequest) // construct a body of a describe request
-            .call(this::readResource) // make an api call
-            .done(this::constructResourceModelFromResponse); // gather all properties of the resource
+
+        // STEP 1 [initialize a proxy context]
+        return proxy.initiate(CALL_GRAPH_VALUE, proxyClient, model, callbackContext)
+
+            // STEP 2 [TODO: construct a body of a request]
+            .request(Translator::translateToReadRequest)
+
+            // STEP 3 [TODO: make an api call]
+            .call((awsRequest, sdkProxyClient) -> readResource(awsRequest, sdkProxyClient , model))
+
+            // STEP 4 [TODO: gather all properties of the resource]
+            .done(this::constructResourceModelFromResponse);
     }
 
     /**
      * Implement client invocation of the read request through the proxyClient, which is already initialised with
      * caller credentials, correct region and retry settings
-     * @param awsRequest
-     * @param proxyClient
-     * @return
+     * @param awsRequest the aws service request to describe a resource
+     * @param proxyClient the aws service client to make the call
+     * @return describe resource response
      */
-    AwsResponse readResource(
+    private AwsResponse readResource(
         final AwsRequest awsRequest,
-        final ProxyClient<ServiceSdkClient> proxyClient) {
-        AwsResponse awsResponse;
+        final ProxyClient<SdkClient> proxyClient,
+        final ResourceModel model) {
+        AwsResponse awsResponse = null;
         try {
-            awsResponse = proxyClient.injectCredentialsAndInvokeV2(awsRequest, ClientBuilder.getClient()::executeReadRequest);
-        } catch (final ResourceConflictException e) {
-            throw new CfnInvalidRequestException(ResourceModel.TYPE_NAME, Objects.toString(model.getPrimaryIdentifier()));
+            // TODO: add custom read resource logic
+            // hint: awsResponse = proxy.injectCredentialsAndInvokeV2(Translator.translateToReadRequest(model), ClientBuilder.getClient()::describeLogGroups);
+
+            // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/ReadHandler.java#L40-L46
+        } catch (final AwsServiceException e) { // ResourceNotFoundException
+            throw new CfnGeneralServiceException(ResourceModel.TYPE_NAME, e); // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/ReadHandler.java#L56-L60
         }
 
-        logger.log(String.format("%s [%s] has successfully been read.", ResourceModel.TYPE_NAME, model.getPrimaryIdentifier()));
+        logger.log(String.format("%s has successfully been read.", ResourceModel.TYPE_NAME));
         return awsResponse;
     }
 
     /**
      * Implement client invocation of the read request through the proxyClient, which is already initialised with
      * caller credentials, correct region and retry settings
-     * @param awsRequest
-     * @param proxyClient
-     * @return
+     * @param awsResponse the aws service describe resource response
+     * @return progressEvent indicating success, in progress with delay callback or failed state
      */
-    AwsResponse constructResourceModelFromResponse(
-        final AwsResponse awsResponse,
-        final ProgressEvent<ResourceModel, CallbackContext> progressEvent) {
-        return progressEvent.success(Translator.translateFromReadRequest(awsResponse));
+    private ProgressEvent<ResourceModel, CallbackContext> constructResourceModelFromResponse(
+        final AwsResponse awsResponse) {
+        return ProgressEvent.defaultSuccessHandler(Translator.translateFromReadResponse(awsResponse));
     }
 }

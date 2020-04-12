@@ -117,6 +117,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         stub_entity: str = kwargs.get("stub_entity")
         operation: str = kwargs.get("operation")
         pojo_name: str = kwargs.get("pojo_name")
+        call_graph: str = kwargs.get("call_graph")
 
         if not stub_entity:
             stub_entity = entity
@@ -124,7 +125,10 @@ class JavaLanguagePlugin(LanguagePlugin):
         template = self._get_template(project, "init", stub_entity)
         path = src / entity
         contents = template.render(
-            package_name=self.package_name, operation=operation, pojo_name=pojo_name
+            package_name=self.package_name,
+            operation=operation,
+            pojo_name=pojo_name,
+            call_graph=call_graph,
         )
         project.safewrite(path, contents)
 
@@ -271,6 +275,7 @@ class JavaLanguagePlugin(LanguagePlugin):
                 stub_entity=stub_entity,
                 operation=operation,
                 pojo_name=pojo_name,
+                call_graph=project.type_name.replace("::", "-"),
             )
             self._writing_component(
                 project,

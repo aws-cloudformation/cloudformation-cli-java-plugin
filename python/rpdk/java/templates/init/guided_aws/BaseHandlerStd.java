@@ -1,5 +1,6 @@
 package {{ package_name }};
 
+import software.amazon.awssdk.core.SdkClient;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -29,7 +30,5 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     final ProxyClient<SdkClient> proxyClient,
     final Logger logger);
 
-  /*
-   * Common or abstract methods and functions should be in this class
-   * */
+  // Placeholder for the functionality that could be shared across Create/Read/Update/Delete/List Handlers
 }

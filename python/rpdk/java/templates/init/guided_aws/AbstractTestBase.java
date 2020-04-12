@@ -20,7 +20,7 @@ public class AbstractTestBase {
   }
   static ProxyClient<SdkClient> MOCK_PROXY(
     final AmazonWebServicesClientProxy proxy,
-    final ServiceSdkClient sdkClient) {
+    final SdkClient sdkClient) {
     return new ProxyClient<SdkClient>() {
       @Override
       public <RequestT extends AwsRequest, ResponseT extends AwsResponse> ResponseT
@@ -36,7 +36,7 @@ public class AbstractTestBase {
       }
 
       @Override
-      public ServiceSdkClient client() {
+      public SdkClient client() {
         return sdkClient;
       }
     };

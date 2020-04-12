@@ -21,6 +21,7 @@ public class {{ operation }}Handler extends BaseHandler<CallbackContext> {
         final List<ResourceModel> models = new ArrayList<>();
 
         // TODO : put your code here
+        // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/ListHandler.java#L19-L21
 
         return ProgressEvent.<{{ pojo_name }}, CallbackContext>builder()
             .resourceModels(models)
