@@ -1,7 +1,9 @@
 package {{ package_name }};
 
-import software.amazon.cloudformation.LambdaWrapper;
 import software.amazon.awssdk.core.SdkClient;
+// TODO: replace all usage of SdkClient with your service client type, e.g; YourServiceAsyncClient
+// import software.amazon.awssdk.services.yourservice.YourServiceAsyncClient;
+// import software.amazon.cloudformation.LambdaWrapper;
 
 public class ClientBuilder {
   /*

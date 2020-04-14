@@ -40,6 +40,6 @@ jobs:
         - DIR=$(mktemp -d)
         - cd "$DIR"
         - ls -la
-        - printf "AWS::Foo::Bar\n\n" | cfn init -vv
+        - printf "AWS::Foo::Bar\n\n2" | cfn init -vv
         - mvn verify
         - ls -la

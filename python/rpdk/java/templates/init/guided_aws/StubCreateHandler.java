@@ -1,7 +1,7 @@
 package {{ package_name }};
 
 // TODO: replace all usage of SdkClient with your service client type, e.g; YourServiceAsyncClient
-//import com.amzn.my.resource.ClientBuilder.SdkClient;
+// import software.amazon.awssdk.services.yourservice.YourServiceAsyncClient;
 
 import java.util.Objects;
 import software.amazon.awssdk.awscore.AwsRequest;
@@ -18,9 +18,6 @@ import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 
 public class {{ operation }}Handler extends BaseHandlerStd {
-    // CallGraph value helps tracking the execution flow within the callback
-    // TODO: change this if you care, or leave it
-    private static final String CALL_GRAPH_VALUE = "{{ call_graph }}::{{ operation }}";
     private Logger logger;
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -36,7 +33,6 @@ public class {{ operation }}Handler extends BaseHandlerStd {
 
         // TODO: Adjust Progress Chain according to your implementation
 
-
         return ProgressEvent.progress(model, callbackContext)
 
             // STEP 1 [check if resource already exists]
@@ -47,7 +43,7 @@ public class {{ operation }}Handler extends BaseHandlerStd {
             .then(progress ->
                 // If your service API throws 'ResourceAlreadyExistsException' for create requests then CreateHandler can return just proxy.initiate construction
                 // STEP 2.0 [initialize a proxy context]
-                proxy.initiate(CALL_GRAPH_VALUE, proxyClient, model, callbackContext)
+                proxy.initiate("{{ call_graph }}::{{ operation }}", proxyClient, model, callbackContext)
 
                     // STEP 2.1 [TODO: construct a body of a request]
                     .request(Translator::translateToCreateRequest)

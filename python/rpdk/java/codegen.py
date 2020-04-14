@@ -91,7 +91,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         prompt = "Choose codegen model - 1 (default) or 2 (guided-aws): "
 
         codegen_model = input_with_validation(
-            prompt, validate_codegen_model(CODEGEN.default)
+            prompt, validate_codegen_model(CODEGEN.default_code)
         )
 
         project.settings["codegen_template_path"] = CODEGEN.default
@@ -150,16 +150,14 @@ class JavaLanguagePlugin(LanguagePlugin):
         tst.mkdir(parents=True, exist_ok=True)
 
         # initialize shared files
-        self.init_shared(project, src)
+        self.init_shared(project, src, tst)
 
         # write specialized generated files
         if self._is_aws_guided(project):
             self.init_guided_aws(project, src, tst)
-        else:
-            self.init_default(project, src, tst)
 
     @logdebug
-    def init_shared(self, project, src):
+    def init_shared(self, project, src, tst):
         """Writing project configuration"""
         # .gitignore
         path = project.root / ".gitignore"
@@ -238,16 +236,11 @@ class JavaLanguagePlugin(LanguagePlugin):
         )
         project.safewrite(path, contents)
 
-    @logdebug
-    def init_default(self, project, src, tst):
-        """Writing handlers and tests"""
         self.init_handlers(project, src, tst)
 
     @logdebug
     def init_guided_aws(self, project, src, tst):
-        """Writing handlers and tests"""
-        self.init_handlers(project, src, tst)
-
+        """Writing supporting modules"""
         self._writing_component(project, src, entity="Translator.java")
         self._writing_component(project, src, entity="ClientBuilder.java")
         self._writing_component(project, src, entity="BaseHandlerStd.java")

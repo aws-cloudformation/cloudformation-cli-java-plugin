@@ -1,5 +1,7 @@
 package {{ package_name }};
 
+import software.amazon.awssdk.awscore.AwsRequest;
+import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -20,11 +22,21 @@ public class {{ operation }}Handler extends BaseHandler<CallbackContext> {
 
         final List<ResourceModel> models = new ArrayList<>();
 
-        // TODO : put your code here
+        // STEP 1 [TODO: construct a body of a request]
+        final AwsRequest awsRequest = Translator.translateToListRequest(request.getNextToken());
+
+        // STEP 2 [TODO: make an api call]
+        AwsResponse awsResponse = null; // proxy.injectCredentialsAndInvokeV2(awsRequest, ClientBuilder.getClient()::describeLogGroups);
+
+        // STEP 3 [TODO: get a token for the next page]
+        String nextToken = null;
+
+        // STEP 4 [TODO: construct resource models]
         // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/ListHandler.java#L19-L21
 
-        return ProgressEvent.<{{ pojo_name }}, CallbackContext>builder()
+        return ProgressEvent.<ResourceModel, CallbackContext>builder()
             .resourceModels(models)
+            .nextToken(nextToken)
             .status(OperationStatus.SUCCESS)
             .build();
     }

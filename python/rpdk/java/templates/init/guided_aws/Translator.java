@@ -31,7 +31,6 @@ public class Translator {
     return awsRequest;
   }
 
-
   /**
    * Request to read a resource
    * @param model resource model
@@ -43,7 +42,6 @@ public class Translator {
     // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/Translator.java#L20
     return awsRequest;
   }
-
 
   /**
    * Translates resource object from sdk into a resource model
@@ -58,7 +56,6 @@ public class Translator {
         .build();
   }
 
-
   /**
    * Request to delete a resource
    * @param model resource model
@@ -70,7 +67,6 @@ public class Translator {
     // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/Translator.java#L33
     return awsRequest;
   }
-
 
   /**
    * Request to update properties of a previously created resource
@@ -84,7 +80,6 @@ public class Translator {
     return awsRequest;
   }
 
-
   /**
    * Request to update properties of a previously created resource
    * @param nextToken token passed to the aws service describe resource request
@@ -96,7 +91,6 @@ public class Translator {
     // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/Translator.java#L26
     return awsRequest;
   }
-
 
   /**
    * Translates resource objects from sdk into a resource model (primary identifier only)
@@ -111,7 +105,6 @@ public class Translator {
             .build())
         .collect(Collectors.toList());
   }
-
 
   private static <T> Stream<T> streamOfOrEmpty(final Collection<T> collection) {
     return Optional.ofNullable(collection)
