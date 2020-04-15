@@ -5,6 +5,7 @@ import java.util.function.Function;
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.core.SdkClient;
+import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Credentials;
 import software.amazon.cloudformation.proxy.LoggerProxy;
@@ -31,8 +32,15 @@ public class AbstractTestBase {
       @Override
       public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
       CompletableFuture<ResponseT>
-      injectCredentialsAndInvokeV2Aync(RequestT request, Function<RequestT, CompletableFuture<ResponseT>> requestFunction) {
+      injectCredentialsAndInvokeV2Async(RequestT request, Function<RequestT, CompletableFuture<ResponseT>> requestFunction) {
         throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public <RequestT extends AwsRequest, ResponseT extends AwsResponse, IterableT extends SdkIterable<ResponseT>>
+      IterableT
+      injectCredentialsAndInvokeIterableV2(RequestT request, Function<RequestT, IterableT> requestFunction) {
+        return proxy.injectCredentialsAndInvokeIterableV2(request, requestFunction);
       }
 
       @Override
