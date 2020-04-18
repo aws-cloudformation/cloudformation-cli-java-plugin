@@ -15,7 +15,7 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 
-public class {{ operation }}Handler extends BaseHandlerStd {
+public class DeleteHandler extends BaseHandlerStd {
     private Logger logger;
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -34,6 +34,7 @@ public class {{ operation }}Handler extends BaseHandlerStd {
         return ProgressEvent.progress(model, callbackContext)
 
             // STEP 1 [check if resource already exists]
+            // for more information -> https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-test-contract.html#resource-type-test-contract-communication
             // if target API does not support 'ResourceNotFoundException' then following check is required
             .then(progress -> checkForPreDeleteResourceExistence(proxy, request, progress))
 
@@ -49,7 +50,8 @@ public class {{ operation }}Handler extends BaseHandlerStd {
                     // STEP 2.2 [TODO: make an api call]
                     .call(this::deleteResource)
 
-                    // STEP 2.3 [TODO: stabilize is describing the resource until it is in a certain status]
+                    // STEP 2.3 [TODO: stabilize step is not necessarily required but typically involves describing the resource until it is in a certain status, though it can take many forms]
+                    // for more information -> https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-test-contract.html#resource-type-test-contract-communication
                     .stabilize(this::stabilizedOnDelete)
                     .success());
     }
@@ -70,12 +72,11 @@ public class {{ operation }}Handler extends BaseHandlerStd {
         final ResourceModel model = progressEvent.getResourceModel();
         final CallbackContext callbackContext = progressEvent.getCallbackContext();
         try {
-            // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/ReadHandler.java#L40-L46
             new ReadHandler().handleRequest(proxy, request, callbackContext, logger);
             return ProgressEvent.progress(model, callbackContext);
-        } catch (CfnNotFoundException e) {
-            logger.log(model.getPrimaryIdentifier() + " does not exist; creating the resource.");
-            return ProgressEvent.success(model, callbackContext);
+        } catch (CfnNotFoundException e) { // ResourceNotFoundException
+            logger.log(model.getPrimaryIdentifier() + " does not exist.");
+            throw e;
         }
     }
 
@@ -91,11 +92,15 @@ public class {{ operation }}Handler extends BaseHandlerStd {
         final ProxyClient<SdkClient> proxyClient) {
         AwsResponse awsResponse = null;
         try {
-            // TODO: add custom create resource logic
-            // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/DeleteHandler.java#L21-L27
+            // TODO: put your delete resource code here
+            // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-82aedf3b1de1e4a4948229fa3cac03f0R21-R30
 
-        // Framework handles the majority of standardized aws exceptions
-        // Example of error handling in case of a non-standardized exception
+            /*
+             * While the handler contract states that the handler must always return a progress event,
+             * you may throw any instance of BaseHandlerException (https://code.amazon.com/packages/AWSCloudFormationRPDKJavaPlugin/blobs/mainline/--/src/main/java/software/amazon/cloudformation/exceptions/BaseHandlerException.java),
+             * as the wrapper map it to a progress event. Each BaseHandlerException maps to a specific error code, and you should map service exceptions as closely as possible
+             * to more specific error codes (https://code.amazon.com/packages/AWSCloudFormationRPDKJavaPlugin/blobs/mainline/--/src/main/java/software/amazon/cloudformation/proxy/HandlerErrorCode.java)
+             */
         } catch (final AwsServiceException e) {
             throw new CfnGeneralServiceException(ResourceModel.TYPE_NAME, e);
         }
@@ -105,8 +110,8 @@ public class {{ operation }}Handler extends BaseHandlerStd {
     }
 
     /**
-     * If your service does not provide strong consistency, you will need to account for eventual consistency issues
-     * ensure you stabilize your Delete request in order not to generate a false positive stack event
+     * If deletion of your resource requires some form of stabilization (e.g. propagation delay)
+     * for more information -> https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-test-contract.html#resource-type-test-contract-communication
      * @param awsRequest the aws service request to delete a resource
      * @param awsResponse the aws service response to delete a resource
      * @param proxyClient the aws service client to make the call
@@ -121,10 +126,7 @@ public class {{ operation }}Handler extends BaseHandlerStd {
         final ResourceModel model,
         final CallbackContext callbackContext) {
 
-        // TODO: add custom stabilization logic
-
-        // hint: if describe a resource throws ResourceNotFoundException, that might be good enough
-        // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/ReadHandler.java#L40-L46
+        // TODO: put your stabilization code here
 
         final boolean stabilized = true;
         logger.log(String.format("%s has successfully been deleted. Stabilized.", ResourceModel.TYPE_NAME));

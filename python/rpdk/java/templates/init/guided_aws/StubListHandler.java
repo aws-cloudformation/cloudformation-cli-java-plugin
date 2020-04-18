@@ -11,7 +11,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import java.util.ArrayList;
 import java.util.List;
 
-public class {{ operation }}Handler extends BaseHandler<CallbackContext> {
+public class ListHandler extends BaseHandler<CallbackContext> {
 
     @Override
     public ProgressEvent<{{ pojo_name }}, CallbackContext> handleRequest(

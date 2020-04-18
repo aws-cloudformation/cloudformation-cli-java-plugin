@@ -17,7 +17,7 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 
-public class {{ operation }}Handler extends BaseHandlerStd {
+public class CreateHandler extends BaseHandlerStd {
     private Logger logger;
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -37,6 +37,7 @@ public class {{ operation }}Handler extends BaseHandlerStd {
 
             // STEP 1 [check if resource already exists]
             // if target API does not support 'ResourceAlreadyExistsException' then following check is required
+            // for more information -> https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-test-contract.html#resource-type-test-contract-communication
             //.then(progress -> checkForPreCreateResourceExistence(proxy, request, progress))
 
             // STEP 2 [create/stabilize progress chain - required for resource creation]
@@ -51,16 +52,20 @@ public class {{ operation }}Handler extends BaseHandlerStd {
                     // STEP 2.2 [TODO: make an api call]
                     .call(this::createResource)
 
-                    // STEP 2.3 [TODO: stabilize is describing the resource until it is in a certain status]
+                    // STEP 2.3 [TODO: stabilize step is not necessarily required but typically involves describing the resource until it is in a certain status, though it can take many forms]
+                    // for more information -> https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-test-contract.html#resource-type-test-contract-communication
                     .stabilize(this::stabilizedOnCreate)
                     .progress())
 
-            // STEP 3 [TODO: describe call/chain to return the resource model]
+            // STEP 3 [TODO: post create/stabilize update]
+            .then(progress -> postCreate(progress, proxyClient))
+
+            // STEP 4 [TODO: describe call/chain to return the resource model]
             .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 
     /**
-     * If your service API does not distinguish duplicate create requests against some identifier (e.g; resource Name)
+     * If your service API is not idempotent, meaning it does not distinguish duplicate create requests against some identifier (e.g; resource Name)
      * and instead returns a 200 even though a resource already exists, you must first check if the resource exists here
      * NOTE: If your service API throws 'ResourceAlreadyExistsException' for create requests this method is not necessary
      * @param proxy Amazon webservice proxy to inject credentials correctly.
@@ -75,7 +80,7 @@ public class {{ operation }}Handler extends BaseHandlerStd {
         final ResourceModel model = progressEvent.getResourceModel();
         final CallbackContext callbackContext = progressEvent.getCallbackContext();
         try {
-            // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/ReadHandler.java#L40-L46
+            // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-5761e3a9f732dc1ef84103dc4bc93399R41-R46
             new ReadHandler().handleRequest(proxy, request, callbackContext, logger);
             throw new CfnAlreadyExistsException(ResourceModel.TYPE_NAME, Objects.toString(model.getPrimaryIdentifier()));
         } catch (CfnNotFoundException e) {
@@ -96,11 +101,15 @@ public class {{ operation }}Handler extends BaseHandlerStd {
         final ProxyClient<SdkClient> proxyClient) {
         AwsResponse awsResponse = null;
         try {
-            // TODO: add custom create resource logic
-            // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/CreateHandler.java#L37-L43
+            // TODO: put your create resource code here
+            // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/ffb15c1a2ca6eb19c051d19d79c0f022719b1493#diff-cbc963180c54a3bf4965fff3f499f365R37-R43
 
-        // Proxy framework handles the majority of standardized aws exceptions
-        // Example of error handling in case of a non-standardized exception
+            /*
+             * While the handler contract states that the handler must always return a progress event,
+             * you may throw any instance of BaseHandlerException (https://code.amazon.com/packages/AWSCloudFormationRPDKJavaPlugin/blobs/mainline/--/src/main/java/software/amazon/cloudformation/exceptions/BaseHandlerException.java),
+             * as the wrapper map it to a progress event. Each BaseHandlerException maps to a specific error code, and you should map service exceptions as closely as possible
+             * to more specific error codes (https://code.amazon.com/packages/AWSCloudFormationRPDKJavaPlugin/blobs/mainline/--/src/main/java/software/amazon/cloudformation/proxy/HandlerErrorCode.java)
+             */
         } catch (final AwsServiceException e) {
             throw new CfnGeneralServiceException(ResourceModel.TYPE_NAME, e);
         }
@@ -110,8 +119,9 @@ public class {{ operation }}Handler extends BaseHandlerStd {
     }
 
     /**
-     * If your service does not provide strong consistency, you will need to account for eventual consistency issues
-     * ensure you stabilize your Create request so that a subsequent Read will successfully describe the resource state that was provisioned
+     * If your resource requires some form of stabilization (e.g. service does not provide strong consistency), you will need to ensure that your code
+     * accounts for any potential issues, so that a subsequent read/update requests will not cause any conflicts (e.g. NotFoundException/InvalidRequestException)
+     * for more information -> https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-test-contract.html#resource-type-test-contract-communication
      * @param awsRequest the aws service request to create a resource
      * @param awsResponse the aws service response to create a resource
      * @param proxyClient the aws service client to make the call
@@ -126,13 +136,41 @@ public class {{ operation }}Handler extends BaseHandlerStd {
         final ResourceModel model,
         final CallbackContext callbackContext) {
 
-        // TODO: add custom stabilization logic
-
-        // hint: for some resources just describing current status would be enough
-        // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/ReadHandler.java#L40-L46
+        // TODO: put your stabilization code here
 
         final boolean stabilized = true;
         logger.log(String.format("%s [%s] has been stabilized.", ResourceModel.TYPE_NAME, model.getPrimaryIdentifier()));
         return stabilized;
+    }
+
+    /**
+     * If your resource is provisioned through multiple API calls, you will need to apply each subsequent update
+     * step in a discrete call/stabilize chain to ensure the entire resource is provisioned as intended.
+     * @param progressEvent of the previous state indicating success, in progress with delay callback or failed state
+     * @param proxyClient the aws service client to make the call
+     * @return progressEvent indicating success, in progress with delay callback or failed state
+     */
+    private ProgressEvent<ResourceModel, CallbackContext> postCreate(
+        final ProgressEvent<ResourceModel, CallbackContext> progressEvent,
+        final ProxyClient<SdkClient> proxyClient) {
+
+        final ResourceModel model = progressEvent.getResourceModel();
+        final CallbackContext callbackContext = progressEvent.getCallbackContext();
+        try {
+            // TODO: put your post creation resource update code here
+            // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-c959c290785791b96fa4442573750fcdR69-R74
+
+            /*
+             * While the handler contract states that the handler must always return a progress event,
+             * you may throw any instance of BaseHandlerException (https://code.amazon.com/packages/AWSCloudFormationRPDKJavaPlugin/blobs/mainline/--/src/main/java/software/amazon/cloudformation/exceptions/BaseHandlerException.java),
+             * as the wrapper map it to a progress event. Each BaseHandlerException maps to a specific error code, and you should map service exceptions as closely as possible
+             * to more specific error codes (https://code.amazon.com/packages/AWSCloudFormationRPDKJavaPlugin/blobs/mainline/--/src/main/java/software/amazon/cloudformation/proxy/HandlerErrorCode.java)
+             */
+        } catch (final AwsServiceException e) {
+            throw new CfnGeneralServiceException(ResourceModel.TYPE_NAME, e);
+        }
+
+        logger.log(String.format("%s [%s] has successfully been updated.", ResourceModel.TYPE_NAME, model.getPrimaryIdentifier()));
+        return ProgressEvent.progress(model, callbackContext);
     }
 }

@@ -27,7 +27,7 @@ public class Translator {
   static AwsRequest translateToCreateRequest(final ResourceModel model) {
     final AwsRequest awsRequest = null;
     // TODO: construct a request
-    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/Translator.java#L39
+    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-7d3685f019c68d5d8d9b4d17e8aa0e8cR39
     return awsRequest;
   }
 
@@ -39,7 +39,7 @@ public class Translator {
   static AwsRequest translateToReadRequest(final ResourceModel model) {
     final AwsRequest awsRequest = null;
     // TODO: construct a request
-    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/Translator.java#L20
+    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-7d3685f019c68d5d8d9b4d17e8aa0e8cR20
     return awsRequest;
   }
 
@@ -49,9 +49,8 @@ public class Translator {
    * @return model resource model
    */
   static ResourceModel translateFromReadResponse(final AwsResponse awsResponse) {
-    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/Translator.java#L58
+    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-7d3685f019c68d5d8d9b4d17e8aa0e8cR58
     return ResourceModel.builder()
-        //.primaryIdentifier(response.primaryIdentifier())
         //.someProperty(response.property())
         .build();
   }
@@ -64,7 +63,7 @@ public class Translator {
   static AwsRequest translateToDeleteRequest(final ResourceModel model) {
     final AwsRequest awsRequest = null;
     // TODO: construct a request
-    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/Translator.java#L33
+    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-7d3685f019c68d5d8d9b4d17e8aa0e8cR33
     return awsRequest;
   }
 
@@ -76,7 +75,7 @@ public class Translator {
   static AwsRequest translateToUpdateRequest(final ResourceModel model) {
     final AwsRequest awsRequest = null;
     // TODO: construct a request
-    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/Translator.java#L45
+    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-7d3685f019c68d5d8d9b4d17e8aa0e8cR45
     return awsRequest;
   }
 
@@ -88,7 +87,7 @@ public class Translator {
   static AwsRequest translateToListRequest(final String nextToken) {
     final AwsRequest awsRequest = null;
     // TODO: construct a request
-    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/Translator.java#L26
+    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-7d3685f019c68d5d8d9b4d17e8aa0e8cR26
     return awsRequest;
   }
 
@@ -98,10 +97,10 @@ public class Translator {
    * @return list of resource models
    */
   static List<ResourceModel> translateFromListRequest(final AwsResponse awsResponse) {
-    // e.g. e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/Translator.java#L81
+    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-7d3685f019c68d5d8d9b4d17e8aa0e8cR75
     return streamOfOrEmpty(Lists.newArrayList())
         .map(resource -> ResourceModel.builder()
-            //.primaryIdentifier(resource.primaryIdentifier())
+            // include only primary identifier
             .build())
         .collect(Collectors.toList());
   }
