@@ -18,8 +18,8 @@ import java.time.Duration;
 
 /**
  * Provides delay seconds which is a multiple of the delay shifted from previous
- * attempt's accrual until {@link #timeout} has been reached. After which it
- * will return {@link Duration#ZERO}
+ * attempt's accrual until {@link ShiftByMultipleOf#timeout} has been reached.
+ * After which it will return {@link Duration#ZERO}
  */
 public class ShiftByMultipleOf extends MultipleOf {
 

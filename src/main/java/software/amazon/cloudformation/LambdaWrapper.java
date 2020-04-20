@@ -62,6 +62,7 @@ import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.CallbackAdapter;
 import software.amazon.cloudformation.proxy.CloudFormationCallbackAdapter;
 import software.amazon.cloudformation.proxy.Credentials;
+import software.amazon.cloudformation.proxy.DelayFactory;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.HandlerRequest;
 import software.amazon.cloudformation.proxy.LoggerProxy;
@@ -126,7 +127,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         this.typeReference = getTypeReference();
     }
 
-    /**
+    /*
      * This .ctor provided for testing
      */
     public LambdaWrapper(final CallbackAdapter<ResourceT> callbackAdapter,
@@ -385,7 +386,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         if (request.getRequestData().getCallerCredentials() != null) {
             awsClientProxy = new AmazonWebServicesClientProxy(requestContext == null, this.loggerProxy,
                                                               request.getRequestData().getCallerCredentials(),
-                                                              () -> (long) context.getRemainingTimeInMillis());
+                                                              () -> (long) context.getRemainingTimeInMillis(),
+                                                              DelayFactory.CONSTANT_DEFAULT_DELAY_FACTORY);
         }
 
         boolean computeLocally = true;
@@ -600,6 +602,16 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
     /**
      * Implemented by the handler package as the key entry point.
+     *
+     * @param proxy Amazon webservice proxy to inject credentials correctly.
+     * @param request incoming request for the call
+     * @param action which action to take {@link Action#CREATE},
+     *            {@link Action#DELETE}, {@link Action#READ} {@link Action#LIST} or
+     *            {@link Action#UPDATE}
+     * @param callbackContext the callback context to handle reentrant calls
+     * @return progress event indicating success, in progress with delay callback or
+     *         failed state
+     * @throws Exception propagate any unexpected errors
      */
     public abstract ProgressEvent<ResourceT, CallbackT> invokeHandler(AmazonWebServicesClientProxy proxy,
                                                                       ResourceHandlerRequest<ResourceT> request,
@@ -607,7 +619,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                                                                       CallbackT callbackContext)
         throws Exception;
 
-    /**
+    /*
      * null-safe exception metrics delivery
      */
     private void publishExceptionMetric(final Action action, final Throwable ex, final HandlerErrorCode handlerErrorCode) {

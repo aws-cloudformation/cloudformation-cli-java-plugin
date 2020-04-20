@@ -33,7 +33,8 @@ public interface CallbackAdapter<T> {
      *
      * @param bearerToken unique identifier for this provisioning operation
      * @param errorCode (optional) error code in case of fault
-     * @param operationStatus current status of provisioning operation
+     * @param operationStatus new status of provisioning operation
+     * @param currentOperationStatus current status of provisioning operation
      * @param resourceModel the current state of the provisioned resource
      * @param statusMessage (optional) progress status which may be shown to end
      *            user

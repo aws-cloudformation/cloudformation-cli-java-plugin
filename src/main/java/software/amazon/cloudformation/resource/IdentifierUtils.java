@@ -30,6 +30,10 @@ public class IdentifierUtils {
      * resource name when the customer does not pass in an explicit name For more
      * info, see the named resources section of the developer guide https://...
      *
+     * @param logicalResourceId logical name for the resource as defined in
+     *            CloudFormation
+     * @param clientRequestToken the idempotent token from CloudFormation to help
+     *            detect duplicate calls
      * @return generated ID string
      */
     public static String generateResourceIdentifier(final String logicalResourceId, final String clientRequestToken) {
@@ -41,6 +45,11 @@ public class IdentifierUtils {
      * resource name when the customer does not pass in an explicit name For more
      * info, see the named resources section of the developer guide https://...
      *
+     * @param logicalResourceId logical name for the resource as defined in
+     *            CloudFormation
+     * @param clientRequestToken the idempotent token from CloudFormation to help
+     *            detect duplicate calls
+     * @param maxLength the maximum length size for the identifier
      * @return generated ID string
      */
     public static String

@@ -78,6 +78,8 @@ public class CloudWatchScheduler {
      *            will occur. CWE provides only minute-granularity
      * @param handlerRequest additional context which the handler can provide itself
      *            for re-invocation
+     * @param <ResourceT> resource model state configuration to apply
+     * @param <CallbackT> callback context associated with reschedule context
      */
     public <ResourceT, CallbackT> void rescheduleAfterMinutes(final String functionArn,
                                                               final int minutesFromNow,

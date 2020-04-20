@@ -42,11 +42,11 @@ public class CreateHandler {
         final StdCallbackContext cxt = context == null ? new StdCallbackContext() : context;
 
         ProxyClient<ServiceClient> client = proxy.newProxy(() -> this.client);
-        return proxy.initiate("client:createRepository", client, model, cxt).request((m) -> {
+        return proxy.initiate("client:createRepository", client, model, cxt).translate((m) -> {
             CreateRequest.Builder builder = new CreateRequest.Builder();
             builder.repoName(m.getRepoName());
             return builder.build();
-        }).retry(Constant.of().delay(Duration.ofSeconds(3)).timeout(Duration.ofSeconds(9)).build())
+        }).backoff(Constant.of().delay(Duration.ofSeconds(3)).timeout(Duration.ofSeconds(9)).build())
             .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository))
             .done((request1, response, client1, model1, context1) -> new ReadHandler(this.client).handleRequest(proxy, request,
                 cxt, loggerProxy));

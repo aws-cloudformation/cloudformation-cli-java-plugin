@@ -12,22 +12,17 @@
 * express or implied. See the License for the specific language governing
 * permissions and limitations under the License.
 */
-package software.amazon.cloudformation.injection;
+package software.amazon.cloudformation.proxy;
 
-import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
-import software.amazon.cloudformation.proxy.Credentials;
+import java.time.Duration;
+import software.amazon.cloudformation.proxy.delay.Constant;
 
-public interface CredentialsProvider {
+@FunctionalInterface
+public interface DelayFactory {
+    DelayFactory CONSTANT_DEFAULT_DELAY_FACTORY = (apiCall, incoming) -> incoming != null
+        ? incoming
+        : Constant.of().delay(Duration.ofSeconds(5)).timeout(Duration.ofMinutes(20)).build();
 
-    /**
-     * @return the current set of credentials for initialising AWS SDK Clients
-     */
-    AwsSessionCredentials get();
+    Delay getDelay(String apiCall, Delay provided);
 
-    /**
-     * Inject a new set of credentials (passed through from caller)
-     *
-     * @param credentials, incoming credentials for the call that is being made
-     */
-    void setCredentials(Credentials credentials);
 }
