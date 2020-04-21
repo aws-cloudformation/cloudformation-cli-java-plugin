@@ -34,7 +34,7 @@ public class DeleteHandler extends BaseHandlerStd {
         return ProgressEvent.progress(model, callbackContext)
 
             // STEP 1 [check if resource already exists]
-            // for more information -> https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-test-contract.html#resource-type-test-contract-communication
+            // for more information -> https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-test-contract.html
             // if target API does not support 'ResourceNotFoundException' then following check is required
             .then(progress -> checkForPreDeleteResourceExistence(proxy, request, progress))
 
@@ -45,13 +45,13 @@ public class DeleteHandler extends BaseHandlerStd {
                 proxy.initiate("{{ call_graph }}::{{ operation }}", proxyClient, model, callbackContext)
 
                     // STEP 2.1 [TODO: construct a body of a request]
-                    .request(Translator::translateToDeleteRequest)
+                    .translate(Translator::translateToDeleteRequest)
 
                     // STEP 2.2 [TODO: make an api call]
                     .call(this::deleteResource)
 
                     // STEP 2.3 [TODO: stabilize step is not necessarily required but typically involves describing the resource until it is in a certain status, though it can take many forms]
-                    // for more information -> https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-test-contract.html#resource-type-test-contract-communication
+                    // for more information -> https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-test-contract.html
                     .stabilize(this::stabilizedOnDelete)
                     .success());
     }
@@ -75,7 +75,10 @@ public class DeleteHandler extends BaseHandlerStd {
             new ReadHandler().handleRequest(proxy, request, callbackContext, logger);
             return ProgressEvent.progress(model, callbackContext);
         } catch (CfnNotFoundException e) { // ResourceNotFoundException
-            logger.log(model.getPrimaryIdentifier() + " does not exist.");
+            logger.log(String.format("%s does not exist. RequestId: %s. Message: %s",
+                model.getPrimaryIdentifier(),
+                request.getClientRequestToken(),
+                e.getMessage()));
             throw e;
         }
     }
@@ -95,13 +98,13 @@ public class DeleteHandler extends BaseHandlerStd {
             // TODO: put your delete resource code here
             // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-82aedf3b1de1e4a4948229fa3cac03f0R21-R30
 
+        } catch (final AwsServiceException e) {
             /*
              * While the handler contract states that the handler must always return a progress event,
-             * you may throw any instance of BaseHandlerException (https://code.amazon.com/packages/AWSCloudFormationRPDKJavaPlugin/blobs/mainline/--/src/main/java/software/amazon/cloudformation/exceptions/BaseHandlerException.java),
-             * as the wrapper map it to a progress event. Each BaseHandlerException maps to a specific error code, and you should map service exceptions as closely as possible
-             * to more specific error codes (https://code.amazon.com/packages/AWSCloudFormationRPDKJavaPlugin/blobs/mainline/--/src/main/java/software/amazon/cloudformation/proxy/HandlerErrorCode.java)
+             * you may throw any instance of BaseHandlerException, as the wrapper map it to a progress event.
+             * Each BaseHandlerException maps to a specific error code, and you should map service exceptions as closely as possible
+             * to more specific error codes
              */
-        } catch (final AwsServiceException e) {
             throw new CfnGeneralServiceException(ResourceModel.TYPE_NAME, e);
         }
 
@@ -111,7 +114,7 @@ public class DeleteHandler extends BaseHandlerStd {
 
     /**
      * If deletion of your resource requires some form of stabilization (e.g. propagation delay)
-     * for more information -> https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-test-contract.html#resource-type-test-contract-communication
+     * for more information -> https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-test-contract.html
      * @param awsRequest the aws service request to delete a resource
      * @param awsResponse the aws service response to delete a resource
      * @param proxyClient the aws service client to make the call

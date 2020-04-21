@@ -34,7 +34,7 @@ public class ReadHandler extends BaseHandlerStd {
         return proxy.initiate("{{ call_graph }}::{{ operation }}", proxyClient, model, callbackContext)
 
             // STEP 2 [TODO: construct a body of a request]
-            .request(Translator::translateToReadRequest)
+            .translate(Translator::translateToReadRequest)
 
             // STEP 3 [TODO: make an api call]
             .call((awsRequest, sdkProxyClient) -> readResource(awsRequest, sdkProxyClient , model))
@@ -61,6 +61,12 @@ public class ReadHandler extends BaseHandlerStd {
 
             // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-5761e3a9f732dc1ef84103dc4bc93399R41-R46
         } catch (final AwsServiceException e) { // ResourceNotFoundException
+            /*
+             * While the handler contract states that the handler must always return a progress event,
+             * you may throw any instance of BaseHandlerException, as the wrapper map it to a progress event.
+             * Each BaseHandlerException maps to a specific error code, and you should map service exceptions as closely as possible
+             * to more specific error codes
+             */
             throw new CfnGeneralServiceException(ResourceModel.TYPE_NAME, e); // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-5761e3a9f732dc1ef84103dc4bc93399R56-R63
         }
 

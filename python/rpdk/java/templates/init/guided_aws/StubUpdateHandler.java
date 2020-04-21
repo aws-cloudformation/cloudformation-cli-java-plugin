@@ -34,14 +34,14 @@ public class UpdateHandler extends BaseHandlerStd {
         return proxy.initiate("{{ call_graph }}::{{ operation }}", proxyClient, model, callbackContext)
 
             // STEP 2 [TODO: construct a body of a request]
-            .request(Translator::translateToUpdateRequest)
+            .translate(Translator::translateToUpdateRequest)
 
             // STEP 3 [TODO: make an api call]
             .call(this::updateResource)
 
             // STEP 4 [TODO: stabilize step is not necessarily required but typically involves describing the resource until it is in a certain status, though it can take many forms]
             // stabilization step may or may not be needed after each API call
-            // for more information -> https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-test-contract.html#resource-type-test-contract-communication
+            // for more information -> https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-test-contract.html
             .stabilize(this::stabilizedOnFirstUpdate)
             .progress()
 
@@ -68,13 +68,13 @@ public class UpdateHandler extends BaseHandlerStd {
             // TODO: put your update resource code here
             // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-c959c290785791b96fa4442573750fcdR69-R74
 
+        } catch (final AwsServiceException e) {
             /*
              * While the handler contract states that the handler must always return a progress event,
-             * you may throw any instance of BaseHandlerException (https://code.amazon.com/packages/AWSCloudFormationRPDKJavaPlugin/blobs/mainline/--/src/main/java/software/amazon/cloudformation/exceptions/BaseHandlerException.java),
-             * as the wrapper map it to a progress event. Each BaseHandlerException maps to a specific error code, and you should map service exceptions as closely as possible
-             * to more specific error codes (https://code.amazon.com/packages/AWSCloudFormationRPDKJavaPlugin/blobs/mainline/--/src/main/java/software/amazon/cloudformation/proxy/HandlerErrorCode.java)
+             * you may throw any instance of BaseHandlerException, as the wrapper map it to a progress event.
+             * Each BaseHandlerException maps to a specific error code, and you should map service exceptions as closely as possible
+             * to more specific error codes
              */
-        } catch (final AwsServiceException e) {
             throw new CfnGeneralServiceException(ResourceModel.TYPE_NAME, e);
         }
 
@@ -85,7 +85,7 @@ public class UpdateHandler extends BaseHandlerStd {
     /**
      * If your resource requires some form of stabilization (e.g. service does not provide strong consistency), you will need to ensure that your code
      * accounts for any potential issues, so that a subsequent read/update requests will not cause any conflicts (e.g. NotFoundException/InvalidRequestException)
-     * for more information -> https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-test-contract.html#resource-type-test-contract-communication
+     * for more information -> https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-test-contract.html
      * @param awsResponse the aws service  update resource response
      * @param proxyClient the aws service client to make the call
      * @param model resource model
@@ -123,13 +123,13 @@ public class UpdateHandler extends BaseHandlerStd {
         try {
             // TODO: put your post update resource code here
 
+        } catch (final AwsServiceException e) {
             /*
              * While the handler contract states that the handler must always return a progress event,
-             * you may throw any instance of BaseHandlerException (https://code.amazon.com/packages/AWSCloudFormationRPDKJavaPlugin/blobs/mainline/--/src/main/java/software/amazon/cloudformation/exceptions/BaseHandlerException.java),
-             * as the wrapper map it to a progress event. Each BaseHandlerException maps to a specific error code, and you should map service exceptions as closely as possible
-             * to more specific error codes (https://code.amazon.com/packages/AWSCloudFormationRPDKJavaPlugin/blobs/mainline/--/src/main/java/software/amazon/cloudformation/proxy/HandlerErrorCode.java)
+             * you may throw any instance of BaseHandlerException, as the wrapper map it to a progress event.
+             * Each BaseHandlerException maps to a specific error code, and you should map service exceptions as closely as possible
+             * to more specific error codes
              */
-        } catch (final AwsServiceException e) {
             throw new CfnGeneralServiceException(ResourceModel.TYPE_NAME, e);
         }
 
