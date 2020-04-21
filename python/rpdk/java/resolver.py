@@ -2,7 +2,7 @@ from rpdk.core.jsonutils.resolver import UNDEFINED, ContainerType
 
 PRIMITIVE_TYPES = {
     "string": "String",
-    "integer": "Integer",
+    "integer": "Long",
     "boolean": "Boolean",
     "number": "Double",
     UNDEFINED: "Object",
