@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
@@ -40,9 +41,11 @@ import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.exception.NonRetryableException;
+import software.amazon.awssdk.core.exception.RetryableException;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.http.HttpStatusCode;
-import software.amazon.cloudformation.proxy.delay.Constant;
+import software.amazon.cloudformation.exceptions.BaseHandlerException;
+import software.amazon.cloudformation.exceptions.TerminalException;
 
 /**
  * This implements the proxying mechanism to inject appropriate scoped
@@ -60,18 +63,27 @@ public class AmazonWebServicesClientProxy implements CallChain {
     private final AwsCredentialsProvider v2CredentialsProvider;
     private final Supplier<Long> remainingTimeInMillis;
     private final boolean inHandshakeMode;
-    private LoggerProxy loggerProxy;
+    private final LoggerProxy loggerProxy;
+    private final DelayFactory override;
 
     public AmazonWebServicesClientProxy(final LoggerProxy loggerProxy,
                                         final Credentials credentials,
                                         final Supplier<Long> remainingTimeToExecute) {
-        this(false, loggerProxy, credentials, remainingTimeToExecute);
+        this(loggerProxy, credentials, remainingTimeToExecute, DelayFactory.CONSTANT_DEFAULT_DELAY_FACTORY);
+    }
+
+    public AmazonWebServicesClientProxy(final LoggerProxy loggerProxy,
+                                        final Credentials credentials,
+                                        final Supplier<Long> remainingTimeToExecute,
+                                        final DelayFactory override) {
+        this(false, loggerProxy, credentials, remainingTimeToExecute, override);
     }
 
     public AmazonWebServicesClientProxy(final boolean inHandshakeMode,
                                         final LoggerProxy loggerProxy,
                                         final Credentials credentials,
-                                        final Supplier<Long> remainingTimeToExecute) {
+                                        final Supplier<Long> remainingTimeToExecute,
+                                        final DelayFactory override) {
         this.inHandshakeMode = inHandshakeMode;
         this.loggerProxy = loggerProxy;
         this.remainingTimeInMillis = remainingTimeToExecute;
@@ -84,6 +96,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
         AwsSessionCredentials awsSessionCredentials = AwsSessionCredentials.create(credentials.getAccessKeyId(),
             credentials.getSecretAccessKey(), credentials.getSessionToken());
         this.v2CredentialsProvider = StaticCredentialsProvider.create(awsSessionCredentials);
+        this.override = Objects.requireNonNull(override);
     }
 
     public <ClientT> ProxyClient<ClientT> newProxy(@Nonnull Supplier<ClientT> client) {
@@ -117,6 +130,70 @@ public class AmazonWebServicesClientProxy implements CallChain {
         };
     }
 
+    public <ClientT, ModelT, CallbackT extends StdCallbackContext>
+        Initiator<ClientT, ModelT, CallbackT>
+        newInitiator(@Nonnull Supplier<ClientT> client, final ModelT model, final CallbackT context) {
+        return newInitiator(newProxy(client), model, context);
+    }
+
+    @Override
+    public <ClientT, ModelT, CallbackT extends StdCallbackContext>
+        Initiator<ClientT, ModelT, CallbackT>
+        newInitiator(final ProxyClient<ClientT> client, final ModelT model, final CallbackT context) {
+        Preconditions.checkNotNull(client, "ProxyClient can not be null");
+        Preconditions.checkNotNull(model, "Resource Model can not be null");
+        Preconditions.checkNotNull(context, "cxt can not be null");
+        return new StdInitiator<>(client, model, context);
+    }
+
+    private class StdInitiator<ClientT, ModelT, CallbackT extends StdCallbackContext>
+        implements Initiator<ClientT, ModelT, CallbackT> {
+
+        private final ProxyClient<ClientT> client;
+        private final ModelT model;
+        private final CallbackT callback;
+
+        private StdInitiator(final ProxyClient<ClientT> client,
+                             final ModelT model,
+                             final CallbackT callback) {
+            Preconditions.checkNotNull(client, "ProxyClient can not be null");
+            Preconditions.checkNotNull(model, "Resource Model can not be null");
+            Preconditions.checkNotNull(callback, "cxt can not be null");
+            this.client = client;
+            this.model = model;
+            this.callback = callback;
+        }
+
+        @Override
+        public RequestMaker<ClientT, ModelT, CallbackT> initiate(String callGraph) {
+            return new CallContext<>(callGraph, client, model, callback);
+        }
+
+        @Override
+        public ModelT getResourceModel() {
+            return model;
+        }
+
+        @Override
+        public CallbackT getCallbackContext() {
+            return callback;
+        }
+
+        @Override
+        public <NewModelT> Initiator<ClientT, NewModelT, CallbackT> rebindModel(NewModelT model) {
+            Preconditions.checkNotNull(model, "Resource Model can not be null");
+            return new StdInitiator<>(client, model, callback);
+        }
+
+        @Override
+        public <NewCallbackT extends StdCallbackContext>
+            Initiator<ClientT, ModelT, NewCallbackT>
+            rebindCallback(NewCallbackT callback) {
+            Preconditions.checkNotNull(callback, "cxt can not be null");
+            return new StdInitiator<>(client, model, callback);
+        }
+    }
+
     @Override
     public <ClientT, ModelT, CallbackT extends StdCallbackContext>
         RequestMaker<ClientT, ModelT, CallbackT>
@@ -140,7 +217,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
         // handling errors, throttles and more. The handler can influence this
         // using retry method.
         //
-        private Delay delay = Constant.of().delay(Duration.ofSeconds(5)).timeout(Duration.ofMinutes(20)).build();
+        private Delay delay = null;
 
         CallContext(String callGraph,
                     ProxyClient<ClientT> client,
@@ -153,11 +230,11 @@ public class AmazonWebServicesClientProxy implements CallChain {
         }
 
         @Override
-        public <RequestT> Caller<RequestT, ClientT, ModelT, CallbackT> request(Function<ModelT, RequestT> maker) {
+        public <RequestT> Caller<RequestT, ClientT, ModelT, CallbackT> translate(Function<ModelT, RequestT> maker) {
             return new Caller<RequestT, ClientT, ModelT, CallbackT>() {
 
                 @Override
-                public Caller<RequestT, ClientT, ModelT, CallbackT> retry(Delay delay) {
+                public Caller<RequestT, ClientT, ModelT, CallbackT> backoff(Delay delay) {
                     CallContext.this.delay = delay;
                     return this;
                 }
@@ -181,21 +258,52 @@ public class AmazonWebServicesClientProxy implements CallChain {
                         }
 
                         @Override
-                        public Completed<RequestT, ResponseT, ClientT, ModelT, CallbackT>
-                            exceptFilter(Callback<? super RequestT, Exception, ClientT, ModelT, CallbackT, Boolean> handler) {
-                            return exceptHandler((request, exception, client1, model1, context1) -> {
-                                if (handler.invoke(request, exception, client1, model1, context1)) {
-                                    return ProgressEvent.progress(model1, context1);
+                        public Completed<RequestT, ResponseT, ClientT, ModelT, CallbackT> retryErrorFilter(final Callback<
+                            ? super RequestT, Exception, ClientT, ModelT, CallbackT, Boolean> retryFilter) {
+                            return handleError(((request, exception, client_, model_, context_) -> {
+                                if (retryFilter.invoke(request, exception, client_, model_, context_)) {
+                                    throw RetryableException.builder().build();
                                 }
-                                return defaultHandler(request, exception, client1, model1, context1);
-                            });
+                                return defaultHandler(request, exception, client_, model_, context_);
+                            }));
                         }
 
                         @Override
-                        public Completed<RequestT, ResponseT, ClientT, ModelT, CallbackT> exceptHandler(Callback<? super RequestT,
-                            Exception, ClientT, ModelT, CallbackT, ProgressEvent<ModelT, CallbackT>> handler) {
-                            this.exceptHandler = handler;
+                        public Completed<RequestT, ResponseT, ClientT, ModelT, CallbackT> handleError(ExceptionPropagate<
+                            ? super RequestT, Exception, ClientT, ModelT, CallbackT, ProgressEvent<ModelT, CallbackT>> handler) {
+                            getExceptionHandler(handler);
                             return this;
+                        }
+
+                        private
+                            Callback<? super RequestT, Exception, ClientT, ModelT, CallbackT, ProgressEvent<ModelT, CallbackT>>
+                            getExceptionHandler(final ExceptionPropagate<? super RequestT, Exception, ClientT, ModelT, CallbackT,
+                                ProgressEvent<ModelT, CallbackT>> handler) {
+                            if (this.exceptHandler == null) {
+                                this.exceptHandler = ((request, exception, client_, model_, context_) -> {
+                                    ProgressEvent<ModelT, CallbackT> event = null;
+                                    Exception ex = exception;
+                                    ExceptionPropagate<? super RequestT, Exception, ClientT, ModelT, CallbackT,
+                                        ProgressEvent<ModelT, CallbackT>> inner = handler;
+                                    boolean defaultHandler = false;
+                                    do {
+                                        try {
+                                            event = inner.invoke(request, ex, client_, model_, context_);
+                                        } catch (RetryableException e) {
+                                            break;
+                                        } catch (Exception e) {
+                                            if (defaultHandler) {
+                                                throw new TerminalException("FRAMEWORK ERROR, LOOPING cause " + e, e);
+                                            }
+                                            defaultHandler = true;
+                                            ex = e;
+                                            inner = AmazonWebServicesClientProxy.this::defaultHandler;
+                                        }
+                                    } while (event == null);
+                                    return event;
+                                });
+                            }
+                            return this.exceptHandler;
                         }
 
                         @Override
@@ -206,19 +314,19 @@ public class AmazonWebServicesClientProxy implements CallChain {
                             // stabilization
                             // lambdas. This ensures that we call demux as necessary.
                             //
+                            Delay delay = override.getDelay(callGraph, CallContext.this.delay);
                             Function<ModelT, RequestT> reqMaker = context.request(callGraph, maker);
                             BiFunction<RequestT, ProxyClient<ClientT>, ResponseT> resMaker = context.response(callGraph, caller);
                             if (waitFor != null) {
                                 waitFor = context.stabilize(callGraph, waitFor);
                             }
-                            Callback<? super RequestT, Exception, ClientT, ModelT, CallbackT,
-                                ProgressEvent<ModelT, CallbackT>> exceptHandler = this.exceptHandler != null
-                                    ? this.exceptHandler
-                                    : AmazonWebServicesClientProxy.this::defaultHandler;
                             int attempt = context.attempts(callGraph);
                             RequestT req = null;
                             ResponseT res = null;
                             ProgressEvent<ModelT, CallbackT> event = null;
+                            Callback<? super RequestT, Exception, ClientT, ModelT, CallbackT,
+                                ProgressEvent<ModelT, CallbackT>> exceptionHandler = getExceptionHandler(
+                                    AmazonWebServicesClientProxy.this::defaultHandler);
                             try {
                                 for (;;) {
                                     Instant now = Instant.now();
@@ -232,11 +340,10 @@ public class AmazonWebServicesClientProxy implements CallChain {
                                         } else {
                                             event = callback.invoke(req, res, client, model, context);
                                         }
+                                    } catch (BaseHandlerException e) {
+                                        throw e;
                                     } catch (Exception e) {
-                                        event = exceptHandler.invoke(req, e, client, model, context);
-                                        if (event.canContinueProgress()) {
-                                            event = null; // wait
-                                        }
+                                        event = exceptionHandler.invoke(req, e, client, model, context);
                                     }
 
                                     if (event != null && (event.isFailed() || event.isSuccess())) {
@@ -375,7 +482,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
 
     public <RequestT, ClientT, ModelT, CallbackT extends StdCallbackContext>
         ProgressEvent<ModelT, CallbackT>
-        defaultHandler(RequestT request, Exception e, ClientT client, ModelT model, CallbackT context) {
+        defaultHandler(RequestT request, Exception e, ClientT client, ModelT model, CallbackT context) throws Exception {
         //
         // Client side exception, mapping this to InvalidRequest at the moment
         //
@@ -386,7 +493,8 @@ public class AmazonWebServicesClientProxy implements CallChain {
         if (e instanceof AwsServiceException) {
             AwsServiceException sdkException = (AwsServiceException) e;
             AwsErrorDetails details = sdkException.awsErrorDetails();
-            String errMsg = "Code(" + details.errorCode() + "),  " + details.errorMessage();
+            String errMsg = "Exception=[" + sdkException.getClass() + "] " + "ErrorCode=[" + details.errorCode()
+                + "],  ErrorMessage=[" + details.errorMessage() + "]";
             switch (details.sdkHttpResponse().statusCode()) {
                 case HttpStatusCode.BAD_REQUEST:
                     //
@@ -418,7 +526,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
                 case HttpStatusCode.GATEWAY_TIMEOUT:
                 case HttpStatusCode.THROTTLING: // Throttle, TOO many requests
                     AmazonWebServicesClientProxy.this.loggerProxy.log("Retrying for error " + details.errorMessage());
-                    return ProgressEvent.progress(model, context);
+                    throw RetryableException.builder().cause(e).build();
 
                 default:
                     return ProgressEvent.failed(model, context, HandlerErrorCode.GeneralServiceException, errMsg);

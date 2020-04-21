@@ -41,11 +41,11 @@ public class ReadHandler {
         final Model model = request.getDesiredResourceState();
         final StdCallbackContext cxt = context == null ? new StdCallbackContext() : context;
         ProxyClient<ServiceClient> client = proxy.newProxy(() -> this.client);
-        return proxy.initiate("client:readRepository", client, model, cxt).request(m -> {
+        return proxy.initiate("client:readRepository", client, model, cxt).translate(m -> {
             DescribeRequest.Builder builder = new DescribeRequest.Builder();
             builder.repoName(m.getRepoName());
             return builder.build();
-        }).retry(Constant.of().delay(Duration.ofSeconds(3)).timeout(Duration.ofSeconds(9)).build())
+        }).backoff(Constant.of().delay(Duration.ofSeconds(3)).timeout(Duration.ofSeconds(9)).build())
             .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::describeRepository)).done(r -> {
                 model.setRepoName(r.getRepoName());
                 model.setArn(r.getRepoArn());

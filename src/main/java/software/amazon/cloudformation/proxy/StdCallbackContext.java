@@ -267,6 +267,11 @@ public class StdCallbackContext {
         return Collections.unmodifiableMap(callGraphs);
     }
 
+    @SuppressWarnings("unchecked")
+    public <ResponseT> ResponseT response(String callGraph) {
+        return (ResponseT) callGraphs.get(callGraph + ".response");
+    }
+
     <RequestT, ResponseT, ClientT, ModelT, CallbackT extends StdCallbackContext>
         CallChain.Callback<RequestT, ResponseT, ClientT, ModelT, CallbackT, Boolean>
         stabilize(String callGraph, CallChain.Callback<RequestT, ResponseT, ClientT, ModelT, CallbackT, Boolean> callback) {

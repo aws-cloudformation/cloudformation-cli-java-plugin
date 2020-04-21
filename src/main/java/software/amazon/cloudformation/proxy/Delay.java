@@ -47,10 +47,8 @@ public interface Delay {
      * values
      *
      * @param attempt, starts with 1
-     * @return the next amount to stabilize for. return -1 to indicate delay is
-     *         complete
-     * @return the next amount to stabilize for. returns {@link Duration#ZERO} to
-     *         indicate delay is complete
+     * @return the next amount to wait for or {@link Duration#ZERO} to indicate
+     *         delay is complete
      */
     Duration nextDelay(int attempt);
 

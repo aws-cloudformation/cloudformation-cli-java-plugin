@@ -18,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -243,7 +244,7 @@ public class AmazonWebServicesClientProxyTest {
         when(sdkHttpResponse.statusCode()).thenReturn(400);
         final ProgressEvent<Model,
             StdCallbackContext> result = proxy.initiate("client:createRespository", proxy.newProxy(() -> null), model, context)
-                .request(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build()).call((r, c) -> {
+                .translate(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build()).call((r, c) -> {
                     throw new BadRequestException(mock(AwsServiceException.Builder.class)) {
                         private static final long serialVersionUID = 1L;
 
@@ -272,7 +273,7 @@ public class AmazonWebServicesClientProxyTest {
         when(sdkHttpResponse.statusCode()).thenReturn(404);
         ProgressEvent<Model,
             StdCallbackContext> result = proxy.initiate("client:createRespository", proxy.newProxy(() -> null), model, context)
-                .request(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build()).call((r, c) -> {
+                .translate(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build()).call((r, c) -> {
                     throw new NotFoundException(mock(AwsServiceException.Builder.class)) {
                         private static final long serialVersionUID = 1L;
 
@@ -301,7 +302,7 @@ public class AmazonWebServicesClientProxyTest {
         when(sdkHttpResponse.statusCode()).thenReturn(401);
         ProgressEvent<Model,
             StdCallbackContext> result = proxy.initiate("client:createRespository", proxy.newProxy(() -> null), model, context)
-                .request(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build()).call((r, c) -> {
+                .translate(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build()).call((r, c) -> {
                     throw new AccessDenied(AwsServiceException.builder()) {
                         private static final long serialVersionUID = 1L;
 
@@ -353,8 +354,8 @@ public class AmazonWebServicesClientProxyTest {
 
         ProgressEvent<Model,
             StdCallbackContext> result = proxy.initiate("client:createRepository", svcClient, model, context)
-                .request(m -> (requests[0] = new CreateRequest.Builder().repoName(m.getRepoName()).build()))
-                .retry(Constant.of().delay(Duration.ofSeconds(1)).timeout(Duration.ofSeconds(3)).build()).call((r, c) -> {
+                .translate(m -> (requests[0] = new CreateRequest.Builder().repoName(m.getRepoName()).build()))
+                .backoff(Constant.of().delay(Duration.ofSeconds(1)).timeout(Duration.ofSeconds(3)).build()).call((r, c) -> {
                     if (attempt[0]-- > 0) {
                         throw new ThrottleException(builder) {
                             private static final long serialVersionUID = 1L;
@@ -370,7 +371,7 @@ public class AmazonWebServicesClientProxyTest {
                 })
                 .done((request, response, client1, model1, context1) -> proxy
                     .initiate("client:readRepository", client1, model1, context1)
-                    .request(m -> (describeRequests[0] = new DescribeRequest.Builder().repoName(m.getRepoName()).build()))
+                    .translate(m -> (describeRequests[0] = new DescribeRequest.Builder().repoName(m.getRepoName()).build()))
                     .call((r, c) -> (describeResponses[0] = c.injectCredentialsAndInvokeV2(r, c.client()::describeRepository)))
                     .done(r -> {
                         Model resultModel = new Model();
@@ -400,7 +401,7 @@ public class AmazonWebServicesClientProxyTest {
     }
 
     @Test
-    public void throttedExceedRuntimeBailout() {
+    public void throttledExceedRuntimeBailout() {
         final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(mock(LoggerProxy.class), MOCK,
                                                                                     () -> Duration.ofSeconds(1).toMillis() // signal
                                                                                                                            // we
@@ -420,8 +421,8 @@ public class AmazonWebServicesClientProxyTest {
 
         final ProgressEvent<Model,
             StdCallbackContext> result = proxy.initiate("client:createRepository", svcClient, model, context)
-                .request(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
-                .retry(Constant.of().delay(Duration.ofSeconds(5)).timeout(Duration.ofSeconds(10)).build()).call((r, c) -> {
+                .translate(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
+                .backoff(Constant.of().delay(Duration.ofSeconds(5)).timeout(Duration.ofSeconds(10)).build()).call((r, c) -> {
                     throw new ThrottleException(AwsServiceException.builder()) {
                         private static final long serialVersionUID = 1L;
 
@@ -433,6 +434,7 @@ public class AmazonWebServicesClientProxyTest {
                     };
                 }).done(ign -> ProgressEvent.success(model, context));
         assertThat(result.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(result.getCallbackDelaySeconds()).isGreaterThan(0);
     }
 
     @Test
@@ -451,11 +453,11 @@ public class AmazonWebServicesClientProxyTest {
         ProxyClient<ServiceClient> svcClient = proxy.newProxy(() -> client);
         ProgressEvent<Model,
             StdCallbackContext> result = proxy.initiate("client:createRepository", svcClient, model, context)
-                .request(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
-                .retry(Constant.of().delay(Duration.ofSeconds(5)).timeout(Duration.ofSeconds(15)).build())
+                .translate(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
+                .backoff(Constant.of().delay(Duration.ofSeconds(5)).timeout(Duration.ofSeconds(15)).build())
                 .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository))
                 .stabilize((request, response, client1, model1, context1) -> attempt[0]-- > 0)
-                .exceptFilter((request, exception, client1, model1, context1) -> exception instanceof ThrottleException)
+                .retryErrorFilter((request, exception, client1, model1, context1) -> exception instanceof ThrottleException)
                 .done(ign -> ProgressEvent.success(model, context));
 
         assertThat(result.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -490,10 +492,10 @@ public class AmazonWebServicesClientProxyTest {
 
         final ProgressEvent<Model,
             StdCallbackContext> result = proxy.initiate("client:createRepository", svcClient, model, context)
-                .request(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
-                .retry(Constant.of().delay(Duration.ofSeconds(5)).timeout(Duration.ofSeconds(10)).build())
+                .translate(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
+                .backoff(Constant.of().delay(Duration.ofSeconds(5)).timeout(Duration.ofSeconds(10)).build())
                 .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository))
-                .exceptFilter((request, response, client1, model1, context1) -> response instanceof ThrottleException)
+                .retryErrorFilter((request, response, client1, model1, context1) -> response instanceof ThrottleException)
                 .done(ign -> ProgressEvent.success(model, context));
 
         assertThat(result.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
@@ -514,7 +516,7 @@ public class AmazonWebServicesClientProxyTest {
         ServiceClient client = mock(ServiceClient.class);
         ProxyClient<ServiceClient> svcClient = proxy.newProxy(() -> client);
         ProgressEvent<Model, StdCallbackContext> result = proxy.initiate("client:createRepository", svcClient, model, context)
-            .request(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build()).call((r, g) -> {
+            .translate(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build()).call((r, g) -> {
                 NonRetryableException e = NonRetryableException.builder().build();
                 throw e;
             }).success();
@@ -535,11 +537,47 @@ public class AmazonWebServicesClientProxyTest {
         StdCallbackContext context = new StdCallbackContext();
         ServiceClient client = mock(ServiceClient.class);
         ProxyClient<ServiceClient> svcClient = proxy.newProxy(() -> client);
-        ProgressEvent<Model, StdCallbackContext> result = proxy.initiate("client:createRepository", svcClient, model, context)
-            .request(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build()).call((r, g) -> {
+        assertThrows(ResourceAlreadyExistsException.class,
+            () -> proxy.initiate("client:createRepository", svcClient, model, context)
+                .translate(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build()).call((r, g) -> {
+                    throw new ResourceAlreadyExistsException(new RuntimeException("Fail"));
+                }).success());
+    }
+
+    @Test
+    public void useInitiatorPattern() {
+        AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(mock(LoggerProxy.class), MOCK,
+                                                                              () -> Duration.ofSeconds(1).toMillis()); // signal
+                                                                                                                       // we
+        Model model = new Model();
+        model.setRepoName("NewRepo");
+        StdCallbackContext context = new StdCallbackContext();
+        ServiceClient client = mock(ServiceClient.class);
+        final CallChain.Initiator<ServiceClient, Model, StdCallbackContext> invoker = proxy
+            .newInitiator(() -> client, model, context).rebindModel(model).rebindCallback(context);
+        assertThrows(ResourceAlreadyExistsException.class, () -> invoker.initiate("client:createRepository")
+            .translate(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build()).call((r, g) -> {
                 throw new ResourceAlreadyExistsException(new RuntimeException("Fail"));
-            }).success();
-        assertThat(result.getStatus()).isEqualTo(OperationStatus.FAILED);
+            }).success());
+    }
+
+    @Test
+    public void thenChainPattern() {
+        AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(mock(LoggerProxy.class), MOCK,
+                                                                              () -> Duration.ofSeconds(1).toMillis());
+        Model model = new Model();
+        model.setRepoName("NewRepo");
+        StdCallbackContext context = new StdCallbackContext();
+        ProgressEvent.progress(model, context).then(event -> ProgressEvent.success(model, context));
+
+        ProgressEvent<Model,
+            StdCallbackContext> event = ProgressEvent.progress(model, context).then(
+                event_ -> ProgressEvent.defaultFailureHandler(new RuntimeException("failed"), HandlerErrorCode.InternalFailure))
+                .then(event_ -> {
+                    fail("Did not reach the chain here");
+                    return ProgressEvent.success(model, context);
+                });
+        assertThat(event.isFailed()).isTrue();
 
     }
 }
