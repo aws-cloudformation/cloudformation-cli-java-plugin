@@ -172,10 +172,9 @@
  * indicate successful completion.
  * {@link software.amazon.cloudformation.proxy.OperationStatus#IN_PROGRESS}
  * indicates that we can the proceed to next part of API calls to make for
- * resource configuration. E.g. for CloudWatchLogs LogGroup we first
- * create the LogGroup, then we update retention policy, associated KMS key and
- * finally delegate to Read Handler to return the complete state for the
- * resource
+ * resource configuration. E.g. for CloudWatchLogs LogGroup we first create the
+ * LogGroup, then we update retention policy, associated KMS key and finally
+ * delegate to Read Handler to return the complete state for the resource
  *
  * <pre>
  * <code>
@@ -194,11 +193,10 @@
  * error with
  * {@link software.amazon.cloudformation.proxy.OperationStatus#FAILED} status
  * and an appropriate error message
- * software.amazon.cloudformation.proxy.ProgressEvent#getMessage() E.g.
- * if associateKMSKey had an error to associate KMS key for CloudWatchLogs to
- * use, the chain would exit with FAILED stauts and appropriate exception
- * message. Both
- * {@link software.amazon.cloudformation.proxy.OperationStatus#SUCCESS} and
+ * software.amazon.cloudformation.proxy.ProgressEvent#getMessage() E.g. if
+ * associateKMSKey had an error to associate KMS key for CloudWatchLogs to use,
+ * the chain would exit with FAILED stauts and appropriate exception message.
+ * Both {@link software.amazon.cloudformation.proxy.OperationStatus#SUCCESS} and
  * {@link software.amazon.cloudformation.proxy.OperationStatus#FAILED} are pivot
  * points in the chain that will skip the remainder of the chain.</li>
  * </ol>

@@ -223,11 +223,12 @@ public class AmazonWebServicesClientProxy implements CallChain {
         }
 
         @Override
-        public <RequestT> Caller<RequestT, ClientT, ModelT, CallbackT> translate(Function<ModelT, RequestT> maker) {
+        public <
+            RequestT> Caller<RequestT, ClientT, ModelT, CallbackT> translateToServiceRequest(Function<ModelT, RequestT> maker) {
             return new Caller<RequestT, ClientT, ModelT, CallbackT>() {
 
                 @Override
-                public Caller<RequestT, ClientT, ModelT, CallbackT> backoff(Delay delay) {
+                public Caller<RequestT, ClientT, ModelT, CallbackT> backoffDelay(Delay delay) {
                     CallContext.this.delay = delay;
                     return this;
                 }
@@ -235,7 +236,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
                 @Override
                 public <ResponseT>
                     Stabilizer<RequestT, ResponseT, ClientT, ModelT, CallbackT>
-                    call(BiFunction<RequestT, ProxyClient<ClientT>, ResponseT> caller) {
+                    makeServiceCall(BiFunction<RequestT, ProxyClient<ClientT>, ResponseT> caller) {
                     return new Stabilizer<RequestT, ResponseT, ClientT, ModelT, CallbackT>() {
 
                         private Callback<RequestT, ResponseT, ClientT, ModelT, CallbackT, Boolean> waitFor;
