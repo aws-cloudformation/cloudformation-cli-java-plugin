@@ -96,16 +96,16 @@ public class End2EndCallChainTest {
 
         ProgressEvent<Model,
             StdCallbackContext> event = proxy.initiate("client:createRepository", client, model, context)
-                .translate((m) -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
-                .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository))
+                .translateToServiceRequest((m) -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
+                .makeServiceCall((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository))
                 .done(r -> ProgressEvent.success(model, context));
 
         assertThat(event.getStatus()).isEqualTo(OperationStatus.SUCCESS);
 
         // replay, should get the same result.
         event = proxy.initiate("client:createRepository", client, model, context)
-            .translate((m) -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
-            .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository))
+            .translateToServiceRequest((m) -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
+            .makeServiceCall((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository))
             .done(r -> ProgressEvent.success(model, context));
         //
         // Verify that we only got called. During replay we should have been skipped.
@@ -133,8 +133,8 @@ public class End2EndCallChainTest {
         when(serviceClient.createRepository(any(CreateRequest.class))).thenThrow(exists);
         StdCallbackContext newContext = new StdCallbackContext();
         event = proxy.initiate("client:createRepository", client, model, newContext)
-            .translate((m) -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
-            .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository))
+            .translateToServiceRequest((m) -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
+            .makeServiceCall((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository))
             .done(r -> ProgressEvent.success(model, context));
 
         assertThat(event.getStatus()).isEqualTo(OperationStatus.FAILED);
