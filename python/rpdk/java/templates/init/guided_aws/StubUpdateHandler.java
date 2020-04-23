@@ -41,7 +41,7 @@ public class UpdateHandler extends BaseHandlerStd {
                     .translateToServiceRequest(Translator::translateToFirstUpdateRequest)
 
                     // STEP 1.2 [TODO: make an api call]
-                    .call(this::updateResource)
+                    .makeServiceCall(this::updateResource)
 
                     // STEP 1.3 [TODO: stabilize step is not necessarily required but typically involves describing the resource until it is in a certain status, though it can take many forms]
                     // stabilization step may or may not be needed after each API call

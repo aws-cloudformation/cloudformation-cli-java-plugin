@@ -30,7 +30,7 @@ jobs:
       before_install: skip
       install: skip
       script: mvn verify
-    - stage: integ
+    - stage: "integ default"
       language: python
       python: "3.6"
       install:
@@ -41,5 +41,18 @@ jobs:
         - cd "$DIR"
         - ls -la
         - printf "AWS::Foo::Bar\n\n2" | cfn init -vv
+        - mvn verify
+        - ls -la
+    - stage: "integ guided"
+      language: python
+      python: "3.6"
+      install:
+        - mvn install
+        - pip install .
+      script:
+        - DIR=$(mktemp -d)
+        - cd "$DIR"
+        - ls -la
+        - printf "AWS::Foo::Bar\n\n1" | cfn init -vv
         - mvn verify
         - ls -la

@@ -11,14 +11,10 @@ public class ClientBuilder {
   It is recommended to use static HTTP client so less memory is consumed
   e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/master/aws-logs-loggroup/src/main/java/software/amazon/logs/loggroup/ClientBuilder.java#L9
 
-  private static class LazyHolder {
-    static final YourServiceAsyncClient SERVICE_CLIENT = YourServiceAsyncClient.builder()
+  public static YourServiceAsyncClient getClient() {
+    return YourServiceAsyncClient SERVICE_CLIENT = YourServiceAsyncClient.builder()
               .httpClient(LambdaWrapper.HTTP_CLIENT)
               .build();
-  }
-
-  public static YourServiceAsyncClient getClient() {
-    return LazyHolder.SERVICE_CLIENT;
   }
   */
 
