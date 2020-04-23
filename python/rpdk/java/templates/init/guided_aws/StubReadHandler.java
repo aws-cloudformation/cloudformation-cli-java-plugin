@@ -29,15 +29,16 @@ public class ReadHandler extends BaseHandlerStd {
         final ResourceModel model = request.getDesiredResourceState();
 
         // TODO: Adjust Progress Chain according to your implementation
+        // https://github.com/aws-cloudformation/cloudformation-cli-java-plugin/blob/master/src/main/java/software/amazon/cloudformation/proxy/CallChain.java
 
         // STEP 1 [initialize a proxy context]
         return proxy.initiate("{{ call_graph }}::{{ operation }}", proxyClient, model, callbackContext)
 
             // STEP 2 [TODO: construct a body of a request]
-            .translate(Translator::translateToReadRequest)
+            .translateToServiceRequest(Translator::translateToReadRequest)
 
             // STEP 3 [TODO: make an api call]
-            .call((awsRequest, sdkProxyClient) -> readResource(awsRequest, sdkProxyClient , model))
+            .makeServiceCall((awsRequest, sdkProxyClient) -> readResource(awsRequest, sdkProxyClient , model))
 
             // STEP 4 [TODO: gather all properties of the resource]
             .done(this::constructResourceModelFromResponse);
@@ -56,10 +57,9 @@ public class ReadHandler extends BaseHandlerStd {
         final ResourceModel model) {
         AwsResponse awsResponse = null;
         try {
-            // TODO: add custom read resource logic
-            // hint: awsResponse = proxy.injectCredentialsAndInvokeV2(Translator.translateToReadRequest(model), ClientBuilder.getClient()::describeLogGroups);
 
-            // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-5761e3a9f732dc1ef84103dc4bc93399R41-R46
+            // TODO: add custom read resource logic
+
         } catch (final AwsServiceException e) { // ResourceNotFoundException
             /*
              * While the handler contract states that the handler must always return a progress event,

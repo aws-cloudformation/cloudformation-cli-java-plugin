@@ -32,6 +32,7 @@ public class CreateHandler extends BaseHandlerStd {
         final ResourceModel model = request.getDesiredResourceState();
 
         // TODO: Adjust Progress Chain according to your implementation
+        // https://github.com/aws-cloudformation/cloudformation-cli-java-plugin/blob/master/src/main/java/software/amazon/cloudformation/proxy/CallChain.java
 
         return ProgressEvent.progress(model, callbackContext)
 
@@ -47,10 +48,10 @@ public class CreateHandler extends BaseHandlerStd {
                 proxy.initiate("{{ call_graph }}::{{ operation }}", proxyClient, model, callbackContext)
 
                     // STEP 2.1 [TODO: construct a body of a request]
-                    .translate(Translator::translateToCreateRequest)
+                    .translateToServiceRequest(Translator::translateToCreateRequest)
 
                     // STEP 2.2 [TODO: make an api call]
-                    .call(this::createResource)
+                    .makeServiceCall(this::createResource)
 
                     // STEP 2.3 [TODO: stabilize step is not necessarily required but typically involves describing the resource until it is in a certain status, though it can take many forms]
                     // for more information -> https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-test-contract.html
@@ -58,7 +59,18 @@ public class CreateHandler extends BaseHandlerStd {
                     .progress())
 
             // STEP 3 [TODO: post create/stabilize update]
-            .then(progress -> postCreate(progress, proxyClient))
+            .then(progress ->
+                // If your resource is provisioned through multiple API calls, you will need to apply each subsequent update
+                // STEP 3.0 [initialize a proxy context]
+                proxy.initiate("{{ call_graph }}::post{{ operation }}", proxyClient, model, callbackContext)
+
+                    // STEP 2.1 [TODO: construct a body of a request]
+                    .translateToServiceRequest(Translator::translateToSecondUpdateRequest)
+
+                    // STEP 2.2 [TODO: make an api call]
+                    .makeServiceCall(this::postCreate)
+                    .progress()
+                )
 
             // STEP 4 [TODO: describe call/chain to return the resource model]
             .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
@@ -80,7 +92,6 @@ public class CreateHandler extends BaseHandlerStd {
         final ResourceModel model = progressEvent.getResourceModel();
         final CallbackContext callbackContext = progressEvent.getCallbackContext();
         try {
-            // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-5761e3a9f732dc1ef84103dc4bc93399R41-R46
             new ReadHandler().handleRequest(proxy, request, callbackContext, logger);
             throw new CfnAlreadyExistsException(ResourceModel.TYPE_NAME, Objects.toString(model.getPrimaryIdentifier()));
         } catch (CfnNotFoundException e) {
@@ -101,8 +112,8 @@ public class CreateHandler extends BaseHandlerStd {
         final ProxyClient<SdkClient> proxyClient) {
         AwsResponse awsResponse = null;
         try {
+
             // TODO: put your create resource code here
-            // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/ffb15c1a2ca6eb19c051d19d79c0f022719b1493#diff-cbc963180c54a3bf4965fff3f499f365R37-R43
 
         } catch (final AwsServiceException e) {
             /*
@@ -146,17 +157,16 @@ public class CreateHandler extends BaseHandlerStd {
     /**
      * If your resource is provisioned through multiple API calls, you will need to apply each subsequent update
      * step in a discrete call/stabilize chain to ensure the entire resource is provisioned as intended.
-     * @param progressEvent of the previous state indicating success, in progress with delay callback or failed state
+     * @param awsRequest the aws service request to create a resource
      * @param proxyClient the aws service client to make the call
-     * @return progressEvent indicating success, in progress with delay callback or failed state
+     * @return awsResponse create resource response
      */
-    private ProgressEvent<ResourceModel, CallbackContext> postCreate(
-        final ProgressEvent<ResourceModel, CallbackContext> progressEvent,
+    private AwsResponse postCreate(
+        final AwsRequest awsRequest,
         final ProxyClient<SdkClient> proxyClient) {
-
-        final ResourceModel model = progressEvent.getResourceModel();
-        final CallbackContext callbackContext = progressEvent.getCallbackContext();
+        AwsResponse awsResponse = null;
         try {
+
             // TODO: put your post creation resource update code here
 
         } catch (final AwsServiceException e) {
@@ -169,7 +179,7 @@ public class CreateHandler extends BaseHandlerStd {
             throw new CfnGeneralServiceException(ResourceModel.TYPE_NAME, e);
         }
 
-        logger.log(String.format("%s [%s] has successfully been updated.", ResourceModel.TYPE_NAME, model.getPrimaryIdentifier()));
-        return ProgressEvent.progress(model, callbackContext);
+        logger.log(String.format("%s successfully updated.", ResourceModel.TYPE_NAME));
+        return awsResponse;
     }
 }

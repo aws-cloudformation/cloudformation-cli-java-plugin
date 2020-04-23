@@ -30,6 +30,7 @@ public class DeleteHandler extends BaseHandlerStd {
         final ResourceModel model = request.getDesiredResourceState();
 
         // TODO: Adjust Progress Chain according to your implementation
+        // https://github.com/aws-cloudformation/cloudformation-cli-java-plugin/blob/master/src/main/java/software/amazon/cloudformation/proxy/CallChain.java
 
         return ProgressEvent.progress(model, callbackContext)
 
@@ -45,10 +46,10 @@ public class DeleteHandler extends BaseHandlerStd {
                 proxy.initiate("{{ call_graph }}::{{ operation }}", proxyClient, model, callbackContext)
 
                     // STEP 2.1 [TODO: construct a body of a request]
-                    .translate(Translator::translateToDeleteRequest)
+                    .translateToServiceRequest(Translator::translateToDeleteRequest)
 
                     // STEP 2.2 [TODO: make an api call]
-                    .call(this::deleteResource)
+                    .makeServiceCall(this::deleteResource)
 
                     // STEP 2.3 [TODO: stabilize step is not necessarily required but typically involves describing the resource until it is in a certain status, though it can take many forms]
                     // for more information -> https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-test-contract.html
@@ -95,8 +96,8 @@ public class DeleteHandler extends BaseHandlerStd {
         final ProxyClient<SdkClient> proxyClient) {
         AwsResponse awsResponse = null;
         try {
+
             // TODO: put your delete resource code here
-            // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-82aedf3b1de1e4a4948229fa3cac03f0R21-R30
 
         } catch (final AwsServiceException e) {
             /*

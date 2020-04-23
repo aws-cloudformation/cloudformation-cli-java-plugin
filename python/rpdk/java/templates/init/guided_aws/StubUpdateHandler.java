@@ -29,27 +29,40 @@ public class UpdateHandler extends BaseHandlerStd {
         final ResourceModel model = request.getDesiredResourceState();
 
         // TODO: Adjust Progress Chain according to your implementation
+        // https://github.com/aws-cloudformation/cloudformation-cli-java-plugin/blob/master/src/main/java/software/amazon/cloudformation/proxy/CallChain.java
 
-        // STEP 1 [initialize a proxy context]
-        return proxy.initiate("{{ call_graph }}::{{ operation }}", proxyClient, model, callbackContext)
+        return ProgressEvent.progress(model, callbackContext)
+            // STEP 1 [first update/stabilize progress chain - required for resource update]
+            .then(progress ->
+                // STEP 1.0 [initialize a proxy context]
+                proxy.initiate("AWS-Foo-Bar::Update", proxyClient, model, callbackContext)
 
-            // STEP 2 [TODO: construct a body of a request]
-            .translate(Translator::translateToUpdateRequest)
+                    // STEP 1.1 [TODO: construct a body of a request]
+                    .translateToServiceRequest(Translator::translateToFirstUpdateRequest)
 
-            // STEP 3 [TODO: make an api call]
-            .call(this::updateResource)
+                    // STEP 1.2 [TODO: make an api call]
+                    .call(this::updateResource)
 
-            // STEP 4 [TODO: stabilize step is not necessarily required but typically involves describing the resource until it is in a certain status, though it can take many forms]
-            // stabilization step may or may not be needed after each API call
-            // for more information -> https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-test-contract.html
-            .stabilize(this::stabilizedOnFirstUpdate)
-            .progress()
+                    // STEP 1.3 [TODO: stabilize step is not necessarily required but typically involves describing the resource until it is in a certain status, though it can take many forms]
+                    // stabilization step may or may not be needed after each API call
+                    // for more information -> https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-test-contract.html
+                    .stabilize(this::stabilizedOnFirstUpdate)
+                    .progress())
 
             // If your resource is provisioned through multiple API calls, then the following pattern is required (and might take as many postUpdate callbacks as necessary)
-            // STEP 5 [TODO: post stabilization update]
-            .then(progress -> secondUpdate(progress, proxyClient))
+            // STEP 2 [second update/stabilize progress chain]
+            .then(progress ->
+                    // STEP 2.0 [initialize a proxy context]
+                    proxy.initiate("AWS-Foo-Bar::Update", proxyClient, model, callbackContext)
 
-            // STEP 6 [TODO: describe call/chain to return the resource model]
+                    // STEP 2.1 [TODO: construct a body of a request]
+                    .translateToServiceRequest(Translator::translateToSecondUpdateRequest)
+
+                    // STEP 2.2 [TODO: make an api call]
+                    .makeServiceCall(this::secondUpdate)
+                    .progress())
+
+            // STEP 3 [TODO: describe call/chain to return the resource model]
             .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
     }
 
@@ -65,8 +78,8 @@ public class UpdateHandler extends BaseHandlerStd {
         final ProxyClient<SdkClient> proxyClient) {
         AwsResponse awsResponse = null;
         try {
+
             // TODO: put your update resource code here
-            // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-c959c290785791b96fa4442573750fcdR69-R74
 
         } catch (final AwsServiceException e) {
             /*
@@ -110,17 +123,16 @@ public class UpdateHandler extends BaseHandlerStd {
     /**
      * If your resource is provisioned through multiple API calls, you will need to apply each subsequent update
      * step in a discrete call/stabilize chain to ensure the entire resource is provisioned as intended.
-     * @param progressEvent of the previous state indicating success, in progress with delay callback or failed state
+     * @param awsRequest the aws service request to update a resource
      * @param proxyClient the aws service client to make the call
-     * @return progressEvent indicating success, in progress with delay callback or failed state
+     * @return update resource response
      */
-    private ProgressEvent<ResourceModel, CallbackContext> secondUpdate(
-        final ProgressEvent<ResourceModel, CallbackContext> progressEvent,
+    private AwsResponse secondUpdate(
+        final AwsRequest awsRequest,
         final ProxyClient<SdkClient> proxyClient) {
-
-        final ResourceModel model = progressEvent.getResourceModel();
-        final CallbackContext callbackContext = progressEvent.getCallbackContext();
+        AwsResponse awsResponse = null;
         try {
+
             // TODO: put your post update resource code here
 
         } catch (final AwsServiceException e) {
@@ -133,7 +145,7 @@ public class UpdateHandler extends BaseHandlerStd {
             throw new CfnGeneralServiceException(ResourceModel.TYPE_NAME, e);
         }
 
-        logger.log(String.format("%s [%s] has successfully been updated.", ResourceModel.TYPE_NAME, model.getPrimaryIdentifier()));
-        return ProgressEvent.progress(model, callbackContext);
+        logger.log(String.format("%s has successfully been updated.", ResourceModel.TYPE_NAME));
+        return awsResponse;
     }
 }

@@ -27,7 +27,7 @@ public class Translator {
   static AwsRequest translateToCreateRequest(final ResourceModel model) {
     final AwsRequest awsRequest = null;
     // TODO: construct a request
-    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-7d3685f019c68d5d8d9b4d17e8aa0e8cR39
+    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/2077c92299aeb9a68ae8f4418b5e932b12a8b186/aws-logs-loggroup/src/main/java/com/aws/logs/loggroup/Translator.java#L39-L43
     return awsRequest;
   }
 
@@ -39,7 +39,7 @@ public class Translator {
   static AwsRequest translateToReadRequest(final ResourceModel model) {
     final AwsRequest awsRequest = null;
     // TODO: construct a request
-    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-7d3685f019c68d5d8d9b4d17e8aa0e8cR20
+    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/2077c92299aeb9a68ae8f4418b5e932b12a8b186/aws-logs-loggroup/src/main/java/com/aws/logs/loggroup/Translator.java#L20-L24
     return awsRequest;
   }
 
@@ -49,7 +49,7 @@ public class Translator {
    * @return model resource model
    */
   static ResourceModel translateFromReadResponse(final AwsResponse awsResponse) {
-    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-7d3685f019c68d5d8d9b4d17e8aa0e8cR58
+    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/2077c92299aeb9a68ae8f4418b5e932b12a8b186/aws-logs-loggroup/src/main/java/com/aws/logs/loggroup/Translator.java#L58-L73
     return ResourceModel.builder()
         //.someProperty(response.property())
         .build();
@@ -63,7 +63,7 @@ public class Translator {
   static AwsRequest translateToDeleteRequest(final ResourceModel model) {
     final AwsRequest awsRequest = null;
     // TODO: construct a request
-    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-7d3685f019c68d5d8d9b4d17e8aa0e8cR33
+    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/2077c92299aeb9a68ae8f4418b5e932b12a8b186/aws-logs-loggroup/src/main/java/com/aws/logs/loggroup/Translator.java#L33-L37
     return awsRequest;
   }
 
@@ -72,10 +72,21 @@ public class Translator {
    * @param model resource model
    * @return awsRequest the aws service request to modify a resource
    */
-  static AwsRequest translateToUpdateRequest(final ResourceModel model) {
+  static AwsRequest translateToFirstUpdateRequest(final ResourceModel model) {
     final AwsRequest awsRequest = null;
     // TODO: construct a request
-    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-7d3685f019c68d5d8d9b4d17e8aa0e8cR45
+    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/2077c92299aeb9a68ae8f4418b5e932b12a8b186/aws-logs-loggroup/src/main/java/com/aws/logs/loggroup/Translator.java#L45-L50
+    return awsRequest;
+  }
+
+  /**
+   * Request to update some other properties that could not be provisioned through first update request
+   * @param model resource model
+   * @return awsRequest the aws service request to modify a resource
+   */
+  static AwsRequest translateToSecondUpdateRequest(final ResourceModel model) {
+    final AwsRequest awsRequest = null;
+    // TODO: construct a request
     return awsRequest;
   }
 
@@ -87,7 +98,7 @@ public class Translator {
   static AwsRequest translateToListRequest(final String nextToken) {
     final AwsRequest awsRequest = null;
     // TODO: construct a request
-    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-7d3685f019c68d5d8d9b4d17e8aa0e8cR26
+    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/2077c92299aeb9a68ae8f4418b5e932b12a8b186/aws-logs-loggroup/src/main/java/com/aws/logs/loggroup/Translator.java#L26-L31
     return awsRequest;
   }
 
@@ -97,7 +108,7 @@ public class Translator {
    * @return list of resource models
    */
   static List<ResourceModel> translateFromListRequest(final AwsResponse awsResponse) {
-    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/commit/2077c92299aeb9a68ae8f4418b5e932b12a8b186#diff-7d3685f019c68d5d8d9b4d17e8aa0e8cR75
+    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/2077c92299aeb9a68ae8f4418b5e932b12a8b186/aws-logs-loggroup/src/main/java/com/aws/logs/loggroup/Translator.java#L75-L82
     return streamOfOrEmpty(Lists.newArrayList())
         .map(resource -> ResourceModel.builder()
             // include only primary identifier
