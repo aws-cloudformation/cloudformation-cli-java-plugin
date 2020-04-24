@@ -32,9 +32,13 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
 
 /**
@@ -270,6 +274,39 @@ public class StdCallbackContext {
     @SuppressWarnings("unchecked")
     public <ResponseT> ResponseT response(String callGraph) {
         return (ResponseT) callGraphs.get(callGraph + ".response");
+    }
+
+    @SuppressWarnings("unchecked")
+    public <RequestT> RequestT findFirstRequestByContains(String contains) {
+        return (RequestT) findFirst((key) -> key.contains(contains) && key.endsWith(".request"));
+    }
+
+    @SuppressWarnings("unchecked")
+    public <RequestT> List<RequestT> findAllRequestByContains(String contains) {
+        return (List<RequestT>) findAll((key) -> key.contains(contains) && key.endsWith(".request"));
+    }
+
+    @SuppressWarnings("unchecked")
+    public <ResponseT> ResponseT findFirstResponseByContains(String contains) {
+        return (ResponseT) findFirst((key) -> key.contains(contains) && key.endsWith(".response"));
+    }
+
+    @SuppressWarnings("unchecked")
+    public <ResponseT> List<ResponseT> findAllResponseByContains(String contains) {
+        return (List<ResponseT>) findAll((key) -> key.contains(contains) && key.endsWith(".response"));
+    }
+
+    Object findFirst(Predicate<String> contains) {
+        Objects.requireNonNull(contains);
+        return callGraphs.entrySet().stream().filter(e -> contains.test(e.getKey())).findFirst().map(Map.Entry::getValue)
+            .orElse(null);
+
+    }
+
+    List<Object> findAll(Predicate<String> contains) {
+        Objects.requireNonNull(contains);
+        return callGraphs.entrySet().stream().filter(e -> contains.test(e.getKey())).map(Map.Entry::getValue)
+            .collect(Collectors.toList());
     }
 
     <RequestT, ResponseT, ClientT, ModelT, CallbackT extends StdCallbackContext>

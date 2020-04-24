@@ -16,12 +16,12 @@ package software.amazon.cloudformation.proxy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
@@ -29,7 +29,9 @@ import com.amazonaws.services.cloudformation.AmazonCloudFormation;
 import com.amazonaws.services.cloudformation.model.DescribeStackEventsRequest;
 import com.amazonaws.services.cloudformation.model.DescribeStackEventsResult;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -243,7 +245,8 @@ public class AmazonWebServicesClientProxyTest {
         final SdkHttpResponse sdkHttpResponse = mock(SdkHttpResponse.class);
         when(sdkHttpResponse.statusCode()).thenReturn(400);
         final ProgressEvent<Model,
-            StdCallbackContext> result = proxy.initiate("client:createRespository", proxy.newProxy(() -> null), model, context)
+            StdCallbackContext> result = proxy
+                .initiate("client:createRespository", proxy.newProxy(() -> mock(ServiceClient.class)), model, context)
                 .translateToServiceRequest(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
                 .makeServiceCall((r, c) -> {
                     throw new BadRequestException(mock(AwsServiceException.Builder.class)) {
@@ -273,7 +276,8 @@ public class AmazonWebServicesClientProxyTest {
         final SdkHttpResponse sdkHttpResponse = mock(SdkHttpResponse.class);
         when(sdkHttpResponse.statusCode()).thenReturn(404);
         ProgressEvent<Model,
-            StdCallbackContext> result = proxy.initiate("client:createRespository", proxy.newProxy(() -> null), model, context)
+            StdCallbackContext> result = proxy
+                .initiate("client:createRespository", proxy.newProxy(() -> mock(ServiceClient.class)), model, context)
                 .translateToServiceRequest(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
                 .makeServiceCall((r, c) -> {
                     throw new NotFoundException(mock(AwsServiceException.Builder.class)) {
@@ -303,7 +307,8 @@ public class AmazonWebServicesClientProxyTest {
         final SdkHttpResponse sdkHttpResponse = mock(SdkHttpResponse.class);
         when(sdkHttpResponse.statusCode()).thenReturn(401);
         ProgressEvent<Model,
-            StdCallbackContext> result = proxy.initiate("client:createRespository", proxy.newProxy(() -> null), model, context)
+            StdCallbackContext> result = proxy
+                .initiate("client:createRespository", proxy.newProxy(() -> mock(ServiceClient.class)), model, context)
                 .translateToServiceRequest(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
                 .makeServiceCall((r, c) -> {
                     throw new AccessDenied(AwsServiceException.builder()) {
@@ -395,15 +400,21 @@ public class AmazonWebServicesClientProxyTest {
         assertThat(resultModel.getArn()).isNotNull();
         assertThat(resultModel.getCreated()).isNotNull();
 
-        Map<String, Object> callGraphs = context.callGraphs();
-        assertThat(callGraphs.containsKey("client:createRepository.request")).isEqualTo(true);
-        assertSame(requests[0], callGraphs.get("client:createRepository.request"));
-        assertThat(callGraphs.containsKey("client:createRepository.response")).isEqualTo(true);
-        assertSame(responses[0], callGraphs.get("client:createRepository.response"));
-        assertThat(callGraphs.containsKey("client:readRepository.request")).isEqualTo(true);
-        assertSame(describeRequests[0], callGraphs.get("client:readRepository.request"));
-        assertThat(callGraphs.containsKey("client:readRepository.response")).isEqualTo(true);
-        assertSame(describeResponses[0], callGraphs.get("client:readRepository.response"));
+        Object objToCmp = context.findFirstRequestByContains("client:createRepository");
+        assertThat(objToCmp).isNotNull();
+        assertThat(requests[0]).isSameAs(objToCmp);
+
+        objToCmp = context.findFirstResponseByContains("client:createRepository");
+        assertThat(objToCmp).isNotNull();
+        assertThat(responses[0]).isSameAs(objToCmp);
+
+        objToCmp = context.findFirstRequestByContains("client:readRepository");
+        assertThat(objToCmp).isNotNull();
+        assertThat(describeRequests[0]).isSameAs(objToCmp);
+
+        objToCmp = context.findFirstResponseByContains("client:readRepository");
+        assertThat(objToCmp).isNotNull();
+        assertThat(describeResponses[0]).isSameAs(objToCmp);
     }
 
     @Test
@@ -590,6 +601,111 @@ public class AmazonWebServicesClientProxyTest {
                     return ProgressEvent.success(model, context);
                 });
         assertThat(event.isFailed()).isTrue();
+    }
+
+    @Test
+    public void automaticNamedRequests() {
+        AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(mock(LoggerProxy.class), MOCK,
+                                                                              () -> Duration.ofSeconds(1).toMillis());
+        final String repoName = "NewRepo";
+        final Model model = new Model();
+        model.setRepoName(repoName);
+        final StdCallbackContext context = new StdCallbackContext();
+        //
+        // Mock calls
+        //
+        final ServiceClient client = mock(ServiceClient.class);
+        when(client.createRepository(any(CreateRequest.class)))
+            .thenReturn(new CreateResponse.Builder().repoName(model.getRepoName()).build());
+        when(client.serviceName()).thenReturn("repositoryService");
+
+        CallChain.Initiator<ServiceClient, Model,
+            StdCallbackContext> initiator = proxy.newInitiator(() -> client, model, context);
+
+        final CreateRequest createRepository = new CreateRequest.Builder().repoName(repoName).build();
+        ProgressEvent<Model, StdCallbackContext> result = initiator.translateToServiceRequest(m -> createRepository)
+            .makeServiceCall((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository)).success();
+
+        ProgressEvent<Model, StdCallbackContext> result_2 = initiator.translateToServiceRequest(m -> createRepository)
+            .makeServiceCall((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository)).success();
+
+        assertThat(result).isNotSameAs(result_2);
+        assertThat(result_2).isEqualTo(result);
+
+        assertThat(result).isNotNull();
+        assertThat(result.isSuccess()).isTrue();
+        CreateRequest internal = context.findFirstRequestByContains("repositoryService:Create");
+        assertThat(internal).isNotNull();
+        assertThat(internal).isSameAs(createRepository);
+
+        Map<String, Object> callGraphs = context.callGraphs();
+        assertThat(callGraphs.size()).isEqualTo(3);
+        // verify this was called only once for both requests.
+        verify(client).createRepository(any(CreateRequest.class));
+    }
+
+    @Test
+    public void automaticNamedUniqueRequests() {
+        AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(mock(LoggerProxy.class), MOCK,
+                                                                              () -> Duration.ofSeconds(1).toMillis());
+        final String repoName = "NewRepo";
+        final Model model = new Model();
+        model.setRepoName(repoName);
+        final StdCallbackContext context = new StdCallbackContext();
+        //
+        // TODO add the mocks needed
+        //
+        final ServiceClient client = mock(ServiceClient.class);
+        when(client.createRepository(any(CreateRequest.class)))
+            .thenAnswer(invocation -> new CreateResponse.Builder().repoName(model.getRepoName()).build());
+        when(client.serviceName()).thenReturn("repositoryService");
+
+        final CallChain.Initiator<ServiceClient, Model,
+            StdCallbackContext> initiator = proxy.newInitiator(() -> client, model, context);
+
+        final CreateRequest createRepository = new CreateRequest.Builder().repoName(repoName).build();
+        ProgressEvent<Model, StdCallbackContext> result = initiator.translateToServiceRequest(m -> createRepository)
+            .makeServiceCall((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository)).success();
+
+        model.setRepoName(repoName + "-2");
+        ProgressEvent<Model,
+            StdCallbackContext> result_2 = initiator.rebindModel(Model.builder().repoName(repoName + "-2").build())
+                .translateToServiceRequest(m -> new CreateRequest.Builder().repoName(model.getRepoName()).build())
+                .makeServiceCall((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository)).success();
+        model.setRepoName(repoName);
+
+        assertThat(result).isNotEqualTo(result_2);
+        CreateRequest internal = context.findFirstRequestByContains("repositoryService:Create");
+        assertThat(internal).isNotNull();
+        assertThat(internal).isSameAs(createRepository); // we picked the one with the first call
+
+        List<CreateResponse> responses = context.findAllResponseByContains("repositoryService:Create");
+        assertThat(responses.size()).isEqualTo(2);
+        List<CreateResponse> expected = Arrays.asList(new CreateResponse.Builder().repoName(repoName).build(),
+            new CreateResponse.Builder().repoName(repoName + "-2").build());
+        assertThat(responses).isEqualTo(expected);
+
+        verify(client, times(2)).createRepository(any(CreateRequest.class));
+    }
+
+    @Test
+    public void nullRequestTest() {
+        AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(mock(LoggerProxy.class), MOCK,
+                                                                              () -> Duration.ofSeconds(1).toMillis());
+        final String repoName = "NewRepo";
+        final Model model = new Model();
+        model.setRepoName(repoName);
+        final StdCallbackContext context = new StdCallbackContext();
+        //
+        // Mock calls
+        //
+        final ServiceClient client = mock(ServiceClient.class);
+        final CallChain.Initiator<ServiceClient, Model,
+            StdCallbackContext> initiator = proxy.newInitiator(() -> client, model, context);
+        ProgressEvent<Model, StdCallbackContext> result = initiator.translateToServiceRequest(m -> (CreateRequest) null)
+            .makeServiceCall((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::createRepository)).success();
+
+        assertThat(result).isNotNull();
 
     }
 }
