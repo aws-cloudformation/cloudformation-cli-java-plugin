@@ -18,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
+import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 
 /**
  * This class provides a wrapper for the client and provides methods to inject
@@ -41,7 +42,7 @@ public interface ProxyClient<ClientT> {
      *
      * @param request, the AWS service request that we need to make
      * @param requestFunction, this is a Lambda closure that provide the actual API
-     *            that needs to the invoked.
+     *            that needs to be invoked.
      * @param <RequestT> the request type
      * @param <ResponseT> the response from the request
      * @return the response if successful. Else it will propagate all
@@ -60,7 +61,7 @@ public interface ProxyClient<ClientT> {
      *
      * @param request, the AWS service request that we need to make
      * @param requestFunction, this is a Lambda closure that provide the actual API
-     *            that needs to the invoked.
+     *            that needs to be invoked.
      * @param <RequestT> the request type
      * @param <ResponseT> the response from the request
      * @return the response if successful. Else it will propagate all
@@ -71,7 +72,27 @@ public interface ProxyClient<ClientT> {
      */
     <RequestT extends AwsRequest, ResponseT extends AwsResponse>
         CompletableFuture<ResponseT>
-        injectCredentialsAndInvokeV2Aync(RequestT request, Function<RequestT, CompletableFuture<ResponseT>> requestFunction);
+        injectCredentialsAndInvokeV2Async(RequestT request, Function<RequestT, CompletableFuture<ResponseT>> requestFunction);
+
+    /**
+     * This is a synchronous version of making API calls which implement Iterable in
+     * the SDKv2
+     *
+     * @param request, the AWS service request that we need to make
+     * @param requestFunction, this is a Lambda closure that provide the actual API
+     *            that needs to be invoked.
+     * @param <RequestT> the request type
+     * @param <ResponseT> the response from the request
+     * @param <IterableT> the iterable collection from the response
+     * @return the response if successful. Else it will propagate all
+     *         {@link software.amazon.awssdk.awscore.exception.AwsServiceException}
+     *         that is thrown or
+     *         {@link software.amazon.awssdk.core.exception.SdkClientException} if
+     *         there is client side problem
+     */
+    <RequestT extends AwsRequest, ResponseT extends AwsResponse, IterableT extends SdkIterable<ResponseT>>
+        IterableT
+        injectCredentialsAndInvokeIterableV2(RequestT request, Function<RequestT, IterableT> requestFunction);
 
     /**
      * @return the actual AWS service client that we need to use to provide the

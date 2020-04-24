@@ -12,7 +12,6 @@ disable=
     bad-continuation,           # clashes with black
     too-few-public-methods,     # triggers when inheriting
     ungrouped-imports,          # clashes with isort
-
 [BASIC]
 
 good-names=e,ex,f,fp,i,j,k,n,_

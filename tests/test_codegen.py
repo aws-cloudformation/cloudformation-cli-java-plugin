@@ -1,7 +1,7 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name,protected-access
 import xml.etree.ElementTree as ET
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import yaml
 
@@ -13,18 +13,22 @@ from rpdk.java.codegen import JavaArchiveNotFoundError, JavaLanguagePlugin
 RESOURCE = "DZQWCC"
 
 
-@pytest.fixture
-def project(tmpdir):
+@pytest.fixture(params=["1", "2"])
+def project(tmpdir, request):
+    def mock_input_with_validation(prompt, validate):  # pylint: disable=unused-argument
+        if prompt.startswith("Enter a package name"):
+            return ("software", "amazon", "foo", RESOURCE.lower())
+        if prompt.startswith("Choose codegen model"):
+            return request.param
+        return ""
+
     project = Project(root=tmpdir)
+    mock_cli = MagicMock(side_effect=mock_input_with_validation)
     with patch.dict(
         "rpdk.core.plugin_registry.PLUGIN_REGISTRY",
         {"test": lambda: JavaLanguagePlugin},
         clear=True,
-    ), patch(
-        "rpdk.java.codegen.input_with_validation",
-        autospec=True,
-        return_value=("software", "amazon", "foo", RESOURCE.lower()),
-    ):
+    ), patch("rpdk.java.codegen.input_with_validation", new=mock_cli):
         project.init("AWS::Foo::{}".format(RESOURCE), "test")
     return project
 
@@ -196,3 +200,39 @@ def test__namespace_from_project_old_settings():
 
     assert plugin.namespace == ("com", "balloon", "clown", "service")
     assert plugin.package_name == "com.balloon.clown.service"
+
+
+def test__prompt_for_codegen_model_no_selection():
+    project = Mock(type_info=("AWS", "Clown", "Service"), settings={})
+    plugin = JavaLanguagePlugin()
+
+    with patch("rpdk.core.init.input", return_value="") as mock_input:
+        plugin._prompt_for_codegen_model(project)
+
+    mock_input.assert_called_once()
+
+    assert project.settings == {"codegen_template_path": "default"}
+
+
+def test__prompt_for_codegen_model_default():
+    project = Mock(type_info=("AWS", "Clown", "Service"), settings={})
+    plugin = JavaLanguagePlugin()
+
+    with patch("rpdk.core.init.input", return_value="1") as mock_input:
+        plugin._prompt_for_codegen_model(project)
+
+    mock_input.assert_called_once()
+
+    assert project.settings == {"codegen_template_path": "default"}
+
+
+def test__prompt_for_codegen_model_guided_aws():
+    project = Mock(type_info=("AWS", "Clown", "Service"), settings={})
+    plugin = JavaLanguagePlugin()
+
+    with patch("rpdk.core.init.input", return_value="2") as mock_input:
+        plugin._prompt_for_codegen_model(project)
+
+    mock_input.assert_called_once()
+
+    assert project.settings == {"codegen_template_path": "guided_aws"}

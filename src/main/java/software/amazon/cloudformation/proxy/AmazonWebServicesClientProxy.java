@@ -111,9 +111,16 @@ public class AmazonWebServicesClientProxy implements CallChain {
             @Override
             public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
                 CompletableFuture<ResponseT>
-                injectCredentialsAndInvokeV2Aync(RequestT request,
-                                                 Function<RequestT, CompletableFuture<ResponseT>> requestFunction) {
+                injectCredentialsAndInvokeV2Async(RequestT request,
+                                                  Function<RequestT, CompletableFuture<ResponseT>> requestFunction) {
                 return AmazonWebServicesClientProxy.this.injectCredentialsAndInvokeV2Async(request, requestFunction);
+            }
+
+            @Override
+            public <RequestT extends AwsRequest, ResponseT extends AwsResponse, IterableT extends SdkIterable<ResponseT>>
+                IterableT
+                injectCredentialsAndInvokeIterableV2(RequestT request, Function<RequestT, IterableT> requestFunction) {
+                return AmazonWebServicesClientProxy.this.injectCredentialsAndInvokeIterableV2(request, requestFunction);
             }
 
             @Override
