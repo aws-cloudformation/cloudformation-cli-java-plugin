@@ -313,9 +313,30 @@ public class StdCallbackContext {
         CallChain.Callback<RequestT, ResponseT, ClientT, ModelT, CallbackT, Boolean>
         stabilize(String callGraph, CallChain.Callback<RequestT, ResponseT, ClientT, ModelT, CallbackT, Boolean> callback) {
         return (request1, response1, client, model, context) -> {
-            Boolean result = (Boolean) callGraphs.computeIfAbsent(callGraph + ".stabilize",
-                (ign) -> callback.invoke(request1, response1, client, model, context) ? Boolean.TRUE : null);
-            return result != null ? Boolean.TRUE : Boolean.FALSE;
+            final String key = callGraph + ".stabilize";
+            Boolean result = (Boolean) callGraphs.getOrDefault(key, Boolean.FALSE);
+            if (!result) {
+                //
+                // The StdCallbackContext can be shared. However the call to stabilize for a
+                // given content
+                // is usually confined to one thread. If for some reason we spread that across
+                // threads, the
+                // worst that can happen is a double compute for stabilize. This isn't the
+                // intended pattern.
+                // Why are we changing it from computeIfAbsent pattern? For the callback we send
+                // in the
+                // StdCallbackContext which can be used to add things into context. That will
+                // lead to
+                // ConcurrentModificationExceptions when the compute running added things into
+                // context when
+                // needed
+                //
+                result = callback.invoke(request1, response1, client, model, context);
+                if (result) {
+                    callGraphs.put(key, Boolean.TRUE);
+                }
+            }
+            return result;
         };
     }
 
