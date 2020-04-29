@@ -158,7 +158,6 @@ public class LambdaWrapperTest {
 
         assertThat(handlerResponse.getBearerToken()).isEqualTo(expected.getBearerToken());
         assertThat(handlerResponse.getErrorCode()).isEqualTo(expected.getErrorCode());
-        assertThat(handlerResponse.getMessage()).isEqualTo(expected.getMessage());
         assertThat(handlerResponse.getNextToken()).isEqualTo(expected.getNextToken());
         assertThat(handlerResponse.getOperationStatus()).isEqualTo(expected.getOperationStatus());
         assertThat(handlerResponse.getStabilizationData()).isEqualTo(expected.getStabilizationData());
