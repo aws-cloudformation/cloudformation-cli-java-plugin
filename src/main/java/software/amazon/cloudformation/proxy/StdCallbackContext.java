@@ -32,9 +32,13 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
 
 /**
@@ -272,13 +276,67 @@ public class StdCallbackContext {
         return (ResponseT) callGraphs.get(callGraph + ".response");
     }
 
+    @SuppressWarnings("unchecked")
+    public <RequestT> RequestT findFirstRequestByContains(String contains) {
+        return (RequestT) findFirst((key) -> key.contains(contains) && key.endsWith(".request"));
+    }
+
+    @SuppressWarnings("unchecked")
+    public <RequestT> List<RequestT> findAllRequestByContains(String contains) {
+        return (List<RequestT>) findAll((key) -> key.contains(contains) && key.endsWith(".request"));
+    }
+
+    @SuppressWarnings("unchecked")
+    public <ResponseT> ResponseT findFirstResponseByContains(String contains) {
+        return (ResponseT) findFirst((key) -> key.contains(contains) && key.endsWith(".response"));
+    }
+
+    @SuppressWarnings("unchecked")
+    public <ResponseT> List<ResponseT> findAllResponseByContains(String contains) {
+        return (List<ResponseT>) findAll((key) -> key.contains(contains) && key.endsWith(".response"));
+    }
+
+    Object findFirst(Predicate<String> contains) {
+        Objects.requireNonNull(contains);
+        return callGraphs.entrySet().stream().filter(e -> contains.test(e.getKey())).findFirst().map(Map.Entry::getValue)
+            .orElse(null);
+
+    }
+
+    List<Object> findAll(Predicate<String> contains) {
+        Objects.requireNonNull(contains);
+        return callGraphs.entrySet().stream().filter(e -> contains.test(e.getKey())).map(Map.Entry::getValue)
+            .collect(Collectors.toList());
+    }
+
     <RequestT, ResponseT, ClientT, ModelT, CallbackT extends StdCallbackContext>
         CallChain.Callback<RequestT, ResponseT, ClientT, ModelT, CallbackT, Boolean>
         stabilize(String callGraph, CallChain.Callback<RequestT, ResponseT, ClientT, ModelT, CallbackT, Boolean> callback) {
         return (request1, response1, client, model, context) -> {
-            Boolean result = (Boolean) callGraphs.computeIfAbsent(callGraph + ".stabilize",
-                (ign) -> callback.invoke(request1, response1, client, model, context) ? Boolean.TRUE : null);
-            return result != null ? Boolean.TRUE : Boolean.FALSE;
+            final String key = callGraph + ".stabilize";
+            Boolean result = (Boolean) callGraphs.getOrDefault(key, Boolean.FALSE);
+            if (!result) {
+                //
+                // The StdCallbackContext can be shared. However the call to stabilize for a
+                // given content
+                // is usually confined to one thread. If for some reason we spread that across
+                // threads, the
+                // worst that can happen is a double compute for stabilize. This isn't the
+                // intended pattern.
+                // Why are we changing it from computeIfAbsent pattern? For the callback we send
+                // in the
+                // StdCallbackContext which can be used to add things into context. That will
+                // lead to
+                // ConcurrentModificationExceptions when the compute running added things into
+                // context when
+                // needed
+                //
+                result = callback.invoke(request1, response1, client, model, context);
+                if (result) {
+                    callGraphs.put(key, Boolean.TRUE);
+                }
+            }
+            return result;
         };
     }
 

@@ -40,6 +40,7 @@ import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.SdkClient;
 import software.amazon.awssdk.core.exception.NonRetryableException;
 import software.amazon.awssdk.core.exception.RetryableException;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
@@ -170,6 +171,12 @@ public class AmazonWebServicesClientProxy implements CallChain {
         }
 
         @Override
+        public <
+            RequestT> Caller<RequestT, ClientT, ModelT, CallbackT> translateToServiceRequest(Function<ModelT, RequestT> maker) {
+            return initiate("").translateToServiceRequest(maker);
+        }
+
+        @Override
         public ModelT getResourceModel() {
             return model;
         }
@@ -191,6 +198,11 @@ public class AmazonWebServicesClientProxy implements CallChain {
             rebindCallback(NewCallbackT callback) {
             Preconditions.checkNotNull(callback, "cxt can not be null");
             return new StdInitiator<>(client, model, callback);
+        }
+
+        @Override
+        public Logger getLogger() {
+            return AmazonWebServicesClientProxy.this.loggerProxy;
         }
     }
 
@@ -233,6 +245,22 @@ public class AmazonWebServicesClientProxy implements CallChain {
         public <
             RequestT> Caller<RequestT, ClientT, ModelT, CallbackT> translateToServiceRequest(Function<ModelT, RequestT> maker) {
             return new Caller<RequestT, ClientT, ModelT, CallbackT>() {
+
+                private final CallGraphNameGenerator<ModelT, RequestT, ClientT,
+                    CallbackT> generator = (incoming, model_, reqMaker, client_, context_) -> {
+                        final RequestT request = reqMaker.apply(model_);
+                        String objectHash = String.valueOf(Objects.hashCode(request));
+                        String serviceName = (client_ == null
+                            ? ""
+                            : (client_ instanceof SdkClient)
+                                ? ((SdkClient) client_).serviceName()
+                                : client_.getClass().getSimpleName());
+                        String requestName = request != null ? request.getClass().getSimpleName().replace("Request", "") : "";
+                        String callGraph = serviceName + ":" + requestName + "-" + (incoming != null ? incoming : "") + "-"
+                            + objectHash;
+                        context_.request(callGraph, (ignored -> request)).apply(model_);
+                        return callGraph;
+                    };
 
                 @Override
                 public Caller<RequestT, ClientT, ModelT, CallbackT> backoffDelay(Delay delay) {
@@ -315,6 +343,8 @@ public class AmazonWebServicesClientProxy implements CallChain {
                             // stabilization
                             // lambdas. This ensures that we call demux as necessary.
                             //
+                            final String callGraph = generator.callGraph(CallContext.this.callGraph, model, maker,
+                                client.client(), context);
                             Delay delay = override.getDelay(callGraph, CallContext.this.delay);
                             Function<ModelT, RequestT> reqMaker = context.request(callGraph, maker);
                             BiFunction<RequestT, ProxyClient<ClientT>, ResponseT> resMaker = context.response(callGraph, caller);
@@ -377,6 +407,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
                                     long remainingTime = getRemainingTimeInMillis();
                                     long localWait = next.toMillis() + 2 * elapsed + 100;
                                     if (remainingTime > localWait) {
+                                        loggerProxy.log("Waiting for " + next.getSeconds() + " for call " + callGraph);
                                         Uninterruptibles.sleepUninterruptibly(next.getSeconds(), TimeUnit.SECONDS);
                                         continue;
                                     }

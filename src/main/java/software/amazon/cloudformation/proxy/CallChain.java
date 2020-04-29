@@ -53,7 +53,7 @@ public interface CallChain {
      * @param <ModelT> the model object being worked on
      * @param <CallbackT> the callback context
      */
-    interface Initiator<ClientT, ModelT, CallbackT extends StdCallbackContext> {
+    interface Initiator<ClientT, ModelT, CallbackT extends StdCallbackContext> extends RequestMaker<ClientT, ModelT, CallbackT> {
         /**
          * Each service call must be first initiated. Every call is provided a separate
          * name called call graph. This is essential from both a tracing perspective as
@@ -73,6 +73,11 @@ public interface CallChain {
          * @return the callback context associated with API initiator, Can not be null
          */
         CallbackT getCallbackContext();
+
+        /**
+         * @return logger associated to log messages
+         */
+        Logger getLogger();
 
         /**
          * Can rebind a new model to the call chain while retaining the client and

@@ -12,17 +12,11 @@
 * express or implied. See the License for the specific language governing
 * permissions and limitations under the License.
 */
-package software.amazon.cloudformation.proxy.service;
+package software.amazon.cloudformation.proxy;
 
-import software.amazon.awssdk.core.SdkClient;
+import java.util.function.Function;
 
-public interface ServiceClient extends SdkClient {
-
-    default String serviceName() {
-        return "serviceClient";
-    }
-
-    CreateResponse createRepository(CreateRequest r);
-
-    DescribeResponse describeRepository(DescribeRequest r);
+@FunctionalInterface
+public interface CallGraphNameGenerator<ModelT, RequestT, ClientT, CallbackT extends StdCallbackContext> {
+    String callGraph(String incoming, ModelT model, Function<ModelT, RequestT> reqMaker, ClientT client, CallbackT context);
 }
