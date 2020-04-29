@@ -563,8 +563,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             int callbackDelayMinutes = Math.abs(handlerResponse.getCallbackDelaySeconds() / 60);
             this.scheduler.rescheduleAfterMinutes(context.getInvokedFunctionArn(), callbackDelayMinutes, request);
         } catch (final Throwable e) {
-            this.log(String.format("Failed to schedule re-invoke, caused by %s", e.toString()));
-            handlerResponse.setMessage(e.getMessage());
+            handlerResponse.setMessage("Failed to schedule re-invoke.");
             handlerResponse.setStatus(OperationStatus.FAILED);
             handlerResponse.setErrorCode(HandlerErrorCode.InternalFailure);
         }
