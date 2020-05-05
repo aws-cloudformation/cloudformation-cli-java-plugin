@@ -21,9 +21,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import java.util.Arrays;
+import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
-import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -148,7 +148,7 @@ public class CloudWatchSchedulerTest {
     }
 
     @Test
-    public void test_rescheduleAfterMinutes_1MinuteFloor() {
+    public void test_rescheduleAfterMinutes_1MinuteFloor() throws IOException {
         final CloudWatchEventsProvider provider = mock(CloudWatchEventsProvider.class);
         final CloudWatchEventsClient client = getCloudWatchEvents();
         when(provider.get()).thenReturn(client);
@@ -166,8 +166,9 @@ public class CloudWatchSchedulerTest {
         verify(requestContext, times(1)).setCloudWatchEventsRuleName(startsWith("reinvoke-handler-"));
         verify(requestContext, times(1)).setCloudWatchEventsTargetId(startsWith("reinvoke-target-"));
 
-        final List<TargetMatcher> targetMatchers = Arrays
-            .asList(new TargetMatcher(FUNCTION_ARN, "reinvoke-target-", new JSONObject(request).toString()));
+        final List<TargetMatcher> targetMatchers = Collections.singletonList(
+            new TargetMatcher(FUNCTION_ARN, "reinvoke-target-", serializer.compress(serializer.serialize(request))));
+
         verify(client, times(1))
             .putTargets(argThat(new PutTargetsRequestMatcher("reinvoke-handler-", new TargetsListMatcher(targetMatchers))));
         verify(client, times(1))
