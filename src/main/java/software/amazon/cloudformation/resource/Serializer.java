@@ -36,10 +36,11 @@ import software.amazon.cloudformation.proxy.aws.AWSServiceSerdeModule;
 
 public class Serializer {
 
-    public static final String COMPRESSED = "compressed";
+    public static final String COMPRESSED = "__COMPRESSED__";
+    private static final String COMPRESSION_METHOD = "__COMPRESSION_METHOD__";
     private static final ObjectMapper OBJECT_MAPPER;
     private static final ObjectMapper STRICT_OBJECT_MAPPER;
-    private static final TypeReference<Map<String, String>> MAP_TYPE_REFERENCE = new TypeReference<Map<String, String>>() {
+    private static final TypeReference<Map<String, Object>> MAP_TYPE_REFERENCE = new TypeReference<Map<String, Object>>() {
     };
 
     /**
@@ -87,13 +88,27 @@ public class Serializer {
         return OBJECT_MAPPER.writeValueAsString(modelObject);
     }
 
+    /*
+     * public <T> String compress(final String modelInput) throws IOException {
+     * final Map<String, String> map = new HashMap<>(); ByteArrayOutputStream
+     * byteArrayOutputStream = new ByteArrayOutputStream(); GZIPOutputStream gzip =
+     * new GZIPOutputStream(byteArrayOutputStream);
+     * gzip.write(modelInput.getBytes(StandardCharsets.UTF_8)); gzip.close();
+     * map.put(COMPRESSED,
+     * Base64.encodeBase64String(byteArrayOutputStream.toByteArray()));
+     * map.put(COMPRESSION_METHOD, "gzip_base64"); return
+     * OBJECT_MAPPER.writeValueAsString(map); }
+     */
+
     public <T> String compress(final String modelInput) throws IOException {
         final Map<String, String> map = new HashMap<>();
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        GZIPOutputStream gzip = new GZIPOutputStream(byteArrayOutputStream);
-        gzip.write(modelInput.getBytes(StandardCharsets.UTF_8));
-        gzip.close();
-        map.put(COMPRESSED, Base64.encodeBase64String(byteArrayOutputStream.toByteArray()));
+        try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
+            try (GZIPOutputStream gzip = new GZIPOutputStream(byteArrayOutputStream)) {
+                gzip.write(modelInput.getBytes(StandardCharsets.UTF_8));
+            }
+            map.put(COMPRESSED, Base64.encodeBase64String(byteArrayOutputStream.toByteArray()));
+            map.put(COMPRESSION_METHOD, "gzip_base64");
+        }
         return OBJECT_MAPPER.writeValueAsString(map);
     }
 
@@ -101,20 +116,17 @@ public class Serializer {
         return OBJECT_MAPPER.readValue(s, reference);
     }
 
-    public String decompress(final String s) {
-        try {
-            final Map<String, String> map = deserialize(s, MAP_TYPE_REFERENCE);
+    public String decompress(final String s) throws IOException {
+        final Map<String, Object> map = deserialize(s, MAP_TYPE_REFERENCE);
 
-            if (!map.containsKey(COMPRESSED)) {
-                return s;
-            }
-
-            final byte[] bytes = Base64.decodeBase64(map.get(COMPRESSED));
-            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
-            GZIPInputStream gzipInputStream = new GZIPInputStream(byteArrayInputStream);
-            return new String(IOUtils.toByteArray(gzipInputStream), StandardCharsets.UTF_8);
-        } catch (IOException e) {
+        if (!map.containsKey(COMPRESSED)) {
             return s;
+        }
+
+        final byte[] bytes = Base64.decodeBase64((String) map.get(COMPRESSED));
+        try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
+            GZIPInputStream gzipInputStream = new GZIPInputStream(byteArrayInputStream);) {
+            return new String(IOUtils.toByteArray(gzipInputStream), StandardCharsets.UTF_8);
         }
     }
 
