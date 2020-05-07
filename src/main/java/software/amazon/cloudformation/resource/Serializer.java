@@ -38,7 +38,7 @@ public class Serializer {
 
     public static final String COMPRESSED = "__COMPRESSED__";
     private static final String COMPRESSION_METHOD = "__COMPRESSION_METHOD__";
-    private static final String COMPRESSION = "gzip_base64";
+    private static final String COMPRESSION_GZIP_BASE64 = "gzip_base64";
     private static final ObjectMapper OBJECT_MAPPER;
     private static final ObjectMapper STRICT_OBJECT_MAPPER;
     private static final TypeReference<Map<String, Object>> MAP_TYPE_REFERENCE = new TypeReference<Map<String, Object>>() {
@@ -96,7 +96,7 @@ public class Serializer {
                 gzip.write(modelInput.getBytes(StandardCharsets.UTF_8));
             }
             map.put(COMPRESSED, Base64.encodeBase64String(byteArrayOutputStream.toByteArray()));
-            map.put(COMPRESSION_METHOD, COMPRESSION);
+            map.put(COMPRESSION_METHOD, COMPRESSION_GZIP_BASE64);
         }
         return OBJECT_MAPPER.writeValueAsString(map);
     }
