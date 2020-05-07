@@ -20,6 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -42,11 +44,15 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.ResponseBytes;
+import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.exception.NonRetryableException;
 import software.amazon.awssdk.http.SdkHttpResponse;
 import software.amazon.awssdk.services.cloudformation.CloudFormationAsyncClient;
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 import software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsResponse;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.cloudformation.exceptions.ResourceAlreadyExistsException;
 import software.amazon.cloudformation.exceptions.TerminalException;
 import software.amazon.cloudformation.proxy.delay.Constant;
@@ -227,6 +233,150 @@ public class AmazonWebServicesClientProxyTest {
         // verify the wrapped request is sent over the initiate
         verify(client).describeStackEvents(wrappedRequest);
 
+    }
+
+    @Test
+    public void testInjectCredentialsAndInvokeV2InputStream() {
+
+        final LoggerProxy loggerProxy = mock(LoggerProxy.class);
+        final Credentials credentials = new Credentials("accessKeyId", "secretAccessKey", "sessionToken");
+        final ResponseInputStream<?> responseInputStream = mock(ResponseInputStream.class);
+
+        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(loggerProxy, credentials, () -> 1000L);
+
+        final software.amazon.awssdk.services.s3.model.GetObjectRequest wrappedRequest = mock(
+            software.amazon.awssdk.services.s3.model.GetObjectRequest.class);
+
+        final software.amazon.awssdk.services.s3.model.GetObjectRequest.Builder builder = mock(
+            software.amazon.awssdk.services.s3.model.GetObjectRequest.Builder.class);
+        when(builder.overrideConfiguration(any(AwsRequestOverrideConfiguration.class))).thenReturn(builder);
+        when(builder.build()).thenReturn(wrappedRequest);
+        final software.amazon.awssdk.services.s3.model.GetObjectRequest request = mock(
+            software.amazon.awssdk.services.s3.model.GetObjectRequest.class);
+        when(request.toBuilder()).thenReturn(builder);
+
+        final S3Client client = mock(S3Client.class);
+
+        doReturn(responseInputStream).when(client)
+            .getObject(any(software.amazon.awssdk.services.s3.model.GetObjectRequest.class));
+
+        final ResponseInputStream<
+            GetObjectResponse> result = proxy.injectCredentialsAndInvokeV2InputStream(request, client::getObject);
+
+        // verify request is rebuilt for injection
+        verify(request).toBuilder();
+
+        // verify the wrapped request is sent over the initiate
+        verify(client).getObject(wrappedRequest);
+
+        // ensure the return type matches
+        assertThat(result).isEqualTo(responseInputStream);
+    }
+
+    @Test
+    public void testInjectCredentialsAndInvokeV2InputStream_Exception() {
+
+        final LoggerProxy loggerProxy = mock(LoggerProxy.class);
+        final Credentials credentials = new Credentials("accessKeyId", "secretAccessKey", "sessionToken");
+
+        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(loggerProxy, credentials, () -> 1000L);
+
+        final software.amazon.awssdk.services.s3.model.GetObjectRequest wrappedRequest = mock(
+            software.amazon.awssdk.services.s3.model.GetObjectRequest.class);
+
+        final software.amazon.awssdk.services.s3.model.GetObjectRequest.Builder builder = mock(
+            software.amazon.awssdk.services.s3.model.GetObjectRequest.Builder.class);
+        when(builder.overrideConfiguration(any(AwsRequestOverrideConfiguration.class))).thenReturn(builder);
+        when(builder.build()).thenReturn(wrappedRequest);
+        final software.amazon.awssdk.services.s3.model.GetObjectRequest request = mock(
+            software.amazon.awssdk.services.s3.model.GetObjectRequest.class);
+        when(request.toBuilder()).thenReturn(builder);
+
+        final S3Client client = mock(S3Client.class);
+
+        doThrow(new TerminalException(new RuntimeException("Sorry"))).when(client)
+            .getObject(any(software.amazon.awssdk.services.s3.model.GetObjectRequest.class));
+
+        assertThrows(RuntimeException.class, () -> proxy.injectCredentialsAndInvokeV2InputStream(request, client::getObject),
+            "Expected Runtime Exception.");
+
+        // verify request is rebuilt for injection
+        verify(request).toBuilder();
+
+        // verify the wrapped request is sent over the initiate
+        verify(client).getObject(wrappedRequest);
+    }
+
+    @Test
+    public void testInjectCredentialsAndInvokeV2Bytes() {
+
+        final LoggerProxy loggerProxy = mock(LoggerProxy.class);
+        final Credentials credentials = new Credentials("accessKeyId", "secretAccessKey", "sessionToken");
+        final ResponseBytes<?> responseBytes = mock(ResponseBytes.class);
+
+        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(loggerProxy, credentials, () -> 1000L);
+
+        final software.amazon.awssdk.services.s3.model.GetObjectRequest wrappedRequest = mock(
+            software.amazon.awssdk.services.s3.model.GetObjectRequest.class);
+
+        final software.amazon.awssdk.services.s3.model.GetObjectRequest.Builder builder = mock(
+            software.amazon.awssdk.services.s3.model.GetObjectRequest.Builder.class);
+        when(builder.overrideConfiguration(any(AwsRequestOverrideConfiguration.class))).thenReturn(builder);
+        when(builder.build()).thenReturn(wrappedRequest);
+        final software.amazon.awssdk.services.s3.model.GetObjectRequest request = mock(
+            software.amazon.awssdk.services.s3.model.GetObjectRequest.class);
+        when(request.toBuilder()).thenReturn(builder);
+
+        final S3Client client = mock(S3Client.class);
+
+        doReturn(responseBytes).when(client)
+            .getObjectAsBytes(any(software.amazon.awssdk.services.s3.model.GetObjectRequest.class));
+
+        final ResponseBytes<
+            GetObjectResponse> result = proxy.injectCredentialsAndInvokeV2Bytes(request, client::getObjectAsBytes);
+
+        // verify request is rebuilt for injection
+        verify(request).toBuilder();
+
+        // verify the wrapped request is sent over the initiate
+        verify(client).getObjectAsBytes(wrappedRequest);
+
+        // ensure the return type matches
+        assertThat(result).isEqualTo(responseBytes);
+    }
+
+    @Test
+    public void testInjectCredentialsAndInvokeV2Bytes_Exception() {
+
+        final LoggerProxy loggerProxy = mock(LoggerProxy.class);
+        final Credentials credentials = new Credentials("accessKeyId", "secretAccessKey", "sessionToken");
+
+        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(loggerProxy, credentials, () -> 1000L);
+
+        final software.amazon.awssdk.services.s3.model.GetObjectRequest wrappedRequest = mock(
+            software.amazon.awssdk.services.s3.model.GetObjectRequest.class);
+
+        final software.amazon.awssdk.services.s3.model.GetObjectRequest.Builder builder = mock(
+            software.amazon.awssdk.services.s3.model.GetObjectRequest.Builder.class);
+        when(builder.overrideConfiguration(any(AwsRequestOverrideConfiguration.class))).thenReturn(builder);
+        when(builder.build()).thenReturn(wrappedRequest);
+        final software.amazon.awssdk.services.s3.model.GetObjectRequest request = mock(
+            software.amazon.awssdk.services.s3.model.GetObjectRequest.class);
+        when(request.toBuilder()).thenReturn(builder);
+
+        final S3Client client = mock(S3Client.class);
+
+        doThrow(new TerminalException(new RuntimeException("Sorry"))).when(client)
+            .getObjectAsBytes(any(software.amazon.awssdk.services.s3.model.GetObjectRequest.class));
+
+        assertThrows(RuntimeException.class, () -> proxy.injectCredentialsAndInvokeV2Bytes(request, client::getObjectAsBytes),
+            "Expected Runtime Exception.");
+
+        // verify request is rebuilt for injection
+        verify(request).toBuilder();
+
+        // verify the wrapped request is sent over the initiate
+        verify(client).getObjectAsBytes(wrappedRequest);
     }
 
     private final Credentials MOCK = new Credentials("accessKeyId", "secretKey", "token");

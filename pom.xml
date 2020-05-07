@@ -155,6 +155,10 @@
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>apache-client</artifactId>
         </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+        </dependency>
 
         <!-- https://mvnrepository.com/artifact/commons-io/commons-io -->
         <dependency>

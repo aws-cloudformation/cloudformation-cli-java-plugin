@@ -40,6 +40,8 @@ import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.ResponseBytes;
+import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.SdkClient;
 import software.amazon.awssdk.core.exception.NonRetryableException;
 import software.amazon.awssdk.core.exception.RetryableException;
@@ -122,6 +124,22 @@ public class AmazonWebServicesClientProxy implements CallChain {
                 IterableT
                 injectCredentialsAndInvokeIterableV2(RequestT request, Function<RequestT, IterableT> requestFunction) {
                 return AmazonWebServicesClientProxy.this.injectCredentialsAndInvokeIterableV2(request, requestFunction);
+            }
+
+            @Override
+            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
+                ResponseInputStream<ResponseT>
+                injectCredentialsAndInvokeV2InputStream(RequestT request,
+                                                        Function<RequestT, ResponseInputStream<ResponseT>> requestFunction) {
+                return AmazonWebServicesClientProxy.this.injectCredentialsAndInvokeV2InputStream(request, requestFunction);
+            }
+
+            @Override
+            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
+                ResponseBytes<ResponseT>
+                injectCredentialsAndInvokeV2Bytes(RequestT request,
+                                                  Function<RequestT, ResponseBytes<ResponseT>> requestFunction) {
+                return AmazonWebServicesClientProxy.this.injectCredentialsAndInvokeV2Bytes(request, requestFunction);
             }
 
             @Override
@@ -497,6 +515,44 @@ public class AmazonWebServicesClientProxy implements CallChain {
     public <RequestT extends AwsRequest, ResultT extends AwsResponse, IterableT extends SdkIterable<ResultT>>
         IterableT
         injectCredentialsAndInvokeIterableV2(final RequestT request, final Function<RequestT, IterableT> requestFunction) {
+
+        AwsRequestOverrideConfiguration overrideConfiguration = AwsRequestOverrideConfiguration.builder()
+            .credentialsProvider(v2CredentialsProvider).build();
+
+        @SuppressWarnings("unchecked")
+        RequestT wrappedRequest = (RequestT) request.toBuilder().overrideConfiguration(overrideConfiguration).build();
+
+        try {
+            return requestFunction.apply(wrappedRequest);
+        } catch (final Throwable e) {
+            loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
+            throw e;
+        }
+    }
+
+    public <RequestT extends AwsRequest, ResultT extends AwsResponse>
+        ResponseInputStream<ResultT>
+        injectCredentialsAndInvokeV2InputStream(final RequestT request,
+                                                final Function<RequestT, ResponseInputStream<ResultT>> requestFunction) {
+
+        AwsRequestOverrideConfiguration overrideConfiguration = AwsRequestOverrideConfiguration.builder()
+            .credentialsProvider(v2CredentialsProvider).build();
+
+        @SuppressWarnings("unchecked")
+        RequestT wrappedRequest = (RequestT) request.toBuilder().overrideConfiguration(overrideConfiguration).build();
+
+        try {
+            return requestFunction.apply(wrappedRequest);
+        } catch (final Throwable e) {
+            loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
+            throw e;
+        }
+    }
+
+    public <RequestT extends AwsRequest, ResultT extends AwsResponse>
+        ResponseBytes<ResultT>
+        injectCredentialsAndInvokeV2Bytes(final RequestT request,
+                                          final Function<RequestT, ResponseBytes<ResultT>> requestFunction) {
 
         AwsRequestOverrideConfiguration overrideConfiguration = AwsRequestOverrideConfiguration.builder()
             .credentialsProvider(v2CredentialsProvider).build();
