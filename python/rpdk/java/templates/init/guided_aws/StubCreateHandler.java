@@ -150,7 +150,7 @@ public class CreateHandler extends BaseHandlerStd {
         // TODO: put your stabilization code here
 
         final boolean stabilized = true;
-        logger.log(String.format("%s [%s] has been stabilized.", ResourceModel.TYPE_NAME, model.getPrimaryIdentifier()));
+        logger.log(String.format("%s [%s] has stabilized: %s", ResourceModel.TYPE_NAME, model.getPrimaryIdentifier(), stabilized));
         return stabilized;
     }
 
