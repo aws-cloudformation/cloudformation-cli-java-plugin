@@ -133,7 +133,7 @@ public class DeleteHandler extends BaseHandlerStd {
         // TODO: put your stabilization code here
 
         final boolean stabilized = true;
-        logger.log(String.format("%s has successfully been deleted. Stabilized.", ResourceModel.TYPE_NAME));
+        logger.log(String.format("%s [%s] deletion has stabilized: %s", ResourceModel.TYPE_NAME, model.getPrimaryIdentifier(), stabilized));
         return stabilized;
     }
 }

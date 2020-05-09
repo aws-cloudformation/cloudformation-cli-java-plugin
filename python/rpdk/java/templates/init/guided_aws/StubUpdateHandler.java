@@ -116,7 +116,7 @@ public class UpdateHandler extends BaseHandlerStd {
 
         final boolean stabilized = true;
 
-        logger.log(String.format("%s [%s] has been successfully stabilized.", ResourceModel.TYPE_NAME, model.getPrimaryIdentifier()));
+        logger.log(String.format("%s [%s] update has stabilized: %s", ResourceModel.TYPE_NAME, model.getPrimaryIdentifier(), stabilized));
         return stabilized;
     }
 
