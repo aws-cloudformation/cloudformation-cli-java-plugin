@@ -72,9 +72,11 @@ public interface ProxyClient<ClientT> {
      *         {@link software.amazon.awssdk.core.exception.SdkClientException} if
      *         there is client side problem
      */
-    <RequestT extends AwsRequest, ResponseT extends AwsResponse>
+    default <RequestT extends AwsRequest, ResponseT extends AwsResponse>
         CompletableFuture<ResponseT>
-        injectCredentialsAndInvokeV2Async(RequestT request, Function<RequestT, CompletableFuture<ResponseT>> requestFunction);
+        injectCredentialsAndInvokeV2Async(RequestT request, Function<RequestT, CompletableFuture<ResponseT>> requestFunction) {
+        throw new UnsupportedOperationException();
+    }
 
     /**
      * This is a synchronous version of making API calls which implement Iterable in
@@ -92,9 +94,11 @@ public interface ProxyClient<ClientT> {
      *         {@link software.amazon.awssdk.core.exception.SdkClientException} if
      *         there is client side problem
      */
-    <RequestT extends AwsRequest, ResponseT extends AwsResponse, IterableT extends SdkIterable<ResponseT>>
+    default <RequestT extends AwsRequest, ResponseT extends AwsResponse, IterableT extends SdkIterable<ResponseT>>
         IterableT
-        injectCredentialsAndInvokeIterableV2(RequestT request, Function<RequestT, IterableT> requestFunction);
+        injectCredentialsAndInvokeIterableV2(RequestT request, Function<RequestT, IterableT> requestFunction) {
+        throw new UnsupportedOperationException();
+    }
 
     /**
      * This is a synchronous version of making API calls which implement
@@ -111,10 +115,12 @@ public interface ProxyClient<ClientT> {
      *         {@link software.amazon.awssdk.core.exception.SdkClientException} if
      *         there is client side problem
      */
-    <RequestT extends AwsRequest, ResponseT extends AwsResponse>
+    default <RequestT extends AwsRequest, ResponseT extends AwsResponse>
         ResponseInputStream<ResponseT>
         injectCredentialsAndInvokeV2InputStream(RequestT request,
-                                                Function<RequestT, ResponseInputStream<ResponseT>> requestFunction);
+                                                Function<RequestT, ResponseInputStream<ResponseT>> requestFunction) {
+        throw new UnsupportedOperationException();
+    }
 
     /**
      * This is a synchronous version of making API calls which implement
@@ -131,9 +137,11 @@ public interface ProxyClient<ClientT> {
      *         {@link software.amazon.awssdk.core.exception.SdkClientException} if
      *         there is client side problem
      */
-    <RequestT extends AwsRequest, ResponseT extends AwsResponse>
+    default <RequestT extends AwsRequest, ResponseT extends AwsResponse>
         ResponseBytes<ResponseT>
-        injectCredentialsAndInvokeV2Bytes(RequestT request, Function<RequestT, ResponseBytes<ResponseT>> requestFunction);
+        injectCredentialsAndInvokeV2Bytes(RequestT request, Function<RequestT, ResponseBytes<ResponseT>> requestFunction) {
+        throw new UnsupportedOperationException();
+    }
 
     /**
      * @return the actual AWS service client that we need to use to provide the
