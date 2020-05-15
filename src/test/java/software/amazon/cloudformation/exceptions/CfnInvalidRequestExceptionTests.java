@@ -48,4 +48,11 @@ public class CfnInvalidRequestExceptionTests {
             throw new CfnInvalidRequestException(new RuntimeException());
         }).satisfies(exception -> assertEquals(HandlerErrorCode.InvalidRequest, exception.getErrorCode()));
     }
+
+    @Test
+    public void cfnInvalidRequestException_errorCodeMessage() {
+        assertThatExceptionOfType(CfnInvalidRequestException.class).isThrownBy(() -> {
+            throw new CfnInvalidRequestException(new RuntimeException("something wrong"));
+        }).satisfies(exception -> assertEquals("something wrong", exception.getMessage()));
+    }
 }

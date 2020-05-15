@@ -48,4 +48,11 @@ public class CfnNetworkFailureExceptionTests {
             throw new CfnNetworkFailureException(new RuntimeException());
         }).satisfies(exception -> assertEquals(HandlerErrorCode.NetworkFailure, exception.getErrorCode()));
     }
+
+    @Test
+    public void cfnNetworkFailureException_errorMessage() {
+        assertThatExceptionOfType(CfnNetworkFailureException.class).isThrownBy(() -> {
+            throw new CfnNetworkFailureException(new RuntimeException("something wrong"));
+        }).satisfies(exception -> assertEquals("something wrong", exception.getMessage()));
+    }
 }

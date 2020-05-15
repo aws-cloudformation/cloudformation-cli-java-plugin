@@ -48,4 +48,11 @@ public class CfnThrottlingExceptionTests {
             throw new CfnThrottlingException(new RuntimeException());
         }).satisfies(exception -> assertEquals(HandlerErrorCode.Throttling, exception.getErrorCode()));
     }
+
+    @Test
+    public void cfnThrottlingException_errorMessage() {
+        assertThatExceptionOfType(CfnThrottlingException.class).isThrownBy(() -> {
+            throw new CfnThrottlingException(new RuntimeException("something wrong"));
+        }).satisfies(exception -> assertEquals("something wrong", exception.getMessage()));
+    }
 }
