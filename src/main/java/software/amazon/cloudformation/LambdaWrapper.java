@@ -249,7 +249,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                 throw new TerminalException("No request object received");
             }
 
-            String input = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
+            String input = this.serializer.decompress(IOUtils.toString(inputStream, StandardCharsets.UTF_8));
+
             JSONObject rawInput = new JSONObject(new JSONTokener(input));
 
             // deserialize incoming payload to modelled request

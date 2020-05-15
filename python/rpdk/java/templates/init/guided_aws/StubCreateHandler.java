@@ -64,10 +64,10 @@ public class CreateHandler extends BaseHandlerStd {
                 // STEP 3.0 [initialize a proxy context]
                 proxy.initiate("{{ call_graph }}::post{{ operation }}", proxyClient, model, callbackContext)
 
-                    // STEP 2.1 [TODO: construct a body of a request]
+                    // STEP 3.1 [TODO: construct a body of a request]
                     .translateToServiceRequest(Translator::translateToSecondUpdateRequest)
 
-                    // STEP 2.2 [TODO: make an api call]
+                    // STEP 3.2 [TODO: make an api call]
                     .makeServiceCall(this::postCreate)
                     .progress()
                 )
@@ -150,7 +150,7 @@ public class CreateHandler extends BaseHandlerStd {
         // TODO: put your stabilization code here
 
         final boolean stabilized = true;
-        logger.log(String.format("%s [%s] has been stabilized.", ResourceModel.TYPE_NAME, model.getPrimaryIdentifier()));
+        logger.log(String.format("%s [%s] creation has stabilized: %s", ResourceModel.TYPE_NAME, model.getPrimaryIdentifier(), stabilized));
         return stabilized;
     }
 
