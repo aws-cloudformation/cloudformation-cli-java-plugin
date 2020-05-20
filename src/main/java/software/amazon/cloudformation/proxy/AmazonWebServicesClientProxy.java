@@ -486,7 +486,14 @@ public class AmazonWebServicesClientProxy implements CallChain {
         RequestT wrappedRequest = (RequestT) request.toBuilder().overrideConfiguration(overrideConfiguration).build();
 
         try {
-            return requestFunction.apply(wrappedRequest);
+            ResultT response = requestFunction.apply(wrappedRequest);
+            String requestName = request.getClass().getSimpleName();
+            String requestId = (response == null || response.responseMetadata() == null)
+                ? ""
+                : response.responseMetadata().requestId();
+            loggerProxy
+                .log(String.format("{\"apiRequest\": {\"requestId\": \"%s\", \"requestName\": \"%s\"}}", requestId, requestName));
+            return response;
         } catch (final Throwable e) {
             loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
             throw e;
