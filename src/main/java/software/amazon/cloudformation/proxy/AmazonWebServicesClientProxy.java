@@ -509,7 +509,11 @@ public class AmazonWebServicesClientProxy implements CallChain {
         RequestT wrappedRequest = (RequestT) request.toBuilder().overrideConfiguration(overrideConfiguration).build();
 
         try {
-            return requestFunction.apply(wrappedRequest);
+            CompletableFuture<ResultT> response = requestFunction.apply(wrappedRequest).thenApplyAsync(resultT -> {
+                logRequestMetadataV2(request, resultT);
+                return resultT;
+            });
+            return response;
         } catch (final Throwable e) {
             loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
             throw e;
@@ -527,7 +531,9 @@ public class AmazonWebServicesClientProxy implements CallChain {
         RequestT wrappedRequest = (RequestT) request.toBuilder().overrideConfiguration(overrideConfiguration).build();
 
         try {
-            return requestFunction.apply(wrappedRequest);
+            IterableT response = requestFunction.apply(wrappedRequest);
+            response.forEach(r -> logRequestMetadataV2(request, r));
+            return response;
         } catch (final Throwable e) {
             loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
             throw e;
@@ -546,7 +552,9 @@ public class AmazonWebServicesClientProxy implements CallChain {
         RequestT wrappedRequest = (RequestT) request.toBuilder().overrideConfiguration(overrideConfiguration).build();
 
         try {
-            return requestFunction.apply(wrappedRequest);
+            ResponseInputStream<ResultT> response = requestFunction.apply(wrappedRequest);
+            logRequestMetadataV2(request, response.response());
+            return response;
         } catch (final Throwable e) {
             loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
             throw e;
@@ -565,7 +573,9 @@ public class AmazonWebServicesClientProxy implements CallChain {
         RequestT wrappedRequest = (RequestT) request.toBuilder().overrideConfiguration(overrideConfiguration).build();
 
         try {
-            return requestFunction.apply(wrappedRequest);
+            ResponseBytes<ResultT> response = requestFunction.apply(wrappedRequest);
+            logRequestMetadataV2(request, response.response());
+            return response;
         } catch (final Throwable e) {
             loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
             throw e;
