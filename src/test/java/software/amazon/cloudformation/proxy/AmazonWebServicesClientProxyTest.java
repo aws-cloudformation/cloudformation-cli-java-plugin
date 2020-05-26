@@ -42,17 +42,20 @@ import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
+import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.exception.NonRetryableException;
+import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.http.SdkHttpResponse;
 import software.amazon.awssdk.services.cloudformation.CloudFormationAsyncClient;
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 import software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsResponse;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.paginators.ListObjectsV2Iterable;
 import software.amazon.cloudformation.exceptions.ResourceAlreadyExistsException;
 import software.amazon.cloudformation.exceptions.TerminalException;
 import software.amazon.cloudformation.proxy.delay.Constant;
@@ -158,6 +161,43 @@ public class AmazonWebServicesClientProxyTest {
 
         // ensure the return type matches
         assertThat(result).isEqualTo(expectedResult);
+    }
+
+    @Test
+    public <ResultT extends AwsResponse, IterableT extends SdkIterable<ResultT>> void testInjectCredentialsAndInvokeV2Iterable() {
+
+        final LoggerProxy loggerProxy = mock(LoggerProxy.class);
+        final Credentials credentials = new Credentials("accessKeyId", "secretAccessKey", "sessionToken");
+        final ListObjectsV2Iterable response = mock(ListObjectsV2Iterable.class);
+
+        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(loggerProxy, credentials, () -> 1000L);
+
+        final software.amazon.awssdk.services.s3.model.ListObjectsV2Request wrappedRequest = mock(
+            software.amazon.awssdk.services.s3.model.ListObjectsV2Request.class);
+
+        final software.amazon.awssdk.services.s3.model.ListObjectsV2Request.Builder builder = mock(
+            software.amazon.awssdk.services.s3.model.ListObjectsV2Request.Builder.class);
+        when(builder.overrideConfiguration(any(AwsRequestOverrideConfiguration.class))).thenReturn(builder);
+        when(builder.build()).thenReturn(wrappedRequest);
+        final software.amazon.awssdk.services.s3.model.ListObjectsV2Request request = mock(
+            software.amazon.awssdk.services.s3.model.ListObjectsV2Request.class);
+        when(request.toBuilder()).thenReturn(builder);
+
+        final S3Client client = mock(S3Client.class);
+
+        when(client.listObjectsV2Paginator(any(software.amazon.awssdk.services.s3.model.ListObjectsV2Request.class)))
+            .thenReturn(response);
+
+        final ListObjectsV2Iterable result = proxy.injectCredentialsAndInvokeIterableV2(request, client::listObjectsV2Paginator);
+
+        // verify request is rebuilt for injection
+        verify(request).toBuilder();
+
+        // verify the wrapped request is sent over the initiate
+        verify(client).listObjectsV2Paginator(wrappedRequest);
+
+        // ensure the return type matches
+        assertThat(result).isEqualTo(response);
     }
 
     @Test
