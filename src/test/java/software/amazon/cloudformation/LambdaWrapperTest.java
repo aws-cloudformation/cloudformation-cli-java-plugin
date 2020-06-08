@@ -623,6 +623,31 @@ public class LambdaWrapperTest {
     }
 
     @Test
+    public void invokeHandler_invalidModelTypes_causesSchemaValidationFailure() throws IOException {
+        // use actual validator to verify behaviour
+        final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,
+                                                            providerLoggingCredentialsProvider, platformEventsLogger,
+                                                            providerEventsLogger, platformMetricsPublisher,
+                                                            providerMetricsPublisher, scheduler, new Validator() {
+                                                            }, httpClient);
+
+        wrapper.setTransformResponse(resourceHandlerRequest);
+
+        try (final InputStream in = loadRequestStream("create.request.with-invalid-model-types.json");
+            final OutputStream out = new ByteArrayOutputStream()) {
+            final Context context = getLambdaContext();
+
+            wrapper.handleRequest(in, out, context);
+
+            // verify output response
+            verifyHandlerResponse(out,
+                HandlerResponse.<TestModel>builder().bearerToken("123456").errorCode("InvalidRequest")
+                    .operationStatus(OperationStatus.FAILED)
+                    .message("Model validation failed (#/property1: expected type: String, found: JSONArray)").build());
+        }
+    }
+
+    @Test
     public void invokeHandler_extraneousModelFields_causesSchemaValidationFailure() throws IOException {
         // use actual validator to verify behaviour
         final WrapperOverride wrapper = new WrapperOverride(callbackAdapter, platformCredentialsProvider,

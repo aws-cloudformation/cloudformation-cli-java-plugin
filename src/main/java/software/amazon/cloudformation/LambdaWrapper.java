@@ -20,6 +20,7 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
@@ -243,6 +244,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         this.lambdaLogger = context.getLogger();
         ProgressEvent<ResourceT, CallbackT> handlerResponse = null;
         HandlerRequest<ResourceT, CallbackT> request = null;
+        String bearerToken = null;
         scrubFiles();
         try {
             if (inputStream == null) {
@@ -252,9 +254,16 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             String input = this.serializer.decompress(IOUtils.toString(inputStream, StandardCharsets.UTF_8));
 
             JSONObject rawInput = new JSONObject(new JSONTokener(input));
+            bearerToken = rawInput.getString("bearerToken");
 
             // deserialize incoming payload to modelled request
-            request = this.serializer.deserialize(input, typeReference);
+            try {
+                request = this.serializer.deserialize(input, typeReference);
+            } catch (MismatchedInputException e) {
+                JSONObject resourceSchemaJSONObject = provideResourceSchemaJSONObject();
+                JSONObject rawModelObject = rawInput.getJSONObject("requestData").getJSONObject("resourceProperties");
+                this.validator.validateObject(rawModelObject, resourceSchemaJSONObject);
+            }
             handlerResponse = processInvocation(rawInput, request, context);
         } catch (final ValidationException e) {
             String message;
@@ -283,8 +292,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         } finally {
             // A response will be output on all paths, though CloudFormation will
             // not block on invoking the handlers, but rather listen for callbacks
-            writeResponse(outputStream,
-                createProgressResponse(handlerResponse, request != null ? request.getBearerToken() : null));
+            writeResponse(outputStream, createProgressResponse(handlerResponse, bearerToken));
         }
     }
 
