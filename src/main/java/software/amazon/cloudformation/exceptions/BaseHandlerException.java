@@ -26,7 +26,7 @@ public abstract class BaseHandlerException extends RuntimeException {
 
     protected BaseHandlerException(final Throwable cause,
                                    final HandlerErrorCode errorCode) {
-        super(cause.getMessage(), cause);
+        super(cause);
         this.errorCode = errorCode;
     }
 
