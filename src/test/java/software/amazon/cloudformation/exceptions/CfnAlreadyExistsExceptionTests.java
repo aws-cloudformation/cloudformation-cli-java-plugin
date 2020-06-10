@@ -79,4 +79,11 @@ public class CfnAlreadyExistsExceptionTests {
             throw new CfnAlreadyExistsException(new RuntimeException());
         }).satisfies(exception -> assertEquals(HandlerErrorCode.AlreadyExists, exception.getErrorCode()));
     }
+
+    @Test
+    public void cfnAlreadyExistsException_errorMessage() {
+        assertThatExceptionOfType(CfnAlreadyExistsException.class).isThrownBy(() -> {
+            throw new CfnAlreadyExistsException(new RuntimeException("something wrong"));
+        }).satisfies(exception -> assertEquals("something wrong", exception.getMessage()));
+    }
 }
