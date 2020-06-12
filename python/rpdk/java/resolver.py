@@ -1,10 +1,11 @@
-from rpdk.core.jsonutils.resolver import UNDEFINED, ContainerType
+from rpdk.core.jsonutils.resolver import MULTIPLE, UNDEFINED, ContainerType
 
 PRIMITIVE_TYPES = {
     "string": "String",
     "integer": "Integer",
     "boolean": "Boolean",
     "number": "Double",
+    MULTIPLE: "Object",
     UNDEFINED: "Object",
 }
 
