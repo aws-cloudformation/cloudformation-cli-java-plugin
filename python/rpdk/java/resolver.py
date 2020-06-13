@@ -5,8 +5,11 @@ PRIMITIVE_TYPES = {
     "integer": "Integer",
     "boolean": "Boolean",
     "number": "Double",
-    MULTIPLE: "Object",
     UNDEFINED: "Object",
+}
+
+MULTIPLE_TYPES = {
+    MULTIPLE: "Object",
 }
 
 
@@ -15,6 +18,9 @@ def translate_type(resolved_type):
         return resolved_type.type
     if resolved_type.container == ContainerType.PRIMITIVE:
         return PRIMITIVE_TYPES[resolved_type.type]
+
+    if resolved_type.container == ContainerType.MULTIPLE:
+        return MULTIPLE_TYPES[resolved_type.type]
 
     item_type = translate_type(resolved_type.type)
 
