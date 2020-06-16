@@ -1,4 +1,4 @@
-from rpdk.core.jsonutils.resolver import MULTIPLE, UNDEFINED, ContainerType
+from rpdk.core.jsonutils.resolver import UNDEFINED, ContainerType
 
 PRIMITIVE_TYPES = {
     "string": "String",
@@ -6,10 +6,6 @@ PRIMITIVE_TYPES = {
     "boolean": "Boolean",
     "number": "Double",
     UNDEFINED: "Object",
-}
-
-MULTIPLE_TYPES = {
-    MULTIPLE: "Object",
 }
 
 
@@ -20,7 +16,7 @@ def translate_type(resolved_type):
         return PRIMITIVE_TYPES[resolved_type.type]
 
     if resolved_type.container == ContainerType.MULTIPLE:
-        return MULTIPLE_TYPES[resolved_type.type]
+        return "Object"
 
     item_type = translate_type(resolved_type.type)
 
