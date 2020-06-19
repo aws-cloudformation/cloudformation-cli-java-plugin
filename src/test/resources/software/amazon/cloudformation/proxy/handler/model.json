@@ -30,5 +30,8 @@
     ],
     "createOnlyProperties": [
         "/properties/RepoName"
+    ],
+    "primaryIdentifier": [
+        "/properties/RepoName"
     ]
 }

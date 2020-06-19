@@ -24,13 +24,11 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.google.common.collect.ImmutableList;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient;
 import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogGroupRequest;
 import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogStreamRequest;
@@ -38,7 +36,6 @@ import software.amazon.awssdk.services.cloudwatchlogs.model.DescribeLogGroupsReq
 import software.amazon.awssdk.services.cloudwatchlogs.model.DescribeLogGroupsResponse;
 import software.amazon.awssdk.services.cloudwatchlogs.model.LogGroup;
 import software.amazon.cloudformation.injection.CloudWatchLogsProvider;
-import software.amazon.cloudformation.injection.CloudWatchProvider;
 import software.amazon.cloudformation.proxy.MetricsPublisherProxy;
 
 @ExtendWith(MockitoExtension.class)
@@ -56,19 +53,7 @@ public class CloudWatchLogHelperTest {
     @Mock
     private MetricsPublisherProxy metricsPublisherProxy;
 
-    @Mock
-    private CloudWatchProvider platformCloudWatchProvider;
-
-    @Mock
-    private CloudWatchClient platformCloudWatchClient;
-
     private static final String LOG_GROUP_NAME = "log-group-name";
-
-    @AfterEach
-    public void afterEach() {
-        verifyNoMoreInteractions(platformCloudWatchProvider);
-        verifyNoMoreInteractions(platformCloudWatchClient);
-    }
 
     @Test
     public void testWithExistingLogGroup() {

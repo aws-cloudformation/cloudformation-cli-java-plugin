@@ -19,6 +19,7 @@ import java.util.List;
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.core.SdkField;
+import software.amazon.awssdk.core.SdkPojo;
 
 @lombok.Getter
 @lombok.EqualsAndHashCode(callSuper = false)
@@ -48,7 +49,7 @@ public class CreateRequest extends AwsRequest {
     @lombok.Getter
     @lombok.EqualsAndHashCode(callSuper = true)
     @lombok.ToString(callSuper = true)
-    public static class Builder extends BuilderImpl {
+    public static class Builder extends BuilderImpl implements SdkPojo {
         private String repoName;
         private String userName;
 
@@ -72,5 +73,14 @@ public class CreateRequest extends AwsRequest {
             super.overrideConfiguration(awsRequestOverrideConfig);
             return this;
         }
+
+        @Override
+        public List<SdkField<?>> sdkFields() {
+            return Collections.emptyList();
+        }
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 }

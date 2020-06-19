@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.List;
 import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.core.SdkField;
+import software.amazon.awssdk.core.SdkPojo;
 
 @lombok.Getter
 @lombok.EqualsAndHashCode(callSuper = true)
@@ -42,7 +43,7 @@ public class CreateResponse extends AwsResponse {
         return Collections.emptyList();
     }
 
-    public static class Builder extends BuilderImpl {
+    public static class Builder extends BuilderImpl implements SdkPojo {
         private String repoName;
         private String error;
 
@@ -60,5 +61,13 @@ public class CreateResponse extends AwsResponse {
             this.error = name;
             return this;
         }
+
+        public List<SdkField<?>> sdkFields() {
+            return Collections.emptyList();
+        }
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 }

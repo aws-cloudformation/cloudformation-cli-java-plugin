@@ -2,7 +2,9 @@
 # pylint doesn't recognize abstract methods
 import logging
 import shutil
+import xml.etree.ElementTree as ET  # nosec
 from collections import namedtuple
+from xml.etree.ElementTree import ParseError  # nosec
 
 from rpdk.core.data_loaders import resource_stream
 from rpdk.core.exceptions import InternalError, SysExitRecommendedError
@@ -37,7 +39,26 @@ def logdebug(func: object):
     return wrapper
 
 
+DEFAULT_PROTOCOL_VERSION = "2.0.0"
+PROTOCOL_VERSION_SETTING = "protocolVersion"
+DEFAULT_SETTINGS = {PROTOCOL_VERSION_SETTING: DEFAULT_PROTOCOL_VERSION}
+
+MINIMUM_JAVA_DEPENDENCY_VERSION = "2.0.0"
+
+
 class JavaArchiveNotFoundError(SysExitRecommendedError):
+    pass
+
+
+class JavaPluginVersionNotSupportedError(SysExitRecommendedError):
+    pass
+
+
+class JavaPluginNotFoundError(SysExitRecommendedError):
+    pass
+
+
+class InvalidMavenPOMError(SysExitRecommendedError):
     pass
 
 
@@ -66,7 +87,7 @@ class JavaLanguagePlugin(LanguagePlugin):
             fallback = ("com",) + project.type_info
             namespace = tuple(safe_reserved(s.lower()) for s in fallback)
             self.namespace = project.settings["namespace"] = namespace
-            project._write_settings("java")  # pylint: disable=protected-access
+            project.write_settings()
 
         self.package_name = ".".join(self.namespace)
 
@@ -283,6 +304,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         project.runtime = self.RUNTIME
         project.entrypoint = self.ENTRY_POINT.format(self.package_name)
         project.test_entrypoint = self.TEST_ENTRY_POINT.format(self.package_name)
+        project.settings.update(DEFAULT_SETTINGS)
 
     @staticmethod
     def _get_generated_root(project):
@@ -377,6 +399,24 @@ class JavaLanguagePlugin(LanguagePlugin):
                 )
             project.overwrite(path, contents)
 
+        # Update settings
+        java_plugin_dependency_version = self._get_java_plugin_dependency_version(
+            project
+        )
+        if java_plugin_dependency_version < MINIMUM_JAVA_DEPENDENCY_VERSION:
+            raise JavaPluginVersionNotSupportedError(
+                "'aws-cloudformation-rpdk-java-plugin' {} is no longer supported."
+                "Please update it in pom.xml to version {} or above.".format(
+                    java_plugin_dependency_version, MINIMUM_JAVA_DEPENDENCY_VERSION
+                )
+            )
+        protocol_version = project.settings.get(PROTOCOL_VERSION_SETTING)
+        if protocol_version != DEFAULT_PROTOCOL_VERSION:
+            project.settings[PROTOCOL_VERSION_SETTING] = DEFAULT_PROTOCOL_VERSION
+            project.write_settings()
+
+        LOG.debug("Generate complete")
+
     @staticmethod
     def _find_jar(project):
         jar_glob = list(
@@ -398,6 +438,26 @@ class JavaLanguagePlugin(LanguagePlugin):
             raise InternalError("Multiple JARs match")
 
         return jar_glob[0]
+
+    @staticmethod
+    def _get_java_plugin_dependency_version(project):
+        try:
+            tree = ET.parse(project.root / "pom.xml")
+            root = tree.getroot()
+            namespace = {"mvn": "http://maven.apache.org/POM/4.0.0"}
+            plugin_dependency_version = root.find(
+                "./mvn:dependencies/mvn:dependency"
+                "/[mvn:artifactId='aws-cloudformation-rpdk-java-plugin']/mvn:version",
+                namespace,
+            )
+            if plugin_dependency_version is None:
+                raise JavaPluginNotFoundError(
+                    "'aws-cloudformation-rpdk-java-plugin' maven dependency "
+                    "not found in pom.xml."
+                )
+            return plugin_dependency_version.text
+        except ParseError:
+            raise InvalidMavenPOMError("pom.xml is invalid.")
 
     @logdebug
     def package(self, project, zip_file):

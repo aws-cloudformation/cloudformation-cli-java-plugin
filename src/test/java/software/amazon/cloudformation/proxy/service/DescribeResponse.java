@@ -19,6 +19,7 @@ import java.util.Date;
 import java.util.List;
 import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.core.SdkField;
+import software.amazon.awssdk.core.SdkPojo;
 
 @lombok.Getter
 @lombok.EqualsAndHashCode(callSuper = true)
@@ -45,7 +46,7 @@ public class DescribeResponse extends AwsResponse {
         return Collections.emptyList();
     }
 
-    public static class Builder extends BuilderImpl {
+    public static class Builder extends BuilderImpl implements SdkPojo {
         private String repoName;
         private String repoArn;
         private Date createdWhen;
@@ -69,5 +70,14 @@ public class DescribeResponse extends AwsResponse {
             createdWhen = when;
             return this;
         }
+
+        @Override
+        public List<SdkField<?>> sdkFields() {
+            return Collections.emptyList();
+        }
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 }
