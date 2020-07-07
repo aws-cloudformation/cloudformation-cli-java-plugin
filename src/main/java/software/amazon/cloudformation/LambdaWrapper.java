@@ -64,6 +64,7 @@ import software.amazon.cloudformation.proxy.MetricsPublisherProxy;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+import software.amazon.cloudformation.proxy.WaitStrategy;
 import software.amazon.cloudformation.resource.ResourceTypeSchema;
 import software.amazon.cloudformation.resource.SchemaValidator;
 import software.amazon.cloudformation.resource.Serializer;
@@ -303,10 +304,9 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // in a non-AWS model)
         AmazonWebServicesClientProxy awsClientProxy = null;
         if (request.getRequestData().getCallerCredentials() != null) {
-            awsClientProxy = new AmazonWebServicesClientProxy(callbackContext == null, this.loggerProxy,
-                                                              request.getRequestData().getCallerCredentials(),
-                                                              () -> (long) context.getRemainingTimeInMillis(),
-                                                              DelayFactory.CONSTANT_DEFAULT_DELAY_FACTORY);
+            awsClientProxy = new AmazonWebServicesClientProxy(this.loggerProxy, request.getRequestData().getCallerCredentials(),
+                                                              DelayFactory.CONSTANT_DEFAULT_DELAY_FACTORY,
+                                                              WaitStrategy.scheduleForCallbackStrategy());
         }
 
         ProgressEvent<ResourceT, CallbackT> handlerResponse = wrapInvocationAndHandleErrors(awsClientProxy,

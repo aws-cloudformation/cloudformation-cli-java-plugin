@@ -333,7 +333,7 @@ public class End2EndCallChainTest {
     @Order(30)
     @Test
     public void createHandlerThrottleException() throws Exception {
-        final HandlerRequest<Model, StdCallbackContext> request = prepareRequest(Model.builder().repoName("repository").build());
+        HandlerRequest<Model, StdCallbackContext> request = prepareRequest(Model.builder().repoName("repository").build());
         request.setAction(Action.CREATE);
         final Serializer serializer = new Serializer();
         final InputStream stream = prepareStream(serializer, request);
@@ -364,6 +364,7 @@ public class End2EndCallChainTest {
 
         };
         when(client.describeRepository(eq(describeRequest))).thenThrow(throttleException);
+        when(client.createRepository(any())).thenReturn(mock(CreateResponse.class));
 
         final SdkHttpClient httpClient = mock(SdkHttpClient.class);
         final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(providerLoggingCredentialsProvider,
@@ -371,18 +372,19 @@ public class End2EndCallChainTest {
                                                                         mock(LogPublisher.class), mock(MetricsPublisher.class),
                                                                         new Validator(), serializer, client, httpClient);
 
-        // Bail early for the handshake. Reinvoke handler again
-        wrapper.handleRequest(stream, output, cxt);
-        ProgressEvent<Model, StdCallbackContext> event = serializer.deserialize(output.toString("UTF8"),
-            new TypeReference<ProgressEvent<Model, StdCallbackContext>>() {
-            });
-        request.setCallbackContext(event.getCallbackContext());
-        output = new ByteArrayOutputStream(2048);
-        wrapper.handleRequest(prepareStream(serializer, request), output, cxt);
+        ProgressEvent<Model, StdCallbackContext> progress;
+        do {
+            output = new ByteArrayOutputStream(2048);
+            wrapper.handleRequest(prepareStream(serializer, request), output, cxt);
+            progress = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),
+                new TypeReference<ProgressEvent<Model, StdCallbackContext>>() {
+                });
+            request = prepareRequest(progress.getResourceModel());
+            request.setCallbackContext(progress.getCallbackContext());
+        } while (progress.isInProgressCallbackDelay());
 
-        // Handshake mode 1 try, Throttle retries 4 times (1, 0s), (2, 3s), (3, 6s), (4,
-        // 9s)
-        verify(client, times(5)).describeRepository(eq(describeRequest));
+        // Throttle retries 4 times (1, 0s), (2, 3s), (3, 6s), (4, 9s)
+        verify(client, times(4)).describeRepository(eq(describeRequest));
 
         ProgressEvent<Model, StdCallbackContext> response = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),
             new TypeReference<ProgressEvent<Model, StdCallbackContext>>() {
