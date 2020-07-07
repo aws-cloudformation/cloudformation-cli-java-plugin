@@ -91,9 +91,9 @@ public class Translator {
   }
 
   /**
-   * Request to update properties of a previously created resource
-   * @param nextToken token passed to the aws service describe resource request
-   * @return awsRequest the aws service request to describe resources within aws account
+   * Request to list resources
+   * @param nextToken token passed to the aws service list resources request
+   * @return awsRequest the aws service request to list resources within aws account
    */
   static AwsRequest translateToListRequest(final String nextToken) {
     final AwsRequest awsRequest = null;

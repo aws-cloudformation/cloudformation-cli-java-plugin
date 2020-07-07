@@ -22,10 +22,10 @@ public class CfnInvalidCredentialsException extends BaseHandlerException {
     private static final HandlerErrorCode ERROR_CODE = HandlerErrorCode.InvalidCredentials;
 
     public CfnInvalidCredentialsException() {
-        this(null);
+        super(ERROR_CODE.getMessage(), ERROR_CODE);
     }
 
     public CfnInvalidCredentialsException(final Throwable cause) {
-        super(ERROR_CODE.getMessage(), cause, ERROR_CODE);
+        super(cause, ERROR_CODE);
     }
 }

@@ -1,0 +1,16 @@
+{
+    "typeName": "Test::Resource::Type",
+    "description": "Description",
+    "properties": {
+        "property1": {
+            "type": "string"
+        },
+        "property2": {
+            "type": "integer"
+        }
+    },
+    "additionalProperties": false,
+    "primaryIdentifier": [
+        "/properties/property1"
+    ]
+}

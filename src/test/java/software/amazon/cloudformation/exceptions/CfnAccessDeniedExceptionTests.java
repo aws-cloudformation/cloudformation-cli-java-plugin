@@ -48,4 +48,11 @@ public class CfnAccessDeniedExceptionTests {
             throw new CfnAccessDeniedException(new RuntimeException());
         }).satisfies(exception -> assertEquals(HandlerErrorCode.AccessDenied, exception.getErrorCode()));
     }
+
+    @Test
+    public void cfnAccessDeniedException_errorMessage() {
+        assertThatExceptionOfType(CfnAccessDeniedException.class).isThrownBy(() -> {
+            throw new CfnAccessDeniedException(new RuntimeException("something wrong"));
+        }).satisfies(exception -> assertEquals("something wrong", exception.getMessage()));
+    }
 }

@@ -32,7 +32,6 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.mockito.stubbing.Answer;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
@@ -40,14 +39,7 @@ import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.SdkHttpResponse;
-import software.amazon.awssdk.services.cloudwatchevents.CloudWatchEventsClient;
-import software.amazon.awssdk.services.cloudwatchevents.model.PutRuleRequest;
-import software.amazon.awssdk.services.cloudwatchevents.model.PutRuleResponse;
-import software.amazon.awssdk.services.cloudwatchevents.model.PutTargetsRequest;
-import software.amazon.awssdk.services.cloudwatchevents.model.PutTargetsResponse;
 import software.amazon.cloudformation.Action;
-import software.amazon.cloudformation.Response;
-import software.amazon.cloudformation.injection.CloudWatchEventsProvider;
 import software.amazon.cloudformation.injection.CredentialsProvider;
 import software.amazon.cloudformation.loggers.CloudWatchLogPublisher;
 import software.amazon.cloudformation.loggers.LogPublisher;
@@ -65,21 +57,15 @@ import software.amazon.cloudformation.proxy.service.ServiceClient;
 import software.amazon.cloudformation.proxy.service.ThrottleException;
 import software.amazon.cloudformation.resource.Serializer;
 import software.amazon.cloudformation.resource.Validator;
-import software.amazon.cloudformation.scheduler.CloudWatchScheduler;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class End2EndCallChainTest {
-
-    static final AwsServiceException.Builder builder = mock(AwsServiceException.Builder.class);
-
     //
     // The same that is asserted inside the ServiceClient
     //
     private final AwsSessionCredentials MockCreds = AwsSessionCredentials.create("accessKeyId", "secretKey", "token");
     private final Credentials credentials = new Credentials(MockCreds.accessKeyId(), MockCreds.secretAccessKey(),
                                                             MockCreds.sessionToken());
-    @SuppressWarnings("unchecked")
-    private final CallbackAdapter<Model> adapter = mock(CallbackAdapter.class);
 
     @Test
     public void happyCase() {
@@ -150,10 +136,8 @@ public class End2EndCallChainTest {
         request.setRegion("us-east-2");
         request.setResourceType("AWS::Code::Repository");
         request.setStackId(UUID.randomUUID().toString());
-        request.setResponseEndpoint("https://cloudformation.amazonaws.com");
         RequestData<Model> data = new RequestData<>();
         data.setResourceProperties(model);
-        data.setPlatformCredentials(credentials);
         data.setCallerCredentials(credentials);
         request.setRequestData(data);
         return request;
@@ -200,7 +184,6 @@ public class End2EndCallChainTest {
         final InputStream stream = prepareStream(serializer, request);
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
         final LoggerProxy loggerProxy = mock(LoggerProxy.class);
-        final CredentialsProvider platformCredentialsProvider = prepareMockProvider();
         final CredentialsProvider providerLoggingCredentialsProvider = prepareMockProvider();
         final Context cxt = mock(Context.class);
         // bail out immediately
@@ -225,29 +208,19 @@ public class End2EndCallChainTest {
         when(client.describeRepository(eq(describeRequest))).thenThrow(notFound);
 
         final SdkHttpClient httpClient = mock(SdkHttpClient.class);
-        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
-                                                                        providerLoggingCredentialsProvider,
+        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(providerLoggingCredentialsProvider,
                                                                         mock(CloudWatchLogPublisher.class),
                                                                         mock(LogPublisher.class), mock(MetricsPublisher.class),
-                                                                        mock(MetricsPublisher.class),
-                                                                        new CloudWatchScheduler(new CloudWatchEventsProvider(platformCredentialsProvider,
-                                                                                                                             httpClient) {
-                                                                            @Override
-                                                                            public CloudWatchEventsClient get() {
-                                                                                return mock(CloudWatchEventsClient.class);
-                                                                            }
-                                                                        }, loggerProxy, serializer), new Validator(), serializer,
-                                                                        client, httpClient);
+                                                                        new Validator(), serializer, client, httpClient);
 
         wrapper.handleRequest(stream, output, cxt);
         verify(client).describeRepository(eq(describeRequest));
 
-        Response<Model> response = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),
-            new TypeReference<Response<Model>>() {
+        ProgressEvent<Model, StdCallbackContext> response = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),
+            new TypeReference<ProgressEvent<Model, StdCallbackContext>>() {
             });
         assertThat(response).isNotNull();
-        assertThat(response.getOperationStatus()).isEqualTo(OperationStatus.FAILED);
-        assertThat(response.getBearerToken()).isEqualTo("dwezxdfgfgh");
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
         assertThat(response.getMessage()).contains("NotFound");
     }
 
@@ -260,7 +233,6 @@ public class End2EndCallChainTest {
         final InputStream stream = prepareStream(serializer, request);
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
         final LoggerProxy loggerProxy = mock(LoggerProxy.class);
-        final CredentialsProvider platformCredentialsProvider = prepareMockProvider();
         final CredentialsProvider providerLoggingCredentialsProvider = prepareMockProvider();
         final Context cxt = mock(Context.class);
         // bail out immediately
@@ -284,30 +256,20 @@ public class End2EndCallChainTest {
         when(client.describeRepository(eq(describeRequest))).thenReturn(describeResponse);
 
         final SdkHttpClient httpClient = mock(SdkHttpClient.class);
-        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
-                                                                        providerLoggingCredentialsProvider,
+        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(providerLoggingCredentialsProvider,
                                                                         mock(CloudWatchLogPublisher.class),
                                                                         mock(LogPublisher.class), mock(MetricsPublisher.class),
-                                                                        mock(MetricsPublisher.class),
-                                                                        new CloudWatchScheduler(new CloudWatchEventsProvider(platformCredentialsProvider,
-                                                                                                                             httpClient) {
-                                                                            @Override
-                                                                            public CloudWatchEventsClient get() {
-                                                                                return mock(CloudWatchEventsClient.class);
-                                                                            }
-                                                                        }, loggerProxy, serializer), new Validator(), serializer,
-                                                                        client, httpClient);
+                                                                        new Validator(), serializer, client, httpClient);
 
         wrapper.handleRequest(stream, output, cxt);
         verify(client).createRepository(eq(createRequest));
         verify(client).describeRepository(eq(describeRequest));
 
-        Response<Model> response = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),
-            new TypeReference<Response<Model>>() {
+        ProgressEvent<Model, StdCallbackContext> response = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),
+            new TypeReference<ProgressEvent<Model, StdCallbackContext>>() {
             });
         assertThat(response).isNotNull();
-        assertThat(response.getOperationStatus()).isEqualTo(OperationStatus.SUCCESS);
-        assertThat(response.getBearerToken()).isEqualTo("dwezxdfgfgh");
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
         assertThat(request.getRequestData()).isNotNull();
         Model responseModel = response.getResourceModel();
         assertThat(responseModel.getRepoName()).isEqualTo("repository");
@@ -322,8 +284,6 @@ public class End2EndCallChainTest {
         final Serializer serializer = new Serializer();
         final InputStream stream = prepareStream(serializer, request);
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
-        final LoggerProxy loggerProxy = mock(LoggerProxy.class);
-        final CredentialsProvider platformCredentialsProvider = prepareMockProvider();
         final CredentialsProvider providerLoggingCredentialsProvider = prepareMockProvider();
         final Context cxt = mock(Context.class);
         // bail out immediately
@@ -351,29 +311,19 @@ public class End2EndCallChainTest {
         when(client.createRepository(eq(createRequest))).thenThrow(exists);
 
         final SdkHttpClient httpClient = mock(SdkHttpClient.class);
-        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
-                                                                        providerLoggingCredentialsProvider,
+        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(providerLoggingCredentialsProvider,
                                                                         mock(CloudWatchLogPublisher.class),
                                                                         mock(LogPublisher.class), mock(MetricsPublisher.class),
-                                                                        mock(MetricsPublisher.class),
-                                                                        new CloudWatchScheduler(new CloudWatchEventsProvider(platformCredentialsProvider,
-                                                                                                                             httpClient) {
-                                                                            @Override
-                                                                            public CloudWatchEventsClient get() {
-                                                                                return mock(CloudWatchEventsClient.class);
-                                                                            }
-                                                                        }, loggerProxy, serializer), new Validator(), serializer,
-                                                                        client, httpClient);
+                                                                        new Validator(), serializer, client, httpClient);
 
         wrapper.handleRequest(stream, output, cxt);
         verify(client).createRepository(eq(createRequest));
 
-        Response<Model> response = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),
-            new TypeReference<Response<Model>>() {
+        ProgressEvent<Model, StdCallbackContext> response = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),
+            new TypeReference<ProgressEvent<Model, StdCallbackContext>>() {
             });
         assertThat(response).isNotNull();
-        assertThat(response.getOperationStatus()).isEqualTo(OperationStatus.FAILED);
-        assertThat(response.getBearerToken()).isEqualTo("dwezxdfgfgh");
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
         assertThat(request.getRequestData()).isNotNull();
         Model responseModel = response.getResourceModel();
         assertThat(responseModel.getRepoName()).isEqualTo("repository");
@@ -389,7 +339,6 @@ public class End2EndCallChainTest {
         final InputStream stream = prepareStream(serializer, request);
         ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
         final LoggerProxy loggerProxy = mock(LoggerProxy.class);
-        final CredentialsProvider platformCredentialsProvider = prepareMockProvider();
         final CredentialsProvider providerLoggingCredentialsProvider = prepareMockProvider();
         final Context cxt = mock(Context.class);
         // bail out very slowly
@@ -416,50 +365,30 @@ public class End2EndCallChainTest {
         };
         when(client.describeRepository(eq(describeRequest))).thenThrow(throttleException);
 
-        final ByteArrayOutputStream cweRequestOutput = new ByteArrayOutputStream(2048);
-        CloudWatchEventsClient cloudWatchEventsClient = mock(CloudWatchEventsClient.class);
-        when(cloudWatchEventsClient.putRule(any(PutRuleRequest.class))).thenReturn(mock(PutRuleResponse.class));
-        when(cloudWatchEventsClient.putTargets(any(PutTargetsRequest.class)))
-            .thenAnswer((Answer<PutTargetsResponse>) invocationOnMock -> {
-                PutTargetsRequest putTargetsRequest = invocationOnMock.getArgument(0, PutTargetsRequest.class);
-                cweRequestOutput.write(putTargetsRequest.targets().get(0).input().getBytes(StandardCharsets.UTF_8));
-                return PutTargetsResponse.builder().build();
-            });
-
         final SdkHttpClient httpClient = mock(SdkHttpClient.class);
-        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
-                                                                        providerLoggingCredentialsProvider,
+        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(providerLoggingCredentialsProvider,
                                                                         mock(CloudWatchLogPublisher.class),
                                                                         mock(LogPublisher.class), mock(MetricsPublisher.class),
-                                                                        mock(MetricsPublisher.class),
-                                                                        new CloudWatchScheduler(new CloudWatchEventsProvider(platformCredentialsProvider,
-                                                                                                                             httpClient) {
-                                                                            @Override
-                                                                            public CloudWatchEventsClient get() {
-                                                                                return cloudWatchEventsClient;
-                                                                            }
-                                                                        }, loggerProxy, serializer), new Validator(), serializer,
-                                                                        client, httpClient);
+                                                                        new Validator(), serializer, client, httpClient);
 
-        // Bail early for the handshake. Expect cloudwatch events
+        // Bail early for the handshake. Reinvoke handler again
         wrapper.handleRequest(stream, output, cxt);
-        // Replay Cloudwatch events stream
-        // refresh the stream
+        ProgressEvent<Model, StdCallbackContext> event = serializer.deserialize(output.toString("UTF8"),
+            new TypeReference<ProgressEvent<Model, StdCallbackContext>>() {
+            });
+        request.setCallbackContext(event.getCallbackContext());
         output = new ByteArrayOutputStream(2048);
-        wrapper.handleRequest(new ByteArrayInputStream(cweRequestOutput.toByteArray()), output, cxt);
+        wrapper.handleRequest(prepareStream(serializer, request), output, cxt);
 
         // Handshake mode 1 try, Throttle retries 4 times (1, 0s), (2, 3s), (3, 6s), (4,
         // 9s)
         verify(client, times(5)).describeRepository(eq(describeRequest));
-        verify(cloudWatchEventsClient, times(1)).putRule(any(PutRuleRequest.class));
-        verify(cloudWatchEventsClient, times(1)).putTargets(any(PutTargetsRequest.class));
 
-        Response<Model> response = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),
-            new TypeReference<Response<Model>>() {
+        ProgressEvent<Model, StdCallbackContext> response = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),
+            new TypeReference<ProgressEvent<Model, StdCallbackContext>>() {
             });
         assertThat(response).isNotNull();
-        assertThat(response.getOperationStatus()).isEqualTo(OperationStatus.FAILED);
-        assertThat(response.getBearerToken()).isEqualTo("dwezxdfgfgh");
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
         assertThat(response.getMessage()).contains("Exceeded");
     }
 
@@ -472,7 +401,6 @@ public class End2EndCallChainTest {
         final InputStream stream = prepareStream(serializer, request);
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
         final LoggerProxy loggerProxy = mock(LoggerProxy.class);
-        final CredentialsProvider platformCredentialsProvider = prepareMockProvider();
         final CredentialsProvider providerLoggingCredentialsProvider = prepareMockProvider();
         final Context cxt = mock(Context.class);
         // bail out immediately
@@ -500,30 +428,20 @@ public class End2EndCallChainTest {
         when(client.describeRepository(eq(describeRequest))).thenThrow(throttleException);
 
         final SdkHttpClient httpClient = mock(SdkHttpClient.class);
-        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
-                                                                        providerLoggingCredentialsProvider,
+        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(providerLoggingCredentialsProvider,
                                                                         mock(CloudWatchLogPublisher.class),
                                                                         mock(LogPublisher.class), mock(MetricsPublisher.class),
-                                                                        mock(MetricsPublisher.class),
-                                                                        new CloudWatchScheduler(new CloudWatchEventsProvider(platformCredentialsProvider,
-                                                                                                                             httpClient) {
-                                                                            @Override
-                                                                            public CloudWatchEventsClient get() {
-                                                                                return mock(CloudWatchEventsClient.class);
-                                                                            }
-                                                                        }, loggerProxy, serializer), new Validator(), serializer,
-                                                                        client, httpClient);
+                                                                        new Validator(), serializer, client, httpClient);
 
         wrapper.handleRequest(stream, output, cxt);
         // only 1 call (1, 0s), the next attempt is at 3s which exceed 50 ms remaining
         verify(client).describeRepository(eq(describeRequest));
 
-        Response<Model> response = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),
-            new TypeReference<Response<Model>>() {
+        ProgressEvent<Model, StdCallbackContext> response = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),
+            new TypeReference<ProgressEvent<Model, StdCallbackContext>>() {
             });
         assertThat(response).isNotNull();
-        assertThat(response.getOperationStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
-        assertThat(response.getBearerToken()).isEqualTo("dwezxdfgfgh");
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
     }
 
     @Order(40)
@@ -535,7 +453,6 @@ public class End2EndCallChainTest {
         final InputStream stream = prepareStream(serializer, request);
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
         final LoggerProxy loggerProxy = mock(LoggerProxy.class);
-        final CredentialsProvider platformCredentialsProvider = prepareMockProvider();
         final CredentialsProvider providerLoggingCredentialsProvider = prepareMockProvider();
         final Context cxt = mock(Context.class);
         // bail out immediately
@@ -563,29 +480,19 @@ public class End2EndCallChainTest {
         when(client.describeRepository(eq(describeRequest))).thenThrow(accessDenied);
 
         final SdkHttpClient httpClient = mock(SdkHttpClient.class);
-        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(adapter, platformCredentialsProvider,
-                                                                        providerLoggingCredentialsProvider,
+        final ServiceHandlerWrapper wrapper = new ServiceHandlerWrapper(providerLoggingCredentialsProvider,
                                                                         mock(CloudWatchLogPublisher.class),
                                                                         mock(LogPublisher.class), mock(MetricsPublisher.class),
-                                                                        mock(MetricsPublisher.class),
-                                                                        new CloudWatchScheduler(new CloudWatchEventsProvider(platformCredentialsProvider,
-                                                                                                                             httpClient) {
-                                                                            @Override
-                                                                            public CloudWatchEventsClient get() {
-                                                                                return mock(CloudWatchEventsClient.class);
-                                                                            }
-                                                                        }, loggerProxy, serializer), new Validator(), serializer,
-                                                                        client, httpClient);
+                                                                        new Validator(), serializer, client, httpClient);
 
         wrapper.handleRequest(stream, output, cxt);
         verify(client).describeRepository(eq(describeRequest));
 
-        Response<Model> response = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),
-            new TypeReference<Response<Model>>() {
+        ProgressEvent<Model, StdCallbackContext> response = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),
+            new TypeReference<ProgressEvent<Model, StdCallbackContext>>() {
             });
         assertThat(response).isNotNull();
-        assertThat(response.getOperationStatus()).isEqualTo(OperationStatus.FAILED);
-        assertThat(response.getBearerToken()).isEqualTo("dwezxdfgfgh");
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
         assertThat(response.getMessage()).contains("AccessDenied");
     }
 

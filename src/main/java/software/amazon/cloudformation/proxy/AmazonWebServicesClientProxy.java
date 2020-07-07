@@ -40,6 +40,8 @@ import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.ResponseBytes;
+import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.SdkClient;
 import software.amazon.awssdk.core.exception.NonRetryableException;
 import software.amazon.awssdk.core.exception.RetryableException;
@@ -122,6 +124,22 @@ public class AmazonWebServicesClientProxy implements CallChain {
                 IterableT
                 injectCredentialsAndInvokeIterableV2(RequestT request, Function<RequestT, IterableT> requestFunction) {
                 return AmazonWebServicesClientProxy.this.injectCredentialsAndInvokeIterableV2(request, requestFunction);
+            }
+
+            @Override
+            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
+                ResponseInputStream<ResponseT>
+                injectCredentialsAndInvokeV2InputStream(RequestT request,
+                                                        Function<RequestT, ResponseInputStream<ResponseT>> requestFunction) {
+                return AmazonWebServicesClientProxy.this.injectCredentialsAndInvokeV2InputStream(request, requestFunction);
+            }
+
+            @Override
+            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
+                ResponseBytes<ResponseT>
+                injectCredentialsAndInvokeV2Bytes(RequestT request,
+                                                  Function<RequestT, ResponseBytes<ResponseT>> requestFunction) {
+                return AmazonWebServicesClientProxy.this.injectCredentialsAndInvokeV2Bytes(request, requestFunction);
             }
 
             @Override
@@ -448,7 +466,9 @@ public class AmazonWebServicesClientProxy implements CallChain {
         request.setRequestCredentialsProvider(v1CredentialsProvider);
 
         try {
-            return requestFunction.apply(request);
+            ResultT respose = requestFunction.apply(request);
+            logRequestMetadata(request, respose);
+            return respose;
         } catch (final Throwable e) {
             loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
             throw e;
@@ -468,7 +488,9 @@ public class AmazonWebServicesClientProxy implements CallChain {
         RequestT wrappedRequest = (RequestT) request.toBuilder().overrideConfiguration(overrideConfiguration).build();
 
         try {
-            return requestFunction.apply(wrappedRequest);
+            ResultT response = requestFunction.apply(wrappedRequest);
+            logRequestMetadataV2(request, response);
+            return response;
         } catch (final Throwable e) {
             loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
             throw e;
@@ -487,7 +509,11 @@ public class AmazonWebServicesClientProxy implements CallChain {
         RequestT wrappedRequest = (RequestT) request.toBuilder().overrideConfiguration(overrideConfiguration).build();
 
         try {
-            return requestFunction.apply(wrappedRequest);
+            CompletableFuture<ResultT> response = requestFunction.apply(wrappedRequest).thenApplyAsync(resultT -> {
+                logRequestMetadataV2(request, resultT);
+                return resultT;
+            });
+            return response;
         } catch (final Throwable e) {
             loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
             throw e;
@@ -505,7 +531,51 @@ public class AmazonWebServicesClientProxy implements CallChain {
         RequestT wrappedRequest = (RequestT) request.toBuilder().overrideConfiguration(overrideConfiguration).build();
 
         try {
-            return requestFunction.apply(wrappedRequest);
+            IterableT response = requestFunction.apply(wrappedRequest);
+            response.forEach(r -> logRequestMetadataV2(request, r));
+            return response;
+        } catch (final Throwable e) {
+            loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
+            throw e;
+        }
+    }
+
+    public <RequestT extends AwsRequest, ResultT extends AwsResponse>
+        ResponseInputStream<ResultT>
+        injectCredentialsAndInvokeV2InputStream(final RequestT request,
+                                                final Function<RequestT, ResponseInputStream<ResultT>> requestFunction) {
+
+        AwsRequestOverrideConfiguration overrideConfiguration = AwsRequestOverrideConfiguration.builder()
+            .credentialsProvider(v2CredentialsProvider).build();
+
+        @SuppressWarnings("unchecked")
+        RequestT wrappedRequest = (RequestT) request.toBuilder().overrideConfiguration(overrideConfiguration).build();
+
+        try {
+            ResponseInputStream<ResultT> response = requestFunction.apply(wrappedRequest);
+            logRequestMetadataV2(request, response.response());
+            return response;
+        } catch (final Throwable e) {
+            loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
+            throw e;
+        }
+    }
+
+    public <RequestT extends AwsRequest, ResultT extends AwsResponse>
+        ResponseBytes<ResultT>
+        injectCredentialsAndInvokeV2Bytes(final RequestT request,
+                                          final Function<RequestT, ResponseBytes<ResultT>> requestFunction) {
+
+        AwsRequestOverrideConfiguration overrideConfiguration = AwsRequestOverrideConfiguration.builder()
+            .credentialsProvider(v2CredentialsProvider).build();
+
+        @SuppressWarnings("unchecked")
+        RequestT wrappedRequest = (RequestT) request.toBuilder().overrideConfiguration(overrideConfiguration).build();
+
+        try {
+            ResponseBytes<ResultT> response = requestFunction.apply(wrappedRequest);
+            logRequestMetadataV2(request, response.response());
+            return response;
         } catch (final Throwable e) {
             loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
             throw e;
@@ -566,5 +636,34 @@ public class AmazonWebServicesClientProxy implements CallChain {
         }
         return ProgressEvent.failed(model, context, HandlerErrorCode.InternalFailure, e.getMessage());
 
+    }
+
+    private <RequestT extends AmazonWebServiceRequest, ResultT extends AmazonWebServiceResult<ResponseMetadata>>
+        void
+        logRequestMetadata(final RequestT request, final ResultT response) {
+        try {
+            String requestName = request.getClass().getSimpleName();
+            String requestId = (response == null || response.getSdkResponseMetadata() == null)
+                ? ""
+                : response.getSdkResponseMetadata().getRequestId();
+            loggerProxy
+                .log(String.format("{\"apiRequest\": {\"requestId\": \"%s\", \"requestName\": \"%s\"}}", requestId, requestName));
+        } catch (final Exception e) {
+            loggerProxy.log(e.getMessage());
+        }
+    }
+
+    private <RequestT extends AwsRequest, ResultT extends AwsResponse> void logRequestMetadataV2(final RequestT request,
+                                                                                                 final ResultT response) {
+        try {
+            String requestName = request.getClass().getSimpleName();
+            String requestId = (response == null || response.responseMetadata() == null)
+                ? ""
+                : response.responseMetadata().requestId();
+            loggerProxy
+                .log(String.format("{\"apiRequest\": {\"requestId\": \"%s\", \"requestName\": \"%s\"}}", requestId, requestName));
+        } catch (final Exception e) {
+            loggerProxy.log(e.getMessage());
+        }
     }
 }

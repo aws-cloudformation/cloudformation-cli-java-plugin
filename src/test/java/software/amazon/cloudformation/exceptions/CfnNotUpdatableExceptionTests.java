@@ -49,4 +49,11 @@ public class CfnNotUpdatableExceptionTests {
             throw new CfnNotUpdatableException(new RuntimeException());
         }).satisfies(exception -> assertEquals(HandlerErrorCode.NotUpdatable, exception.getErrorCode()));
     }
+
+    @Test
+    public void cfnNotUpdatableException_errorMessage() {
+        assertThatExceptionOfType(CfnNotUpdatableException.class).isThrownBy(() -> {
+            throw new CfnNotUpdatableException(new RuntimeException("something wrong"));
+        }).satisfies(exception -> assertEquals("something wrong", exception.getMessage()));
+    }
 }
