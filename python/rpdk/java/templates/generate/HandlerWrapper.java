@@ -2,6 +2,7 @@
 package {{ package_name }};
 
 import com.amazonaws.AmazonServiceException;
+import software.amazon.awssdk.regions.PartitionMetadata;
 import software.amazon.cloudformation.Action;
 import software.amazon.cloudformation.exceptions.BaseHandlerException;
 import software.amazon.cloudformation.LambdaWrapper;
@@ -137,6 +138,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
             .logicalResourceIdentifier(request.getRequestData().getLogicalResourceId())
             .nextToken(request.getNextToken())
             .region(request.getRegion())
+            .awsPartition(PartitionMetadata.of(request.getRegion()).name())
             .build();
     }
 

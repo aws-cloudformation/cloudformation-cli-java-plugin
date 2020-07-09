@@ -187,7 +187,6 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         this.lambdaLogger = context.getLogger();
         ProgressEvent<ResourceT, CallbackT> handlerResponse = null;
         HandlerRequest<ResourceT, CallbackT> request = null;
-        String bearerToken = null;
         scrubFiles();
         try {
             if (inputStream == null) {
@@ -374,7 +373,13 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         ResourceT model = response.getResourceModel();
         if (model != null) {
             JSONObject modelObject = new JSONObject(this.serializer.serialize(model));
-            ResourceTypeSchema.load(provideResourceSchemaJSONObject()).removeWriteOnlyProperties(modelObject);
+
+            // strip write only properties on final results, we will need the intact model
+            // while provisioning
+            if (response.getStatus() != OperationStatus.IN_PROGRESS) {
+                ResourceTypeSchema.load(provideResourceSchemaJSONObject()).removeWriteOnlyProperties(modelObject);
+            }
+
             ResourceT sanitizedModel = this.serializer.deserializeStrict(modelObject.toString(), getModelTypeReference());
 
             response.setResourceModel(sanitizedModel);

@@ -330,7 +330,6 @@ public class LambdaWrapperTest {
 
     @Test
     public void invokeHandler_DependenciesInitialised_CompleteSynchronously_returnsSuccess() throws IOException {
-        final Action action = Action.CREATE;
         final WrapperOverride wrapper = new WrapperOverride();
         final TestModel model = new TestModel();
 
