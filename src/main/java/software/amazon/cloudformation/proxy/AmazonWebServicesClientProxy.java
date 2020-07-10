@@ -21,13 +21,11 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicSessionCredentials;
 import com.google.common.base.Preconditions;
-import com.google.common.util.concurrent.Uninterruptibles;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -64,10 +62,9 @@ public class AmazonWebServicesClientProxy implements CallChain {
 
     private final AWSCredentialsProvider v1CredentialsProvider;
     private final AwsCredentialsProvider v2CredentialsProvider;
-    private final Supplier<Long> remainingTimeInMillis;
-    private final boolean inHandshakeMode;
     private final LoggerProxy loggerProxy;
     private final DelayFactory override;
+    private final WaitStrategy waitStrategy;
 
     public AmazonWebServicesClientProxy(final LoggerProxy loggerProxy,
                                         final Credentials credentials,
@@ -79,18 +76,14 @@ public class AmazonWebServicesClientProxy implements CallChain {
                                         final Credentials credentials,
                                         final Supplier<Long> remainingTimeToExecute,
                                         final DelayFactory override) {
-        this(false, loggerProxy, credentials, remainingTimeToExecute, override);
+        this(loggerProxy, credentials, override, WaitStrategy.newLocalLoopAwaitStrategy(remainingTimeToExecute));
     }
 
-    public AmazonWebServicesClientProxy(final boolean inHandshakeMode,
-                                        final LoggerProxy loggerProxy,
+    public AmazonWebServicesClientProxy(final LoggerProxy loggerProxy,
                                         final Credentials credentials,
-                                        final Supplier<Long> remainingTimeToExecute,
-                                        final DelayFactory override) {
-        this.inHandshakeMode = inHandshakeMode;
+                                        final DelayFactory override,
+                                        final WaitStrategy waitStrategy) {
         this.loggerProxy = loggerProxy;
-        this.remainingTimeInMillis = remainingTimeToExecute;
-
         BasicSessionCredentials basicSessionCredentials = new BasicSessionCredentials(credentials.getAccessKeyId(),
                                                                                       credentials.getSecretAccessKey(),
                                                                                       credentials.getSessionToken());
@@ -100,6 +93,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
             credentials.getSecretAccessKey(), credentials.getSessionToken());
         this.v2CredentialsProvider = StaticCredentialsProvider.create(awsSessionCredentials);
         this.override = Objects.requireNonNull(override);
+        this.waitStrategy = Objects.requireNonNull(waitStrategy);
     }
 
     public <ClientT> ProxyClient<ClientT> newProxy(@Nonnull Supplier<ClientT> client) {
@@ -395,14 +389,6 @@ public class AmazonWebServicesClientProxy implements CallChain {
                                         event = exceptionHandler.invoke(req, e, client, model, context);
                                     }
 
-                                    if (event != null && (event.isFailed() || event.isSuccess())) {
-                                        return event;
-                                    }
-
-                                    if (inHandshakeMode) {
-                                        return ProgressEvent.defaultInProgressHandler(context, 60, model);
-                                    }
-
                                     if (event != null) {
                                         return event;
                                     }
@@ -422,15 +408,10 @@ public class AmazonWebServicesClientProxy implements CallChain {
                                         return ProgressEvent.failed(model, context, HandlerErrorCode.NotStabilized,
                                             "Exceeded attempts to wait");
                                     }
-                                    long remainingTime = getRemainingTimeInMillis();
-                                    long localWait = next.toMillis() + 2 * elapsed + 100;
-                                    if (remainingTime > localWait) {
-                                        loggerProxy.log("Waiting for " + next.getSeconds() + " for call " + callGraph);
-                                        Uninterruptibles.sleepUninterruptibly(next.getSeconds(), TimeUnit.SECONDS);
-                                        continue;
+                                    event = AmazonWebServicesClientProxy.this.waitStrategy.await(elapsed, next, context, model);
+                                    if (event != null) {
+                                        return event;
                                     }
-                                    return ProgressEvent.defaultInProgressHandler(context, Math.max((int) next.getSeconds(), 60),
-                                        model);
                                 }
                             } finally {
                                 //
@@ -453,10 +434,6 @@ public class AmazonWebServicesClientProxy implements CallChain {
             };
         }
 
-    }
-
-    public final long getRemainingTimeInMillis() {
-        return remainingTimeInMillis.get();
     }
 
     public <RequestT extends AmazonWebServiceRequest, ResultT extends AmazonWebServiceResult<ResponseMetadata>>
