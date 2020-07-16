@@ -28,6 +28,6 @@ public class LambdaLogPublisher extends LogPublisher {
 
     @Override
     protected void publishMessage(String message) {
-        this.logger.log(message);
+        this.logger.log(String.format("%s%n", message));
     }
 }
