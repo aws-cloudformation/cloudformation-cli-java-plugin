@@ -439,7 +439,7 @@ public class AmazonWebServicesClientProxyTest {
                 .initiate("client:createRespository", proxy.newProxy(() -> mock(ServiceClient.class)), model, context)
                 .translateToServiceRequest(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
                 .makeServiceCall((r, c) -> {
-                    throw new BadRequestException(mock(AwsServiceException.Builder.class)) {
+                    throw new BadRequestException(new AwsServiceException(AwsServiceException.builder()) {
                         private static final long serialVersionUID = 1L;
 
                         @Override
@@ -447,10 +447,10 @@ public class AmazonWebServicesClientProxyTest {
                             return AwsErrorDetails.builder().errorCode("BadRequest").errorMessage("Bad Parameter in request")
                                 .sdkHttpResponse(sdkHttpResponse).build();
                         }
-                    };
+                    }.toBuilder());
                 }).done(o -> ProgressEvent.success(model, context));
         assertThat(result.getStatus()).isEqualTo(OperationStatus.FAILED);
-        assertThat(result.getMessage()).contains("BadRequest");
+        assertThat(result.getMessage()).contains("Bad Parameter");
     }
 
     @Test
@@ -470,7 +470,7 @@ public class AmazonWebServicesClientProxyTest {
                 .initiate("client:createRespository", proxy.newProxy(() -> mock(ServiceClient.class)), model, context)
                 .translateToServiceRequest(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
                 .makeServiceCall((r, c) -> {
-                    throw new NotFoundException(mock(AwsServiceException.Builder.class)) {
+                    throw new NotFoundException(new AwsServiceException(AwsServiceException.builder()) {
                         private static final long serialVersionUID = 1L;
 
                         @Override
@@ -478,10 +478,10 @@ public class AmazonWebServicesClientProxyTest {
                             return AwsErrorDetails.builder().errorCode("NotFound").errorMessage("Repo not existing")
                                 .sdkHttpResponse(sdkHttpResponse).build();
                         }
-                    };
+                    }.toBuilder());
                 }).done(o -> ProgressEvent.success(model, context));
         assertThat(result.getStatus()).isEqualTo(OperationStatus.FAILED);
-        assertThat(result.getMessage()).contains("NotFound");
+        assertThat(result.getMessage()).contains("Repo not existing");
     }
 
     @Test
@@ -501,7 +501,7 @@ public class AmazonWebServicesClientProxyTest {
                 .initiate("client:createRespository", proxy.newProxy(() -> mock(ServiceClient.class)), model, context)
                 .translateToServiceRequest(m -> new CreateRequest.Builder().repoName(m.getRepoName()).build())
                 .makeServiceCall((r, c) -> {
-                    throw new AccessDenied(AwsServiceException.builder()) {
+                    throw new AccessDenied(new AwsServiceException(AwsServiceException.builder()) {
                         private static final long serialVersionUID = 1L;
 
                         @Override
@@ -509,11 +509,10 @@ public class AmazonWebServicesClientProxyTest {
                             return AwsErrorDetails.builder().errorCode("AccessDenied: 401").errorMessage("Token Invalid")
                                 .sdkHttpResponse(sdkHttpResponse).build();
                         }
-
-                    };
+                    }.toBuilder());
                 }).done(o -> ProgressEvent.success(model, context));
         assertThat(result.getStatus()).isEqualTo(OperationStatus.FAILED);
-        assertThat(result.getMessage()).contains("AccessDenied");
+        assertThat(result.getMessage()).contains("Token Invalid");
     }
 
     @Test
