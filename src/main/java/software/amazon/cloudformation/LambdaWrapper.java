@@ -137,8 +137,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     private void initialiseRuntime(final String resourceType,
                                    final Credentials providerCredentials,
                                    final String providerLogGroupName,
-                                   final Context context,
-                                   final String awsAccountId) {
+                                   final Context context) {
 
         this.loggerProxy = new LoggerProxy();
         this.metricsPublisherProxy = new MetricsPublisherProxy();
@@ -160,7 +159,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
             if (this.providerMetricsPublisher == null) {
                 this.providerMetricsPublisher = new MetricsPublisherImpl(this.providerCloudWatchProvider, this.loggerProxy,
-                                                                         awsAccountId, resourceType);
+                                                                         resourceType);
             }
             this.metricsPublisherProxy.addMetricsPublisher(this.providerMetricsPublisher);
             this.providerMetricsPublisher.refreshClient();
@@ -255,7 +254,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
         // initialise dependencies
         initialiseRuntime(request.getResourceType(), request.getRequestData().getProviderCredentials(),
-            request.getRequestData().getProviderLogGroupName(), context, request.getAwsAccountId());
+            request.getRequestData().getProviderLogGroupName(), context);
 
         // transform the request object to pass to caller
         ResourceHandlerRequest<ResourceT> resourceHandlerRequest = transform(request);
