@@ -51,7 +51,6 @@ public class MetricsPublisherImplTest {
     @Mock
     private CloudWatchClient providerCloudWatchClient;
 
-    private String awsAccountId = "77384178834";
     private final String resourceTypeName = "AWS::Test::TestModel";
 
     @BeforeEach
@@ -70,7 +69,7 @@ public class MetricsPublisherImplTest {
     @Test
     public void testPublishDurationMetric() {
         final MetricsPublisherImpl providerMetricsPublisher = new MetricsPublisherImpl(providerCloudWatchProvider, loggerProxy,
-                                                                                       awsAccountId, resourceTypeName);
+                                                                                       resourceTypeName);
         providerMetricsPublisher.refreshClient();
 
         final Instant instant = Instant.parse("2019-06-04T17:50:00Z");
@@ -80,8 +79,7 @@ public class MetricsPublisherImplTest {
         verify(providerCloudWatchClient).putMetricData(argument1.capture());
 
         final PutMetricDataRequest request = argument1.getValue();
-        assertThat(request.namespace())
-            .isEqualTo(String.format("%s/%s/%s", "AWS/CloudFormation", awsAccountId, "AWS/Test/TestModel"));
+        assertThat(request.namespace()).isEqualTo(String.format("%s/%s", "AWS/CloudFormation", "AWS/Test/TestModel"));
 
         assertThat(request.metricData()).hasSize(1);
         final MetricDatum metricDatum = request.metricData().get(0);
@@ -96,7 +94,7 @@ public class MetricsPublisherImplTest {
     @Test
     public void testPublishExceptionMetric() {
         final MetricsPublisherImpl providerMetricsPublisher = new MetricsPublisherImpl(providerCloudWatchProvider, loggerProxy,
-                                                                                       awsAccountId, resourceTypeName);
+                                                                                       resourceTypeName);
         providerMetricsPublisher.refreshClient();
 
         final Instant instant = Instant.parse("2019-06-03T17:50:00Z");
@@ -107,8 +105,7 @@ public class MetricsPublisherImplTest {
         verify(providerCloudWatchClient).putMetricData(argument1.capture());
 
         final PutMetricDataRequest request = argument1.getValue();
-        assertThat(request.namespace())
-            .isEqualTo(String.format("%s/%s/%s", "AWS/CloudFormation", awsAccountId, "AWS/Test/TestModel"));
+        assertThat(request.namespace()).isEqualTo(String.format("%s/%s", "AWS/CloudFormation", "AWS/Test/TestModel"));
 
         assertThat(request.metricData()).hasSize(1);
         final MetricDatum metricDatum = request.metricData().get(0);
@@ -125,7 +122,7 @@ public class MetricsPublisherImplTest {
     @Test
     public void testPublishInvocationMetric() {
         final MetricsPublisherImpl providerMetricsPublisher = new MetricsPublisherImpl(providerCloudWatchProvider, loggerProxy,
-                                                                                       awsAccountId, resourceTypeName);
+                                                                                       resourceTypeName);
         providerMetricsPublisher.refreshClient();
 
         final Instant instant = Instant.parse("2019-06-04T17:50:00Z");
@@ -135,8 +132,7 @@ public class MetricsPublisherImplTest {
         verify(providerCloudWatchClient).putMetricData(argument1.capture());
 
         final PutMetricDataRequest request = argument1.getValue();
-        assertThat(request.namespace())
-            .isEqualTo(String.format("%s/%s/%s", "AWS/CloudFormation", awsAccountId, "AWS/Test/TestModel"));
+        assertThat(request.namespace()).isEqualTo(String.format("%s/%s", "AWS/CloudFormation", "AWS/Test/TestModel"));
 
         assertThat(request.metricData()).hasSize(1);
         final MetricDatum metricDatum = request.metricData().get(0);
