@@ -42,6 +42,8 @@ public class ReadHandler extends BaseHandlerStd {
                 try {
 
                     // TODO: add custom read resource logic
+                    // If describe request does not return ResourceNotFoundException, you must throw ResourceNotFoundException based on
+                    // awsResponse values
 
                 } catch (final AwsServiceException e) { // ResourceNotFoundException
                     /*

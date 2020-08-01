@@ -60,7 +60,11 @@ public class {{ operation }}HandlerTest extends AbstractTestBase {
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
         assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        {% if operation == "Delete" %}
+        assertThat(response.getResourceModel()).isNull();
+        {% else %}
         assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
+        {% endif %}
         assertThat(response.getResourceModels()).isNull();
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
