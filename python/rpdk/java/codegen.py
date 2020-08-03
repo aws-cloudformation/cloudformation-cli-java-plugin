@@ -399,23 +399,33 @@ class JavaLanguagePlugin(LanguagePlugin):
                 )
             project.overwrite(path, contents)
 
-        # Update settings
-        java_plugin_dependency_version = self._get_java_plugin_dependency_version(
-            project
-        )
-        if java_plugin_dependency_version < MINIMUM_JAVA_DEPENDENCY_VERSION:
-            raise JavaPluginVersionNotSupportedError(
-                "'aws-cloudformation-rpdk-java-plugin' {} is no longer supported."
-                "Please update it in pom.xml to version {} or above.".format(
-                    java_plugin_dependency_version, MINIMUM_JAVA_DEPENDENCY_VERSION
-                )
+        self._update_settings(project)
+
+        LOG.debug("Generate complete")
+
+    def _update_settings(self, project):
+        try:
+            java_plugin_dependency_version = self._get_java_plugin_dependency_version(
+                project
             )
+            if java_plugin_dependency_version < MINIMUM_JAVA_DEPENDENCY_VERSION:
+                raise JavaPluginVersionNotSupportedError(
+                    "'aws-cloudformation-rpdk-java-plugin' {} is no longer supported."
+                    "Please update it in pom.xml to version {} or above.".format(
+                        java_plugin_dependency_version, MINIMUM_JAVA_DEPENDENCY_VERSION
+                    )
+                )
+        except JavaPluginNotFoundError:
+            LOG.info(
+                "Please make sure to have 'aws-cloudformation-rpdk-java-plugin' "
+                "to version %s or above.",
+                MINIMUM_JAVA_DEPENDENCY_VERSION,
+            )
+
         protocol_version = project.settings.get(PROTOCOL_VERSION_SETTING)
         if protocol_version != DEFAULT_PROTOCOL_VERSION:
             project.settings[PROTOCOL_VERSION_SETTING] = DEFAULT_PROTOCOL_VERSION
             project.write_settings()
-
-        LOG.debug("Generate complete")
 
     @staticmethod
     def _find_jar(project):

@@ -169,6 +169,12 @@ def test__get_plugin_version_not_found(project):
         project._plugin._get_java_plugin_dependency_version(project)
 
 
+def test_generate_without_java_plugin_in_pom_should_not_fail(project):
+    make_pom_xml_without_plugin(project)
+    project.generate()
+    assert project.settings["protocolVersion"] == "2.0.0"
+
+
 def test__get_plugin_version_invalid_pom(project):
     pom = open(project.root / "pom.xml", "w")
     pom.write("invalid pom")
