@@ -367,21 +367,14 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
     }
 
-    private void writeResponse(final OutputStream outputStream, final ProgressEvent<ResourceT, CallbackT> response)
+    protected void writeResponse(final OutputStream outputStream, final ProgressEvent<ResourceT, CallbackT> response)
         throws IOException {
-        ResourceT model = response.getResourceModel();
-        if (model != null) {
-            JSONObject modelObject = new JSONObject(this.serializer.serialize(model));
-
+        if (response.getResourceModel() != null) {
             // strip write only properties on final results, we will need the intact model
             // while provisioning
             if (response.getStatus() != OperationStatus.IN_PROGRESS) {
-                ResourceTypeSchema.load(provideResourceSchemaJSONObject()).removeWriteOnlyProperties(modelObject);
+                response.setResourceModel(sanitizeModel(response.getResourceModel()));
             }
-
-            ResourceT sanitizedModel = this.serializer.deserializeStrict(modelObject.toString(), getModelTypeReference());
-
-            response.setResourceModel(sanitizedModel);
         }
 
         String output = this.serializer.serialize(response);
@@ -389,7 +382,15 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         outputStream.close();
     }
 
-    private void validateModel(final JSONObject modelObject) throws ValidationException, IOException {
+    protected ResourceT sanitizeModel(final ResourceT model) throws IOException {
+        // strip write only properties on final results, we will need the intact model
+        // while provisioning
+        final JSONObject modelObject = new JSONObject(this.serializer.serialize(model));
+        ResourceTypeSchema.load(provideResourceSchemaJSONObject()).removeWriteOnlyProperties(modelObject);
+        return this.serializer.deserializeStrict(modelObject.toString(), getModelTypeReference());
+    }
+
+    protected void validateModel(final JSONObject modelObject) throws ValidationException, IOException {
         JSONObject resourceSchemaJSONObject = provideResourceSchemaJSONObject();
         if (resourceSchemaJSONObject == null) {
             throw new TerminalException("Unable to validate incoming model as no schema was provided.");
