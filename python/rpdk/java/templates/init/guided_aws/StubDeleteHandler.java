@@ -56,7 +56,7 @@ public class DeleteHandler extends BaseHandlerStd {
                     // STEP 1.3 [TODO: handle exception]
                     .handleError((awsRequest, exception, client, model, context) -> {
                         // TODO: uncomment when ready to implement
-                        // if (exception instanceof CfnNotFoundException)
+                        // if (exception instanceof ResourceNotFoundException)
                         //     return ProgressEvent.success(model, context);
                         // throw exception;
                         return ProgressEvent.progress(model, context);
@@ -105,6 +105,10 @@ public class DeleteHandler extends BaseHandlerStd {
                         logger.log(String.format("%s [%s] deletion has stabilized: %s", ResourceModel.TYPE_NAME, model.getPrimaryIdentifier(), stabilized));
                         return stabilized;
                     })
-                    .success());
+                    .progress()
+            )
+
+            // STEP 3 [TODO: return the successful progress event without resource model]
+            .then(progress -> ProgressEvent.defaultSuccessHandler(null));
     }
 }
