@@ -52,7 +52,6 @@ public class Translator {
     // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/2077c92299aeb9a68ae8f4418b5e932b12a8b186/aws-logs-loggroup/src/main/java/com/aws/logs/loggroup/Translator.java#L58-L73
     return ResourceModel.builder()
         //.someProperty(response.property())
-        // IMPORTANT: exclude writeOnlyProperties
         .build();
   }
 
