@@ -67,6 +67,24 @@ public class MetricsPublisherImpl extends MetricsPublisher {
     }
 
     @Override
+    public void
+        publishExceptionByErrorCodeMetric(final Instant timestamp, final Action action, final HandlerErrorCode handlerErrorCode) {
+        Map<String, String> dimensions = new HashMap<>();
+        dimensions.put(Metric.DIMENSION_KEY_ACTION_TYPE, action == null ? "NO_ACTION" : action.name());
+        dimensions.put(Metric.DIMENSION_KEY_HANDLER_ERROR_CODE, handlerErrorCode.name());
+
+        publishMetric(Metric.METRIC_NAME_HANDLER_EXCEPTION_BY_ERROR_CODE, dimensions, StandardUnit.COUNT, 1.0, timestamp);
+    }
+
+    public void publishExceptionCountMetric(final Instant timestamp, final Action action, final boolean thrown) {
+        Map<String, String> dimensions = new HashMap<>();
+        dimensions.put(Metric.DIMENSION_KEY_ACTION_TYPE, action == null ? "NO_ACTION" : action.name());
+
+        publishMetric(Metric.METRIC_NAME_HANDLER_EXCEPTION_BY_EXCEPTION_COUNT, dimensions, StandardUnit.COUNT, thrown ? 1.0 : 0.0,
+            timestamp);
+    }
+
+    @Override
     public void publishProviderLogDeliveryExceptionMetric(final Instant timestamp, final Throwable e) {
         Map<String, String> dimensions = new HashMap<>();
         dimensions.put(Metric.DIMENSION_KEY_ACTION_TYPE, "ProviderLogDelivery");

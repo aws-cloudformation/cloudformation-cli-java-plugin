@@ -18,6 +18,8 @@ public class Metric {
 
     public static final String METRIC_NAMESPACE_ROOT = "AWS/CloudFormation";
     public static final String METRIC_NAME_HANDLER_EXCEPTION = "HandlerException";
+    public static final String METRIC_NAME_HANDLER_EXCEPTION_BY_ERROR_CODE = "HandlerExceptionByErrorCode";
+    public static final String METRIC_NAME_HANDLER_EXCEPTION_BY_EXCEPTION_COUNT = "HandlerExceptionByExceptionCount";
     public static final String METRIC_NAME_HANDLER_DURATION = "HandlerInvocationDuration";
     public static final String METRIC_NAME_HANDLER_INVOCATION_COUNT = "HandlerInvocationCount";
 

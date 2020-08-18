@@ -312,6 +312,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
         if (handlerResponse.getStatus() == OperationStatus.IN_PROGRESS && !isMutatingAction) {
             throw new TerminalException("READ and LIST handlers must return synchronously.");
+        } else if (handlerResponse.getStatus() != OperationStatus.FAILED) {
+            this.metricsPublisherProxy.publishExceptionCountMetric(Instant.now(), request.getAction(), false);
         }
 
         return handlerResponse;
@@ -344,6 +346,11 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             } else {
                 this.log("Handler returned null");
                 throw new TerminalException("Handler failed to provide a response.");
+            }
+
+            if (handlerResponse.getStatus() == OperationStatus.FAILED) {
+                publishExceptionMetric(request.getAction(), new Throwable(handlerResponse.getMessage()),
+                    handlerResponse.getErrorCode());
             }
 
             return handlerResponse;
@@ -464,6 +471,9 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     private void publishExceptionMetric(final Action action, final Throwable ex, final HandlerErrorCode handlerErrorCode) {
         if (this.metricsPublisherProxy != null) {
             this.metricsPublisherProxy.publishExceptionMetric(Instant.now(), action, ex, handlerErrorCode);
+            this.metricsPublisherProxy.publishExceptionByErrorCodeMetric(Instant.now(), action, handlerErrorCode);
+            // always puts failed events
+            this.metricsPublisherProxy.publishExceptionCountMetric(Instant.now(), action, true);
         } else {
             // Lambda logger is the only fallback if metrics publisher proxy is not
             // initialized.

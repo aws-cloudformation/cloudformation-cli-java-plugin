@@ -158,8 +158,11 @@ public class LambdaWrapperTest {
             verifyInitialiseRuntime();
 
             // validation failure metric should be published for final error handling
-            verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
-                any(TerminalException.class), any(HandlerErrorCode.class));
+            verify(providerMetricsPublisher).publishExceptionMetric(any(Instant.class), any(), any(TerminalException.class),
+                any(HandlerErrorCode.class));
+            verify(providerMetricsPublisher).publishExceptionByErrorCodeMetric(any(Instant.class), any(),
+                any(HandlerErrorCode.class));
+            verify(providerMetricsPublisher).publishExceptionCountMetric(any(Instant.class), any(), any(Boolean.class));
 
             // all metrics should be published even on terminal failure
             verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
@@ -399,14 +402,19 @@ public class LambdaWrapperTest {
                 // verify output response
                 verifyHandlerResponse(out, ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.IN_PROGRESS)
                     .resourceModel(TestModel.builder().property1("abc").property2(123).build()).build());
+                verify(providerMetricsPublisher).publishExceptionCountMetric(any(Instant.class), eq(action), eq(Boolean.FALSE));
             } else {
                 verifyHandlerResponse(out,
                     ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.FAILED)
                         .errorCode(HandlerErrorCode.InternalFailure).message("READ and LIST handlers must return synchronously.")
                         .build());
-                verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), eq(action),
+                verify(providerMetricsPublisher).publishExceptionMetric(any(Instant.class), eq(action),
                     any(TerminalException.class), eq(HandlerErrorCode.InternalFailure));
+                verify(providerMetricsPublisher).publishExceptionByErrorCodeMetric(any(Instant.class), eq(action),
+                    eq(HandlerErrorCode.InternalFailure));
+                verify(providerMetricsPublisher).publishExceptionCountMetric(any(Instant.class), eq(action), eq(Boolean.TRUE));
             }
+
             // validation failure metric should not be published
             verifyNoMoreInteractions(providerMetricsPublisher);
 
@@ -446,8 +454,9 @@ public class LambdaWrapperTest {
             verifyInitialiseRuntime();
 
             // all metrics should be published, once for a single invocation
-            verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
-            verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
+            verify(providerMetricsPublisher).publishInvocationMetric(any(Instant.class), eq(action));
+            verify(providerMetricsPublisher).publishDurationMetric(any(Instant.class), eq(action), anyLong());
+            verify(providerMetricsPublisher).publishExceptionCountMetric(any(Instant.class), eq(action), eq(Boolean.FALSE));
 
             // validation failure metric should not be published
             verifyNoMoreInteractions(providerMetricsPublisher);
