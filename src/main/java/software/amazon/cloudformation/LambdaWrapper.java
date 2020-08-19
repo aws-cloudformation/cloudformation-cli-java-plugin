@@ -502,7 +502,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     /**
      * Combines the tags supplied by the caller (e.g; CloudFormation) into a single
      * Map which represents the desired final set of tags to be applied to this
-     * resource.
+     * resource. User-defined tags
      *
      * @param request The request object contains the new set of tags to be applied
      *            at a Stack level. These will be overridden with any resource-level
@@ -524,7 +524,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     /**
      * Combines the previous tags supplied by the caller (e.g; CloudFormation) into a single
      * Map which represents the desired final set of tags that were applied to this
-     * resource in the previous state. User-defined tags
+     * resource in the previous state.
      *
      * @param request The request object contains the new set of tags to be applied
      *            at a Stack level. These will be overridden with any resource-level
