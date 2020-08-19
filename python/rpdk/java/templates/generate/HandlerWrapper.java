@@ -132,6 +132,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
             .desiredResourceState(requestData.getResourceProperties())
             .previousResourceState(requestData.getPreviousResourceProperties())
             .desiredResourceTags(getDesiredResourceTags(request))
+            .previousResourceTags(getPreviousResourceTags(request))
             .systemTags(request.getRequestData().getSystemTags())
             .awsAccountId(request.getAwsAccountId())
             .logicalResourceIdentifier(request.getRequestData().getLogicalResourceId())

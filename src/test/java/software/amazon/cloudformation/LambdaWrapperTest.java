@@ -956,4 +956,47 @@ public class LambdaWrapperTest {
         assertThat(tags.size()).isEqualTo(1);
         assertThat(tags.get("Tag1")).isEqualTo("Value2");
     }
+
+    @Test
+    public void getPreviousResourceTags_oneStackTagAndOneResourceTag() {
+        final Map<String, String> stackTags = new HashMap<>();
+        stackTags.put("Tag1", "Value1");
+
+        final Map<String, String> resourceTags = new HashMap<>();
+        resourceTags.put("Tag2", "Value2");
+        final TestModel model = TestModel.builder().tags(resourceTags).build();
+
+        final HandlerRequest<TestModel, TestContext> request = new HandlerRequest<>();
+        final RequestData<TestModel> requestData = new RequestData<>();
+        requestData.setPreviousResourceProperties(model);
+        requestData.setPreviousStackTags(stackTags);
+        request.setRequestData(requestData);
+
+        final Map<String, String> tags = wrapper.getPreviousResourceTags(request);
+        assertThat(tags).isNotNull();
+        assertThat(tags.size()).isEqualTo(2);
+        assertThat(tags.get("Tag1")).isEqualTo("Value1");
+        assertThat(tags.get("Tag2")).isEqualTo("Value2");
+    }
+
+    @Test
+    public void getPreviousResourceTags_resourceTagOverridesStackTag() {
+        final Map<String, String> stackTags = new HashMap<>();
+        stackTags.put("Tag1", "Value1");
+
+        final Map<String, String> resourceTags = new HashMap<>();
+        resourceTags.put("Tag1", "Value2");
+        final TestModel model = TestModel.builder().tags(resourceTags).build();
+
+        final HandlerRequest<TestModel, TestContext> request = new HandlerRequest<>();
+        final RequestData<TestModel> requestData = new RequestData<>();
+        requestData.setPreviousResourceProperties(model);
+        requestData.setPreviousStackTags(stackTags);
+        request.setRequestData(requestData);
+
+        final Map<String, String> tags = wrapper.getPreviousResourceTags(request);
+        assertThat(tags).isNotNull();
+        assertThat(tags.size()).isEqualTo(1);
+        assertThat(tags.get("Tag1")).isEqualTo("Value2");
+    }
 }

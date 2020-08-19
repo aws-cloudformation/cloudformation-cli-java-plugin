@@ -502,7 +502,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     /**
      * Combines the tags supplied by the caller (e.g; CloudFormation) into a single
      * Map which represents the desired final set of tags to be applied to this
-     * resource. User-defined tags
+     * resource.
      *
      * @param request The request object contains the new set of tags to be applied
      *            at a Stack level. These will be overridden with any resource-level
@@ -519,6 +519,29 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         }
 
         return desiredResourceTags;
+    }
+
+    /**
+     * Combines the previous tags supplied by the caller (e.g; CloudFormation) into a single
+     * Map which represents the desired final set of tags that were applied to this
+     * resource in the previous state. User-defined tags
+     *
+     * @param request The request object contains the new set of tags to be applied
+     *            at a Stack level. These will be overridden with any resource-level
+     *            tags which are specified as a direct resource property.
+     * @return a Map of Tag names to Tag values
+     */
+    @VisibleForTesting
+    protected Map<String, String> getPreviousResourceTags(final HandlerRequest<ResourceT, CallbackT> request) {
+        Map<String, String> previousResourceTags = new HashMap<>();
+
+        if (request != null && request.getRequestData() != null) {
+            replaceInMap(previousResourceTags, request.getRequestData().getPreviousStackTags());
+            replaceInMap(previousResourceTags,
+                provideResourceDefinedTags(request.getRequestData().getPreviousResourceProperties()));
+        }
+
+        return previousResourceTags;
     }
 
     private void replaceInMap(final Map<String, String> targetMap, final Map<String, String> sourceMap) {
