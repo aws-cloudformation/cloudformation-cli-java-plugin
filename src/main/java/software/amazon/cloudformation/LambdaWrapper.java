@@ -537,8 +537,10 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
         if (request != null && request.getRequestData() != null) {
             replaceInMap(previousResourceTags, request.getRequestData().getPreviousStackTags());
-            replaceInMap(previousResourceTags,
-                provideResourceDefinedTags(request.getRequestData().getPreviousResourceProperties()));
+            if (request.getRequestData().getPreviousResourceProperties() != null) {
+                replaceInMap(previousResourceTags,
+                    provideResourceDefinedTags(request.getRequestData().getPreviousResourceProperties()));
+            }
         }
 
         return previousResourceTags;
