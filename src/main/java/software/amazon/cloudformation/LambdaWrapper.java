@@ -259,7 +259,9 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // transform the request object to pass to caller
         ResourceHandlerRequest<ResourceT> resourceHandlerRequest = transform(request);
 
-        resourceHandlerRequest.setPreviousResourceTags(getPreviousResourceTags(request));
+        if(resourceHandlerRequest != null) {
+            resourceHandlerRequest.setPreviousResourceTags(getPreviousResourceTags(request));
+        }
 
         this.metricsPublisherProxy.publishInvocationMetric(Instant.now(), request.getAction());
 
