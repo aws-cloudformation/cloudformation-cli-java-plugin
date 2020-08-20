@@ -29,4 +29,5 @@ public class RequestData<ResourceT> {
     private ResourceT previousResourceProperties;
     private Map<String, String> systemTags;
     private Map<String, String> stackTags;
+    private Map<String, String> previousStackTags;
 }

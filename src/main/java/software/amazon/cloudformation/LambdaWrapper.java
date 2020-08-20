@@ -259,6 +259,10 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // transform the request object to pass to caller
         ResourceHandlerRequest<ResourceT> resourceHandlerRequest = transform(request);
 
+        if (resourceHandlerRequest != null) {
+            resourceHandlerRequest.setPreviousResourceTags(getPreviousResourceTags(request));
+        }
+
         this.metricsPublisherProxy.publishInvocationMetric(Instant.now(), request.getAction());
 
         // for CUD actions, validate incoming model - any error is a terminal failure on
@@ -519,6 +523,31 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         }
 
         return desiredResourceTags;
+    }
+
+    /**
+     * Combines the previous tags supplied by the caller (e.g; CloudFormation) into
+     * a single Map which represents the desired final set of tags that were applied
+     * to this resource in the previous state.
+     *
+     * @param request The request object contains the new set of tags to be applied
+     *            at a Stack level. These will be overridden with any resource-level
+     *            tags which are specified as a direct resource property.
+     * @return a Map of Tag names to Tag values
+     */
+    @VisibleForTesting
+    protected Map<String, String> getPreviousResourceTags(final HandlerRequest<ResourceT, CallbackT> request) {
+        Map<String, String> previousResourceTags = new HashMap<>();
+
+        if (request != null && request.getRequestData() != null) {
+            replaceInMap(previousResourceTags, request.getRequestData().getPreviousStackTags());
+            if (request.getRequestData().getPreviousResourceProperties() != null) {
+                replaceInMap(previousResourceTags,
+                    provideResourceDefinedTags(request.getRequestData().getPreviousResourceProperties()));
+            }
+        }
+
+        return previousResourceTags;
     }
 
     private void replaceInMap(final Map<String, String> targetMap, final Map<String, String> sourceMap) {
