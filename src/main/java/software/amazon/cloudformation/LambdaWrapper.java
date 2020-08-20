@@ -259,7 +259,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         // transform the request object to pass to caller
         ResourceHandlerRequest<ResourceT> resourceHandlerRequest = transform(request);
 
-        if(resourceHandlerRequest != null) {
+        if (resourceHandlerRequest != null) {
             resourceHandlerRequest.setPreviousResourceTags(getPreviousResourceTags(request));
         }
 
@@ -526,9 +526,9 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     }
 
     /**
-     * Combines the previous tags supplied by the caller (e.g; CloudFormation) into a single
-     * Map which represents the desired final set of tags that were applied to this
-     * resource in the previous state.
+     * Combines the previous tags supplied by the caller (e.g; CloudFormation) into
+     * a single Map which represents the desired final set of tags that were applied
+     * to this resource in the previous state.
      *
      * @param request The request object contains the new set of tags to be applied
      *            at a Stack level. These will be overridden with any resource-level
