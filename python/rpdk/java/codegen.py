@@ -466,8 +466,8 @@ class JavaLanguagePlugin(LanguagePlugin):
                     "not found in pom.xml."
                 )
             return plugin_dependency_version.text
-        except ParseError:
-            raise InvalidMavenPOMError("pom.xml is invalid.")
+        except ParseError as e:
+            raise InvalidMavenPOMError("pom.xml is invalid.") from e
 
     @logdebug
     def package(self, project, zip_file):
