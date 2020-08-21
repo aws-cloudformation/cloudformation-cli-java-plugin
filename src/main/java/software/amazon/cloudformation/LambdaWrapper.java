@@ -232,6 +232,11 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         } finally {
             // A response will be output on all paths, though CloudFormation will
             // not block on invoking the handlers, but rather listen for callbacks
+
+            if (handlerResponse != null) {
+                publishExceptionCodeAndCountMetric(request == null ? null : request.getAction(), handlerResponse.getErrorCode(),
+                    handlerResponse.getStatus() == OperationStatus.FAILED);
+            }
             writeResponse(outputStream, handlerResponse);
         }
     }
@@ -313,8 +318,6 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
         if (handlerResponse.getStatus() == OperationStatus.IN_PROGRESS && !isMutatingAction) {
             throw new TerminalException("READ and LIST handlers must return synchronously.");
-        } else if (handlerResponse.getStatus() != OperationStatus.FAILED) {
-            publishExceptionCodeAndCountMetric(request.getAction(), handlerResponse.getErrorCode(), false);
         }
 
         return handlerResponse;
@@ -347,10 +350,6 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             } else {
                 this.log("Handler returned null");
                 throw new TerminalException("Handler failed to provide a response.");
-            }
-
-            if (handlerResponse.getStatus() == OperationStatus.FAILED) {
-                publishExceptionCodeAndCountMetric(request.getAction(), handlerResponse.getErrorCode(), true);
             }
 
             return handlerResponse;
@@ -471,8 +470,6 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     private void publishExceptionMetric(final Action action, final Throwable ex, final HandlerErrorCode handlerErrorCode) {
         if (this.metricsPublisherProxy != null) {
             this.metricsPublisherProxy.publishExceptionMetric(Instant.now(), action, ex, handlerErrorCode);
-            // always puts failed events
-            publishExceptionCodeAndCountMetric(action, handlerErrorCode, true);
         } else {
             // Lambda logger is the only fallback if metrics publisher proxy is not
             // initialized.
@@ -485,11 +482,14 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
      */
     private void
         publishExceptionCodeAndCountMetric(final Action action, final HandlerErrorCode handlerErrorCode, final boolean thrown) {
-        EnumSet.allOf(HandlerErrorCode.class).stream()
-            // publishing 0 value for all (if not thrown) otherwise filtered
-            .filter(errorCode -> errorCode.equals(handlerErrorCode) || !thrown).forEach(errorCode -> this.metricsPublisherProxy
-                .publishExceptionByErrorCodeMetric(Instant.now(), action, errorCode, thrown));
-        this.metricsPublisherProxy.publishExceptionCountMetric(Instant.now(), action, thrown);
+        if (this.metricsPublisherProxy != null) {
+            EnumSet.allOf(HandlerErrorCode.class).stream()
+                // publishing 0 value for all (if not thrown) otherwise filtered
+                .filter(errorCode -> errorCode.equals(handlerErrorCode) || !thrown)
+                .forEach(errorCode -> this.metricsPublisherProxy.publishExceptionByErrorCodeMetric(Instant.now(), action,
+                    errorCode, thrown));
+            this.metricsPublisherProxy.publishExceptionCountMetric(Instant.now(), action, thrown);
+        }
     }
 
     /**

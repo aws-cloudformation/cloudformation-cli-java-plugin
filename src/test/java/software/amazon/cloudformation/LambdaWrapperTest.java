@@ -811,6 +811,12 @@ public class LambdaWrapperTest {
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
 
+            verify(providerMetricsPublisher).publishExceptionByErrorCodeMetric(any(Instant.class), any(Action.class),
+                any(HandlerErrorCode.class), any(Boolean.class));
+
+            verify(providerMetricsPublisher).publishExceptionCountMetric(any(Instant.class), any(Action.class),
+                any(Boolean.class));
+
             // no further calls to metrics publisher should occur
             verifyNoMoreInteractions(providerMetricsPublisher);
 
