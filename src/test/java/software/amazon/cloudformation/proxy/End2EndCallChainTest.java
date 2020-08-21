@@ -107,7 +107,7 @@ public class End2EndCallChainTest {
         //
         // Now reset expectation to fail with already exists
         //
-        final ExistsException exists = new ExistsException(mock(AwsServiceException.Builder.class)) {
+        final ExistsException exists = new ExistsException(new AwsServiceException(AwsServiceException.builder()) {
             private static final long serialVersionUID = 1L;
 
             @Override
@@ -115,7 +115,7 @@ public class End2EndCallChainTest {
                 return AwsErrorDetails.builder().errorCode("AlreadyExists").errorMessage("Repo already exists")
                     .sdkHttpResponse(sdkHttpResponse).build();
             }
-        };
+        }.toBuilder());
         when(serviceClient.createRepository(any(CreateRequest.class))).thenThrow(exists);
         StdCallbackContext newContext = new StdCallbackContext();
         event = proxy.initiate("client:createRepository", client, model, newContext)
@@ -124,7 +124,7 @@ public class End2EndCallChainTest {
             .done(r -> ProgressEvent.success(model, context));
 
         assertThat(event.getStatus()).isEqualTo(OperationStatus.FAILED);
-        assertThat(event.getMessage()).contains("AlreadyExists");
+        assertThat(event.getMessage()).contains("Repo already exists");
     }
 
     private HandlerRequest<Model, StdCallbackContext> prepareRequest(Model model) throws Exception {
@@ -196,7 +196,7 @@ public class End2EndCallChainTest {
         final DescribeRequest describeRequest = new DescribeRequest.Builder().repoName(model.getRepoName()).overrideConfiguration(
             AwsRequestOverrideConfiguration.builder().credentialsProvider(StaticCredentialsProvider.create(MockCreds)).build())
             .build();
-        final NotFoundException notFound = new NotFoundException(mock(AwsServiceException.Builder.class)) {
+        final NotFoundException notFound = new NotFoundException(new AwsServiceException(AwsServiceException.builder()) {
             private static final long serialVersionUID = 1L;
 
             @Override
@@ -204,7 +204,7 @@ public class End2EndCallChainTest {
                 return AwsErrorDetails.builder().errorCode("NotFound").errorMessage("Repo not existing")
                     .sdkHttpResponse(sdkHttpResponse).build();
             }
-        };
+        }.toBuilder());
         when(client.describeRepository(eq(describeRequest))).thenThrow(notFound);
 
         final SdkHttpClient httpClient = mock(SdkHttpClient.class);
@@ -221,7 +221,7 @@ public class End2EndCallChainTest {
             });
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
-        assertThat(response.getMessage()).contains("NotFound");
+        assertThat(response.getMessage()).contains("Repo not existing");
     }
 
     @SuppressWarnings("unchecked")
@@ -299,7 +299,7 @@ public class End2EndCallChainTest {
         final SdkHttpResponse sdkHttpResponse = mock(SdkHttpResponse.class);
         when(sdkHttpResponse.statusCode()).thenReturn(500);
 
-        final ExistsException exists = new ExistsException(mock(AwsServiceException.Builder.class)) {
+        final ExistsException exists = new ExistsException(new AwsServiceException(AwsServiceException.builder()) {
             private static final long serialVersionUID = 1L;
 
             @Override
@@ -307,7 +307,7 @@ public class End2EndCallChainTest {
                 return AwsErrorDetails.builder().errorCode("AlreadyExists").errorMessage("Repo already exists")
                     .sdkHttpResponse(sdkHttpResponse).build();
             }
-        };
+        }.toBuilder());
         when(client.createRepository(eq(createRequest))).thenThrow(exists);
 
         final SdkHttpClient httpClient = mock(SdkHttpClient.class);
@@ -327,7 +327,7 @@ public class End2EndCallChainTest {
         assertThat(request.getRequestData()).isNotNull();
         Model responseModel = response.getResourceModel();
         assertThat(responseModel.getRepoName()).isEqualTo("repository");
-        assertThat(response.getMessage()).contains("AlreadyExists");
+        assertThat(response.getMessage()).contains("Repo already exists");
     }
 
     @Order(30)
@@ -469,7 +469,7 @@ public class End2EndCallChainTest {
         final DescribeRequest describeRequest = new DescribeRequest.Builder().repoName(model.getRepoName()).overrideConfiguration(
             AwsRequestOverrideConfiguration.builder().credentialsProvider(StaticCredentialsProvider.create(MockCreds)).build())
             .build();
-        final AccessDenied accessDenied = new AccessDenied(mock(AwsServiceException.Builder.class)) {
+        final AccessDenied accessDenied = new AccessDenied(new AwsServiceException(AwsServiceException.builder()) {
             private static final long serialVersionUID = 1L;
 
             @Override
@@ -478,7 +478,7 @@ public class End2EndCallChainTest {
                     .sdkHttpResponse(sdkHttpResponse).build();
             }
 
-        };
+        }.toBuilder());
         when(client.describeRepository(eq(describeRequest))).thenThrow(accessDenied);
 
         final SdkHttpClient httpClient = mock(SdkHttpClient.class);
@@ -495,7 +495,7 @@ public class End2EndCallChainTest {
             });
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
-        assertThat(response.getMessage()).contains("AccessDenied");
+        assertThat(response.getMessage()).contains("Token Invalid");
     }
 
 }

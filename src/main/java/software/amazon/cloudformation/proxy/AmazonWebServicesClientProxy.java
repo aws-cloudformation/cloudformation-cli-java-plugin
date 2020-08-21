@@ -572,8 +572,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
         if (e instanceof AwsServiceException) {
             AwsServiceException sdkException = (AwsServiceException) e;
             AwsErrorDetails details = sdkException.awsErrorDetails();
-            String errMsg = "Exception=[" + sdkException.getClass() + "] " + "ErrorCode=[" + details.errorCode()
-                + "],  ErrorMessage=[" + details.errorMessage() + "]";
+            String errMsg = sdkException.getMessage();
             switch (details.sdkHttpResponse().statusCode()) {
                 case HttpStatusCode.BAD_REQUEST:
                     //
