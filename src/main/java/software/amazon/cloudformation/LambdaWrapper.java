@@ -487,11 +487,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     private void
         publishExceptionCodeAndCountMetric(final Action action, final HandlerErrorCode handlerErrorCode, final boolean thrown) {
         if (this.metricsPublisherProxy != null) {
-            EnumSet.allOf(HandlerErrorCode.class).stream()
-                // publishing 0 value for all (if not thrown) otherwise filtered
-                .filter(errorCode -> errorCode.equals(handlerErrorCode) || !thrown)
-                .forEach(errorCode -> this.metricsPublisherProxy.publishExceptionByErrorCodeMetric(Instant.now(), action,
-                    errorCode, thrown));
+            EnumSet.allOf(HandlerErrorCode.class).forEach(errorCode -> this.metricsPublisherProxy
+                .publishExceptionByErrorCodeMetric(Instant.now(), action, errorCode, thrown && errorCode == handlerErrorCode));
             this.metricsPublisherProxy.publishExceptionCountMetric(Instant.now(), action, thrown);
         }
     }
