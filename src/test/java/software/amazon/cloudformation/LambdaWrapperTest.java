@@ -392,19 +392,16 @@ public class LambdaWrapperTest {
             verifyInitialiseRuntime();
 
             // all metrics should be published, once for a single invocation
-            verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
-            verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
+            verify(providerMetricsPublisher).publishInvocationMetric(any(Instant.class), eq(action));
+            verify(providerMetricsPublisher).publishDurationMetric(any(Instant.class), eq(action), anyLong());
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
-                verify(validator, times(1)).validateObject(any(JSONObject.class), any(JSONObject.class));
+                verify(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
 
                 // verify output response
                 verifyHandlerResponse(out, ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.IN_PROGRESS)
                     .resourceModel(TestModel.builder().property1("abc").property2(123).build()).build());
-                verify(providerMetricsPublisher, atLeastOnce()).publishExceptionByErrorCodeMetric(any(Instant.class), eq(action),
-                    any(), eq(Boolean.FALSE));
-                verify(providerMetricsPublisher).publishExceptionCountMetric(any(Instant.class), eq(action), eq(Boolean.FALSE));
             } else {
                 verifyHandlerResponse(out,
                     ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.FAILED)
@@ -412,10 +409,12 @@ public class LambdaWrapperTest {
                         .build());
                 verify(providerMetricsPublisher).publishExceptionMetric(any(Instant.class), eq(action),
                     any(TerminalException.class), eq(HandlerErrorCode.InternalFailure));
-                verify(providerMetricsPublisher).publishExceptionByErrorCodeMetric(any(Instant.class), eq(action),
-                    eq(HandlerErrorCode.InternalFailure), eq(Boolean.TRUE));
-                verify(providerMetricsPublisher).publishExceptionCountMetric(any(Instant.class), eq(action), eq(Boolean.TRUE));
+
             }
+
+            verify(providerMetricsPublisher, atLeastOnce()).publishExceptionByErrorCodeMetric(any(Instant.class), eq(action),
+                any(), any(Boolean.class));
+            verify(providerMetricsPublisher).publishExceptionCountMetric(any(Instant.class), any(), any(Boolean.class));
 
             // validation failure metric should not be published
             verifyNoMoreInteractions(providerMetricsPublisher);
@@ -811,8 +810,8 @@ public class LambdaWrapperTest {
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
 
-            verify(providerMetricsPublisher).publishExceptionByErrorCodeMetric(any(Instant.class), any(Action.class),
-                any(HandlerErrorCode.class), any(Boolean.class));
+            verify(providerMetricsPublisher, atLeastOnce()).publishExceptionByErrorCodeMetric(any(Instant.class),
+                any(Action.class), any(HandlerErrorCode.class), any(Boolean.class));
 
             verify(providerMetricsPublisher).publishExceptionCountMetric(any(Instant.class), any(Action.class),
                 any(Boolean.class));
