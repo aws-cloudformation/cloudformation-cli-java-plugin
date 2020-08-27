@@ -43,6 +43,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.http.SdkHttpClient;
+import software.amazon.awssdk.services.cloudwatchlogs.model.CloudWatchLogsException;
 import software.amazon.cloudformation.exceptions.ResourceAlreadyExistsException;
 import software.amazon.cloudformation.exceptions.ResourceNotFoundException;
 import software.amazon.cloudformation.exceptions.TerminalException;
@@ -708,6 +709,40 @@ public class LambdaWrapperTest {
             // failure metric should be published
             verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
                 any(AmazonServiceException.class), any(HandlerErrorCode.class));
+
+            // verify that model validation occurred for CREATE/UPDATE/DELETE
+            verify(validator, times(1)).validateObject(any(JSONObject.class), any(JSONObject.class));
+
+            // verify output response
+            verifyHandlerResponse(out,
+                ProgressEvent.<TestModel, TestContext>builder().errorCode(HandlerErrorCode.GeneralServiceException)
+                    .status(OperationStatus.FAILED)
+                    .message("some error (Service: null; Status Code: 0; Error Code: null; Request ID: null)").build());
+        }
+    }
+
+    @Test
+    public void invokeHandler_throwsSDK2ServiceException_returnsServiceException() throws IOException {
+        wrapper.setInvokeHandlerException(CloudWatchLogsException.builder().build());
+
+        wrapper.setTransformResponse(resourceHandlerRequest);
+
+        try (final InputStream in = loadRequestStream("create.request.json");
+             final OutputStream out = new ByteArrayOutputStream()) {
+            final Context context = getLambdaContext();
+
+            wrapper.handleRequest(in, out, context);
+
+            // verify initialiseRuntime was called and initialised dependencies
+            verifyInitialiseRuntime();
+
+            // all metrics should be published, once for a single invocation
+            verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
+            verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(Action.CREATE), anyLong());
+
+            // failure metric should be published
+            verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
+                any(CloudWatchLogsException.class), any(HandlerErrorCode.class));
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
             verify(validator, times(1)).validateObject(any(JSONObject.class), any(JSONObject.class));
