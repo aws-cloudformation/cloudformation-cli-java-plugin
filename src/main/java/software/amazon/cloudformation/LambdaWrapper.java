@@ -136,16 +136,12 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
      * This function initialises dependencies which are depending on credentials
      * passed at function invoke and not available during construction
      */
-    private void initialiseRuntime(final String resourceType,
+    private void initialiseCommonRuntime(final String resourceType,
                                    final Credentials providerCredentials,
-                                   final String providerLogGroupName,
-                                   final Context context) {
+                                   final String providerLogGroupName) {
 
         this.loggerProxy = new LoggerProxy();
         this.metricsPublisherProxy = new MetricsPublisherProxy();
-
-        this.platformLambdaLogger = new LambdaLogPublisher(context.getLogger());
-        this.loggerProxy.addLogPublisher(this.platformLambdaLogger);
 
         // Initialisation skipped if dependencies were set during injection (in unit
         // tests).
@@ -166,6 +162,19 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             this.metricsPublisherProxy.addMetricsPublisher(this.providerMetricsPublisher);
             this.providerMetricsPublisher.refreshClient();
 
+            this.loggerProxy.addLogPublisher(this.providerEventsLogger);
+            this.providerEventsLogger.refreshClient();
+        }
+    }
+
+    /**
+     * This function adds the lambda logger to the loggerProxy
+     */
+    private void
+        initialiseLambdaRuntime(final Context context, final Credentials providerCredentials, final String providerLogGroupName) {
+        this.platformLambdaLogger = new LambdaLogPublisher(context.getLogger());
+        this.loggerProxy.addLogPublisher(this.platformLambdaLogger);
+        if (providerCredentials != null) {
             if (this.providerEventsLogger == null) {
                 this.cloudWatchLogHelper = new CloudWatchLogHelper(this.cloudWatchLogsProvider, providerLogGroupName,
                                                                    context.getLogger(), this.metricsPublisherProxy);
@@ -175,8 +184,21 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                                                                        this.cloudWatchLogHelper.prepareLogStream(),
                                                                        context.getLogger(), this.metricsPublisherProxy);
             }
-            this.loggerProxy.addLogPublisher(this.providerEventsLogger);
-            this.providerEventsLogger.refreshClient();
+        }
+    }
+
+    private void initialiseJavaRuntime(final Credentials providerCredentials, final String providerLogGroupName) {
+        // this.loggerProxy.addLogPublisher(this.platformLambdaLogger);
+        if (providerCredentials != null) {
+            if (this.providerEventsLogger == null) {
+                this.cloudWatchLogHelper = new CloudWatchLogHelper(this.cloudWatchLogsProvider, providerLogGroupName, null,
+                                                                   this.metricsPublisherProxy);
+                this.cloudWatchLogHelper.refreshClient();
+
+                this.providerEventsLogger = new CloudWatchLogPublisher(this.cloudWatchLogsProvider, providerLogGroupName,
+                                                                       this.cloudWatchLogHelper.prepareLogStream(), null,
+                                                                       this.metricsPublisherProxy);
+            }
         }
     }
 
@@ -213,6 +235,16 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                     HandlerErrorCode.InvalidRequest);
             }
 
+            assert request != null : "Invalid request object received";
+            verifyRequest(request);
+
+            // initialise dependencies
+            initialiseCommonRuntime(request.getResourceType(), request.getRequestData().getProviderCredentials(),
+                request.getAwsAccountId());
+            initialiseLambdaRuntime(context, request.getRequestData().getProviderCredentials(),
+                request.getRequestData().getProviderLogGroupName());
+
+            handlerResponse = processInvocation(rawInput, request);
         } catch (final ValidationException e) {
             String message;
             String fullExceptionMessage = ValidationException.buildFullExceptionMessage(e);
@@ -241,17 +273,76 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             // A response will be output on all paths, though CloudFormation will
             // not block on invoking the handlers, but rather listen for callbacks
 
-            writeResponse(outputStream, handlerResponse);
+            processResponse(handlerResponse).getBytes(StandardCharsets.UTF_8);
+            outputStream.close();
             publishExceptionCodeAndCountMetrics(request == null ? null : request.getAction(), handlerResponse.getErrorCode());
         }
     }
 
-    private ProgressEvent<ResourceT, CallbackT>
-        processInvocation(final JSONObject rawRequest, final HandlerRequest<ResourceT, CallbackT> request, final Context context)
-            throws IOException,
-            TerminalException {
+    public String handleRequestNoLambda(final String requestString) throws IOException, TerminalException {
 
-        assert request != null : "Invalid request object received";
+        ProgressEvent<ResourceT, CallbackT> handlerResponse = null;
+        HandlerRequest<ResourceT, CallbackT> request = null;
+        scrubFiles();
+        try {
+            if (requestString == null) {
+                throw new TerminalException("No request object received");
+            }
+
+            String input = this.serializer.decompress(requestString);
+
+            JSONObject rawInput = new JSONObject(new JSONTokener(input));
+            // deserialize incoming payload to modelled request
+            try {
+                request = this.serializer.deserialize(input, typeReference);
+            } catch (MismatchedInputException e) {
+                JSONObject resourceSchemaJSONObject = provideResourceSchemaJSONObject();
+                JSONObject rawModelObject = rawInput.getJSONObject("requestData").getJSONObject("resourceProperties");
+                this.validator.validateObject(rawModelObject, resourceSchemaJSONObject);
+            }
+
+            assert request != null : "Invalid request object received";
+            verifyRequest(request);
+
+            // initialise dependencies
+            initialiseCommonRuntime(request.getResourceType(), request.getRequestData().getProviderCredentials(),
+                request.getAwsAccountId());
+            initialiseJavaRuntime(request.getRequestData().getProviderCredentials(),
+                request.getRequestData().getProviderLogGroupName());
+
+            handlerResponse = processInvocation(rawInput, request);
+        } catch (final ValidationException e) {
+            String message;
+            String fullExceptionMessage = ValidationException.buildFullExceptionMessage(e);
+            if (!StringUtils.isEmpty(fullExceptionMessage)) {
+                message = String.format("Model validation failed (%s)", fullExceptionMessage);
+            } else {
+                message = "Model validation failed with unknown cause.";
+            }
+
+            publishExceptionMetric(request == null ? null : request.getAction(), e, HandlerErrorCode.InvalidRequest);
+            handlerResponse = ProgressEvent.defaultFailureHandler(new TerminalException(message, e),
+                HandlerErrorCode.InvalidRequest);
+        } catch (final Throwable e) {
+            // Exceptions are wrapped as a consistent error response to the caller (i.e;
+            // CloudFormation)
+            e.printStackTrace(); // for root causing - logs to LambdaLogger by default
+            handlerResponse = ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.InternalFailure);
+            if (request != null && request.getRequestData() != null && MUTATING_ACTIONS.contains(request.getAction())) {
+                handlerResponse.setResourceModel(request.getRequestData().getResourceProperties());
+            }
+            if (request != null) {
+                publishExceptionMetric(request.getAction(), e, HandlerErrorCode.InternalFailure);
+            }
+
+        } finally {
+            // A response will be output on all paths, though CloudFormation will
+            // not block on invoking the handlers, but rather listen for callbacks
+            return processResponse(handlerResponse);
+        }
+    }
+
+    private void verifyRequest(final HandlerRequest<ResourceT, CallbackT> request) {
 
         if (request.getRequestData() == null) {
             throw new TerminalException("Invalid request object received");
@@ -262,10 +353,11 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                 throw new TerminalException("Invalid resource properties object received");
             }
         }
+    }
 
-        // initialise dependencies
-        initialiseRuntime(request.getResourceType(), request.getRequestData().getProviderCredentials(),
-            request.getRequestData().getProviderLogGroupName(), context);
+    private ProgressEvent<ResourceT, CallbackT>
+        processInvocation(final JSONObject rawRequest, final HandlerRequest<ResourceT, CallbackT> request) throws IOException,
+            TerminalException {
 
         // transform the request object to pass to caller
         ResourceHandlerRequest<ResourceT> resourceHandlerRequest = transform(request);
@@ -383,9 +475,11 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
     }
 
-    protected void writeResponse(final OutputStream outputStream, final ProgressEvent<ResourceT, CallbackT> response)
-        throws IOException {
-        if (response.getResourceModel() != null) {
+    private String processResponse(final ProgressEvent<ResourceT, CallbackT> response) throws IOException {
+        ResourceT model = response.getResourceModel();
+        if (model != null) {
+            JSONObject modelObject = new JSONObject(this.serializer.serialize(model));
+
             // strip write only properties on final results, we will need the intact model
             // while provisioning
             if (response.getStatus() != OperationStatus.IN_PROGRESS) {
@@ -393,9 +487,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             }
         }
 
-        String output = this.serializer.serialize(response);
-        outputStream.write(output.getBytes(StandardCharsets.UTF_8));
-        outputStream.close();
+        return this.serializer.serialize(response);
     }
 
     protected ResourceT sanitizeModel(final ResourceT model) throws IOException {
@@ -480,7 +572,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     private void publishExceptionMetric(final Action action, final Throwable ex, final HandlerErrorCode handlerErrorCode) {
         if (this.metricsPublisherProxy != null) {
             this.metricsPublisherProxy.publishExceptionMetric(Instant.now(), action, ex, handlerErrorCode);
-        } else {
+        } else if (lambdaLogger != null) {
             // Lambda logger is the only fallback if metrics publisher proxy is not
             // initialized.
             lambdaLogger.log(ex.toString());
@@ -504,7 +596,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     private void log(final String message) {
         if (this.loggerProxy != null) {
             this.loggerProxy.log(String.format("%s%n", message));
-        } else {
+        } else if (lambdaLogger != null) {
             // Lambda logger is the only fallback if metrics publisher proxy is not
             // initialized.
             lambdaLogger.log(message);
@@ -537,6 +629,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     @VisibleForTesting
     protected Map<String, String> getDesiredResourceTags(final HandlerRequest<ResourceT, CallbackT> request) {
         Map<String, String> desiredResourceTags = new HashMap<>();
+        JSONObject object;
 
         if (request != null && request.getRequestData() != null) {
             replaceInMap(desiredResourceTags, request.getRequestData().getStackTags());
@@ -590,5 +683,4 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
         targetMap.putAll(sourceMap);
     }
-
 }

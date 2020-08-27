@@ -37,7 +37,7 @@ import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 
 
-public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, CallbackContext> {
+public class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, CallbackContext> {
 
     private final Configuration configuration = new Configuration();
     private JSONObject resourceSchema;
@@ -150,5 +150,12 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
     @Override
     protected TypeReference<{{ pojo_name }}> getModelTypeReference() {
         return TYPE_REFERENCE;
+    }
+
+    public static void main(String[] args) throws IOException {
+        if (args.length != 1){
+            System.exit(1);
+        }
+        System.out.println(new HandlerWrapper().handleRequestNoLambda(args[0]));
     }
 }
