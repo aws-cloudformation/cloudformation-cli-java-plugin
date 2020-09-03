@@ -2,6 +2,7 @@
 package {{ package_name }};
 
 import com.amazonaws.AmazonServiceException;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.regions.PartitionMetadata;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.cloudformation.Action;
@@ -100,7 +101,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
             response = invokeHandler(proxy, payload.getRequest(), payload.getAction(), payload.getCallbackContext());
         } catch (final BaseHandlerException e) {
             response = ProgressEvent.defaultFailureHandler(e, e.getErrorCode());
-        } catch (final AmazonServiceException e) {
+        } catch (final AmazonServiceException | AwsServiceException e) {
             response = ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.GeneralServiceException);
         } catch (final Throwable e) {
             e.printStackTrace();

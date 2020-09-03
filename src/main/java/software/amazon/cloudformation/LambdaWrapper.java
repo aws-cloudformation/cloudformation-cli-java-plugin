@@ -39,6 +39,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.utils.StringUtils;
@@ -361,7 +362,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             publishExceptionMetric(request.getAction(), e, e.getErrorCode());
             logUnhandledError(e.getMessage(), request, e);
             return ProgressEvent.defaultFailureHandler(e, e.getErrorCode());
-        } catch (final AmazonServiceException e) {
+        } catch (final AmazonServiceException | AwsServiceException e) {
             publishExceptionMetric(request.getAction(), e, HandlerErrorCode.GeneralServiceException);
             logUnhandledError("A downstream service error occurred", request, e);
             return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.GeneralServiceException);
