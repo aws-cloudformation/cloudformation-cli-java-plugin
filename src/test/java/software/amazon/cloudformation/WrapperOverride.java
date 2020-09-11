@@ -40,12 +40,13 @@ import software.amazon.cloudformation.resource.Serializer;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
+public class WrapperOverride extends Wrapper<TestModel, TestContext> {
 
     /**
      * Invoked to test normal initialization flows
      */
-    public WrapperOverride() {
+    public WrapperOverride(final LogPublisher platformEventsLogger) {
+        this.platformLogPublisher = platformEventsLogger;
     }
 
     /**

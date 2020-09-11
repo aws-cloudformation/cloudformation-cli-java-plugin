@@ -64,7 +64,7 @@ import software.amazon.cloudformation.resource.Validator;
 import software.amazon.cloudformation.resource.exceptions.ValidationException;
 
 @ExtendWith(MockitoExtension.class)
-public class LambdaWrapperTest {
+public class WrapperTest {
 
     private static final String TEST_DATA_BASE_PATH = "src/test/java/software/amazon/cloudformation/data/%s";
 
@@ -153,7 +153,7 @@ public class LambdaWrapperTest {
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
 
-            wrapper.handleRequest(in, out, context);
+            wrapper.processRequest(in, out);
 
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
@@ -239,7 +239,7 @@ public class LambdaWrapperTest {
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
 
-            wrapper.handleRequest(in, out, context);
+            wrapper.processRequest(in, out);
 
             // verify initialiseRuntime was called and initialised dependencies
             verify(providerLoggingCredentialsProvider, times(0)).setCredentials(any(Credentials.class));
@@ -283,7 +283,7 @@ public class LambdaWrapperTest {
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
 
-            wrapper.handleRequest(in, out, context);
+            wrapper.processRequest(in, out);
 
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
@@ -316,7 +316,7 @@ public class LambdaWrapperTest {
 
         try (final InputStream in = null; final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
-            wrapper.handleRequest(in, out, context);
+            wrapper.processRequest(in, out);
             verifyNoMoreInteractions(providerMetricsPublisher, providerEventsLogger);
         }
     }
@@ -342,7 +342,7 @@ public class LambdaWrapperTest {
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
 
-            wrapper.handleRequest(in, out, context);
+            wrapper.processRequest(in, out);
 
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
@@ -363,9 +363,9 @@ public class LambdaWrapperTest {
         }
     }
 
-    // @Test
+    @Test
     public void invokeHandler_DependenciesInitialised_CompleteSynchronously_returnsSuccess() throws IOException {
-        final WrapperOverride wrapper = new WrapperOverride();
+        final WrapperOverride wrapper = new WrapperOverride(platformEventsLogger);
         final TestModel model = new TestModel();
 
         // if the handler responds Complete, this is treated as a successful synchronous
@@ -383,14 +383,13 @@ public class LambdaWrapperTest {
             final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
 
-            wrapper.handleRequest(in, out, context);
+            wrapper.processRequest(in, out);
 
             // simply ensure all dependencies were setup correctly - behaviour is tested
             // through mocks
             assertThat(wrapper.serializer).isNotNull();
             assertThat(wrapper.loggerProxy).isNotNull();
             assertThat(wrapper.metricsPublisherProxy).isNotNull();
-            assertThat(wrapper.lambdaLogger).isNotNull();
             assertThat(wrapper.providerCredentialsProvider).isNotNull();
             assertThat(wrapper.providerCloudWatchProvider).isNotNull();
             assertThat(wrapper.cloudWatchLogsProvider).isNotNull();
@@ -418,7 +417,7 @@ public class LambdaWrapperTest {
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
 
-            wrapper.handleRequest(in, out, context);
+            wrapper.processRequest(in, out);
 
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
@@ -480,7 +479,7 @@ public class LambdaWrapperTest {
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
 
-            wrapper.handleRequest(in, out, context);
+            wrapper.processRequest(in, out);
 
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
@@ -518,7 +517,7 @@ public class LambdaWrapperTest {
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
 
-            wrapper.handleRequest(in, out, context);
+            wrapper.processRequest(in, out);
 
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
@@ -554,7 +553,7 @@ public class LambdaWrapperTest {
             final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
 
-            wrapper.handleRequest(in, out, context);
+            wrapper.processRequest(in, out);
 
             // verify output response
             verifyHandlerResponse(out,
@@ -577,7 +576,8 @@ public class LambdaWrapperTest {
             final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
 
-            wrapper.handleRequest(in, out, context);
+            wrapper.processRequest(in, out);
+
             // validation failure metric should be published but no others
             verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), eq(Action.CREATE),
                 any(Exception.class), any(HandlerErrorCode.class));
@@ -615,7 +615,7 @@ public class LambdaWrapperTest {
             final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
 
-            wrapper.handleRequest(in, out, context);
+            wrapper.processRequest(in, out);
 
             // verify output response
             verifyHandlerResponse(out, ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.SUCCESS)
@@ -639,7 +639,7 @@ public class LambdaWrapperTest {
             final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
 
-            wrapper.handleRequest(in, out, context);
+            wrapper.processRequest(in, out);
 
             // verify output response
             verifyHandlerResponse(out, ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.SUCCESS)
@@ -666,7 +666,7 @@ public class LambdaWrapperTest {
             final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
 
-            wrapper.handleRequest(in, out, context);
+            wrapper.processRequest(in, out);
 
             // verify output response
             verifyHandlerResponse(out, ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.SUCCESS)
@@ -692,7 +692,8 @@ public class LambdaWrapperTest {
         try (final InputStream in = loadRequestStream("create.request.json");
             final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
-            wrapper.handleRequest(in, out, context);
+
+            wrapper.processRequest(in, out);
 
             // verify output response
             verifyHandlerResponse(out, ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.IN_PROGRESS)
@@ -704,13 +705,13 @@ public class LambdaWrapperTest {
     public void invokeHandler_clientsRefreshedOnEveryInvoke() throws IOException {
         Context context = getLambdaContext();
         try (InputStream in = loadRequestStream("create.request.json"); OutputStream out = new ByteArrayOutputStream()) {
-            wrapper.handleRequest(in, out, context);
+            wrapper.processRequest(in, out);
         }
 
         // invoke the same wrapper instance again to ensure client is refreshed
         context = getLambdaContext();
         try (InputStream in = loadRequestStream("create.request.json"); OutputStream out = new ByteArrayOutputStream()) {
-            wrapper.handleRequest(in, out, context);
+            wrapper.processRequest(in, out);
         }
 
     }
@@ -726,7 +727,7 @@ public class LambdaWrapperTest {
             final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
 
-            wrapper.handleRequest(in, out, context);
+            wrapper.processRequest(in, out);
 
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
@@ -758,9 +759,8 @@ public class LambdaWrapperTest {
 
         try (final InputStream in = loadRequestStream("create.request.json");
             final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
 
-            wrapper.handleRequest(in, out, context);
+            wrapper.processRequest(in, out);
 
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
@@ -795,7 +795,7 @@ public class LambdaWrapperTest {
             final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
 
-            wrapper.handleRequest(in, out, context);
+            wrapper.processRequest(in, out);
 
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
@@ -830,7 +830,7 @@ public class LambdaWrapperTest {
             final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
 
-            wrapper.handleRequest(in, out, context);
+            wrapper.processRequest(in, out);
 
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
@@ -866,7 +866,7 @@ public class LambdaWrapperTest {
             final Context context = getLambdaContext();
 
             try {
-                wrapper.handleRequest(in, out, context);
+                wrapper.processRequest(in, out);
             } catch (final Error e) {
                 // ignore so we can perform verifications
             }
@@ -894,7 +894,7 @@ public class LambdaWrapperTest {
             final Context context = getLambdaContext();
 
             try {
-                wrapper.handleRequest(in, out, context);
+                wrapper.processRequest(in, out);
             } catch (final Error e) {
                 // ignore so we can perform verifications
             }
@@ -913,7 +913,7 @@ public class LambdaWrapperTest {
             final Context context = getLambdaContext();
 
             try {
-                wrapper.handleRequest(null, out, context);
+                wrapper.processRequest(null, out);
             } catch (final Error e) {
                 // ignore so we can perform verifications
             }
@@ -931,7 +931,7 @@ public class LambdaWrapperTest {
             final Context context = getLambdaContext();
 
             try {
-                wrapper.handleRequest(in, out, context);
+                wrapper.processRequest(in, out);
             } catch (final Error e) {
                 // ignore so we can perform verifications
             }
@@ -949,7 +949,7 @@ public class LambdaWrapperTest {
             final Context context = getLambdaContext();
 
             try {
-                wrapper.handleRequest(in, out, context);
+                wrapper.processRequest(in, out);
             } catch (final Error e) {
                 // ignore so we can perform verifications
             }
@@ -984,7 +984,7 @@ public class LambdaWrapperTest {
             final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
 
-            wrapper.handleRequest(in, out, context);
+            wrapper.processRequest(in, out);
 
             // verify output response
             verifyHandlerResponse(out, ProgressEvent.<TestModel, TestContext>builder().message("Handler was invoked")

@@ -257,6 +257,13 @@ class JavaLanguagePlugin(LanguagePlugin):
         )
         project.safewrite(path, contents)
 
+        # log4j2
+        path = src / "resources" / "log4j.xml"
+        LOG.debug("Writing log4j2: %s", path)
+        template = self.env.get_template("init/shared/log4j2.xml")
+        contents = template.render()
+        project.safewrite(path, contents)
+
         self.init_handlers(project, src, tst)
 
     @logdebug
@@ -345,6 +352,19 @@ class JavaLanguagePlugin(LanguagePlugin):
             package_name=self.package_name,
             operations=project.schema.get("handlers", {}).keys(),
             pojo_name="ResourceModel",
+            wrapper_parent="LambdaWrapper",
+        )
+        project.overwrite(path, contents)
+
+        # write generated handler integration with ExecutableWrapper
+        path = src / "ExecutableHandlerWrapper.java"
+        LOG.debug("Writing handler wrapper: %s", path)
+        template = self.env.get_template("generate/HandlerWrapper.java")
+        contents = template.render(
+            package_name=self.package_name,
+            operations=project.schema.get("handlers", {}).keys(),
+            pojo_name="ResourceModel",
+            wrapper_parent="ExecutableWrapper",
         )
         project.overwrite(path, contents)
 

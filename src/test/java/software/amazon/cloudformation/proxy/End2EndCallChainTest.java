@@ -213,7 +213,7 @@ public class End2EndCallChainTest {
                                                                         mock(LogPublisher.class), mock(MetricsPublisher.class),
                                                                         new Validator(), serializer, client, httpClient);
 
-        wrapper.handleRequest(stream, output, cxt);
+        wrapper.processRequest(stream, output);
         verify(client).describeRepository(eq(describeRequest));
 
         ProgressEvent<Model, StdCallbackContext> response = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),
@@ -261,7 +261,7 @@ public class End2EndCallChainTest {
                                                                         mock(LogPublisher.class), mock(MetricsPublisher.class),
                                                                         new Validator(), serializer, client, httpClient);
 
-        wrapper.handleRequest(stream, output, cxt);
+        wrapper.processRequest(stream, output);
         verify(client).createRepository(eq(createRequest));
         verify(client).describeRepository(eq(describeRequest));
 
@@ -316,7 +316,7 @@ public class End2EndCallChainTest {
                                                                         mock(LogPublisher.class), mock(MetricsPublisher.class),
                                                                         new Validator(), serializer, client, httpClient);
 
-        wrapper.handleRequest(stream, output, cxt);
+        wrapper.processRequest(stream, output);
         verify(client).createRepository(eq(createRequest));
 
         ProgressEvent<Model, StdCallbackContext> response = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),
@@ -375,7 +375,7 @@ public class End2EndCallChainTest {
         ProgressEvent<Model, StdCallbackContext> progress;
         do {
             output = new ByteArrayOutputStream(2048);
-            wrapper.handleRequest(prepareStream(serializer, request), output, cxt);
+            wrapper.processRequest(prepareStream(serializer, request), output);
             progress = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),
                 new TypeReference<ProgressEvent<Model, StdCallbackContext>>() {
                 });
@@ -435,7 +435,7 @@ public class End2EndCallChainTest {
                                                                         mock(LogPublisher.class), mock(MetricsPublisher.class),
                                                                         new Validator(), serializer, client, httpClient);
 
-        wrapper.handleRequest(stream, output, cxt);
+        wrapper.processRequest(stream, output);
         // only 1 call (1, 0s), the next attempt is at 3s which exceed 50 ms remaining
         verify(client).describeRepository(eq(describeRequest));
 
@@ -487,7 +487,7 @@ public class End2EndCallChainTest {
                                                                         mock(LogPublisher.class), mock(MetricsPublisher.class),
                                                                         new Validator(), serializer, client, httpClient);
 
-        wrapper.handleRequest(stream, output, cxt);
+        wrapper.processRequest(stream, output);
         verify(client).describeRepository(eq(describeRequest));
 
         ProgressEvent<Model, StdCallbackContext> response = serializer.deserialize(output.toString(StandardCharsets.UTF_8.name()),

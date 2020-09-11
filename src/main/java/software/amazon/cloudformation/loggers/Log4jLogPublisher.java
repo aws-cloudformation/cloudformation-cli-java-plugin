@@ -12,11 +12,22 @@
 * express or implied. See the License for the specific language governing
 * permissions and limitations under the License.
 */
-package software.amazon.cloudformation;
+package software.amazon.cloudformation.loggers;
 
-public class JavaWrapper {
-    public static void main(String[] args) {
+import org.slf4j.Logger;
 
-        System.out.println("Cry");
+public class Log4jLogPublisher extends LogPublisher {
+
+    private final Logger logger;
+
+    public Log4jLogPublisher(final Logger logger,
+                             final LogFilter... logFilters) {
+        super(logFilters);
+        this.logger = logger;
+    }
+
+    @Override
+    protected void publishMessage(String message) {
+        this.logger.debug(String.format("%s%n", message));
     }
 }

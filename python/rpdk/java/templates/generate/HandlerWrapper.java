@@ -7,7 +7,7 @@ import software.amazon.awssdk.regions.PartitionMetadata;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.cloudformation.Action;
 import software.amazon.cloudformation.exceptions.BaseHandlerException;
-import software.amazon.cloudformation.LambdaWrapper;
+import software.amazon.cloudformation.{{ wrapper_parent }};
 import software.amazon.cloudformation.loggers.LambdaLogPublisher;
 import software.amazon.cloudformation.metrics.MetricsPublisher;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -29,6 +29,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
@@ -37,7 +38,7 @@ import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 
 
-public class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, CallbackContext> {
+public class {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "ExecutableHandlerWrapper" }} extends {{ wrapper_parent }}<{{ pojo_name }}, CallbackContext> {
 
     private final Configuration configuration = new Configuration();
     private JSONObject resourceSchema;
@@ -50,7 +51,7 @@ public class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, CallbackConte
         new TypeReference<ResourceHandlerTestPayload<{{ pojo_name }}, CallbackContext>>() {};
 
 
-    public HandlerWrapper() {
+    public {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "ExecutableHandlerWrapper" }}() {
         initialiseHandlers();
     }
 
@@ -60,24 +61,27 @@ public class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, CallbackConte
 {% endfor %}
     }
 
+
     @Override
     public ProgressEvent<{{ pojo_name }}, CallbackContext> invokeHandler(
-                final AmazonWebServicesClientProxy proxy,
-                final ResourceHandlerRequest<{{ pojo_name }}> request,
-                final Action action,
-                final CallbackContext callbackContext) {
-
+            final AmazonWebServicesClientProxy proxy,
+            final ResourceHandlerRequest<{{ pojo_name }}> request,
+            final Action action,
+            final CallbackContext callbackContext) {
         final String actionName = (action == null) ? "<null>" : action.toString(); // paranoia
-        if (!handlers.containsKey(action))
+            if (!handlers.containsKey(action))
             throw new RuntimeException("Unknown action " + actionName);
 
         final BaseHandler<CallbackContext> handler = handlers.get(action);
 
-        loggerProxy.log(String.format("[%s] invoking handler...", actionName));
+            loggerProxy.log(String.format("[%s] invoking handler...", actionName));
         final ProgressEvent<{{ pojo_name }}, CallbackContext> result = handler.handleRequest(proxy, request, callbackContext, loggerProxy);
-        loggerProxy.log(String.format("[%s] handler invoked", actionName));
-        return result;
+            loggerProxy.log(String.format("[%s] handler invoked", actionName));
+            return result;
     }
+
+    {% if wrapper_parent == "LambdaWrapper" -%}
+
 
     public void testEntrypoint(
             final InputStream inputStream,
@@ -110,8 +114,19 @@ public class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, CallbackConte
             writeResponse(outputStream, response);
         }
     }
+    {% else %}
+    public static void main(String[] args) throws IOException {
+        if (args.length != 1){
+            System.exit(1);
+        }
+        try(InputStream input = IOUtils.toInputStream(args[0], "UTF-8")){
+            // Output stream is closed by the wrapper
+            new ExecutableHandlerWrapper().handleRequest(input, new PrintStream(System.out));
+        }
+    }
+    {%- endif %}
 
-    @Override
+@Override
     public JSONObject provideResourceSchemaJSONObject() {
         if (resourceSchema == null) {
             resourceSchema = this.configuration.resourceSchemaJSONObject();
@@ -152,10 +167,5 @@ public class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, CallbackConte
         return TYPE_REFERENCE;
     }
 
-    public static void main(String[] args) throws IOException {
-        if (args.length != 1){
-            System.exit(1);
-        }
-        System.out.println(new HandlerWrapper().handleRequestNoLambda(args[0]));
-    }
+
 }

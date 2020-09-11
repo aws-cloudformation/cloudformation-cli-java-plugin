@@ -14,21 +14,22 @@
 */
 package software.amazon.cloudformation;
 
-import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.cloudformation.exceptions.TerminalException;
-import software.amazon.cloudformation.loggers.LambdaLogPublisher;
+import software.amazon.cloudformation.loggers.Log4jLogPublisher;
 
-public abstract class LambdaWrapper<ResourceT, CallbackT> extends Wrapper<ResourceT, CallbackT> implements RequestStreamHandler {
-    @Override
-    public void handleRequest(final InputStream inputStream, final OutputStream outputStream, final Context context)
-        throws IOException,
+public abstract class ExecutableWrapper<ResourceT, CallbackT> extends Wrapper<ResourceT, CallbackT> {
+    private Logger platformLogger = LoggerFactory.getLogger("GLOBAL");
+
+    public void handleRequest(final InputStream inputStream, final OutputStream outputStream) throws IOException,
         TerminalException {
+
         if (platformLogPublisher == null) {
-            platformLogPublisher = new LambdaLogPublisher(context.getLogger());
+            platformLogPublisher = new Log4jLogPublisher(platformLogger);
         }
         this.platformLoggerProxy.addLogPublisher(platformLogPublisher);
         processRequest(inputStream, outputStream);
