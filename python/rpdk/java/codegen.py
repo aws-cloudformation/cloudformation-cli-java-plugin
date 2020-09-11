@@ -18,7 +18,12 @@ from rpdk.core.jsonutils.resolver import resolve_models
 from rpdk.core.plugin_base import LanguagePlugin
 
 from .resolver import translate_type
-from .utils import safe_reserved, validate_codegen_model, validate_namespace
+from .utils import (
+    get_default_namespace,
+    safe_reserved,
+    validate_codegen_model,
+    validate_namespace,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -65,16 +70,6 @@ class JavaPluginNotFoundError(SysExitRecommendedError):
 
 class InvalidMavenPOMError(SysExitRecommendedError):
     pass
-
-
-def get_default_namespace(project):
-    if project.type_info[0] == "AWS":
-        namespace = ("software", "amazon") + project.type_info[1:]
-    else:
-        namespace = ("com",) + project.type_info
-
-    namespace = tuple(safe_reserved(s.lower()) for s in namespace)
-    return namespace
 
 
 class JavaLanguagePlugin(LanguagePlugin):
