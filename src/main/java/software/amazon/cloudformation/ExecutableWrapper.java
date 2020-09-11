@@ -20,7 +20,7 @@ import java.io.OutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.cloudformation.exceptions.TerminalException;
-import software.amazon.cloudformation.loggers.Log4jLogPublisher;
+import software.amazon.cloudformation.loggers.JavaLogPublisher;
 
 public abstract class ExecutableWrapper<ResourceT, CallbackT> extends Wrapper<ResourceT, CallbackT> {
     private Logger platformLogger = LoggerFactory.getLogger("GLOBAL");
@@ -29,7 +29,7 @@ public abstract class ExecutableWrapper<ResourceT, CallbackT> extends Wrapper<Re
         TerminalException {
 
         if (platformLogPublisher == null) {
-            platformLogPublisher = new Log4jLogPublisher(platformLogger);
+            platformLogPublisher = new JavaLogPublisher(platformLogger);
         }
         this.platformLoggerProxy.addLogPublisher(platformLogPublisher);
         processRequest(inputStream, outputStream);

@@ -321,7 +321,7 @@
                                         <limit>
                                             <counter>INSTRUCTION</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.79</minimum>
+                                            <minimum>0.89</minimum>
                                         </limit>
                                     </limits>
                                 </rule>

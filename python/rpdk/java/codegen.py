@@ -258,7 +258,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         project.safewrite(path, contents)
 
         # log4j2
-        path = src / "resources" / "log4j.xml"
+        path = src / "resources" / "log4j2.xml"
         LOG.debug("Writing log4j2: %s", path)
         template = self.env.get_template("init/shared/log4j2.xml")
         contents = template.render()

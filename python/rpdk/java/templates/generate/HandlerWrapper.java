@@ -61,7 +61,6 @@ public class {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "Exec
 {% endfor %}
     }
 
-
     @Override
     public ProgressEvent<{{ pojo_name }}, CallbackContext> invokeHandler(
             final AmazonWebServicesClientProxy proxy,
@@ -69,15 +68,15 @@ public class {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "Exec
             final Action action,
             final CallbackContext callbackContext) {
         final String actionName = (action == null) ? "<null>" : action.toString(); // paranoia
-            if (!handlers.containsKey(action))
+        if (!handlers.containsKey(action))
             throw new RuntimeException("Unknown action " + actionName);
 
         final BaseHandler<CallbackContext> handler = handlers.get(action);
 
-            loggerProxy.log(String.format("[%s] invoking handler...", actionName));
+        loggerProxy.log(String.format("[%s] invoking handler...", actionName));
         final ProgressEvent<{{ pojo_name }}, CallbackContext> result = handler.handleRequest(proxy, request, callbackContext, loggerProxy);
-            loggerProxy.log(String.format("[%s] handler invoked", actionName));
-            return result;
+        loggerProxy.log(String.format("[%s] handler invoked", actionName));
+        return result;
     }
 
     {% if wrapper_parent == "LambdaWrapper" -%}
@@ -126,7 +125,7 @@ public class {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "Exec
     }
     {%- endif %}
 
-@Override
+    @Override
     public JSONObject provideResourceSchemaJSONObject() {
         if (resourceSchema == null) {
             resourceSchema = this.configuration.resourceSchemaJSONObject();
@@ -166,6 +165,4 @@ public class {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "Exec
     protected TypeReference<{{ pojo_name }}> getModelTypeReference() {
         return TYPE_REFERENCE;
     }
-
-
 }

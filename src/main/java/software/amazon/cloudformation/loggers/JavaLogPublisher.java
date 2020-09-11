@@ -16,12 +16,12 @@ package software.amazon.cloudformation.loggers;
 
 import org.slf4j.Logger;
 
-public class Log4jLogPublisher extends LogPublisher {
+public class JavaLogPublisher extends LogPublisher {
 
     private final Logger logger;
 
-    public Log4jLogPublisher(final Logger logger,
-                             final LogFilter... logFilters) {
+    public JavaLogPublisher(final Logger logger,
+                            final LogFilter... logFilters) {
         super(logFilters);
         this.logger = logger;
     }
