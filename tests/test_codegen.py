@@ -35,7 +35,11 @@ def project(tmpdir, request):
         {"test": lambda: JavaLanguagePlugin},
         clear=True,
     ), patch("rpdk.java.codegen.input_with_validation", new=mock_cli):
-        project.init("AWS::Foo::{}".format(RESOURCE), "test", {"namespace": None})
+        project.init(
+            "AWS::Foo::{}".format(RESOURCE),
+            "test",
+            {"namespace": None, "codegen_template_path": None},
+        )
     return project
 
 
@@ -322,7 +326,9 @@ def test__namespace_from_project_old_settings():
 
 
 def test__prompt_for_codegen_model_no_selection():
-    project = Mock(type_info=("AWS", "Clown", "Service"), settings={})
+    project = Mock(
+        type_info=("AWS", "Clown", "Service"), settings={"codegen_template_path": None}
+    )
     plugin = JavaLanguagePlugin()
 
     with patch("rpdk.core.init.input", return_value="") as mock_input:
@@ -334,7 +340,9 @@ def test__prompt_for_codegen_model_no_selection():
 
 
 def test__prompt_for_codegen_model_default():
-    project = Mock(type_info=("AWS", "Clown", "Service"), settings={})
+    project = Mock(
+        type_info=("AWS", "Clown", "Service"), settings={"codegen_template_path": None}
+    )
     plugin = JavaLanguagePlugin()
 
     with patch("rpdk.core.init.input", return_value="1") as mock_input:
@@ -346,12 +354,29 @@ def test__prompt_for_codegen_model_default():
 
 
 def test__prompt_for_codegen_model_guided_aws():
-    project = Mock(type_info=("AWS", "Clown", "Service"), settings={})
+    project = Mock(
+        type_info=("AWS", "Clown", "Service"), settings={"codegen_template_path": None}
+    )
     plugin = JavaLanguagePlugin()
 
     with patch("rpdk.core.init.input", return_value="2") as mock_input:
         plugin._prompt_for_codegen_model(project)
 
     mock_input.assert_called_once()
+
+    assert project.settings == {"codegen_template_path": "guided_aws"}
+
+
+def test__prompt_for_codegen_model_provided():
+    project = Mock(
+        type_info=("AWS", "Clown", "Service"),
+        settings={"codegen_template_path": "guided_aws"},
+    )
+    plugin = JavaLanguagePlugin()
+
+    with patch("rpdk.core.init.input") as mock_input:
+        plugin._prompt_for_codegen_model(project)
+
+    mock_input.assert_not_called()
 
     assert project.settings == {"codegen_template_path": "guided_aws"}

@@ -132,16 +132,18 @@ class JavaLanguagePlugin(LanguagePlugin):
 
     @staticmethod
     def _prompt_for_codegen_model(project):
-        prompt = "Choose codegen model - 1 (default) or 2 (guided-aws): "
+        codegen_model = project.settings["codegen_template_path"]
+        if not codegen_model:
+            prompt = "Choose codegen model - 1 (default) or 2 (guided-aws): "
 
-        codegen_model = input_with_validation(
-            prompt, validate_codegen_model(CODEGEN.default_code)
-        )
+            codegen_model_code = input_with_validation(
+                prompt, validate_codegen_model(CODEGEN.default_code)
+            )
 
-        project.settings["codegen_template_path"] = CODEGEN.default
+            project.settings["codegen_template_path"] = CODEGEN.default
 
-        if codegen_model == CODEGEN.guided_code:
-            project.settings["codegen_template_path"] = CODEGEN.guided
+            if codegen_model_code == CODEGEN.guided_code:
+                project.settings["codegen_template_path"] = CODEGEN.guided
 
     def _get_template(self, project, stage, name):
         return self.env.get_template(
