@@ -138,6 +138,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
             .logicalResourceIdentifier(request.getRequestData().getLogicalResourceId())
             .nextToken(request.getNextToken())
             .region(request.getRegion())
+            .snapshotRequested(request.getSnapshotRequested())
             .awsPartition(PartitionMetadata.of(Region.of(request.getRegion())).id())
             .build();
     }

@@ -728,7 +728,7 @@ public class LambdaWrapperTest {
         wrapper.setTransformResponse(resourceHandlerRequest);
 
         try (final InputStream in = loadRequestStream("create.request.json");
-             final OutputStream out = new ByteArrayOutputStream()) {
+            final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
 
             wrapper.handleRequest(in, out, context);
