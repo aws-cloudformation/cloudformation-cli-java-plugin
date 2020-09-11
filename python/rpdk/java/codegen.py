@@ -6,8 +6,13 @@ import xml.etree.ElementTree as ET  # nosec
 from collections import namedtuple
 from xml.etree.ElementTree import ParseError  # nosec
 
+from colorama import Fore, Style
 from rpdk.core.data_loaders import resource_stream
-from rpdk.core.exceptions import InternalError, SysExitRecommendedError
+from rpdk.core.exceptions import (
+    InternalError,
+    SysExitRecommendedError,
+    WizardValidationError,
+)
 from rpdk.core.init import input_with_validation
 from rpdk.core.jsonutils.resolver import resolve_models
 from rpdk.core.plugin_base import LanguagePlugin
@@ -62,6 +67,16 @@ class InvalidMavenPOMError(SysExitRecommendedError):
     pass
 
 
+def get_default_namespace(project):
+    if project.type_info[0] == "AWS":
+        namespace = ("software", "amazon") + project.type_info[1:]
+    else:
+        namespace = ("com",) + project.type_info
+
+    namespace = tuple(safe_reserved(s.lower()) for s in namespace)
+    return namespace
+
+
 class JavaLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
     RUNTIME = "java8"
@@ -92,18 +107,26 @@ class JavaLanguagePlugin(LanguagePlugin):
         self.package_name = ".".join(self.namespace)
 
     def _prompt_for_namespace(self, project):
-        if project.type_info[0] == "AWS":
-            namespace = ("software", "amazon") + project.type_info[1:]
-        else:
-            namespace = ("com",) + project.type_info
-
-        namespace = tuple(safe_reserved(s.lower()) for s in namespace)
+        default_namespace = get_default_namespace(project)
+        settings_namespace = project.settings["namespace"]
 
         prompt = "Enter a package name (empty for default '{}'): ".format(
-            ".".join(namespace)
+            ".".join(default_namespace)
         )
 
-        self.namespace = input_with_validation(prompt, validate_namespace(namespace))
+        namespace_validator = validate_namespace(default_namespace)
+
+        if settings_namespace == "default":
+            self.namespace = default_namespace
+        elif settings_namespace:
+            try:
+                self.namespace = namespace_validator(settings_namespace)
+            except WizardValidationError as error:
+                print(Style.BRIGHT, Fore.RED, str(error), Style.RESET_ALL, sep="")
+                self.namespace = input_with_validation(prompt, namespace_validator)
+        else:
+            self.namespace = input_with_validation(prompt, namespace_validator)
+
         project.settings["namespace"] = self.namespace
         self.package_name = ".".join(self.namespace)
 

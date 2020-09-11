@@ -35,7 +35,7 @@ def project(tmpdir, request):
         {"test": lambda: JavaLanguagePlugin},
         clear=True,
     ), patch("rpdk.java.codegen.input_with_validation", new=mock_cli):
-        project.init("AWS::Foo::{}".format(RESOURCE), "test")
+        project.init("AWS::Foo::{}".format(RESOURCE), "test", {"namespace": None})
     return project
 
 
@@ -201,7 +201,7 @@ def test_package(project):
 
 
 def test__prompt_for_namespace_aws_default():
-    project = Mock(type_info=("AWS", "Clown", "Service"), settings={})
+    project = Mock(type_info=("AWS", "Clown", "Service"), settings={"namespace": None})
     plugin = JavaLanguagePlugin()
 
     with patch("rpdk.core.init.input", return_value="") as mock_input:
@@ -213,7 +213,7 @@ def test__prompt_for_namespace_aws_default():
 
 
 def test__prompt_for_namespace_aws_overwritten():
-    project = Mock(type_info=("AWS", "Clown", "Service"), settings={})
+    project = Mock(type_info=("AWS", "Clown", "Service"), settings={"namespace": None})
     plugin = JavaLanguagePlugin()
 
     with patch(
@@ -227,7 +227,9 @@ def test__prompt_for_namespace_aws_overwritten():
 
 
 def test__prompt_for_namespace_other_default():
-    project = Mock(type_info=("Balloon", "Clown", "Service"), settings={})
+    project = Mock(
+        type_info=("Balloon", "Clown", "Service"), settings={"namespace": None}
+    )
     plugin = JavaLanguagePlugin()
 
     with patch("rpdk.core.init.input", return_value="") as mock_input:
@@ -239,7 +241,55 @@ def test__prompt_for_namespace_other_default():
 
 
 def test__prompt_for_namespace_other_overwritten():
-    project = Mock(type_info=("Balloon", "Clown", "Service"), settings={})
+    project = Mock(
+        type_info=("Balloon", "Clown", "Service"), settings={"namespace": None}
+    )
+    plugin = JavaLanguagePlugin()
+
+    with patch(
+        "rpdk.core.init.input", return_value="com.ball.clown.service"
+    ) as mock_input:
+        plugin._prompt_for_namespace(project)
+
+    mock_input.assert_called_once()
+
+    assert project.settings == {"namespace": ("com", "ball", "clown", "service")}
+
+
+def test__prompt_for_namespace_default_provided():
+    project = Mock(
+        type_info=("Balloon", "Clown", "Service"), settings={"namespace": "default"}
+    )
+    plugin = JavaLanguagePlugin()
+
+    with patch("rpdk.core.init.input") as mock_input:
+        plugin._prompt_for_namespace(project)
+
+    mock_input.assert_not_called()
+
+    assert project.settings == {"namespace": ("com", "balloon", "clown", "service")}
+
+
+def test__prompt_for_namespace_valid_provided():
+    project = Mock(
+        type_info=("Balloon", "Clown", "Service"),
+        settings={"namespace": "com.valid.namespace"},
+    )
+    plugin = JavaLanguagePlugin()
+
+    with patch("rpdk.core.init.input") as mock_input:
+        plugin._prompt_for_namespace(project)
+
+    mock_input.assert_not_called()
+
+    assert project.settings == {"namespace": ("com", "valid", "namespace")}
+
+
+def test__prompt_for_namespace_invalid_provided():
+    project = Mock(
+        type_info=("Balloon", "Clown", "Service"),
+        settings={"namespace": "com.Invalid.Namespace"},
+    )
     plugin = JavaLanguagePlugin()
 
     with patch(
