@@ -25,6 +25,8 @@ import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Arrays;
@@ -180,6 +182,15 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         }
     }
 
+    private static String convertStackTraceToString(Throwable throwable) {
+        try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
+            throwable.printStackTrace(pw);
+            return sw.toString();
+        } catch (IOException ioe) {
+            throw new IllegalStateException(ioe);
+        }
+    }
+
     @Override
     public void handleRequest(final InputStream inputStream, final OutputStream outputStream, final Context context)
         throws IOException,
@@ -200,12 +211,16 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             // deserialize incoming payload to modelled request
             try {
                 request = this.serializer.deserialize(input, typeReference);
+
+                handlerResponse = processInvocation(rawInput, request, context);
             } catch (MismatchedInputException e) {
                 JSONObject resourceSchemaJSONObject = provideResourceSchemaJSONObject();
                 JSONObject rawModelObject = rawInput.getJSONObject("requestData").getJSONObject("resourceProperties");
                 this.validator.validateObject(rawModelObject, resourceSchemaJSONObject);
+                handlerResponse = ProgressEvent.defaultFailureHandler(new TerminalException("#: Invalid input provided", e),
+                    HandlerErrorCode.InvalidRequest);
             }
-            handlerResponse = processInvocation(rawInput, request, context);
+
         } catch (final ValidationException e) {
             String message;
             String fullExceptionMessage = ValidationException.buildFullExceptionMessage(e);
@@ -221,7 +236,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         } catch (final Throwable e) {
             // Exceptions are wrapped as a consistent error response to the caller (i.e;
             // CloudFormation)
-            e.printStackTrace(); // for root causing - logs to LambdaLogger by default
+            log(convertStackTraceToString(e)); // for root causing - logs to LambdaLogger by default
             handlerResponse = ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.InternalFailure);
             if (request != null && request.getRequestData() != null && MUTATING_ACTIONS.contains(request.getAction())) {
                 handlerResponse.setResourceModel(request.getRequestData().getResourceProperties());
