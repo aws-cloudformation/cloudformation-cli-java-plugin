@@ -44,6 +44,7 @@ import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.cloudformation.exceptions.BaseHandlerException;
+import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.exceptions.FileScrubberException;
 import software.amazon.cloudformation.exceptions.TerminalException;
 import software.amazon.cloudformation.injection.CloudWatchLogsProvider;
@@ -200,12 +201,19 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             // deserialize incoming payload to modelled request
             try {
                 request = this.serializer.deserialize(input, typeReference);
+
+                handlerResponse = processInvocation(rawInput, request, context);
             } catch (MismatchedInputException e) {
                 JSONObject resourceSchemaJSONObject = provideResourceSchemaJSONObject();
                 JSONObject rawModelObject = rawInput.getJSONObject("requestData").getJSONObject("resourceProperties");
+
                 this.validator.validateObject(rawModelObject, resourceSchemaJSONObject);
+
+                handlerResponse = ProgressEvent.defaultFailureHandler(
+                    new CfnInvalidRequestException("Resource properties validation failed with invalid configuration", e),
+                    HandlerErrorCode.InvalidRequest);
             }
-            handlerResponse = processInvocation(rawInput, request, context);
+
         } catch (final ValidationException e) {
             String message;
             String fullExceptionMessage = ValidationException.buildFullExceptionMessage(e);
@@ -221,7 +229,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         } catch (final Throwable e) {
             // Exceptions are wrapped as a consistent error response to the caller (i.e;
             // CloudFormation)
-            e.printStackTrace(); // for root causing - logs to LambdaLogger by default
+            log(ExceptionUtils.getStackTrace(e)); // for root causing - logs to LambdaLogger by default
             handlerResponse = ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.InternalFailure);
             if (request != null && request.getRequestData() != null && MUTATING_ACTIONS.contains(request.getAction())) {
                 handlerResponse.setResourceModel(request.getRequestData().getResourceProperties());
