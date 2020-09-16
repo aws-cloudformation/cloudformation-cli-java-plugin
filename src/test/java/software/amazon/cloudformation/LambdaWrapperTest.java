@@ -216,7 +216,7 @@ public class LambdaWrapperTest {
 
             // verify output response
             verifyHandlerResponse(out, ProgressEvent.<TestModel, TestContext>builder().errorCode(HandlerErrorCode.InvalidRequest)
-                .status(OperationStatus.FAILED).build());
+                .status(OperationStatus.FAILED).message("Model validation failed caused by invalid input provided").build());
         }
     }
 
@@ -362,7 +362,7 @@ public class LambdaWrapperTest {
         }
     }
 
-    // @Test
+    @Test
     public void invokeHandler_DependenciesInitialised_CompleteSynchronously_returnsSuccess() throws IOException {
         final WrapperOverride wrapper = new WrapperOverride();
         final TestModel model = new TestModel();
