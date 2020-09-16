@@ -210,7 +210,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
                 this.validator.validateObject(rawModelObject, resourceSchemaJSONObject);
 
                 handlerResponse = ProgressEvent.defaultFailureHandler(
-                    new CfnInvalidRequestException("Model validation failed caused by invalid input provided", e),
+                    new CfnInvalidRequestException("Resource properties validation failed with invalid configuration", e),
                     HandlerErrorCode.InvalidRequest);
             }
 

@@ -216,7 +216,7 @@ public class LambdaWrapperTest {
 
             // verify output response
             verifyHandlerResponse(out, ProgressEvent.<TestModel, TestContext>builder().errorCode(HandlerErrorCode.InvalidRequest)
-                .status(OperationStatus.FAILED).message("Model validation failed caused by invalid input provided").build());
+                .status(OperationStatus.FAILED).message("Resource properties validation failed with invalid configuration").build());
         }
     }
 
