@@ -241,10 +241,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             // A response will be output on all paths, though CloudFormation will
             // not block on invoking the handlers, but rather listen for callbacks
 
-            if (handlerResponse != null) {
-                publishExceptionCodeAndCountMetrics(request == null ? null : request.getAction(), handlerResponse.getErrorCode());
-            }
             writeResponse(outputStream, handlerResponse);
+            publishExceptionCodeAndCountMetrics(request == null ? null : request.getAction(), handlerResponse.getErrorCode());
         }
     }
 

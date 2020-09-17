@@ -87,8 +87,8 @@ public class MetricsPublisherImpl extends MetricsPublisher {
 
         // By Count dimensions
         bulkData.add(MetricDatum.builder().metricName(Metric.METRIC_NAME_HANDLER_EXCEPTION_BY_EXCEPTION_COUNT)
-            .unit(StandardUnit.COUNT).value(1.0).dimensions(Dimension.builder().name(Metric.DIMENSION_KEY_ACTION_TYPE)
-                .value(action == null ? "NO_ACTION" : action.name()).build())
+            .unit(StandardUnit.COUNT).value(handlerErrorCode == null ? 0.0 : 1.0).dimensions(Dimension.builder()
+                .name(Metric.DIMENSION_KEY_ACTION_TYPE).value(action == null ? "NO_ACTION" : action.name()).build())
             .timestamp(timestamp).build());
 
         publishBulkMetrics(bulkData.toArray(new MetricDatum[bulkData.size()]));
