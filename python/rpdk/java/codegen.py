@@ -67,6 +67,7 @@ class JavaLanguagePlugin(LanguagePlugin):
     RUNTIME = "java8"
     ENTRY_POINT = "{}.HandlerWrapper::handleRequest"
     TEST_ENTRY_POINT = "{}.HandlerWrapper::testEntrypoint"
+    EXECUTABLE_ENTRY_POINT = "{}.ExecutableHandlerWrapper"
     CODE_URI = "./target/{}-1.0-SNAPSHOT.jar"
 
     def __init__(self):
@@ -166,19 +167,22 @@ class JavaLanguagePlugin(LanguagePlugin):
         src = (project.root / "src" / "main" / "java").joinpath(*self.namespace)
         LOG.debug("Making source folder structure: %s", src)
         src.mkdir(parents=True, exist_ok=True)
+        resources = project.root / "src" / "resources"
+        LOG.debug("Making resources folder structure: %s", resources)
+        resources.mkdir(parents=True, exist_ok=True)
         tst = (project.root / "src" / "test" / "java").joinpath(*self.namespace)
         LOG.debug("Making test folder structure: %s", tst)
         tst.mkdir(parents=True, exist_ok=True)
 
         # initialize shared files
-        self.init_shared(project, src, tst)
+        self.init_shared(project, src, tst, resources)
 
         # write specialized generated files
         if self._is_aws_guided(project):
             self.init_guided_aws(project, src, tst)
 
     @logdebug
-    def init_shared(self, project, src, tst):
+    def init_shared(self, project, src, tst, resources):
         """Writing project configuration"""
         # .gitignore
         path = project.root / ".gitignore"
@@ -258,7 +262,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         project.safewrite(path, contents)
 
         # log4j2
-        path = src / "resources" / "log4j2.xml"
+        path = resources / "log4j2.xml"
         LOG.debug("Writing log4j2: %s", path)
         template = self.env.get_template("init/shared/log4j2.xml")
         contents = template.render()
@@ -311,6 +315,9 @@ class JavaLanguagePlugin(LanguagePlugin):
         project.runtime = self.RUNTIME
         project.entrypoint = self.ENTRY_POINT.format(self.package_name)
         project.test_entrypoint = self.TEST_ENTRY_POINT.format(self.package_name)
+        project.executable_entrypoint = self.EXECUTABLE_ENTRY_POINT.format(
+            self.package_name
+        )
         project.settings.update(DEFAULT_SETTINGS)
 
     @staticmethod

@@ -381,7 +381,7 @@ public abstract class Wrapper<ResourceT, CallbackT> {
 
         String output = this.serializer.serialize(response);
         outputStream.write(output.getBytes(StandardCharsets.UTF_8));
-        outputStream.close();
+        outputStream.flush();
     }
 
     protected ResourceT sanitizeModel(final ResourceT model) throws IOException {

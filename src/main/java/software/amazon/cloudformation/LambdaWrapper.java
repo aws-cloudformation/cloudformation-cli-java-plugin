@@ -32,5 +32,6 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> extends Wrapper<Resour
         }
         this.platformLoggerProxy.addLogPublisher(platformLogPublisher);
         processRequest(inputStream, outputStream);
+        outputStream.close();
     }
 }

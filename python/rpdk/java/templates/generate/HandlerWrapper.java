@@ -26,13 +26,17 @@ import software.amazon.cloudformation.scheduler.CloudWatchScheduler;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.fasterxml.jackson.core.type.TypeReference;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
@@ -111,6 +115,7 @@ public class {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "Exec
             response = ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.InternalFailure);
         } finally {
             writeResponse(outputStream, response);
+            outputStream.close();
         }
     }
     {% else %}
@@ -118,9 +123,24 @@ public class {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "Exec
         if (args.length != 1){
             System.exit(1);
         }
-        try(InputStream input = IOUtils.toInputStream(args[0], "UTF-8")){
-            // Output stream is closed by the wrapper
-            new ExecutableHandlerWrapper().handleRequest(input, new PrintStream(System.out));
+        final String outputFile = (UUID.randomUUID().toString() + ".txt");
+        try(FileOutputStream output = new FileOutputStream(outputFile)){
+            try(InputStream input=IOUtils.toInputStream(args[0],"UTF-8")){
+                new ExecutableHandlerWrapper().handleRequest(input, output);
+                output.flush();
+            }
+        }
+        readFileToSystemOut(outputFile);
+    }
+
+    private static void readFileToSystemOut(final String fileName) throws IOException {
+        //Create object of FileReader
+        final FileReader inputFile = new FileReader(fileName);
+        try(BufferedReader bufferReader = new BufferedReader(inputFile)) {
+            String line;
+            while ((line = bufferReader.readLine()) != null)   {
+                System.out.println(line);
+            }
         }
     }
     {%- endif %}

@@ -17,13 +17,35 @@ package software.amazon.cloudformation;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.cloudformation.exceptions.TerminalException;
+import software.amazon.cloudformation.injection.CredentialsProvider;
+import software.amazon.cloudformation.loggers.CloudWatchLogPublisher;
 import software.amazon.cloudformation.loggers.JavaLogPublisher;
+import software.amazon.cloudformation.loggers.LogPublisher;
+import software.amazon.cloudformation.metrics.MetricsPublisher;
+import software.amazon.cloudformation.resource.SchemaValidator;
+import software.amazon.cloudformation.resource.Serializer;
 
 public abstract class ExecutableWrapper<ResourceT, CallbackT> extends Wrapper<ResourceT, CallbackT> {
     private Logger platformLogger = LoggerFactory.getLogger("GLOBAL");
+
+    /*
+     * This .ctor provided for testing
+     */
+    public ExecutableWrapper(final CredentialsProvider providerCredentialsProvider,
+                             final LogPublisher platformEventsLogger,
+                             final CloudWatchLogPublisher providerEventsLogger,
+                             final MetricsPublisher providerMetricsPublisher,
+                             final SchemaValidator validator,
+                             final Serializer serializer,
+                             final SdkHttpClient httpClient) {
+        super(providerCredentialsProvider, platformEventsLogger, providerEventsLogger, providerMetricsPublisher, validator,
+              serializer, httpClient);
+    }
 
     public void handleRequest(final InputStream inputStream, final OutputStream outputStream) throws IOException,
         TerminalException {
@@ -32,6 +54,9 @@ public abstract class ExecutableWrapper<ResourceT, CallbackT> extends Wrapper<Re
             platformLogPublisher = new JavaLogPublisher(platformLogger);
         }
         this.platformLoggerProxy.addLogPublisher(platformLogPublisher);
+        outputStream.write("StartResponse-".getBytes(StandardCharsets.UTF_8));
         processRequest(inputStream, outputStream);
+        outputStream.write("-EndResponse".getBytes(StandardCharsets.UTF_8));
+        outputStream.flush();
     }
 }

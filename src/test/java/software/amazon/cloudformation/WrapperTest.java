@@ -20,8 +20,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -84,9 +82,6 @@ public class WrapperTest {
     private SchemaValidator validator;
 
     @Mock
-    private LambdaLogger lambdaLogger;
-
-    @Mock
     private ResourceHandlerRequest<TestModel> resourceHandlerRequest;
 
     @Mock
@@ -109,13 +104,6 @@ public class WrapperTest {
             e.printStackTrace();
             return null;
         }
-    }
-
-    private Context getLambdaContext() {
-        final Context context = mock(Context.class);
-        lenient().when(context.getInvokedFunctionArn()).thenReturn("arn:aws:lambda:aws-region:acct-id:function:testHandler:PROD");
-        lenient().when(context.getLogger()).thenReturn(lambdaLogger);
-        return context;
     }
 
     private void verifyInitialiseRuntime() {
@@ -151,8 +139,6 @@ public class WrapperTest {
         wrapper.setTransformResponse(resourceHandlerRequest);
 
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
-
             wrapper.processRequest(in, out);
 
             // verify initialiseRuntime was called and initialised dependencies
@@ -237,8 +223,6 @@ public class WrapperTest {
         wrapper.setTransformResponse(resourceHandlerRequest);
 
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
-
             wrapper.processRequest(in, out);
 
             // verify initialiseRuntime was called and initialised dependencies
@@ -281,8 +265,6 @@ public class WrapperTest {
         wrapper.setTransformResponse(resourceHandlerRequest);
 
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
-
             wrapper.processRequest(in, out);
 
             // verify initialiseRuntime was called and initialised dependencies
@@ -315,7 +297,6 @@ public class WrapperTest {
         wrapper.setTransformResponse(resourceHandlerRequest);
 
         try (final InputStream in = null; final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
             wrapper.processRequest(in, out);
             verifyNoMoreInteractions(providerMetricsPublisher, providerEventsLogger);
         }
@@ -340,8 +321,6 @@ public class WrapperTest {
         wrapper.setTransformResponse(resourceHandlerRequest);
 
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
-
             wrapper.processRequest(in, out);
 
             // verify initialiseRuntime was called and initialised dependencies
@@ -381,8 +360,6 @@ public class WrapperTest {
         // use a request context in our payload to bypass certain callbacks
         try (final InputStream in = loadRequestStream("create.with-callback-context.request.json");
             final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
-
             wrapper.processRequest(in, out);
 
             // simply ensure all dependencies were setup correctly - behaviour is tested
@@ -415,8 +392,6 @@ public class WrapperTest {
         wrapper.setTransformResponse(resourceHandlerRequest);
 
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
-
             wrapper.processRequest(in, out);
 
             // verify initialiseRuntime was called and initialised dependencies
@@ -477,8 +452,6 @@ public class WrapperTest {
         wrapper.setTransformResponse(resourceHandlerRequest);
 
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
-
             wrapper.processRequest(in, out);
 
             // verify initialiseRuntime was called and initialised dependencies
@@ -515,8 +488,6 @@ public class WrapperTest {
         wrapper.setTransformResponse(resourceHandlerRequest);
 
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
-
             wrapper.processRequest(in, out);
 
             // verify initialiseRuntime was called and initialised dependencies
@@ -551,8 +522,6 @@ public class WrapperTest {
 
         try (final InputStream in = loadRequestStream("create.request.with-invalid-model-types.json");
             final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
-
             wrapper.processRequest(in, out);
 
             // verify output response
@@ -574,8 +543,6 @@ public class WrapperTest {
 
         try (final InputStream in = loadRequestStream("create.request.with-extraneous-model-fields.json");
             final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
-
             wrapper.processRequest(in, out);
 
             // validation failure metric should be published but no others
@@ -613,8 +580,6 @@ public class WrapperTest {
         // handlers.
         try (final InputStream in = loadRequestStream("malformed.request.json");
             final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
-
             wrapper.processRequest(in, out);
 
             // verify output response
@@ -637,8 +602,6 @@ public class WrapperTest {
 
         try (final InputStream in = loadRequestStream("create.request-without-caller-credentials.json");
             final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
-
             wrapper.processRequest(in, out);
 
             // verify output response
@@ -664,8 +627,6 @@ public class WrapperTest {
 
         try (final InputStream in = loadRequestStream("create.request.json");
             final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
-
             wrapper.processRequest(in, out);
 
             // verify output response
@@ -691,8 +652,6 @@ public class WrapperTest {
 
         try (final InputStream in = loadRequestStream("create.request.json");
             final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
-
             wrapper.processRequest(in, out);
 
             // verify output response
@@ -703,13 +662,11 @@ public class WrapperTest {
 
     @Test
     public void invokeHandler_clientsRefreshedOnEveryInvoke() throws IOException {
-        Context context = getLambdaContext();
         try (InputStream in = loadRequestStream("create.request.json"); OutputStream out = new ByteArrayOutputStream()) {
             wrapper.processRequest(in, out);
         }
 
         // invoke the same wrapper instance again to ensure client is refreshed
-        context = getLambdaContext();
         try (InputStream in = loadRequestStream("create.request.json"); OutputStream out = new ByteArrayOutputStream()) {
             wrapper.processRequest(in, out);
         }
@@ -725,7 +682,6 @@ public class WrapperTest {
 
         try (final InputStream in = loadRequestStream("create.request.json");
             final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
 
             wrapper.processRequest(in, out);
 
@@ -793,7 +749,6 @@ public class WrapperTest {
 
         try (final InputStream in = loadRequestStream("create.request.json");
             final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
 
             wrapper.processRequest(in, out);
 
@@ -828,8 +783,6 @@ public class WrapperTest {
 
         try (final InputStream in = loadRequestStream("create.request.json");
             final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
-
             wrapper.processRequest(in, out);
 
             // verify initialiseRuntime was called and initialised dependencies
@@ -863,7 +816,6 @@ public class WrapperTest {
 
         try (final InputStream in = loadRequestStream("create.request.json");
             final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
 
             try {
                 wrapper.processRequest(in, out);
@@ -891,8 +843,6 @@ public class WrapperTest {
     @Test
     public void invokeHandler_withInvalidPayload_returnsFailureResponse() throws IOException {
         try (final InputStream in = new ByteArrayInputStream(new byte[0]); final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
-
             try {
                 wrapper.processRequest(in, out);
             } catch (final Error e) {
@@ -910,8 +860,6 @@ public class WrapperTest {
     @Test
     public void invokeHandler_withNullInputStream_returnsFailureResponse() throws IOException {
         try (final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
-
             try {
                 wrapper.processRequest(null, out);
             } catch (final Error e) {
@@ -928,8 +876,6 @@ public class WrapperTest {
     public void invokeHandler_withEmptyPayload_returnsFailure() throws IOException {
         try (final InputStream in = loadRequestStream("empty.request.json");
             final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
-
             try {
                 wrapper.processRequest(in, out);
             } catch (final Error e) {
@@ -946,8 +892,6 @@ public class WrapperTest {
     public void invokeHandler_withEmptyResourceProperties_returnsFailure() throws IOException {
         try (final InputStream in = loadRequestStream("empty.resource.request.json");
             final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
-
             try {
                 wrapper.processRequest(in, out);
             } catch (final Error e) {
@@ -982,8 +926,6 @@ public class WrapperTest {
 
         try (final InputStream in = loadRequestStream("create.request-with-stringified-resource.json");
             final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
-
             wrapper.processRequest(in, out);
 
             // verify output response
