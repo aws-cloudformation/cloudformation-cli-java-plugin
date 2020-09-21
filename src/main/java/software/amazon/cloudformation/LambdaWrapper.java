@@ -29,7 +29,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -242,11 +241,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             // A response will be output on all paths, though CloudFormation will
             // not block on invoking the handlers, but rather listen for callbacks
 
-            if (handlerResponse != null) {
-                publishExceptionCodeAndCountMetric(request == null ? null : request.getAction(), handlerResponse.getErrorCode(),
-                    handlerResponse.getStatus() == OperationStatus.FAILED);
-            }
             writeResponse(outputStream, handlerResponse);
+            publishExceptionCodeAndCountMetrics(request == null ? null : request.getAction(), handlerResponse.getErrorCode());
         }
     }
 
@@ -493,12 +489,9 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     /*
      * null-safe exception metrics delivery
      */
-    private void
-        publishExceptionCodeAndCountMetric(final Action action, final HandlerErrorCode handlerErrorCode, final boolean thrown) {
+    private void publishExceptionCodeAndCountMetrics(final Action action, final HandlerErrorCode handlerErrorCode) {
         if (this.metricsPublisherProxy != null) {
-            EnumSet.allOf(HandlerErrorCode.class).forEach(errorCode -> this.metricsPublisherProxy
-                .publishExceptionByErrorCodeMetric(Instant.now(), action, errorCode, thrown && errorCode == handlerErrorCode));
-            this.metricsPublisherProxy.publishExceptionCountMetric(Instant.now(), action, thrown);
+            this.metricsPublisherProxy.publishExceptionByErrorCodeAndCountBulkMetrics(Instant.now(), action, handlerErrorCode);
         }
     }
 

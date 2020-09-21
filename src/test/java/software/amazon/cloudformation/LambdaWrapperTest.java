@@ -161,9 +161,8 @@ public class LambdaWrapperTest {
             // validation failure metric should be published for final error handling
             verify(providerMetricsPublisher).publishExceptionMetric(any(Instant.class), any(), any(TerminalException.class),
                 any(HandlerErrorCode.class));
-            verify(providerMetricsPublisher).publishExceptionByErrorCodeMetric(any(Instant.class), any(),
-                any(HandlerErrorCode.class), eq(Boolean.TRUE));
-            verify(providerMetricsPublisher).publishExceptionCountMetric(any(Instant.class), any(), any(Boolean.class));
+            verify(providerMetricsPublisher).publishExceptionByErrorCodeAndCountBulkMetrics(any(Instant.class), any(),
+                any(HandlerErrorCode.class));
 
             // all metrics should be published even on terminal failure
             verify(providerMetricsPublisher).publishInvocationMetric(any(Instant.class), eq(action));
@@ -215,8 +214,10 @@ public class LambdaWrapperTest {
             verifyInitialiseRuntime();
 
             // verify output response
-            verifyHandlerResponse(out, ProgressEvent.<TestModel, TestContext>builder().errorCode(HandlerErrorCode.InvalidRequest)
-                .status(OperationStatus.FAILED).message("Resource properties validation failed with invalid configuration").build());
+            verifyHandlerResponse(out,
+                ProgressEvent.<TestModel, TestContext>builder().errorCode(HandlerErrorCode.InvalidRequest)
+                    .status(OperationStatus.FAILED).message("Resource properties validation failed with invalid configuration")
+                    .build());
         }
     }
 
@@ -443,9 +444,8 @@ public class LambdaWrapperTest {
 
             }
 
-            verify(providerMetricsPublisher, atLeastOnce()).publishExceptionByErrorCodeMetric(any(Instant.class), eq(action),
-                any(), any(Boolean.class));
-            verify(providerMetricsPublisher).publishExceptionCountMetric(any(Instant.class), any(), any(Boolean.class));
+            verify(providerMetricsPublisher).publishExceptionByErrorCodeAndCountBulkMetrics(any(Instant.class), eq(action),
+                any());
 
             // validation failure metric should not be published
             verifyNoMoreInteractions(providerMetricsPublisher);
@@ -488,9 +488,8 @@ public class LambdaWrapperTest {
             // all metrics should be published, once for a single invocation
             verify(providerMetricsPublisher).publishInvocationMetric(any(Instant.class), eq(action));
             verify(providerMetricsPublisher).publishDurationMetric(any(Instant.class), eq(action), anyLong());
-            verify(providerMetricsPublisher, atLeastOnce()).publishExceptionByErrorCodeMetric(any(Instant.class), eq(action),
-                any(), eq(Boolean.FALSE));
-            verify(providerMetricsPublisher).publishExceptionCountMetric(any(Instant.class), eq(action), eq(Boolean.FALSE));
+            verify(providerMetricsPublisher).publishExceptionByErrorCodeAndCountBulkMetrics(any(Instant.class), eq(action),
+                any());
 
             // validation failure metric should not be published
             verifyNoMoreInteractions(providerMetricsPublisher);
@@ -875,11 +874,8 @@ public class LambdaWrapperTest {
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
 
-            verify(providerMetricsPublisher, atLeastOnce()).publishExceptionByErrorCodeMetric(any(Instant.class),
-                any(Action.class), any(HandlerErrorCode.class), any(Boolean.class));
-
-            verify(providerMetricsPublisher).publishExceptionCountMetric(any(Instant.class), any(Action.class),
-                any(Boolean.class));
+            verify(providerMetricsPublisher).publishExceptionByErrorCodeAndCountBulkMetrics(any(Instant.class), any(Action.class),
+                any(HandlerErrorCode.class));
 
             // no further calls to metrics publisher should occur
             verifyNoMoreInteractions(providerMetricsPublisher);
