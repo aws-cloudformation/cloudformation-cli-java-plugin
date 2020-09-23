@@ -70,7 +70,7 @@ import software.amazon.cloudformation.resource.Serializer;
 import software.amazon.cloudformation.resource.Validator;
 import software.amazon.cloudformation.resource.exceptions.ValidationException;
 
-public abstract class Wrapper<ResourceT, CallbackT> {
+public abstract class AbstractWrapper<ResourceT, CallbackT> {
 
     public static final SdkHttpClient HTTP_CLIENT = ApacheHttpClient.builder().build();
 
@@ -96,7 +96,7 @@ public abstract class Wrapper<ResourceT, CallbackT> {
     protected CloudWatchLogHelper cloudWatchLogHelper;
     protected CloudWatchLogPublisher providerEventsLogger;
 
-    protected Wrapper() {
+    protected AbstractWrapper() {
         this.providerCredentialsProvider = new SessionCredentialsProvider();
         this.providerCloudWatchProvider = new CloudWatchProvider(this.providerCredentialsProvider, HTTP_CLIENT);
         this.cloudWatchLogsProvider = new CloudWatchLogsProvider(this.providerCredentialsProvider, HTTP_CLIENT);
@@ -109,13 +109,13 @@ public abstract class Wrapper<ResourceT, CallbackT> {
     /*
      * This .ctor provided for testing
      */
-    public Wrapper(final CredentialsProvider providerCredentialsProvider,
-                   final LogPublisher platformEventsLogger,
-                   final CloudWatchLogPublisher providerEventsLogger,
-                   final MetricsPublisher providerMetricsPublisher,
-                   final SchemaValidator validator,
-                   final Serializer serializer,
-                   final SdkHttpClient httpClient) {
+    public AbstractWrapper(final CredentialsProvider providerCredentialsProvider,
+                           final LogPublisher platformEventsLogger,
+                           final CloudWatchLogPublisher providerEventsLogger,
+                           final MetricsPublisher providerMetricsPublisher,
+                           final SchemaValidator validator,
+                           final Serializer serializer,
+                           final SdkHttpClient httpClient) {
 
         this.providerCredentialsProvider = providerCredentialsProvider;
         this.providerCloudWatchProvider = new CloudWatchProvider(this.providerCredentialsProvider, httpClient);

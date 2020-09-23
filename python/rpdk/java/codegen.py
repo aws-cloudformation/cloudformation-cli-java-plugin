@@ -1,6 +1,7 @@
 # pylint: disable=useless-super-delegation,too-many-locals
 # pylint doesn't recognize abstract methods
 import logging
+import os
 import shutil
 import xml.etree.ElementTree as ET  # nosec
 from collections import namedtuple
@@ -264,8 +265,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         # log4j2
         path = resources / "log4j2.xml"
         LOG.debug("Writing log4j2: %s", path)
-        template = self.env.get_template("init/shared/log4j2.xml")
-        contents = template.render()
+        contents = resource_stream(__name__, "data/log4j2.xml").read()
         project.safewrite(path, contents)
 
         self.init_handlers(project, src, tst)
@@ -454,6 +454,15 @@ class JavaLanguagePlugin(LanguagePlugin):
             project.settings[PROTOCOL_VERSION_SETTING] = DEFAULT_PROTOCOL_VERSION
             project.write_settings()
 
+        if (
+            hasattr(project, "executable_entrypoint")
+            and not project.executable_entrypoint
+        ):
+            project.executable_entrypoint = self.EXECUTABLE_ENTRY_POINT.format(
+                self.package_name
+            )
+            project.write_settings()
+
     @staticmethod
     def _find_jar(project):
         jar_glob = list(
@@ -517,3 +526,23 @@ class JavaLanguagePlugin(LanguagePlugin):
         for path in (project.root / "target" / "generated-sources").rglob("*"):
             if path.is_file():
                 write_with_relative_path(path)
+
+    @logdebug
+    def generate_image_build_config(self, project):
+        """Generating image build config"""
+
+        jar_path = self._find_jar(project)
+
+        dockerfile_path = (
+            os.path.dirname(os.path.realpath(__file__))
+            + "/data/build-image-src/Dockerfile-"
+            + project.runtime
+        )
+
+        project_path = project.root
+
+        return {
+            "executable_name": str(jar_path.relative_to(project.root)),
+            "dockerfile_path": dockerfile_path,
+            "project_path": str(project_path),
+        }

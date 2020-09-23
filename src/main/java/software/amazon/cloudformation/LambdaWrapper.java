@@ -19,10 +19,33 @@ import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.cloudformation.exceptions.TerminalException;
+import software.amazon.cloudformation.injection.CredentialsProvider;
+import software.amazon.cloudformation.loggers.CloudWatchLogPublisher;
 import software.amazon.cloudformation.loggers.LambdaLogPublisher;
+import software.amazon.cloudformation.loggers.LogPublisher;
+import software.amazon.cloudformation.metrics.MetricsPublisher;
+import software.amazon.cloudformation.resource.SchemaValidator;
+import software.amazon.cloudformation.resource.Serializer;
 
-public abstract class LambdaWrapper<ResourceT, CallbackT> extends Wrapper<ResourceT, CallbackT> implements RequestStreamHandler {
+public abstract class LambdaWrapper<ResourceT, CallbackT> extends AbstractWrapper<ResourceT, CallbackT>
+    implements RequestStreamHandler {
+
+    /*
+     * This .ctor provided for testing
+     */
+    public LambdaWrapper(final CredentialsProvider providerCredentialsProvider,
+                         final LogPublisher platformEventsLogger,
+                         final CloudWatchLogPublisher providerEventsLogger,
+                         final MetricsPublisher providerMetricsPublisher,
+                         final SchemaValidator validator,
+                         final Serializer serializer,
+                         final SdkHttpClient httpClient) {
+        super(providerCredentialsProvider, platformEventsLogger, providerEventsLogger, providerMetricsPublisher, validator,
+              serializer, httpClient);
+    }
+
     @Override
     public void handleRequest(final InputStream inputStream, final OutputStream outputStream, final Context context)
         throws IOException,

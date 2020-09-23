@@ -20,8 +20,8 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.mockito.Mockito;
 import software.amazon.awssdk.http.SdkHttpClient;
+import software.amazon.cloudformation.AbstractWrapper;
 import software.amazon.cloudformation.Action;
-import software.amazon.cloudformation.Wrapper;
 import software.amazon.cloudformation.injection.CredentialsProvider;
 import software.amazon.cloudformation.loggers.CloudWatchLogPublisher;
 import software.amazon.cloudformation.loggers.LogPublisher;
@@ -37,7 +37,7 @@ import software.amazon.cloudformation.proxy.service.ServiceClient;
 import software.amazon.cloudformation.resource.SchemaValidator;
 import software.amazon.cloudformation.resource.Serializer;
 
-public class ServiceHandlerWrapper extends Wrapper<Model, StdCallbackContext> {
+public class ServiceHandlerWrapper extends AbstractWrapper<Model, StdCallbackContext> {
 
     private final ServiceClient serviceClient;
 
