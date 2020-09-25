@@ -6,14 +6,13 @@ import xml.etree.ElementTree as ET  # nosec
 from collections import namedtuple
 from xml.etree.ElementTree import ParseError  # nosec
 
-from colorama import Fore, Style
 from rpdk.core.data_loaders import resource_stream
 from rpdk.core.exceptions import (
     InternalError,
     SysExitRecommendedError,
     WizardValidationError,
 )
-from rpdk.core.init import input_with_validation
+from rpdk.core.init import input_with_validation, print_error
 from rpdk.core.jsonutils.resolver import resolve_models
 from rpdk.core.plugin_base import LanguagePlugin
 
@@ -117,7 +116,7 @@ class JavaLanguagePlugin(LanguagePlugin):
             try:
                 self.namespace = namespace_validator(settings_namespace)
             except WizardValidationError as error:
-                print(Style.BRIGHT, Fore.RED, str(error), Style.RESET_ALL, sep="")
+                print_error(error)
                 self.namespace = input_with_validation(prompt, namespace_validator)
         else:
             self.namespace = input_with_validation(prompt, namespace_validator)
