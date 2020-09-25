@@ -43,4 +43,5 @@ public class ResourceHandlerRequest<T> {
     private String logicalResourceIdentifier;
     private String nextToken;
     private String region;
+    private String stackId;
 }
