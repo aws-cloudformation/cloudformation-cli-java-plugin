@@ -577,7 +577,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             return request.getStackId();
         }
 
-        return "";
+        return null;
     }
 
     private void replaceInMap(final Map<String, String> targetMap, final Map<String, String> sourceMap) {
