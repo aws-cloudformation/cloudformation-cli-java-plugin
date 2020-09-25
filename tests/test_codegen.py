@@ -38,7 +38,7 @@ def project(tmpdir, request):
         project.init(
             "AWS::Foo::{}".format(RESOURCE),
             "test",
-            {"namespace": None, "codegen_template_path": None},
+            {"namespace": None, "codegen_model": None},
         )
     return project
 
@@ -327,7 +327,7 @@ def test__namespace_from_project_old_settings():
 
 def test__prompt_for_codegen_model_no_selection():
     project = Mock(
-        type_info=("AWS", "Clown", "Service"), settings={"codegen_template_path": None}
+        type_info=("AWS", "Clown", "Service"), settings={"codegen_model": None}
     )
     plugin = JavaLanguagePlugin()
 
@@ -336,12 +336,12 @@ def test__prompt_for_codegen_model_no_selection():
 
     mock_input.assert_called_once()
 
-    assert project.settings == {"codegen_template_path": "default"}
+    assert project.settings == {"codegen_model": "default"}
 
 
 def test__prompt_for_codegen_model_default():
     project = Mock(
-        type_info=("AWS", "Clown", "Service"), settings={"codegen_template_path": None}
+        type_info=("AWS", "Clown", "Service"), settings={"codegen_model": None}
     )
     plugin = JavaLanguagePlugin()
 
@@ -350,12 +350,12 @@ def test__prompt_for_codegen_model_default():
 
     mock_input.assert_called_once()
 
-    assert project.settings == {"codegen_template_path": "default"}
+    assert project.settings == {"codegen_model": "default"}
 
 
 def test__prompt_for_codegen_model_guided_aws():
     project = Mock(
-        type_info=("AWS", "Clown", "Service"), settings={"codegen_template_path": None}
+        type_info=("AWS", "Clown", "Service"), settings={"codegen_model": None}
     )
     plugin = JavaLanguagePlugin()
 
@@ -364,13 +364,13 @@ def test__prompt_for_codegen_model_guided_aws():
 
     mock_input.assert_called_once()
 
-    assert project.settings == {"codegen_template_path": "guided_aws"}
+    assert project.settings == {"codegen_model": "guided_aws"}
 
 
 def test__prompt_for_codegen_model_provided():
     project = Mock(
         type_info=("AWS", "Clown", "Service"),
-        settings={"codegen_template_path": "guided_aws"},
+        settings={"codegen_model": "guided_aws"},
     )
     plugin = JavaLanguagePlugin()
 
@@ -379,4 +379,4 @@ def test__prompt_for_codegen_model_provided():
 
     mock_input.assert_not_called()
 
-    assert project.settings == {"codegen_template_path": "guided_aws"}
+    assert project.settings == {"codegen_model": "guided_aws"}

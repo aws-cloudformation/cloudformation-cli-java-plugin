@@ -83,7 +83,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         self.env = self._setup_jinja_env(
             trim_blocks=True, lstrip_blocks=True, keep_trailing_newline=True
         )
-        self.codegen_template_path = None
+        self.codegen_model = None
         self.env.filters["translate_type"] = translate_type
         self.env.filters["safe_reserved"] = safe_reserved
         self.namespace = None
@@ -103,7 +103,7 @@ class JavaLanguagePlugin(LanguagePlugin):
 
     def _prompt_for_namespace(self, project):
         default_namespace = get_default_namespace(project)
-        settings_namespace = project.settings["namespace"]
+        settings_namespace = project.settings.get("namespace")
 
         prompt = "Enter a package name (empty for default '{}'): ".format(
             ".".join(default_namespace)
@@ -127,7 +127,7 @@ class JavaLanguagePlugin(LanguagePlugin):
 
     @staticmethod
     def _prompt_for_codegen_model(project):
-        codegen_model = project.settings["codegen_template_path"]
+        codegen_model = project.settings.get("codegen_model")
         if not codegen_model:
             prompt = "Choose codegen model - 1 (default) or 2 (guided-aws): "
 
@@ -135,19 +135,19 @@ class JavaLanguagePlugin(LanguagePlugin):
                 prompt, validate_codegen_model(CODEGEN.default_code)
             )
 
-            project.settings["codegen_template_path"] = CODEGEN.default
+            project.settings["codegen_model"] = CODEGEN.default
 
             if codegen_model_code == CODEGEN.guided_code:
-                project.settings["codegen_template_path"] = CODEGEN.guided
+                project.settings["codegen_model"] = CODEGEN.guided
 
     def _get_template(self, project, stage, name):
         return self.env.get_template(
-            stage + "/" + project.settings["codegen_template_path"] + "/" + name
+            stage + "/" + project.settings["codegen_model"] + "/" + name
         )
 
     @staticmethod
     def _is_aws_guided(project: object) -> bool:
-        return project.settings["codegen_template_path"] == CODEGEN.guided
+        return project.settings["codegen_model"] == CODEGEN.guided
 
     @logdebug
     def _writing_component(
