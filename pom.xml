@@ -228,6 +228,15 @@
         </pluginRepository>
     </pluginRepositories>
     <build>
+        <resources>
+            <resource>
+                <directory>${basedir}/src/main/resources/com/amazonaws/cloudformation</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>package.properties</include>
+                </includes>
+            </resource>
+        </resources>
         <plugins>
             <!-- https://github.com/diffplug/spotless/tree/master/plugin-maven -->
             <plugin>
