@@ -272,6 +272,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
         if (resourceHandlerRequest != null) {
             resourceHandlerRequest.setPreviousResourceTags(getPreviousResourceTags(request));
+            resourceHandlerRequest.setStackId(getStackId(request));
         }
 
         this.metricsPublisherProxy.publishInvocationMetric(Instant.now(), request.getAction());
@@ -568,6 +569,15 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         }
 
         return previousResourceTags;
+    }
+
+    @VisibleForTesting
+    protected String getStackId(final HandlerRequest<ResourceT, CallbackT> request) {
+        if (request != null) {
+            return request.getStackId();
+        }
+
+        return null;
     }
 
     private void replaceInMap(final Map<String, String> targetMap, final Map<String, String> sourceMap) {

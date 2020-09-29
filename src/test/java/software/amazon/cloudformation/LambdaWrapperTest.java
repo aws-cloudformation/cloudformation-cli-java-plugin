@@ -1078,4 +1078,14 @@ public class LambdaWrapperTest {
         assertThat(tags.size()).isEqualTo(1);
         assertThat(tags.get("Tag1")).isEqualTo("Value2");
     }
+
+    @Test
+    public void getStackId_setAndGetStackId() {
+        final HandlerRequest<TestModel, TestContext> request = new HandlerRequest<>();
+        request.setStackId("AWSStackId");
+
+        final String stackId = wrapper.getStackId(request);
+        assertThat(stackId).isNotNull();
+        assertThat(stackId).isEqualTo("AWSStackId");
+    }
 }
