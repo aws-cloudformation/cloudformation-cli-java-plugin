@@ -186,9 +186,8 @@ public class WrapperTest {
 
         try (final InputStream in = loadRequestStream("create.request.with-extraneous-model-object.json");
             final OutputStream out = new ByteArrayOutputStream()) {
-            final Context context = getLambdaContext();
 
-            wrapper.handleRequest(in, out, context);
+            wrapper.processRequest(in, out);
             // validation failure metric should be published but no others
             verify(providerMetricsPublisher).publishExceptionMetric(any(Instant.class), eq(Action.CREATE), any(Exception.class),
                 any(HandlerErrorCode.class));
