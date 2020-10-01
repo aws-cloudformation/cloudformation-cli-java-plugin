@@ -45,6 +45,7 @@ PROTOCOL_VERSION_SETTING = "protocolVersion"
 DEFAULT_SETTINGS = {PROTOCOL_VERSION_SETTING: DEFAULT_PROTOCOL_VERSION}
 
 MINIMUM_JAVA_DEPENDENCY_VERSION = "2.0.0"
+MINIMUM_JAVA_DEPENDENCY_VERSION_EXECUTABLE_HANDLER_WRAPPER = "2.0.3"
 
 
 class JavaArchiveNotFoundError(SysExitRecommendedError):
@@ -364,16 +365,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         project.overwrite(path, contents)
 
         # write generated handler integration with ExecutableWrapper
-        path = src / "ExecutableHandlerWrapper.java"
-        LOG.debug("Writing handler wrapper: %s", path)
-        template = self.env.get_template("generate/HandlerWrapper.java")
-        contents = template.render(
-            package_name=self.package_name,
-            operations=project.schema.get("handlers", {}).keys(),
-            pojo_name="ResourceModel",
-            wrapper_parent="ExecutableWrapper",
-        )
-        project.overwrite(path, contents)
+        self._write_executable_wrapper_class(src, project)
 
         path = src / "BaseConfiguration.java"
         LOG.debug("Writing base configuration: %s", path)
@@ -429,6 +421,39 @@ class JavaLanguagePlugin(LanguagePlugin):
         self._update_settings(project)
 
         LOG.debug("Generate complete")
+
+    def _write_executable_wrapper_class(self, src, project):
+        try:
+            java_plugin_dependency_version = self._get_java_plugin_dependency_version(
+                project
+            )
+            if (
+                java_plugin_dependency_version
+                >= MINIMUM_JAVA_DEPENDENCY_VERSION_EXECUTABLE_HANDLER_WRAPPER
+            ):
+                path = src / "ExecutableHandlerWrapper.java"
+                LOG.debug("Writing handler wrapper: %s", path)
+                template = self.env.get_template("generate/HandlerWrapper.java")
+                contents = template.render(
+                    package_name=self.package_name,
+                    operations=project.schema.get("handlers", {}).keys(),
+                    pojo_name="ResourceModel",
+                    wrapper_parent="ExecutableWrapper",
+                )
+                project.overwrite(path, contents)
+            else:
+                LOG.info(
+                    "Please update your java plugin dependency to version "
+                    "%s or above in order to use "
+                    "the Executable Handler Wrapper feature.",
+                    MINIMUM_JAVA_DEPENDENCY_VERSION_EXECUTABLE_HANDLER_WRAPPER,
+                )
+        except JavaPluginNotFoundError:
+            LOG.info(
+                "Please make sure to have 'aws-cloudformation-rpdk-java-plugin' "
+                "to version %s or above.",
+                MINIMUM_JAVA_DEPENDENCY_VERSION,
+            )
 
     def _update_settings(self, project):
         try:

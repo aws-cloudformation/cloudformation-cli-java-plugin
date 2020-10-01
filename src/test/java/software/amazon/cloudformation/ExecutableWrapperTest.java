@@ -97,11 +97,8 @@ public class ExecutableWrapperTest {
 
     private void verifyHandlerResponse(final OutputStream out, final ProgressEvent<TestModel, TestContext> expected)
         throws IOException {
-        assertThat(out.toString()).matches("StartResponse-([\\s\\S]*)-EndResponse");
-        final String responseSubstring = out.toString().substring("StartResponse-".length(),
-            out.toString().length() - "-EndResponse".length());
         final Serializer serializer = new Serializer();
-        final ProgressEvent<TestModel, TestContext> handlerResponse = serializer.deserialize(responseSubstring,
+        final ProgressEvent<TestModel, TestContext> handlerResponse = serializer.deserialize(out.toString(),
             new TypeReference<ProgressEvent<TestModel, TestContext>>() {
             });
 

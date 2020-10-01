@@ -130,10 +130,12 @@ public class {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "Exec
                 output.flush();
             }
         }
+        System.out.println("__CFN_RESOURCE_START_RESPONSE__");
         readFileToSystemOut(outputFile);
+        System.out.println("__CFN_RESOURCE_END_RESPONSE__");
     }
 
-    private static void readFileToSystemOut(final String fileName) throws IOException {
+private static void readFileToSystemOut(final String fileName) throws IOException {
         //Create object of FileReader
         final FileReader inputFile = new FileReader(fileName);
         try(BufferedReader bufferReader = new BufferedReader(inputFile)) {

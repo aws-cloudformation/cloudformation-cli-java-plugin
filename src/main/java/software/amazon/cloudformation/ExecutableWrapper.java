@@ -17,7 +17,6 @@ package software.amazon.cloudformation;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.http.SdkHttpClient;
@@ -54,9 +53,7 @@ public abstract class ExecutableWrapper<ResourceT, CallbackT> extends AbstractWr
             platformLogPublisher = new JavaLogPublisher(platformLogger);
         }
         this.platformLoggerProxy.addLogPublisher(platformLogPublisher);
-        outputStream.write("StartResponse-".getBytes(StandardCharsets.UTF_8));
         processRequest(inputStream, outputStream);
-        outputStream.write("-EndResponse".getBytes(StandardCharsets.UTF_8));
         outputStream.flush();
     }
 }
