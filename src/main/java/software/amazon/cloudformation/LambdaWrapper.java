@@ -29,7 +29,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +43,7 @@ import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.cloudformation.exceptions.BaseHandlerException;
+import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.exceptions.FileScrubberException;
 import software.amazon.cloudformation.exceptions.TerminalException;
 import software.amazon.cloudformation.injection.CloudWatchLogsProvider;
@@ -200,12 +200,19 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
             // deserialize incoming payload to modelled request
             try {
                 request = this.serializer.deserialize(input, typeReference);
+
+                handlerResponse = processInvocation(rawInput, request, context);
             } catch (MismatchedInputException e) {
                 JSONObject resourceSchemaJSONObject = provideResourceSchemaJSONObject();
                 JSONObject rawModelObject = rawInput.getJSONObject("requestData").getJSONObject("resourceProperties");
+
                 this.validator.validateObject(rawModelObject, resourceSchemaJSONObject);
+
+                handlerResponse = ProgressEvent.defaultFailureHandler(
+                    new CfnInvalidRequestException("Resource properties validation failed with invalid configuration", e),
+                    HandlerErrorCode.InvalidRequest);
             }
-            handlerResponse = processInvocation(rawInput, request, context);
+
         } catch (final ValidationException e) {
             String message;
             String fullExceptionMessage = ValidationException.buildFullExceptionMessage(e);
@@ -221,7 +228,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         } catch (final Throwable e) {
             // Exceptions are wrapped as a consistent error response to the caller (i.e;
             // CloudFormation)
-            e.printStackTrace(); // for root causing - logs to LambdaLogger by default
+            log(ExceptionUtils.getStackTrace(e)); // for root causing - logs to LambdaLogger by default
             handlerResponse = ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.InternalFailure);
             if (request != null && request.getRequestData() != null && MUTATING_ACTIONS.contains(request.getAction())) {
                 handlerResponse.setResourceModel(request.getRequestData().getResourceProperties());
@@ -233,11 +240,8 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         } finally {
             // A response will be output on all paths, though CloudFormation will
             // not block on invoking the handlers, but rather listen for callbacks
-            if (handlerResponse != null) {
-                publishExceptionCodeAndCountMetric(request == null ? null : request.getAction(), handlerResponse.getErrorCode(),
-                    handlerResponse.getStatus() == OperationStatus.FAILED);
-            }
             writeResponse(outputStream, handlerResponse);
+            publishExceptionCodeAndCountMetrics(request == null ? null : request.getAction(), handlerResponse.getErrorCode());
         }
     }
 
@@ -267,6 +271,7 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
 
         if (resourceHandlerRequest != null) {
             resourceHandlerRequest.setPreviousResourceTags(getPreviousResourceTags(request));
+            resourceHandlerRequest.setStackId(getStackId(request));
         }
 
         this.metricsPublisherProxy.publishInvocationMetric(Instant.now(), request.getAction());
@@ -484,12 +489,9 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
     /*
      * null-safe exception metrics delivery
      */
-    private void
-        publishExceptionCodeAndCountMetric(final Action action, final HandlerErrorCode handlerErrorCode, final boolean thrown) {
+    private void publishExceptionCodeAndCountMetrics(final Action action, final HandlerErrorCode handlerErrorCode) {
         if (this.metricsPublisherProxy != null) {
-            EnumSet.allOf(HandlerErrorCode.class).forEach(errorCode -> this.metricsPublisherProxy
-                .publishExceptionByErrorCodeMetric(Instant.now(), action, errorCode, thrown && errorCode == handlerErrorCode));
-            this.metricsPublisherProxy.publishExceptionCountMetric(Instant.now(), action, thrown);
+            this.metricsPublisherProxy.publishExceptionByErrorCodeAndCountBulkMetrics(Instant.now(), action, handlerErrorCode);
         }
     }
 
@@ -566,6 +568,15 @@ public abstract class LambdaWrapper<ResourceT, CallbackT> implements RequestStre
         }
 
         return previousResourceTags;
+    }
+
+    @VisibleForTesting
+    protected String getStackId(final HandlerRequest<ResourceT, CallbackT> request) {
+        if (request != null) {
+            return request.getStackId();
+        }
+
+        return null;
     }
 
     private void replaceInMap(final Map<String, String> targetMap, final Map<String, String> sourceMap) {

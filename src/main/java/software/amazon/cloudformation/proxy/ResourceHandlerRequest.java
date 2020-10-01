@@ -44,4 +44,5 @@ public class ResourceHandlerRequest<T> {
     private String nextToken;
     private Boolean snapshotRequested;
     private String region;
+    private String stackId;
 }
