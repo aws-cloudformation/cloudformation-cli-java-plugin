@@ -32,6 +32,10 @@ import software.amazon.cloudformation.resource.Serializer;
 public abstract class LambdaWrapper<ResourceT, CallbackT> extends AbstractWrapper<ResourceT, CallbackT>
     implements RequestStreamHandler {
 
+    public LambdaWrapper() {
+        super();
+    }
+
     /*
      * This .ctor provided for testing
      */

@@ -32,6 +32,10 @@ import software.amazon.cloudformation.resource.Serializer;
 public abstract class ExecutableWrapper<ResourceT, CallbackT> extends AbstractWrapper<ResourceT, CallbackT> {
     private Logger platformLogger = LoggerFactory.getLogger("GLOBAL");
 
+    public ExecutableWrapper() {
+        super();
+    }
+
     /*
      * This .ctor provided for testing
      */
