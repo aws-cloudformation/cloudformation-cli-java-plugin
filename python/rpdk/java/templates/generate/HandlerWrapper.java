@@ -42,7 +42,7 @@ import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 
 
-public class {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "ExecutableHandlerWrapper" }} extends {{ wrapper_parent }}<{{ pojo_name }}, CallbackContext> {
+public class {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "HandlerWrapperExecutable" }} extends {{ wrapper_parent }}<{{ pojo_name }}, CallbackContext> {
 
     private final Configuration configuration = new Configuration();
     private JSONObject resourceSchema;
@@ -55,7 +55,7 @@ public class {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "Exec
         new TypeReference<ResourceHandlerTestPayload<{{ pojo_name }}, CallbackContext>>() {};
 
 
-    public {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "ExecutableHandlerWrapper" }}() {
+    public {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "HandlerWrapperExecutable" }}() {
         initialiseHandlers();
     }
 
@@ -126,7 +126,7 @@ public class {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "Exec
         final String outputFile = (UUID.randomUUID().toString() + ".txt");
         try(FileOutputStream output = new FileOutputStream(outputFile)){
             try(InputStream input=IOUtils.toInputStream(args[0],"UTF-8")){
-                new ExecutableHandlerWrapper().handleRequest(input, output);
+                new HandlerWrapperExecutable().handleRequest(input, output);
                 output.flush();
             }
         }

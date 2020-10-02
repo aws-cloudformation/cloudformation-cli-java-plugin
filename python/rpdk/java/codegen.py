@@ -69,7 +69,7 @@ class JavaLanguagePlugin(LanguagePlugin):
     RUNTIME = "java8"
     ENTRY_POINT = "{}.HandlerWrapper::handleRequest"
     TEST_ENTRY_POINT = "{}.HandlerWrapper::testEntrypoint"
-    EXECUTABLE_ENTRY_POINT = "{}.ExecutableHandlerWrapper"
+    EXECUTABLE_ENTRY_POINT = "{}.HandlerWrapperExecutable"
     CODE_URI = "./target/{}-1.0-SNAPSHOT.jar"
 
     def __init__(self):
@@ -431,7 +431,7 @@ class JavaLanguagePlugin(LanguagePlugin):
                 java_plugin_dependency_version
                 >= MINIMUM_JAVA_DEPENDENCY_VERSION_EXECUTABLE_HANDLER_WRAPPER
             ):
-                path = src / "ExecutableHandlerWrapper.java"
+                path = src / "HandlerWrapperExecutable.java"
                 LOG.debug("Writing handler wrapper: %s", path)
                 template = self.env.get_template("generate/HandlerWrapper.java")
                 contents = template.render(

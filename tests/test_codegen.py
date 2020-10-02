@@ -331,7 +331,7 @@ def test_generate_executable_entrypoint_not_specified(project):
 
     assert (
         project.executable_entrypoint
-        == plugin.package_name + ".ExecutableHandlerWrapper"
+        == plugin.package_name + ".HandlerWrapperExecutable"
     )
 
 
