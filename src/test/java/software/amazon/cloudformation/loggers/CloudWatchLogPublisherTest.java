@@ -22,7 +22,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -31,6 +30,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient;
 import software.amazon.awssdk.services.cloudwatchlogs.model.PutLogEventsRequest;
 import software.amazon.cloudformation.injection.CloudWatchLogsProvider;
+import software.amazon.cloudformation.proxy.LoggerProxy;
 import software.amazon.cloudformation.proxy.MetricsPublisherProxy;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,7 +43,7 @@ public class CloudWatchLogPublisherTest {
     private CloudWatchLogsClient cloudWatchLogsClient;
 
     @Mock
-    private LambdaLogger platformLambdaLogger;
+    private LoggerProxy platformLoggerProxy;
 
     @Mock
     private MetricsPublisherProxy metricsPublisherProxy;
@@ -54,7 +54,7 @@ public class CloudWatchLogPublisherTest {
     @Test
     public void testPublishLogEventsHappyCase() {
         final CloudWatchLogPublisher logPublisher = new CloudWatchLogPublisher(cloudWatchLogsProvider, LOG_GROUP_NAME,
-                                                                               LOG_STREAM_NAME, platformLambdaLogger,
+                                                                               LOG_STREAM_NAME, platformLoggerProxy,
                                                                                metricsPublisherProxy);
         final ArgumentCaptor<
             PutLogEventsRequest> putLogEventsRequestArgumentCaptor = ArgumentCaptor.forClass(PutLogEventsRequest.class);
@@ -75,7 +75,7 @@ public class CloudWatchLogPublisherTest {
     @Test
     public void testPublishLogEventsWithError() {
         final CloudWatchLogPublisher logPublisher = new CloudWatchLogPublisher(cloudWatchLogsProvider, LOG_GROUP_NAME,
-                                                                               LOG_STREAM_NAME, platformLambdaLogger,
+                                                                               LOG_STREAM_NAME, platformLoggerProxy,
                                                                                metricsPublisherProxy);
         final ArgumentCaptor<
             PutLogEventsRequest> putLogEventsRequestArgumentCaptor = ArgumentCaptor.forClass(PutLogEventsRequest.class);
@@ -85,7 +85,7 @@ public class CloudWatchLogPublisherTest {
         when(cloudWatchLogsClient.putLogEvents(putLogEventsRequestArgumentCaptor.capture()))
             .thenThrow(new RuntimeException("AccessDenied"));
         doNothing().when(metricsPublisherProxy).publishProviderLogDeliveryExceptionMetric(any(), any());
-        doNothing().when(platformLambdaLogger).log(stringArgumentCaptor.capture());
+        doNothing().when(platformLoggerProxy).log(stringArgumentCaptor.capture());
 
         final String msgToLog = "How is it going?";
         logPublisher.refreshClient();
@@ -103,7 +103,7 @@ public class CloudWatchLogPublisherTest {
     @Test
     public void testPublishLogEventsWithoutRefreshingClient() {
         final CloudWatchLogPublisher logPublisher = new CloudWatchLogPublisher(cloudWatchLogsProvider, LOG_GROUP_NAME,
-                                                                               LOG_STREAM_NAME, platformLambdaLogger,
+                                                                               LOG_STREAM_NAME, platformLoggerProxy,
                                                                                metricsPublisherProxy);
         assertThrows(AssertionError.class, () -> logPublisher.publishLogEvent("How is it going?"), "Expected assertion error");
 
@@ -113,7 +113,7 @@ public class CloudWatchLogPublisherTest {
     @Test
     public void testLogPublisherWithFilters() {
         final CloudWatchLogPublisher logPublisher = new CloudWatchLogPublisher(cloudWatchLogsProvider, LOG_GROUP_NAME,
-                                                                               LOG_STREAM_NAME, platformLambdaLogger, null);
+                                                                               LOG_STREAM_NAME, platformLoggerProxy, null);
         when(cloudWatchLogsProvider.get()).thenReturn(cloudWatchLogsClient);
         logPublisher.refreshClient();
         logPublisher.publishLogEvent("This is log message");
@@ -122,7 +122,7 @@ public class CloudWatchLogPublisherTest {
     @Test
     public void testPublishLogEventsWithErrorAndNullMetricsPublisher() {
         final CloudWatchLogPublisher logPublisher = new CloudWatchLogPublisher(cloudWatchLogsProvider, LOG_GROUP_NAME,
-                                                                               LOG_STREAM_NAME, platformLambdaLogger, null);
+                                                                               LOG_STREAM_NAME, platformLoggerProxy, null);
         final ArgumentCaptor<
             PutLogEventsRequest> putLogEventsRequestArgumentCaptor = ArgumentCaptor.forClass(PutLogEventsRequest.class);
         final ArgumentCaptor<String> stringArgumentCaptor = ArgumentCaptor.forClass(String.class);
@@ -130,7 +130,7 @@ public class CloudWatchLogPublisherTest {
         when(cloudWatchLogsProvider.get()).thenReturn(cloudWatchLogsClient);
         when(cloudWatchLogsClient.putLogEvents(putLogEventsRequestArgumentCaptor.capture()))
             .thenThrow(new RuntimeException("AccessDenied"));
-        doNothing().when(platformLambdaLogger).log(stringArgumentCaptor.capture());
+        doNothing().when(platformLoggerProxy).log(stringArgumentCaptor.capture());
 
         final String msgToLog = "How is it going?";
         logPublisher.refreshClient();
@@ -148,7 +148,7 @@ public class CloudWatchLogPublisherTest {
     @Test
     public void testPublishLogEventsWithNullLogStream() {
         final CloudWatchLogPublisher logPublisher = new CloudWatchLogPublisher(cloudWatchLogsProvider, LOG_GROUP_NAME, null,
-                                                                               platformLambdaLogger, metricsPublisherProxy);
+                                                                               platformLoggerProxy, metricsPublisherProxy);
         final String msgToLog = "How is it going?";
         when(cloudWatchLogsProvider.get()).thenReturn(cloudWatchLogsClient);
         logPublisher.refreshClient();

@@ -14,7 +14,6 @@
 */
 package software.amazon.cloudformation.loggers;
 
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import java.time.Instant;
 import java.util.Date;
 import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient;
@@ -22,6 +21,7 @@ import software.amazon.awssdk.services.cloudwatchlogs.model.InputLogEvent;
 import software.amazon.awssdk.services.cloudwatchlogs.model.PutLogEventsRequest;
 import software.amazon.awssdk.services.cloudwatchlogs.model.PutLogEventsResponse;
 import software.amazon.cloudformation.injection.CloudWatchLogsProvider;
+import software.amazon.cloudformation.proxy.LoggerProxy;
 import software.amazon.cloudformation.proxy.MetricsPublisherProxy;
 
 public class CloudWatchLogPublisher extends LogPublisher {
@@ -31,7 +31,7 @@ public class CloudWatchLogPublisher extends LogPublisher {
     private CloudWatchLogsClient cloudWatchLogsClient;
     private String logGroupName;
     private String logStreamName;
-    private LambdaLogger platformLambdaLogger;
+    private LoggerProxy platformLoggerProxy;
     private MetricsPublisherProxy metricsPublisherProxy;
 
     // Note: PutLogEvents returns a result that includes a sequence number.
@@ -43,14 +43,14 @@ public class CloudWatchLogPublisher extends LogPublisher {
     public CloudWatchLogPublisher(final CloudWatchLogsProvider cloudWatchLogsProvider,
                                   final String logGroupName,
                                   final String logStreamName,
-                                  final LambdaLogger platformLambdaLogger,
+                                  final LoggerProxy platformLoggerProxy,
                                   final MetricsPublisherProxy metricsPublisherProxy,
                                   final LogFilter... logFilters) {
         super(logFilters);
         this.cloudWatchLogsProvider = cloudWatchLogsProvider;
         this.logGroupName = logGroupName;
         this.logStreamName = logStreamName;
-        this.platformLambdaLogger = platformLambdaLogger;
+        this.platformLoggerProxy = platformLoggerProxy;
         this.metricsPublisherProxy = metricsPublisherProxy;
     }
 
@@ -73,7 +73,7 @@ public class CloudWatchLogPublisher extends LogPublisher {
 
             nextSequenceToken = putLogEventsResponse.nextSequenceToken();
         } catch (final Exception ex) {
-            platformLambdaLogger.log(
+            platformLoggerProxy.log(
                 String.format("An error occurred while putting log events [%s] " + "to resource owner account, with error: %s",
                     message, ex.toString()));
             emitMetricsForLoggingFailure(ex);

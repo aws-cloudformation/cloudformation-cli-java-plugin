@@ -17,11 +17,8 @@ package software.amazon.cloudformation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -50,7 +47,7 @@ import software.amazon.cloudformation.resource.SchemaValidator;
 import software.amazon.cloudformation.resource.Serializer;
 
 @ExtendWith(MockitoExtension.class)
-public class LambdaWrapperTest {
+public class ExecutableWrapperTest {
     private static final String TEST_DATA_BASE_PATH = "src/test/java/software/amazon/cloudformation/data/%s";
 
     @Mock
@@ -72,17 +69,14 @@ public class LambdaWrapperTest {
     private ResourceHandlerRequest<TestModel> resourceHandlerRequest;
 
     @Mock
-    private LambdaLogger lambdaLogger;
-
-    @Mock
     private SdkHttpClient httpClient;
 
-    private LambdaWrapperOverride wrapper;
+    private ExecutableWrapperOverride wrapper;
 
     @BeforeEach
     public void initWrapper() {
-        wrapper = new LambdaWrapperOverride(providerLoggingCredentialsProvider, platformEventsLogger, providerEventsLogger,
-                                            providerMetricsPublisher, validator, httpClient);
+        wrapper = new ExecutableWrapperOverride(providerLoggingCredentialsProvider, platformEventsLogger, providerEventsLogger,
+                                                providerMetricsPublisher, validator, httpClient);
     }
 
     public static InputStream loadRequestStream(final String fileName) {
@@ -99,13 +93,6 @@ public class LambdaWrapperTest {
     private void verifyInitialiseRuntime() {
         verify(providerLoggingCredentialsProvider).setCredentials(any(Credentials.class));
         verify(providerMetricsPublisher).refreshClient();
-    }
-
-    private Context getLambdaContext() {
-        final Context context = mock(Context.class);
-        lenient().when(context.getInvokedFunctionArn()).thenReturn("arn:aws:lambda:aws-region:acct-id:function:testHandler:PROD");
-        lenient().when(context.getLogger()).thenReturn(lambdaLogger);
-        return context;
     }
 
     private void verifyHandlerResponse(final OutputStream out, final ProgressEvent<TestModel, TestContext> expected)
@@ -140,7 +127,7 @@ public class LambdaWrapperTest {
         wrapper.setTransformResponse(resourceHandlerRequest);
 
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
-            wrapper.handleRequest(in, out, getLambdaContext());
+            wrapper.handleRequest(in, out);
 
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
