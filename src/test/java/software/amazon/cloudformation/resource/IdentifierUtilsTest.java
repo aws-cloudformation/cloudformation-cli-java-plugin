@@ -48,4 +48,48 @@ public class IdentifierUtilsTest {
         // string that is left to fix the max length.
         assertThat(result).startsWith("my-re-");
     }
+
+    @Test
+    public void generateResourceIdentifier_withStackInvalidStackId() {
+        String result = IdentifierUtils.generateResourceIdentifier("my-stack-name", "my-resource", "123456", 18);
+        assertThat(result.length()).isLessThanOrEqualTo(18);
+
+        // to ensure randomness in the identity, the result will always be a random
+        // string PREFIXED by the size of
+        // string that is left to fix the max length.
+        assertThat(result).startsWith("my-m-");
+    }
+
+    @Test
+    public void generateResourceIdentifier_withStackInvalidStackIdPartitionMismatch() {
+        String result = IdentifierUtils.generateResourceIdentifier("stack/my-stack-name", "my-resource", "123456", 50);
+        assertThat(result.length()).isLessThanOrEqualTo(49);
+
+        // to ensure randomness in the identity, the result will always be a random
+        // string PREFIXED by the size of
+        // string that is left to fix the max length.
+        assertThat(result).startsWith("stack/my-stack-name-my-resource-");
+    }
+
+    @Test
+    public void generateResourceIdentifier_withStackInvalidStackIdLessThanPreferredLen() {
+        String result = IdentifierUtils.generateResourceIdentifier("stack/my-stack-name", "my-resource", "123456", 16);
+        assertThat(result.length()).isLessThanOrEqualTo(16);
+
+        // to ensure randomness in the identity, the result will always be a random
+        // string PREFIXED by the size of
+        // string that is left to fix the max length.
+        assertThat(result).startsWith("stm-");
+    }
+
+    @Test
+    public void generateResourceIdentifier_withStackValidStackId() {
+        try {
+            IdentifierUtils.generateResourceIdentifier(
+                "arn:aws:cloudformation:us-east-1:123456789012:stack/my-stack-name/084c0bd1-082b-11eb-afdc-0a2fadfa68a5",
+                "my-resource", "123456", 14);
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).isEqualTo("Cannot generate resource IDs shorter than 15 characters.");
+        }
+    }
 }
