@@ -174,7 +174,6 @@ private static void readFileToSystemOut(final String fileName) throws IOExceptio
             .logicalResourceIdentifier(request.getRequestData().getLogicalResourceId())
             .nextToken(request.getNextToken())
             .region(request.getRegion())
-            .snapshotRequested(request.getSnapshotRequested())
             .awsPartition(PartitionMetadata.of(Region.of(request.getRegion())).id())
             .build();
     }
