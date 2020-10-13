@@ -1,6 +1,7 @@
 # pylint: disable=useless-super-delegation,too-many-locals
 # pylint doesn't recognize abstract methods
 import logging
+import os
 import shutil
 import xml.etree.ElementTree as ET  # nosec
 from collections import namedtuple
@@ -44,6 +45,7 @@ PROTOCOL_VERSION_SETTING = "protocolVersion"
 DEFAULT_SETTINGS = {PROTOCOL_VERSION_SETTING: DEFAULT_PROTOCOL_VERSION}
 
 MINIMUM_JAVA_DEPENDENCY_VERSION = "2.0.0"
+MINIMUM_JAVA_DEPENDENCY_VERSION_EXECUTABLE_HANDLER_WRAPPER = "2.0.3"
 
 
 class JavaArchiveNotFoundError(SysExitRecommendedError):
@@ -67,6 +69,7 @@ class JavaLanguagePlugin(LanguagePlugin):
     RUNTIME = "java8"
     ENTRY_POINT = "{}.HandlerWrapper::handleRequest"
     TEST_ENTRY_POINT = "{}.HandlerWrapper::testEntrypoint"
+    EXECUTABLE_ENTRY_POINT = "{}.HandlerWrapperExecutable"
     CODE_URI = "./target/{}-1.0-SNAPSHOT.jar"
 
     def __init__(self):
@@ -166,19 +169,22 @@ class JavaLanguagePlugin(LanguagePlugin):
         src = (project.root / "src" / "main" / "java").joinpath(*self.namespace)
         LOG.debug("Making source folder structure: %s", src)
         src.mkdir(parents=True, exist_ok=True)
+        resources = project.root / "src" / "resources"
+        LOG.debug("Making resources folder structure: %s", resources)
+        resources.mkdir(parents=True, exist_ok=True)
         tst = (project.root / "src" / "test" / "java").joinpath(*self.namespace)
         LOG.debug("Making test folder structure: %s", tst)
         tst.mkdir(parents=True, exist_ok=True)
 
         # initialize shared files
-        self.init_shared(project, src, tst)
+        self.init_shared(project, src, tst, resources)
 
         # write specialized generated files
         if self._is_aws_guided(project):
             self.init_guided_aws(project, src, tst)
 
     @logdebug
-    def init_shared(self, project, src, tst):
+    def init_shared(self, project, src, tst, resources):
         """Writing project configuration"""
         # .gitignore
         path = project.root / ".gitignore"
@@ -257,6 +263,12 @@ class JavaLanguagePlugin(LanguagePlugin):
         )
         project.safewrite(path, contents)
 
+        # log4j2
+        path = resources / "log4j2.xml"
+        LOG.debug("Writing log4j2: %s", path)
+        contents = resource_stream(__name__, "data/log4j2.xml").read()
+        project.safewrite(path, contents)
+
         self.init_handlers(project, src, tst)
 
     @logdebug
@@ -304,6 +316,9 @@ class JavaLanguagePlugin(LanguagePlugin):
         project.runtime = self.RUNTIME
         project.entrypoint = self.ENTRY_POINT.format(self.package_name)
         project.test_entrypoint = self.TEST_ENTRY_POINT.format(self.package_name)
+        project.executable_entrypoint = self.EXECUTABLE_ENTRY_POINT.format(
+            self.package_name
+        )
         project.settings.update(DEFAULT_SETTINGS)
 
     @staticmethod
@@ -345,8 +360,12 @@ class JavaLanguagePlugin(LanguagePlugin):
             package_name=self.package_name,
             operations=project.schema.get("handlers", {}).keys(),
             pojo_name="ResourceModel",
+            wrapper_parent="LambdaWrapper",
         )
         project.overwrite(path, contents)
+
+        # write generated handler integration with ExecutableWrapper
+        self._write_executable_wrapper_class(src, project)
 
         path = src / "BaseConfiguration.java"
         LOG.debug("Writing base configuration: %s", path)
@@ -403,6 +422,39 @@ class JavaLanguagePlugin(LanguagePlugin):
 
         LOG.debug("Generate complete")
 
+    def _write_executable_wrapper_class(self, src, project):
+        try:
+            java_plugin_dependency_version = self._get_java_plugin_dependency_version(
+                project
+            )
+            if (
+                java_plugin_dependency_version
+                >= MINIMUM_JAVA_DEPENDENCY_VERSION_EXECUTABLE_HANDLER_WRAPPER
+            ):
+                path = src / "HandlerWrapperExecutable.java"
+                LOG.debug("Writing handler wrapper: %s", path)
+                template = self.env.get_template("generate/HandlerWrapper.java")
+                contents = template.render(
+                    package_name=self.package_name,
+                    operations=project.schema.get("handlers", {}).keys(),
+                    pojo_name="ResourceModel",
+                    wrapper_parent="ExecutableWrapper",
+                )
+                project.overwrite(path, contents)
+            else:
+                LOG.info(
+                    "Please update your java plugin dependency to version "
+                    "%s or above in order to use "
+                    "the Executable Handler Wrapper feature.",
+                    MINIMUM_JAVA_DEPENDENCY_VERSION_EXECUTABLE_HANDLER_WRAPPER,
+                )
+        except JavaPluginNotFoundError:
+            LOG.info(
+                "Please make sure to have 'aws-cloudformation-rpdk-java-plugin' "
+                "to version %s or above.",
+                MINIMUM_JAVA_DEPENDENCY_VERSION,
+            )
+
     def _update_settings(self, project):
         try:
             java_plugin_dependency_version = self._get_java_plugin_dependency_version(
@@ -425,6 +477,15 @@ class JavaLanguagePlugin(LanguagePlugin):
         protocol_version = project.settings.get(PROTOCOL_VERSION_SETTING)
         if protocol_version != DEFAULT_PROTOCOL_VERSION:
             project.settings[PROTOCOL_VERSION_SETTING] = DEFAULT_PROTOCOL_VERSION
+            project.write_settings()
+
+        if (
+            hasattr(project, "executable_entrypoint")
+            and not project.executable_entrypoint
+        ):
+            project.executable_entrypoint = self.EXECUTABLE_ENTRY_POINT.format(
+                self.package_name
+            )
             project.write_settings()
 
     @staticmethod
@@ -490,3 +551,23 @@ class JavaLanguagePlugin(LanguagePlugin):
         for path in (project.root / "target" / "generated-sources").rglob("*"):
             if path.is_file():
                 write_with_relative_path(path)
+
+    @logdebug
+    def generate_image_build_config(self, project):
+        """Generating image build config"""
+
+        jar_path = self._find_jar(project)
+
+        dockerfile_path = (
+            os.path.dirname(os.path.realpath(__file__))
+            + "/data/build-image-src/Dockerfile-"
+            + project.runtime
+        )
+
+        project_path = project.root
+
+        return {
+            "executable_name": str(jar_path.relative_to(project.root)),
+            "dockerfile_path": dockerfile_path,
+            "project_path": str(project_path),
+        }

@@ -35,29 +35,19 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.resource.SchemaValidator;
 import software.amazon.cloudformation.resource.Serializer;
 
-/**
- * Test class used for testing of LambdaWrapper functionality
- */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class WrapperOverride extends AbstractWrapper<TestModel, TestContext> {
-
-    /**
-     * Invoked to test normal initialization flows
-     */
-    public WrapperOverride(final LogPublisher platformEventsLogger) {
-        this.platformLogPublisher = platformEventsLogger;
-    }
+public class ExecutableWrapperOverride extends ExecutableWrapper<TestModel, TestContext> {
 
     /**
      * This .ctor provided for testing
      */
-    public WrapperOverride(final CredentialsProvider providerLoggingCredentialsProvider,
-                           final LogPublisher platformEventsLogger,
-                           final CloudWatchLogPublisher providerEventsLogger,
-                           final MetricsPublisher providerMetricsPublisher,
-                           final SchemaValidator validator,
-                           final SdkHttpClient httpClient) {
+    public ExecutableWrapperOverride(final CredentialsProvider providerLoggingCredentialsProvider,
+                                     final LogPublisher platformEventsLogger,
+                                     final CloudWatchLogPublisher providerEventsLogger,
+                                     final MetricsPublisher providerMetricsPublisher,
+                                     final SchemaValidator validator,
+                                     final SdkHttpClient httpClient) {
         super(providerLoggingCredentialsProvider, platformEventsLogger, providerEventsLogger, providerMetricsPublisher, validator,
               new Serializer(), httpClient);
     }
