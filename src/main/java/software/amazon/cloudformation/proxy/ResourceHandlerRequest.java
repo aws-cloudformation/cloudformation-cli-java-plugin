@@ -42,6 +42,7 @@ public class ResourceHandlerRequest<T> {
     private String awsPartition;
     private String logicalResourceIdentifier;
     private String nextToken;
+    private Boolean snapshotRequested;
     private String region;
     private String stackId;
 }

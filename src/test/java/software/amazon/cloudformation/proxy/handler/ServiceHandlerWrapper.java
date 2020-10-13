@@ -82,7 +82,7 @@ public class ServiceHandlerWrapper extends AbstractWrapper<Model, StdCallbackCon
         return ResourceHandlerRequest.<Model>builder().desiredResourceState(desiredResourceState)
             .previousResourceState(previousResourceState).desiredResourceTags(getDesiredResourceTags(request))
             .systemTags(systemTags).logicalResourceIdentifier(request.getRequestData().getLogicalResourceId())
-            .nextToken(request.getNextToken()).build();
+            .nextToken(request.getNextToken()).snapshotRequested(request.getSnapshotRequested()).build();
     }
 
     @Override
