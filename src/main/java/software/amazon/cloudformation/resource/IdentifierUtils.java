@@ -28,7 +28,8 @@ public class IdentifierUtils {
     private static final int MIN_PHYSICAL_RESOURCE_ID_LENGTH = 15;
     private static final int MIN_PREFERRED_LENGTH = 17;
     private static final Splitter STACKID_SPLITTER = Splitter.on('/');
-    private static final Pattern STACK_PATTERN = Pattern.compile("^[a-z0-9-:]*stack/[-a-z0-9A-Z/]*");
+    private static final Pattern STACK_ARN_PATTERN = Pattern.compile("^[a-z0-9-:]*stack/[-a-z0-9A-Z/]*");
+    private static final Pattern STACK_NAME_PATTERN = Pattern.compile("^[-a-z0-9A-Z]*");
 
     private IdentifierUtils() {
     }
@@ -91,6 +92,10 @@ public class IdentifierUtils {
             stackName = STACKID_SPLITTER.splitToList(stackId).get(1);
         }
 
+        if (!isValidStackName(stackName)) {
+            throw new IllegalArgumentException(String.format("%s is not a valid Stack name", stackName));
+        }
+
         // some services don't allow leading dashes. Since stack name is first, clean
         // off any + no consecutive dashes
 
@@ -122,8 +127,12 @@ public class IdentifierUtils {
         return IdentifierUtils.generateResourceIdentifier(prefix.toString(), clientRequestToken, maxLength);
     }
 
-    private static boolean isStackArn(String stackIdPortion) {
-        return STACK_PATTERN.matcher(stackIdPortion).matches() && Iterables.size(STACKID_SPLITTER.split(stackIdPortion)) == 3;
+    private static boolean isStackArn(String stackId) {
+        return STACK_ARN_PATTERN.matcher(stackId).matches() && Iterables.size(STACKID_SPLITTER.split(stackId)) == 3;
+    }
+
+    private static boolean isValidStackName(String stackName) {
+        return STACK_NAME_PATTERN.matcher(stackName).matches();
     }
 
     private static int[] fairSplit(final int cap, final int[] buckets) {
