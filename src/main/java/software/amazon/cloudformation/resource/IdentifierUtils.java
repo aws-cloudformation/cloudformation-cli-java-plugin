@@ -15,10 +15,8 @@
 package software.amazon.cloudformation.resource;
 
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Random;
 import java.util.regex.Pattern;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -82,16 +80,15 @@ public class IdentifierUtils {
                                                     final String clientRequestToken,
                                                     final int maxLength) {
 
-        String stackName = stackId;
-
-        if (isStackPortionValid(stackId)) {
-            List<String> stackParts = ImmutableList.copyOf(STACKID_SPLITTER.split(stackId));
-            stackName = stackParts.get(1);
-        }
-
         if (maxLength < MIN_PHYSICAL_RESOURCE_ID_LENGTH) {
             throw new IllegalArgumentException("Cannot generate resource IDs shorter than " + MIN_PHYSICAL_RESOURCE_ID_LENGTH
                 + " characters.");
+        }
+
+        String stackName = stackId;
+
+        if (isStackArn(stackId)) {
+            stackName = STACKID_SPLITTER.splitToList(stackId).get(1);
         }
 
         // some services don't allow leading dashes. Since stack name is first, clean
@@ -125,7 +122,7 @@ public class IdentifierUtils {
         return IdentifierUtils.generateResourceIdentifier(prefix.toString(), clientRequestToken, maxLength);
     }
 
-    private static boolean isStackPortionValid(String stackIdPortion) {
+    private static boolean isStackArn(String stackIdPortion) {
         return STACK_PATTERN.matcher(stackIdPortion).matches() && Iterables.size(STACKID_SPLITTER.split(stackIdPortion)) == 3;
     }
 

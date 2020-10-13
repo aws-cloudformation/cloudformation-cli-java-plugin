@@ -50,7 +50,7 @@ public class IdentifierUtilsTest {
     }
 
     @Test
-    public void generateResourceIdentifier_withStackInvalidStackId() {
+    public void generateResourceIdentifier_withStackNameStackId() {
         String result = IdentifierUtils.generateResourceIdentifier("my-stack-name", "my-resource", "123456", 18);
         assertThat(result.length()).isLessThanOrEqualTo(18);
 
@@ -61,7 +61,7 @@ public class IdentifierUtilsTest {
     }
 
     @Test
-    public void generateResourceIdentifier_withStackInvalidStackIdPartitionMismatch() {
+    public void generateResourceIdentifier_withStackNamePartitionMismatch() {
         String result = IdentifierUtils.generateResourceIdentifier("stack/my-stack-name", "my-resource", "123456", 50);
         assertThat(result.length()).isLessThanOrEqualTo(49);
 
@@ -72,7 +72,7 @@ public class IdentifierUtilsTest {
     }
 
     @Test
-    public void generateResourceIdentifier_withStackInvalidStackIdLessThanPreferredLen() {
+    public void generateResourceIdentifier_withStackNameLessThanPreferredLen() {
         String result = IdentifierUtils.generateResourceIdentifier("stack/my-stack-name", "my-resource", "123456", 16);
         assertThat(result.length()).isLessThanOrEqualTo(16);
 
@@ -80,6 +80,42 @@ public class IdentifierUtilsTest {
         // string PREFIXED by the size of
         // string that is left to fix the max length.
         assertThat(result).startsWith("stm-");
+    }
+
+    @Test
+    public void generateResourceIdentifier_withStackNameBothFitMaxLen() {
+        String result = IdentifierUtils.generateResourceIdentifier(
+            "arn:aws:cloudformation:us-east-1:123456789012:stack/my-stack-name/084c0bd1-082b-11eb-afdc-0a2fadfa68a5",
+            "my-resource", "123456", 255);
+        assertThat(result.length()).isLessThanOrEqualTo(44);
+        assertThat(result).isEqualTo("my-stack-name-my-resource-hDoP0dahAFjd");
+    }
+
+    @Test
+    public void generateResourceIdentifier_withLongStackNameAndShotLogicalId() {
+        String result = IdentifierUtils.generateResourceIdentifier(
+            "arn:aws:cloudformation:us-east-1:123456789012:stack/my-very-very-very-very-very-very-long-custom-stack-name/084c0bd1-082b-11eb-afdc-0a2fadfa68a5",
+            "abc", "123456", 255);
+        assertThat(result.length()).isLessThanOrEqualTo(72);
+        assertThat(result).isEqualTo("my-very-very-very-very-very-very-long-custom-stack-name-abc-hDoP0dahAFjd");
+    }
+
+    @Test
+    public void generateResourceIdentifier_withShortStackNameAndLongLogicalId() {
+        String result = IdentifierUtils.generateResourceIdentifier("abc",
+            "my-very-very-very-very-very-very-long-custom-logical-id", "123456", 255);
+        assertThat(result.length()).isLessThanOrEqualTo(72);
+        assertThat(result).isEqualTo("abc-my-very-very-very-very-very-very-long-custom-logical-id-hDoP0dahAFjd");
+    }
+
+    @Test
+    public void generateResourceIdentifier_withLongStackNameAndLongLogicalId() {
+        String result = IdentifierUtils.generateResourceIdentifier(
+            "arn:aws:cloudformation:us-east-1:123456789012:stack/my-very-very-very-very-very-very-long-custom-stack-name/084c0bd1-082b-11eb-afdc-0a2fadfa68a5",
+            "my-very-very-very-very-very-very-long-custom-logical-id", "123456", 255);
+        assertThat(result.length()).isEqualTo(124);
+        assertThat(result).isEqualTo(
+            "my-very-very-very-very-very-very-long-custom-stack-name-my-very-very-very-very-very-very-long-custom-logical-id-hDoP0dahAFjd");
     }
 
     @Test
