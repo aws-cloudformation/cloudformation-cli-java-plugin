@@ -14,7 +14,6 @@
 */
 package software.amazon.cloudformation.loggers;
 
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import java.time.Instant;
 import java.util.UUID;
 import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient;
@@ -23,6 +22,7 @@ import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogStreamReque
 import software.amazon.awssdk.services.cloudwatchlogs.model.DescribeLogGroupsRequest;
 import software.amazon.awssdk.services.cloudwatchlogs.model.DescribeLogGroupsResponse;
 import software.amazon.cloudformation.injection.CloudWatchLogsProvider;
+import software.amazon.cloudformation.proxy.LoggerProxy;
 import software.amazon.cloudformation.proxy.MetricsPublisherProxy;
 
 public class CloudWatchLogHelper {
@@ -31,16 +31,16 @@ public class CloudWatchLogHelper {
 
     private CloudWatchLogsClient cloudWatchLogsClient;
     private String logGroupName;
-    private LambdaLogger platformLambdaLogger;
+    private LoggerProxy platformLogger;
     private MetricsPublisherProxy metricsPublisherProxy;
 
     public CloudWatchLogHelper(final CloudWatchLogsProvider cloudWatchLogsProvider,
                                final String logGroupName,
-                               final LambdaLogger platformLambdaLogger,
+                               final LoggerProxy platformLogger,
                                final MetricsPublisherProxy metricsPublisherProxy) {
         this.cloudWatchLogsProvider = cloudWatchLogsProvider;
         this.logGroupName = logGroupName;
-        this.platformLambdaLogger = platformLambdaLogger;
+        this.platformLogger = platformLogger;
         this.metricsPublisherProxy = metricsPublisherProxy;
     }
 
@@ -87,8 +87,8 @@ public class CloudWatchLogHelper {
     }
 
     private void log(final String message) {
-        if (platformLambdaLogger != null) {
-            platformLambdaLogger.log(message);
+        if (platformLogger != null) {
+            platformLogger.log(message);
         }
     }
 

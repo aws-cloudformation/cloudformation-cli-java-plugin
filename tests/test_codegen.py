@@ -367,16 +367,40 @@ def test__prompt_for_codegen_model_guided_aws():
     assert project.settings == {"codegen_model": "guided_aws"}
 
 
-def test__prompt_for_codegen_model_provided():
-    project = Mock(
-        type_info=("AWS", "Clown", "Service"),
-        settings={"codegen_model": "guided_aws"},
-    )
+def test_generate_image_build_config(project):
+    make_target(project, 1)
+
+    config = project._plugin.generate_image_build_config(project)
+
+    assert "executable_name" in config
+    assert "project_path" in config
+    assert "dockerfile_path" in config
+
+
+def test_generate_executable_entrypoint_specified(project):
+    project.executable_entrypoint = "entrypoint"
+    project.generate()
+    assert project.executable_entrypoint == "entrypoint"
+
+
+def test_generate_executable_entrypoint_not_specified(project):
+    project.executable_entrypoint = None
+    project.generate()
     plugin = JavaLanguagePlugin()
+    plugin._namespace_from_project(project)
 
-    with patch("rpdk.core.init.input") as mock_input:
-        plugin._prompt_for_codegen_model(project)
+    assert (
+        project.executable_entrypoint
+        == plugin.package_name + ".HandlerWrapperExecutable"
+    )
 
-    mock_input.assert_not_called()
 
-    assert project.settings == {"codegen_model": "guided_aws"}
+def test_generate_executable_entrypoint_old_project_version(project):
+    # If the cli version does not contain the new executable_entrypoint
+    # we will not add it
+    del project.executable_entrypoint
+    project.generate()
+    plugin = JavaLanguagePlugin()
+    plugin._namespace_from_project(project)
+
+    assert not hasattr(project, "executable_entrypoint")
