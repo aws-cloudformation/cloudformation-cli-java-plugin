@@ -57,7 +57,7 @@ public class IdentifierUtilsTest {
         // to ensure randomness in the identity, the result will always be a random
         // string PREFIXED by the size of
         // string that is left to fix the max length.
-        assertThat(result).startsWith("my-m-");
+        assertThat(result).startsWith("my-my-");
     }
 
     @Test
@@ -96,26 +96,25 @@ public class IdentifierUtilsTest {
         String result = IdentifierUtils.generateResourceIdentifier(
             "arn:aws:cloudformation:us-east-1:123456789012:stack/my-very-very-very-very-very-very-long-custom-stack-name/084c0bd1-082b-11eb-afdc-0a2fadfa68a5",
             "abc", "123456", 36);
-        assertThat(result.length()).isLessThanOrEqualTo(35);
-        assertThat(result).isEqualTo("my-very-very-very--abc-hDoP0dahAFjd");
+        assertThat(result.length()).isLessThanOrEqualTo(36);
+        assertThat(result).isEqualTo("my-very-very-very-v-abc-hDoP0dahAFjd");
     }
 
     @Test
     public void generateResourceIdentifier_withShortStackNameAndLongLogicalId() {
         String result = IdentifierUtils.generateResourceIdentifier("abc",
             "my-very-very-very-very-very-very-long-custom-logical-id", "123456", 36);
-        assertThat(result.length()).isLessThanOrEqualTo(35);
-        assertThat(result).isEqualTo("abc-my-very-very-very--hDoP0dahAFjd");
+        assertThat(result.length()).isLessThanOrEqualTo(36);
+        assertThat(result).isEqualTo("abc-my-very-very-very-v-hDoP0dahAFjd");
     }
 
     @Test
     public void generateResourceIdentifier_withLongStackNameAndLongLogicalId() {
         String result = IdentifierUtils.generateResourceIdentifier(
             "arn:aws:cloudformation:us-east-1:123456789012:stack/my-very-very-very-very-very-very-long-custom-stack-name/084c0bd1-082b-11eb-afdc-0a2fadfa68a5",
-            "my-very-very-very-very-very-very-long-custom-logical-id", "123456", 255);
-        assertThat(result.length()).isEqualTo(124);
-        assertThat(result).isEqualTo(
-            "my-very-very-very-very-very-very-long-custom-stack-name-my-very-very-very-very-very-very-long-custom-logical-id-hDoP0dahAFjd");
+            "my-very-very-very-very-very-very-long-custom-logical-id", "123456", 36);
+        assertThat(result.length()).isEqualTo(36);
+        assertThat(result).isEqualTo("my-very-ver-my-very-ver-hDoP0dahAFjd");
     }
 
     @Test

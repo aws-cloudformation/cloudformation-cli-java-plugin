@@ -65,7 +65,7 @@ public class IdentifierUtils {
         generateResourceIdentifier(final String logicalResourceId, final String clientRequestToken, final int maxLength) {
         int maxLogicalIdLength = maxLength - (GUID_LENGTH + 1);
 
-        int endIndex = logicalResourceId.length() > maxLogicalIdLength ? maxLogicalIdLength : logicalResourceId.length();
+        int endIndex = Math.min(logicalResourceId.length(), maxLogicalIdLength);
 
         StringBuilder sb = new StringBuilder();
         if (endIndex > 0) {
@@ -106,7 +106,7 @@ public class IdentifierUtils {
         // for each dash separator (if needed). the rest if the characters
         // will get allocated evenly between the stack and resource names
 
-        final int freeCharacters = maxLength - 13 - (separate ? 2 : 0);
+        final int freeCharacters = maxLength - 13 - (separate ? 1 : 0);
         final int[] requestedLengths = new int[2];
 
         requestedLengths[0] = cleanStackName.length();
