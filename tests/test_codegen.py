@@ -325,6 +325,20 @@ def test__namespace_from_project_old_settings():
     assert plugin.package_name == "com.balloon.clown.service"
 
 
+def test__prompt_for_codegen_model_provided():
+    project = Mock(
+        type_info=("AWS", "Clown", "Service"), settings={"codegen_model": "default"}
+    )
+    plugin = JavaLanguagePlugin()
+
+    with patch("rpdk.core.init.input") as mock_input:
+        plugin._prompt_for_codegen_model(project)
+
+    mock_input.assert_not_called()
+
+    assert project.settings == {"codegen_model": "default"}
+
+
 def test__prompt_for_codegen_model_no_selection():
     project = Mock(
         type_info=("AWS", "Clown", "Service"), settings={"codegen_model": None}
