@@ -18,8 +18,8 @@ import com.google.common.base.Preconditions;
 import java.time.Duration;
 
 /**
- * Provides constant fixed delay seconds for each attempt until {@link #timeout}
- * has been reached. After which it will return -1
+ * Provides constant fixed delay seconds for each attempt until
+ * {@link Constant#timeout} has been reached. After which it will return -1
  *
  * {@code
  *     final Delay delay =

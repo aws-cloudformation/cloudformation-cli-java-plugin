@@ -22,15 +22,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.google.common.collect.ImmutableList;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient;
 import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogGroupRequest;
 import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogStreamRequest;
@@ -38,7 +35,7 @@ import software.amazon.awssdk.services.cloudwatchlogs.model.DescribeLogGroupsReq
 import software.amazon.awssdk.services.cloudwatchlogs.model.DescribeLogGroupsResponse;
 import software.amazon.awssdk.services.cloudwatchlogs.model.LogGroup;
 import software.amazon.cloudformation.injection.CloudWatchLogsProvider;
-import software.amazon.cloudformation.injection.CloudWatchProvider;
+import software.amazon.cloudformation.proxy.LoggerProxy;
 import software.amazon.cloudformation.proxy.MetricsPublisherProxy;
 
 @ExtendWith(MockitoExtension.class)
@@ -51,29 +48,17 @@ public class CloudWatchLogHelperTest {
     private CloudWatchLogsClient cloudWatchLogsClient;
 
     @Mock
-    private LambdaLogger platformLambdaLogger;
+    private LoggerProxy platformLogger;
 
     @Mock
     private MetricsPublisherProxy metricsPublisherProxy;
 
-    @Mock
-    private CloudWatchProvider platformCloudWatchProvider;
-
-    @Mock
-    private CloudWatchClient platformCloudWatchClient;
-
     private static final String LOG_GROUP_NAME = "log-group-name";
-
-    @AfterEach
-    public void afterEach() {
-        verifyNoMoreInteractions(platformCloudWatchProvider);
-        verifyNoMoreInteractions(platformCloudWatchClient);
-    }
 
     @Test
     public void testWithExistingLogGroup() {
         final CloudWatchLogHelper cloudWatchLogHelper = new CloudWatchLogHelper(cloudWatchLogsProvider, LOG_GROUP_NAME,
-                                                                                platformLambdaLogger, metricsPublisherProxy);
+                                                                                platformLogger, metricsPublisherProxy);
         final ArgumentCaptor<DescribeLogGroupsRequest> describeLogGroupsRequestArgumentCaptor = ArgumentCaptor
             .forClass(DescribeLogGroupsRequest.class);
         final ArgumentCaptor<
@@ -103,7 +88,7 @@ public class CloudWatchLogHelperTest {
     @Test
     public void testWithoutRefreshingClient() {
         final CloudWatchLogHelper cloudWatchLogHelper = new CloudWatchLogHelper(cloudWatchLogsProvider, LOG_GROUP_NAME,
-                                                                                platformLambdaLogger, metricsPublisherProxy);
+                                                                                platformLogger, metricsPublisherProxy);
         assertThrows(AssertionError.class, () -> cloudWatchLogHelper.prepareLogStream(), "Expected assertion error");
         verifyNoMoreInteractions(cloudWatchLogsProvider);
     }
@@ -111,7 +96,7 @@ public class CloudWatchLogHelperTest {
     @Test
     public void testWithCreatingNewLogGroup() {
         final CloudWatchLogHelper cloudWatchLogHelper = new CloudWatchLogHelper(cloudWatchLogsProvider, LOG_GROUP_NAME,
-                                                                                platformLambdaLogger, metricsPublisherProxy);
+                                                                                platformLogger, metricsPublisherProxy);
         final ArgumentCaptor<DescribeLogGroupsRequest> describeLogGroupsRequestArgumentCaptor = ArgumentCaptor
             .forClass(DescribeLogGroupsRequest.class);
         final ArgumentCaptor<
@@ -144,7 +129,7 @@ public class CloudWatchLogHelperTest {
     @Test
     public void testInitialization_DescribeFailure() {
         final CloudWatchLogHelper cloudWatchLogHelper = new CloudWatchLogHelper(cloudWatchLogsProvider, LOG_GROUP_NAME,
-                                                                                platformLambdaLogger, metricsPublisherProxy);
+                                                                                platformLogger, metricsPublisherProxy);
         final ArgumentCaptor<DescribeLogGroupsRequest> describeLogGroupsRequestArgumentCaptor = ArgumentCaptor
             .forClass(DescribeLogGroupsRequest.class);
 
@@ -159,8 +144,8 @@ public class CloudWatchLogHelperTest {
 
         verify(cloudWatchLogsClient).describeLogGroups(describeLogGroupsRequestArgumentCaptor.getValue());
         verify(metricsPublisherProxy).publishProviderLogDeliveryExceptionMetric(any(), any());
-        verify(platformLambdaLogger).log(anyString());
-        verifyNoMoreInteractions(cloudWatchLogsProvider, platformLambdaLogger, metricsPublisherProxy);
+        verify(platformLogger).log(anyString());
+        verifyNoMoreInteractions(cloudWatchLogsProvider, platformLogger, metricsPublisherProxy);
     }
 
     @Test
@@ -187,8 +172,8 @@ public class CloudWatchLogHelperTest {
 
         verify(cloudWatchLogsClient).describeLogGroups(describeLogGroupsRequestArgumentCaptor.getValue());
         verify(metricsPublisherProxy).publishProviderLogDeliveryExceptionMetric(any(), any());
-        verify(platformLambdaLogger, times(0)).log(anyString());
-        verifyNoMoreInteractions(cloudWatchLogsProvider, platformLambdaLogger, metricsPublisherProxy);
+        verify(platformLogger, times(0)).log(anyString());
+        verifyNoMoreInteractions(cloudWatchLogsProvider, platformLogger, metricsPublisherProxy);
     }
 
     @Test
@@ -219,6 +204,6 @@ public class CloudWatchLogHelperTest {
         verify(cloudWatchLogsClient).createLogGroup(createLogGroupRequestArgumentCaptor.getValue());
         verify(cloudWatchLogsClient).describeLogGroups(describeLogGroupsRequestArgumentCaptor.getValue());
         verify(cloudWatchLogsClient).createLogStream(createLogStreamRequestArgumentCaptor.getValue());
-        verifyNoMoreInteractions(cloudWatchLogsProvider, platformLambdaLogger, metricsPublisherProxy);
+        verifyNoMoreInteractions(cloudWatchLogsProvider, platformLogger, metricsPublisherProxy);
     }
 }

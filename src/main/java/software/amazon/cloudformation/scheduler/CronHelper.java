@@ -30,6 +30,8 @@ public class CronHelper {
 
     /**
      * This .ctor provided for testing
+     *
+     * @param clock current clock system usually {@link Clock#systemUTC()}
      */
     public CronHelper(final Clock clock) {
         this.clock = clock;

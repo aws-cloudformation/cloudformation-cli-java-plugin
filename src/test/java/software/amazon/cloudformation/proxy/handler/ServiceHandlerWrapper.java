@@ -20,14 +20,13 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.mockito.Mockito;
 import software.amazon.awssdk.http.SdkHttpClient;
+import software.amazon.cloudformation.AbstractWrapper;
 import software.amazon.cloudformation.Action;
-import software.amazon.cloudformation.LambdaWrapper;
 import software.amazon.cloudformation.injection.CredentialsProvider;
 import software.amazon.cloudformation.loggers.CloudWatchLogPublisher;
 import software.amazon.cloudformation.loggers.LogPublisher;
 import software.amazon.cloudformation.metrics.MetricsPublisher;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.CallbackAdapter;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.HandlerRequest;
 import software.amazon.cloudformation.proxy.LoggerProxy;
@@ -37,27 +36,21 @@ import software.amazon.cloudformation.proxy.StdCallbackContext;
 import software.amazon.cloudformation.proxy.service.ServiceClient;
 import software.amazon.cloudformation.resource.SchemaValidator;
 import software.amazon.cloudformation.resource.Serializer;
-import software.amazon.cloudformation.scheduler.CloudWatchScheduler;
 
-public class ServiceHandlerWrapper extends LambdaWrapper<Model, StdCallbackContext> {
+public class ServiceHandlerWrapper extends AbstractWrapper<Model, StdCallbackContext> {
 
     private final ServiceClient serviceClient;
 
-    public ServiceHandlerWrapper(final CallbackAdapter<Model> callbackAdapter,
-                                 final CredentialsProvider platformCredentialsProvider,
-                                 final CredentialsProvider providerLoggingCredentialsProvider,
+    public ServiceHandlerWrapper(final CredentialsProvider providerLoggingCredentialsProvider,
                                  final CloudWatchLogPublisher providerEventsLogger,
                                  final LogPublisher platformEventsLogger,
-                                 final MetricsPublisher platformMetricsPublisher,
                                  final MetricsPublisher providerMetricsPublisher,
-                                 final CloudWatchScheduler scheduler,
                                  final SchemaValidator validator,
                                  final Serializer serializer,
                                  final ServiceClient client,
                                  final SdkHttpClient httpClient) {
-        super(callbackAdapter, platformCredentialsProvider, providerLoggingCredentialsProvider, providerEventsLogger,
-              platformEventsLogger, platformMetricsPublisher, providerMetricsPublisher, scheduler, validator, serializer,
-              httpClient);
+        super(providerLoggingCredentialsProvider, platformEventsLogger, providerEventsLogger, providerMetricsPublisher, validator,
+              serializer, httpClient);
         this.serviceClient = client;
     }
 
@@ -86,10 +79,10 @@ public class ServiceHandlerWrapper extends LambdaWrapper<Model, StdCallbackConte
             systemTags = null;
         }
 
-        return ResourceHandlerRequest.<Model>builder().clientRequestToken(request.getBearerToken())
-            .desiredResourceState(desiredResourceState).previousResourceState(previousResourceState)
-            .desiredResourceTags(getDesiredResourceTags(request)).systemTags(systemTags)
-            .logicalResourceIdentifier(request.getRequestData().getLogicalResourceId()).nextToken(request.getNextToken()).build();
+        return ResourceHandlerRequest.<Model>builder().desiredResourceState(desiredResourceState)
+            .previousResourceState(previousResourceState).desiredResourceTags(getDesiredResourceTags(request))
+            .systemTags(systemTags).logicalResourceIdentifier(request.getRequestData().getLogicalResourceId())
+            .nextToken(request.getNextToken()).snapshotRequested(request.getSnapshotRequested()).build();
     }
 
     @Override

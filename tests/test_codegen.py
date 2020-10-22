@@ -1,30 +1,40 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name,protected-access
 import xml.etree.ElementTree as ET
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import yaml
 
 import pytest
 from rpdk.core.exceptions import InternalError, SysExitRecommendedError
 from rpdk.core.project import Project
-from rpdk.java.codegen import JavaArchiveNotFoundError, JavaLanguagePlugin
+from rpdk.java.codegen import (
+    InvalidMavenPOMError,
+    JavaArchiveNotFoundError,
+    JavaLanguagePlugin,
+    JavaPluginNotFoundError,
+    JavaPluginVersionNotSupportedError,
+)
 
 RESOURCE = "DZQWCC"
 
 
-@pytest.fixture
-def project(tmpdir):
+@pytest.fixture(params=["1", "2"])
+def project(tmpdir, request):
+    def mock_input_with_validation(prompt, validate):  # pylint: disable=unused-argument
+        if prompt.startswith("Enter a package name"):
+            return ("software", "amazon", "foo", RESOURCE.lower())
+        if prompt.startswith("Choose codegen model"):
+            return request.param
+        return ""
+
     project = Project(root=tmpdir)
+    mock_cli = MagicMock(side_effect=mock_input_with_validation)
     with patch.dict(
         "rpdk.core.plugin_registry.PLUGIN_REGISTRY",
         {"test": lambda: JavaLanguagePlugin},
         clear=True,
-    ), patch(
-        "rpdk.java.codegen.input_with_validation",
-        autospec=True,
-        return_value=("software", "amazon", "foo", RESOURCE.lower()),
-    ):
+    ), patch("rpdk.java.codegen.input_with_validation", new=mock_cli):
         project.init("AWS::Foo::{}".format(RESOURCE), "test")
     return project
 
@@ -80,6 +90,36 @@ def test_generate(project):
     assert not test_file.is_file()
 
 
+def test_protocol_version_is_set(project):
+    assert project.settings["protocolVersion"] == "2.0.0"
+
+
+def test_generate_low_protocol_version_is_updated(project):
+    project.settings["protocolVersion"] = "1.0.0"
+    project.generate()
+    assert project.settings["protocolVersion"] == "2.0.0"
+
+
+def update_pom_with_plugin_version(project, version_id):
+    pom_tree = ET.parse(project.root / "pom.xml")
+    root = pom_tree.getroot()
+    namespace = {"mvn": "http://maven.apache.org/POM/4.0.0"}
+    version = root.find(
+        "./mvn:dependencies/mvn:dependency"
+        "/[mvn:artifactId='aws-cloudformation-rpdk-java-plugin']/mvn:version",
+        namespace,
+    )
+    version.text = version_id
+    pom_tree.write(project.root / "pom.xml")
+
+
+def test_generate_with_not_support_version(project):
+    update_pom_with_plugin_version(project, "1.0.0")
+
+    with pytest.raises(JavaPluginVersionNotSupportedError):
+        project.generate()
+
+
 def make_target(project, count):
     target = project.root / "target"
     target.mkdir(exist_ok=True)
@@ -108,6 +148,39 @@ def test__find_jar_two(project):
     make_target(project, 2)
     with pytest.raises(InternalError):
         project._plugin._find_jar(project)
+
+
+def make_pom_xml_without_plugin(project):
+    pom_tree = ET.parse(project.root / "pom.xml")
+    root = pom_tree.getroot()
+    namespace = {"mvn": "http://maven.apache.org/POM/4.0.0"}
+    plugin = root.find(
+        ".//mvn:dependency/[mvn:artifactId='aws-cloudformation-rpdk-java-plugin']",
+        namespace,
+    )
+    dependencies = root.find("mvn:dependencies", namespace)
+    dependencies.remove(plugin)
+    pom_tree.write(project.root / "pom.xml")
+
+
+def test__get_plugin_version_not_found(project):
+    make_pom_xml_without_plugin(project)
+    with pytest.raises(JavaPluginNotFoundError):
+        project._plugin._get_java_plugin_dependency_version(project)
+
+
+def test_generate_without_java_plugin_in_pom_should_not_fail(project):
+    make_pom_xml_without_plugin(project)
+    project.generate()
+    assert project.settings["protocolVersion"] == "2.0.0"
+
+
+def test__get_plugin_version_invalid_pom(project):
+    pom = open(project.root / "pom.xml", "w")
+    pom.write("invalid pom")
+    pom.close()
+    with pytest.raises(InvalidMavenPOMError):
+        project._plugin._get_java_plugin_dependency_version(project)
 
 
 def test_package(project):
@@ -196,3 +269,78 @@ def test__namespace_from_project_old_settings():
 
     assert plugin.namespace == ("com", "balloon", "clown", "service")
     assert plugin.package_name == "com.balloon.clown.service"
+
+
+def test__prompt_for_codegen_model_no_selection():
+    project = Mock(type_info=("AWS", "Clown", "Service"), settings={})
+    plugin = JavaLanguagePlugin()
+
+    with patch("rpdk.core.init.input", return_value="") as mock_input:
+        plugin._prompt_for_codegen_model(project)
+
+    mock_input.assert_called_once()
+
+    assert project.settings == {"codegen_template_path": "default"}
+
+
+def test__prompt_for_codegen_model_default():
+    project = Mock(type_info=("AWS", "Clown", "Service"), settings={})
+    plugin = JavaLanguagePlugin()
+
+    with patch("rpdk.core.init.input", return_value="1") as mock_input:
+        plugin._prompt_for_codegen_model(project)
+
+    mock_input.assert_called_once()
+
+    assert project.settings == {"codegen_template_path": "default"}
+
+
+def test__prompt_for_codegen_model_guided_aws():
+    project = Mock(type_info=("AWS", "Clown", "Service"), settings={})
+    plugin = JavaLanguagePlugin()
+
+    with patch("rpdk.core.init.input", return_value="2") as mock_input:
+        plugin._prompt_for_codegen_model(project)
+
+    mock_input.assert_called_once()
+
+    assert project.settings == {"codegen_template_path": "guided_aws"}
+
+
+def test_generate_image_build_config(project):
+    make_target(project, 1)
+
+    config = project._plugin.generate_image_build_config(project)
+
+    assert "executable_name" in config
+    assert "project_path" in config
+    assert "dockerfile_path" in config
+
+
+def test_generate_executable_entrypoint_specified(project):
+    project.executable_entrypoint = "entrypoint"
+    project.generate()
+    assert project.executable_entrypoint == "entrypoint"
+
+
+def test_generate_executable_entrypoint_not_specified(project):
+    project.executable_entrypoint = None
+    project.generate()
+    plugin = JavaLanguagePlugin()
+    plugin._namespace_from_project(project)
+
+    assert (
+        project.executable_entrypoint
+        == plugin.package_name + ".HandlerWrapperExecutable"
+    )
+
+
+def test_generate_executable_entrypoint_old_project_version(project):
+    # If the cli version does not contain the new executable_entrypoint
+    # we will not add it
+    del project.executable_entrypoint
+    project.generate()
+    plugin = JavaLanguagePlugin()
+    plugin._namespace_from_project(project)
+
+    assert not hasattr(project, "executable_entrypoint")

@@ -20,12 +20,14 @@ import software.amazon.cloudformation.proxy.Credentials;
 public interface CredentialsProvider {
 
     /**
-     * Return the current set of credentials for initialising AWS SDK Clients
+     * @return the current set of credentials for initialising AWS SDK Clients
      */
     AwsSessionCredentials get();
 
     /**
      * Inject a new set of credentials (passed through from caller)
+     *
+     * @param credentials, incoming credentials for the call that is being made
      */
     void setCredentials(Credentials credentials);
 }

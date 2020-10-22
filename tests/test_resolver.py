@@ -1,5 +1,5 @@
 import pytest
-from rpdk.core.jsonutils.resolver import ContainerType, ResolvedType
+from rpdk.core.jsonutils.resolver import MULTIPLE, ContainerType, ResolvedType
 from rpdk.java.resolver import PRIMITIVE_TYPES, translate_type
 
 RESOLVED_TYPES = [
@@ -23,6 +23,10 @@ def test_translate_type_primitive(resolved_type, native_type):
 def test_translate_type_dict(resolved_type, native_type):
     traslated = translate_type(ResolvedType(ContainerType.DICT, resolved_type))
     assert traslated == f"Map<String, {native_type}>"
+
+
+def test_translate_type_multiple():
+    assert translate_type(ResolvedType(ContainerType.MULTIPLE, MULTIPLE)) == "Object"
 
 
 @pytest.mark.parametrize("resolved_type,native_type", RESOLVED_TYPES)

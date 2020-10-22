@@ -29,7 +29,6 @@ import software.amazon.cloudformation.Action;
 import software.amazon.cloudformation.TestContext;
 import software.amazon.cloudformation.TestModel;
 import software.amazon.cloudformation.proxy.HandlerRequest;
-import software.amazon.cloudformation.proxy.RequestContext;
 import software.amazon.cloudformation.proxy.RequestData;
 
 public class SerializerTest {
@@ -71,32 +70,19 @@ public class SerializerTest {
         assertThat(r.getAwsAccountId()).isEqualTo("123456789012");
         assertThat(r.getBearerToken()).isEqualTo("123456");
         assertThat(r.getRegion()).isEqualTo("us-east-1");
-        assertThat(r.getRequestContext()).isNotNull();
+        assertThat(r.getBearerToken()).isEqualTo("123456");
         assertThat(r.getRequestData()).isNotNull();
-        assertThat(r.getResponseEndpoint()).isEqualTo("https://cloudformation.us-west-2.amazonaws.com");
         assertThat(r.getResourceType()).isEqualTo("AWS::Test::TestModel");
         assertThat(r.getResourceTypeVersion()).isEqualTo("1.0");
         assertThat(r.getStackId())
             .isEqualTo("arn:aws:cloudformation:us-east-1:123456789012:stack/SampleStack/e722ae60-fe62-11e8-9a0e-0ae8cc519968");
-
-        final RequestContext<TestContext> requestContext = r.getRequestContext();
-        assertThat(requestContext.getCloudWatchEventsRuleName()).isNull();
-        assertThat(requestContext.getCloudWatchEventsTargetId()).isNull();
-        assertThat(requestContext.getInvocation()).isEqualTo(0);
-        assertThat(requestContext.getCallbackContext()).isNull();
+        assertThat(r.getCallbackContext()).isNull();
 
         final RequestData<TestModel> requestData = r.getRequestData();
         assertThat(requestData.getCallerCredentials()).isNotNull();
         assertThat(requestData.getCallerCredentials().getAccessKeyId()).isEqualTo("IASAYK835GAIFHAHEI23");
         assertThat(requestData.getCallerCredentials().getSecretAccessKey()).isEqualTo("66iOGPN5LnpZorcLr8Kh25u8AbjHVllv5/poh2O0");
-        assertThat(requestData.getCallerCredentials().getSessionToken())
-            .isEqualTo("lameHS2vQOknSHWhdFYTxm2eJc1JMn9YBNI4nV4mXue945KPL6DHfW8EsUQT5zwssYEC1NvYP9yD6Y5s5lKR3chflOHPFsIe6eqg");
-        assertThat(requestData.getPlatformCredentials()).isNotNull();
-        assertThat(requestData.getPlatformCredentials().getAccessKeyId()).isEqualTo("32IEHAHFIAG538KYASAI");
-        assertThat(requestData.getPlatformCredentials().getSecretAccessKey())
-            .isEqualTo("0O2hop/5vllVHjbA8u52hK8rLcroZpnL5NPGOi66");
-        assertThat(requestData.getPlatformCredentials().getSessionToken())
-            .isEqualTo("gqe6eIsFPHOlfhc3RKl5s5Y6Dy9PYvN1CEYsswz5TQUsE8WfHD6LPK549euXm4Vn4INBY9nMJ1cJe2mxTYFdhWHSnkOQv2SHemal");
+        assertThat(requestData.getCallerCredentials().getSessionToken());
         assertThat(requestData.getLogicalResourceId()).isEqualTo("myBucket");
         assertThat(requestData.getStackTags()).containsExactly(entry("tag1", "abc"));
         assertThat(requestData.getPreviousResourceProperties()).isNull();
@@ -123,17 +109,11 @@ public class SerializerTest {
         assertThat(r.getRegion()).isEqualTo("us-east-1");
         assertThat(r.getRequestContext()).isNotNull();
         assertThat(r.getRequestData()).isNotNull();
-        assertThat(r.getResponseEndpoint()).isEqualTo("https://cloudformation.us-west-2.amazonaws.com");
         assertThat(r.getResourceType()).isEqualTo("AWS::Test::TestModel");
         assertThat(r.getResourceTypeVersion()).isEqualTo("1.0");
         assertThat(r.getStackId())
             .isEqualTo("arn:aws:cloudformation:us-east-1:123456789012:stack/SampleStack/e722ae60-fe62-11e8-9a0e-0ae8cc519968");
-
-        final RequestContext<TestContext> requestContext = r.getRequestContext();
-        assertThat(requestContext.getCloudWatchEventsRuleName()).isNull();
-        assertThat(requestContext.getCloudWatchEventsTargetId()).isNull();
-        assertThat(requestContext.getInvocation()).isEqualTo(0);
-        assertThat(requestContext.getCallbackContext()).isNull();
+        assertThat(r.getCallbackContext()).isNull();
 
         final RequestData<TestModel> requestData = r.getRequestData();
         assertThat(requestData.getCallerCredentials()).isNotNull();
@@ -141,12 +121,6 @@ public class SerializerTest {
         assertThat(requestData.getCallerCredentials().getSecretAccessKey()).isEqualTo("66iOGPN5LnpZorcLr8Kh25u8AbjHVllv5/poh2O0");
         assertThat(requestData.getCallerCredentials().getSessionToken())
             .isEqualTo("lameHS2vQOknSHWhdFYTxm2eJc1JMn9YBNI4nV4mXue945KPL6DHfW8EsUQT5zwssYEC1NvYP9yD6Y5s5lKR3chflOHPFsIe6eqg");
-        assertThat(requestData.getPlatformCredentials()).isNotNull();
-        assertThat(requestData.getPlatformCredentials().getAccessKeyId()).isEqualTo("32IEHAHFIAG538KYASAI");
-        assertThat(requestData.getPlatformCredentials().getSecretAccessKey())
-            .isEqualTo("0O2hop/5vllVHjbA8u52hK8rLcroZpnL5NPGOi66");
-        assertThat(requestData.getPlatformCredentials().getSessionToken())
-            .isEqualTo("gqe6eIsFPHOlfhc3RKl5s5Y6Dy9PYvN1CEYsswz5TQUsE8WfHD6LPK549euXm4Vn4INBY9nMJ1cJe2mxTYFdhWHSnkOQv2SHemal");
         assertThat(requestData.getLogicalResourceId()).isEqualTo("myBucket");
         assertThat(requestData.getStackTags()).containsExactly(entry("tag1", "abc"));
 
@@ -173,18 +147,12 @@ public class SerializerTest {
         assertThat(r.getBearerToken()).isEqualTo("123456");
         assertThat(r.getRegion()).isEqualTo("us-east-1");
         assertThat(r.getRequestContext()).isNotNull();
+        assertThat(r.getCallbackContext()).isNull();
         assertThat(r.getRequestData()).isNotNull();
-        assertThat(r.getResponseEndpoint()).isEqualTo("https://cloudformation.us-west-2.amazonaws.com");
         assertThat(r.getResourceType()).isEqualTo("AWS::Test::TestModel");
         assertThat(r.getResourceTypeVersion()).isEqualTo("1.0");
         assertThat(r.getStackId())
             .isEqualTo("arn:aws:cloudformation:us-east-1:123456789012:stack/SampleStack/e722ae60-fe62-11e8-9a0e-0ae8cc519968");
-
-        final RequestContext<TestContext> requestContext = r.getRequestContext();
-        assertThat(requestContext.getCloudWatchEventsRuleName()).isNull();
-        assertThat(requestContext.getCloudWatchEventsTargetId()).isNull();
-        assertThat(requestContext.getInvocation()).isEqualTo(0);
-        assertThat(requestContext.getCallbackContext()).isNull();
 
         final RequestData<TestModel> requestData = r.getRequestData();
         assertThat(requestData.getCallerCredentials()).isNotNull();
@@ -192,12 +160,6 @@ public class SerializerTest {
         assertThat(requestData.getCallerCredentials().getSecretAccessKey()).isEqualTo("66iOGPN5LnpZorcLr8Kh25u8AbjHVllv5/poh2O0");
         assertThat(requestData.getCallerCredentials().getSessionToken())
             .isEqualTo("lameHS2vQOknSHWhdFYTxm2eJc1JMn9YBNI4nV4mXue945KPL6DHfW8EsUQT5zwssYEC1NvYP9yD6Y5s5lKR3chflOHPFsIe6eqg");
-        assertThat(requestData.getPlatformCredentials()).isNotNull();
-        assertThat(requestData.getPlatformCredentials().getAccessKeyId()).isEqualTo("32IEHAHFIAG538KYASAI");
-        assertThat(requestData.getPlatformCredentials().getSecretAccessKey())
-            .isEqualTo("0O2hop/5vllVHjbA8u52hK8rLcroZpnL5NPGOi66");
-        assertThat(requestData.getPlatformCredentials().getSessionToken())
-            .isEqualTo("gqe6eIsFPHOlfhc3RKl5s5Y6Dy9PYvN1CEYsswz5TQUsE8WfHD6LPK549euXm4Vn4INBY9nMJ1cJe2mxTYFdhWHSnkOQv2SHemal");
         assertThat(requestData.getLogicalResourceId()).isEqualTo("myBucket");
         assertThat(requestData.getStackTags()).containsExactly(entry("tag1", "abc"));
 

@@ -22,7 +22,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class RequestData<ResourceT> {
     private Credentials callerCredentials;
-    private Credentials platformCredentials;
     private Credentials providerCredentials;
     private String providerLogGroupName;
     private String logicalResourceId;
@@ -30,4 +29,5 @@ public class RequestData<ResourceT> {
     private ResourceT previousResourceProperties;
     private Map<String, String> systemTags;
     private Map<String, String> stackTags;
+    private Map<String, String> previousStackTags;
 }

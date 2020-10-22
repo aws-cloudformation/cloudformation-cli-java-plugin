@@ -49,4 +49,11 @@ public class CfnNotStabilizedExceptionTests {
             throw new CfnNotStabilizedException(new RuntimeException());
         }).satisfies(exception -> assertEquals(HandlerErrorCode.NotStabilized, exception.getErrorCode()));
     }
+
+    @Test
+    public void cfnNotStabilizedException_errorMessage() {
+        assertThatExceptionOfType(CfnNotStabilizedException.class).isThrownBy(() -> {
+            throw new CfnNotStabilizedException(new RuntimeException("something wrong"));
+        }).satisfies(exception -> assertEquals("something wrong", exception.getMessage()));
+    }
 }

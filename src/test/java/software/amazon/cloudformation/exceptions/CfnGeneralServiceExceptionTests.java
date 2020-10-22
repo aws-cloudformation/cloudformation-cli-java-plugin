@@ -49,4 +49,11 @@ public class CfnGeneralServiceExceptionTests {
             throw new CfnGeneralServiceException(new RuntimeException());
         }).satisfies(exception -> assertEquals(HandlerErrorCode.GeneralServiceException, exception.getErrorCode()));
     }
+
+    @Test
+    public void cfnGeneralServiceException_errorMessage() {
+        assertThatExceptionOfType(CfnGeneralServiceException.class).isThrownBy(() -> {
+            throw new CfnGeneralServiceException(new RuntimeException("something wrong"));
+        }).satisfies(exception -> assertEquals("something wrong", exception.getMessage()));
+    }
 }

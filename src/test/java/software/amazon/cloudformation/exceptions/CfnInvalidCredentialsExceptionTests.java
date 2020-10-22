@@ -31,7 +31,7 @@ public class CfnInvalidCredentialsExceptionTests {
     public void cfnInvalidCredentialsException_singleArgConstructorHasMessage() {
         assertThatExceptionOfType(CfnInvalidCredentialsException.class).isThrownBy(() -> {
             throw new CfnInvalidCredentialsException(new RuntimeException());
-        }).withCauseInstanceOf(RuntimeException.class).withMessageContaining("Invalid credentials");
+        }).withCauseInstanceOf(RuntimeException.class).withMessage(null);
     }
 
     @Test
@@ -46,5 +46,12 @@ public class CfnInvalidCredentialsExceptionTests {
         assertThatExceptionOfType(CfnInvalidCredentialsException.class).isThrownBy(() -> {
             throw new CfnInvalidCredentialsException(new RuntimeException());
         }).satisfies(exception -> assertEquals(HandlerErrorCode.InvalidCredentials, exception.getErrorCode()));
+    }
+
+    @Test
+    public void cfnInvalidCredentialsException_errorMessage() {
+        assertThatExceptionOfType(CfnInvalidCredentialsException.class).isThrownBy(() -> {
+            throw new CfnInvalidCredentialsException(new RuntimeException("something wrong"));
+        }).satisfies(exception -> assertEquals("something wrong", exception.getMessage()));
     }
 }

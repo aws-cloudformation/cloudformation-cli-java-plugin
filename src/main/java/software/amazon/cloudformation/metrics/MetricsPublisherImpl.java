@@ -14,11 +14,11 @@
 */
 package software.amazon.cloudformation.metrics;
 
+import com.google.common.collect.Sets;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Set;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.MetricDatum;
@@ -33,18 +33,15 @@ public class MetricsPublisherImpl extends MetricsPublisher {
     private final CloudWatchProvider cloudWatchProvider;
 
     private Logger loggerProxy;
-    private String providerAccountId;
 
     private CloudWatchClient cloudWatchClient;
 
     public MetricsPublisherImpl(final CloudWatchProvider cloudWatchProvider,
                                 final Logger loggerProxy,
-                                final String providerAccountId,
                                 final String resourceTypeName) {
         super(resourceTypeName);
         this.cloudWatchProvider = cloudWatchProvider;
         this.loggerProxy = loggerProxy;
-        this.providerAccountId = providerAccountId;
     }
 
     public void refreshClient() {
@@ -60,66 +57,83 @@ public class MetricsPublisherImpl extends MetricsPublisher {
                                        final Action action,
                                        final Throwable e,
                                        final HandlerErrorCode handlerErrorCode) {
-        Map<String, String> dimensions = new HashMap<>();
-        dimensions.put(Metric.DIMENSION_KEY_ACTION_TYPE, action == null ? "NO_ACTION" : action.name());
-        dimensions.put(Metric.DIMENSION_KEY_EXCEPTION_TYPE, e.getClass().toString());
-        dimensions.put(Metric.DIMENSION_KEY_RESOURCE_TYPE, this.getResourceTypeName());
-        dimensions.put(Metric.DIMENSION_KEY_HANDLER_ERROR_CODE, handlerErrorCode.name());
+        publishBulkMetrics(MetricDatum.builder().timestamp(timestamp).metricName(Metric.METRIC_NAME_HANDLER_EXCEPTION)
+            .unit(StandardUnit.COUNT).value(1.0)
+            .dimensions(Sets.newHashSet(
+                Dimension.builder().name(Metric.DIMENSION_KEY_ACTION_TYPE).value(action == null ? "NO_ACTION" : action.name())
+                    .build(),
+                Dimension.builder().name(Metric.DIMENSION_KEY_EXCEPTION_TYPE).value(e.getClass().toString()).build(),
+                Dimension.builder().name(Metric.DIMENSION_KEY_RESOURCE_TYPE).value(this.getResourceTypeName()).build(),
+                Dimension.builder().name(Metric.DIMENSION_KEY_HANDLER_ERROR_CODE).value(handlerErrorCode.name()).build()))
+            .build());
+    }
 
-        publishMetric(Metric.METRIC_NAME_HANDLER_EXCEPTION, dimensions, StandardUnit.COUNT, 1.0, timestamp);
+    @Override
+    public void publishExceptionByErrorCodeAndCountBulkMetrics(final Instant timestamp,
+                                                               final Action action,
+                                                               final HandlerErrorCode handlerErrorCode) {
+        Set<MetricDatum> bulkData = new HashSet<>();
+
+        // By Error Code dimensions
+
+        EnumSet.allOf(HandlerErrorCode.class).forEach(
+            errorCode -> bulkData.add(MetricDatum.builder().metricName(Metric.METRIC_NAME_HANDLER_EXCEPTION_BY_ERROR_CODE)
+                .unit(StandardUnit.COUNT).value(errorCode == handlerErrorCode ? 1.0 : 0.0)
+                .dimensions(Sets.newHashSet(
+                    Dimension.builder().name(Metric.DIMENSION_KEY_ACTION_TYPE).value(action == null ? "NO_ACTION" : action.name())
+                        .build(),
+                    Dimension.builder().name(Metric.DIMENSION_KEY_HANDLER_ERROR_CODE).value(errorCode.name()).build()))
+                .timestamp(timestamp).build()));
+
+        // By Count dimensions
+        bulkData.add(MetricDatum.builder().metricName(Metric.METRIC_NAME_HANDLER_EXCEPTION_BY_EXCEPTION_COUNT)
+            .unit(StandardUnit.COUNT).value(handlerErrorCode == null ? 0.0 : 1.0).dimensions(Dimension.builder()
+                .name(Metric.DIMENSION_KEY_ACTION_TYPE).value(action == null ? "NO_ACTION" : action.name()).build())
+            .timestamp(timestamp).build());
+
+        publishBulkMetrics(bulkData.toArray(new MetricDatum[bulkData.size()]));
     }
 
     @Override
     public void publishProviderLogDeliveryExceptionMetric(final Instant timestamp, final Throwable e) {
-        Map<String, String> dimensions = new HashMap<>();
-        dimensions.put(Metric.DIMENSION_KEY_ACTION_TYPE, "ProviderLogDelivery");
-        dimensions.put(Metric.DIMENSION_KEY_EXCEPTION_TYPE, e.getClass().toString());
-        dimensions.put(Metric.DIMENSION_KEY_RESOURCE_TYPE, this.getResourceTypeName());
-
-        publishMetric(Metric.METRIC_NAME_HANDLER_EXCEPTION, dimensions, StandardUnit.COUNT, 1.0, timestamp);
+        publishBulkMetrics(
+            MetricDatum.builder().metricName(Metric.METRIC_NAME_HANDLER_EXCEPTION).unit(StandardUnit.COUNT).value(1.0)
+                .dimensions(Sets.newHashSet(
+                    Dimension.builder().name(Metric.DIMENSION_KEY_ACTION_TYPE).value("ProviderLogDelivery").build(),
+                    Dimension.builder().name(Metric.DIMENSION_KEY_EXCEPTION_TYPE).value(e.getClass().toString()).build(),
+                    Dimension.builder().name(Metric.DIMENSION_KEY_RESOURCE_TYPE).value(this.getResourceTypeName()).build()))
+                .timestamp(timestamp).build());
     }
 
     @Override
     public void publishInvocationMetric(final Instant timestamp, final Action action) {
-        Map<String, String> dimensions = new HashMap<>();
-        dimensions.put(Metric.DIMENSION_KEY_ACTION_TYPE, action == null ? "NO_ACTION" : action.name());
-        dimensions.put(Metric.DIMENSION_KEY_RESOURCE_TYPE, this.getResourceTypeName());
-
-        publishMetric(Metric.METRIC_NAME_HANDLER_INVOCATION_COUNT, dimensions, StandardUnit.COUNT, 1.0, timestamp);
+        publishBulkMetrics(
+            MetricDatum.builder().metricName(Metric.METRIC_NAME_HANDLER_INVOCATION_COUNT).unit(StandardUnit.COUNT).value(1.0)
+                .dimensions(Sets.newHashSet(
+                    Dimension.builder().name(Metric.DIMENSION_KEY_ACTION_TYPE).value(action == null ? "NO_ACTION" : action.name())
+                        .build(),
+                    Dimension.builder().name(Metric.DIMENSION_KEY_RESOURCE_TYPE).value(this.getResourceTypeName()).build()))
+                .timestamp(timestamp).build());
     }
 
     @Override
     public void publishDurationMetric(final Instant timestamp, final Action action, final long milliseconds) {
-        Map<String, String> dimensions = new HashMap<>();
-        dimensions.put(Metric.DIMENSION_KEY_ACTION_TYPE, action == null ? "NO_ACTION" : action.name());
-        dimensions.put(Metric.DIMENSION_KEY_RESOURCE_TYPE, this.getResourceTypeName());
-
-        publishMetric(Metric.METRIC_NAME_HANDLER_DURATION, dimensions, StandardUnit.MILLISECONDS, (double) milliseconds,
-            timestamp);
+        publishBulkMetrics(MetricDatum.builder().metricName(Metric.METRIC_NAME_HANDLER_DURATION).unit(StandardUnit.MILLISECONDS)
+            .value((double) milliseconds)
+            .dimensions(Sets.newHashSet(
+                Dimension.builder().name(Metric.DIMENSION_KEY_ACTION_TYPE).value(action == null ? "NO_ACTION" : action.name())
+                    .build(),
+                Dimension.builder().name(Metric.DIMENSION_KEY_RESOURCE_TYPE).value(this.getResourceTypeName()).build()))
+            .timestamp(timestamp).build());
     }
 
-    private void publishMetric(final String metricName,
-                               final Map<String, String> dimensionData,
-                               final StandardUnit unit,
-                               final Double value,
-                               final Instant timestamp) {
+    private void publishBulkMetrics(final MetricDatum... metricData) {
         assert cloudWatchClient != null : "CloudWatchEventsClient was not initialised. You must call refreshClient() first.";
 
-        List<Dimension> dimensions = new ArrayList<>();
-        for (Map.Entry<String, String> kvp : dimensionData.entrySet()) {
-            Dimension dimension = Dimension.builder().name(kvp.getKey()).value(kvp.getValue()).build();
-            dimensions.add(dimension);
-        }
-
-        MetricDatum metricDatum = MetricDatum.builder().metricName(metricName).unit(unit).value(value).dimensions(dimensions)
-            .timestamp(timestamp).build();
-
-        PutMetricDataRequest putMetricDataRequest = PutMetricDataRequest.builder()
-            .namespace(String.format("%s/%s/%s", Metric.METRIC_NAMESPACE_ROOT, providerAccountId, resourceNamespace))
-            .metricData(metricDatum).build();
-
         try {
-            this.cloudWatchClient.putMetricData(putMetricDataRequest);
+            this.cloudWatchClient.putMetricData(
+                PutMetricDataRequest.builder().namespace(String.format("%s/%s", Metric.METRIC_NAMESPACE_ROOT, resourceNamespace))
+                    .metricData(metricData).build());
         } catch (final Exception e) {
             log(String.format("An error occurred while publishing metrics: %s", e.getMessage()));
         }

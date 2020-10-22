@@ -1,0 +1,37 @@
+{
+    "typeName": "Test::Resource::Type",
+    "description": "Description",
+    "definitions": {
+        "subProperty": {
+            "type": "object",
+            "properties": {
+                "propertyArray": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    },
+    "properties": {
+        "property1": {
+            "type": "string"
+        },
+        "property2": {
+            "type": "integer"
+        },
+        "property3": {
+            "type": "object",
+            "properties": {
+                "subProperty": {
+                    "$ref": "#/definitions/subProperty"
+                }
+            }
+        }
+    },
+    "additionalProperties": false,
+    "primaryIdentifier": [
+        "/properties/property1"
+    ]
+}

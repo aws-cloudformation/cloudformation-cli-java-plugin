@@ -14,16 +14,33 @@
 */
 package software.amazon.cloudformation.proxy.service;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.core.SdkField;
+import software.amazon.awssdk.core.SdkPojo;
+import software.amazon.awssdk.core.protocol.MarshallLocation;
+import software.amazon.awssdk.core.protocol.MarshallingType;
+import software.amazon.awssdk.core.traits.LocationTrait;
+import software.amazon.awssdk.utils.builder.SdkBuilder;
 
 @lombok.Getter
 @lombok.EqualsAndHashCode(callSuper = false)
 @lombok.ToString(callSuper = true)
 public class CreateRequest extends AwsRequest {
+
+    private static final SdkField<String> REPO_NAME_FIELD = SdkField.<String>builder(MarshallingType.STRING)
+        .getter((obj) -> ((CreateRequest) obj).repoName).setter((obj, val) -> ((Builder) obj).repoName(val))
+        .traits(LocationTrait.builder().location(MarshallLocation.PAYLOAD).locationName("repoName").build()).build();
+
+    private static final SdkField<String> USER_NAME_FIELD = SdkField.<String>builder(MarshallingType.STRING)
+        .getter((obj) -> ((CreateRequest) obj).getUserName()).setter((obj, val) -> ((Builder) obj).repoName(val))
+        .traits(LocationTrait.builder().location(MarshallLocation.PAYLOAD).locationName("userName").build()).build();
+
+    private static final List<
+        SdkField<?>> SDK_FIELDS = Collections.unmodifiableList(Arrays.asList(REPO_NAME_FIELD, USER_NAME_FIELD));
 
     private final String repoName;
     private final String userName;
@@ -48,7 +65,7 @@ public class CreateRequest extends AwsRequest {
     @lombok.Getter
     @lombok.EqualsAndHashCode(callSuper = true)
     @lombok.ToString(callSuper = true)
-    public static class Builder extends BuilderImpl {
+    public static class Builder extends BuilderImpl implements SdkPojo, SdkBuilder<Builder, CreateRequest> {
         private String repoName;
         private String userName;
 
@@ -72,5 +89,14 @@ public class CreateRequest extends AwsRequest {
             super.overrideConfiguration(awsRequestOverrideConfig);
             return this;
         }
+
+        @Override
+        public List<SdkField<?>> sdkFields() {
+            return SDK_FIELDS;
+        }
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 }

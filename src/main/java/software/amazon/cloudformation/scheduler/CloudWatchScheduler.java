@@ -14,7 +14,7 @@
 */
 package software.amazon.cloudformation.scheduler;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import java.io.IOException;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.Data;
@@ -78,6 +78,8 @@ public class CloudWatchScheduler {
      *            will occur. CWE provides only minute-granularity
      * @param handlerRequest additional context which the handler can provide itself
      *            for re-invocation
+     * @param <ResourceT> resource model state configuration to apply
+     * @param <CallbackT> callback context associated with reschedule context
      */
     public <ResourceT, CallbackT> void rescheduleAfterMinutes(final String functionArn,
                                                               final int minutesFromNow,
@@ -99,14 +101,15 @@ public class CloudWatchScheduler {
         String jsonRequest;
         try {
             // expect return type to be non-null
-            jsonRequest = serializer.serialize(handlerRequest);
-        } catch (JsonProcessingException e) {
+            jsonRequest = serializer.compress(serializer.serialize(handlerRequest));
+        } catch (IOException e) {
             throw new TerminalException("Unable to serialize the request for callback", e);
         }
         this.log(String.format("Scheduling re-invoke at %s (%s)%n", cronRule, rescheduleId));
 
         PutRuleRequest putRuleRequest = PutRuleRequest.builder().name(ruleName).scheduleExpression(cronRule)
             .state(RuleState.ENABLED).build();
+
         this.client.putRule(putRuleRequest);
 
         Target target = Target.builder().arn(functionArn).id(targetId).input(jsonRequest).build();

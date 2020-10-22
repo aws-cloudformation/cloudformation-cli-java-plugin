@@ -21,12 +21,11 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicSessionCredentials;
 import com.google.common.base.Preconditions;
-import com.google.common.util.concurrent.Uninterruptibles;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -39,10 +38,15 @@ import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.ResponseBytes;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.SdkClient;
 import software.amazon.awssdk.core.exception.NonRetryableException;
+import software.amazon.awssdk.core.exception.RetryableException;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.http.HttpStatusCode;
-import software.amazon.cloudformation.proxy.delay.Constant;
+import software.amazon.cloudformation.exceptions.BaseHandlerException;
+import software.amazon.cloudformation.exceptions.TerminalException;
 
 /**
  * This implements the proxying mechanism to inject appropriate scoped
@@ -58,24 +62,28 @@ public class AmazonWebServicesClientProxy implements CallChain {
 
     private final AWSCredentialsProvider v1CredentialsProvider;
     private final AwsCredentialsProvider v2CredentialsProvider;
-    private final Supplier<Long> remainingTimeInMillis;
-    private final boolean inHandshakeMode;
-    private LoggerProxy loggerProxy;
+    private final LoggerProxy loggerProxy;
+    private final DelayFactory override;
+    private final WaitStrategy waitStrategy;
 
     public AmazonWebServicesClientProxy(final LoggerProxy loggerProxy,
                                         final Credentials credentials,
                                         final Supplier<Long> remainingTimeToExecute) {
-        this(false, loggerProxy, credentials, remainingTimeToExecute);
+        this(loggerProxy, credentials, remainingTimeToExecute, DelayFactory.CONSTANT_DEFAULT_DELAY_FACTORY);
     }
 
-    public AmazonWebServicesClientProxy(final boolean inHandshakeMode,
-                                        final LoggerProxy loggerProxy,
+    public AmazonWebServicesClientProxy(final LoggerProxy loggerProxy,
                                         final Credentials credentials,
-                                        final Supplier<Long> remainingTimeToExecute) {
-        this.inHandshakeMode = inHandshakeMode;
-        this.loggerProxy = loggerProxy;
-        this.remainingTimeInMillis = remainingTimeToExecute;
+                                        final Supplier<Long> remainingTimeToExecute,
+                                        final DelayFactory override) {
+        this(loggerProxy, credentials, override, WaitStrategy.newLocalLoopAwaitStrategy(remainingTimeToExecute));
+    }
 
+    public AmazonWebServicesClientProxy(final LoggerProxy loggerProxy,
+                                        final Credentials credentials,
+                                        final DelayFactory override,
+                                        final WaitStrategy waitStrategy) {
+        this.loggerProxy = loggerProxy;
         BasicSessionCredentials basicSessionCredentials = new BasicSessionCredentials(credentials.getAccessKeyId(),
                                                                                       credentials.getSecretAccessKey(),
                                                                                       credentials.getSessionToken());
@@ -84,6 +92,8 @@ public class AmazonWebServicesClientProxy implements CallChain {
         AwsSessionCredentials awsSessionCredentials = AwsSessionCredentials.create(credentials.getAccessKeyId(),
             credentials.getSecretAccessKey(), credentials.getSessionToken());
         this.v2CredentialsProvider = StaticCredentialsProvider.create(awsSessionCredentials);
+        this.override = Objects.requireNonNull(override);
+        this.waitStrategy = Objects.requireNonNull(waitStrategy);
     }
 
     public <ClientT> ProxyClient<ClientT> newProxy(@Nonnull Supplier<ClientT> client) {
@@ -98,9 +108,32 @@ public class AmazonWebServicesClientProxy implements CallChain {
             @Override
             public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
                 CompletableFuture<ResponseT>
-                injectCredentialsAndInvokeV2Aync(RequestT request,
-                                                 Function<RequestT, CompletableFuture<ResponseT>> requestFunction) {
+                injectCredentialsAndInvokeV2Async(RequestT request,
+                                                  Function<RequestT, CompletableFuture<ResponseT>> requestFunction) {
                 return AmazonWebServicesClientProxy.this.injectCredentialsAndInvokeV2Async(request, requestFunction);
+            }
+
+            @Override
+            public <RequestT extends AwsRequest, ResponseT extends AwsResponse, IterableT extends SdkIterable<ResponseT>>
+                IterableT
+                injectCredentialsAndInvokeIterableV2(RequestT request, Function<RequestT, IterableT> requestFunction) {
+                return AmazonWebServicesClientProxy.this.injectCredentialsAndInvokeIterableV2(request, requestFunction);
+            }
+
+            @Override
+            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
+                ResponseInputStream<ResponseT>
+                injectCredentialsAndInvokeV2InputStream(RequestT request,
+                                                        Function<RequestT, ResponseInputStream<ResponseT>> requestFunction) {
+                return AmazonWebServicesClientProxy.this.injectCredentialsAndInvokeV2InputStream(request, requestFunction);
+            }
+
+            @Override
+            public <RequestT extends AwsRequest, ResponseT extends AwsResponse>
+                ResponseBytes<ResponseT>
+                injectCredentialsAndInvokeV2Bytes(RequestT request,
+                                                  Function<RequestT, ResponseBytes<ResponseT>> requestFunction) {
+                return AmazonWebServicesClientProxy.this.injectCredentialsAndInvokeV2Bytes(request, requestFunction);
             }
 
             @Override
@@ -108,6 +141,81 @@ public class AmazonWebServicesClientProxy implements CallChain {
                 return client.get();
             }
         };
+    }
+
+    public <ClientT, ModelT, CallbackT extends StdCallbackContext>
+        Initiator<ClientT, ModelT, CallbackT>
+        newInitiator(@Nonnull Supplier<ClientT> client, final ModelT model, final CallbackT context) {
+        return newInitiator(newProxy(client), model, context);
+    }
+
+    @Override
+    public <ClientT, ModelT, CallbackT extends StdCallbackContext>
+        Initiator<ClientT, ModelT, CallbackT>
+        newInitiator(final ProxyClient<ClientT> client, final ModelT model, final CallbackT context) {
+        Preconditions.checkNotNull(client, "ProxyClient can not be null");
+        Preconditions.checkNotNull(model, "Resource Model can not be null");
+        Preconditions.checkNotNull(context, "cxt can not be null");
+        return new StdInitiator<>(client, model, context);
+    }
+
+    private class StdInitiator<ClientT, ModelT, CallbackT extends StdCallbackContext>
+        implements Initiator<ClientT, ModelT, CallbackT> {
+
+        private final ProxyClient<ClientT> client;
+        private final ModelT model;
+        private final CallbackT callback;
+
+        private StdInitiator(final ProxyClient<ClientT> client,
+                             final ModelT model,
+                             final CallbackT callback) {
+            Preconditions.checkNotNull(client, "ProxyClient can not be null");
+            Preconditions.checkNotNull(model, "Resource Model can not be null");
+            Preconditions.checkNotNull(callback, "cxt can not be null");
+            this.client = client;
+            this.model = model;
+            this.callback = callback;
+        }
+
+        @Override
+        public RequestMaker<ClientT, ModelT, CallbackT> initiate(String callGraph) {
+            return new CallContext<>(callGraph, client, model, callback);
+        }
+
+        @Override
+        public <
+            RequestT> Caller<RequestT, ClientT, ModelT, CallbackT> translateToServiceRequest(Function<ModelT, RequestT> maker) {
+            return initiate("").translateToServiceRequest(maker);
+        }
+
+        @Override
+        public ModelT getResourceModel() {
+            return model;
+        }
+
+        @Override
+        public CallbackT getCallbackContext() {
+            return callback;
+        }
+
+        @Override
+        public <NewModelT> Initiator<ClientT, NewModelT, CallbackT> rebindModel(NewModelT model) {
+            Preconditions.checkNotNull(model, "Resource Model can not be null");
+            return new StdInitiator<>(client, model, callback);
+        }
+
+        @Override
+        public <NewCallbackT extends StdCallbackContext>
+            Initiator<ClientT, ModelT, NewCallbackT>
+            rebindCallback(NewCallbackT callback) {
+            Preconditions.checkNotNull(callback, "cxt can not be null");
+            return new StdInitiator<>(client, model, callback);
+        }
+
+        @Override
+        public Logger getLogger() {
+            return AmazonWebServicesClientProxy.this.loggerProxy;
+        }
     }
 
     @Override
@@ -133,7 +241,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
         // handling errors, throttles and more. The handler can influence this
         // using retry method.
         //
-        private Delay delay = Constant.of().delay(Duration.ofSeconds(5)).timeout(Duration.ofMinutes(20)).build();
+        private Delay delay = null;
 
         CallContext(String callGraph,
                     ProxyClient<ClientT> client,
@@ -146,11 +254,28 @@ public class AmazonWebServicesClientProxy implements CallChain {
         }
 
         @Override
-        public <RequestT> Caller<RequestT, ClientT, ModelT, CallbackT> request(Function<ModelT, RequestT> maker) {
+        public <
+            RequestT> Caller<RequestT, ClientT, ModelT, CallbackT> translateToServiceRequest(Function<ModelT, RequestT> maker) {
             return new Caller<RequestT, ClientT, ModelT, CallbackT>() {
 
+                private final CallGraphNameGenerator<ModelT, RequestT, ClientT,
+                    CallbackT> generator = (incoming, model_, reqMaker, client_, context_) -> {
+                        final RequestT request = reqMaker.apply(model_);
+                        String objectHash = String.valueOf(Objects.hashCode(request));
+                        String serviceName = (client_ == null
+                            ? ""
+                            : (client_ instanceof SdkClient)
+                                ? ((SdkClient) client_).serviceName()
+                                : client_.getClass().getSimpleName());
+                        String requestName = request != null ? request.getClass().getSimpleName().replace("Request", "") : "";
+                        String callGraph = serviceName + ":" + requestName + "-" + (incoming != null ? incoming : "") + "-"
+                            + objectHash;
+                        context_.request(callGraph, (ignored -> request)).apply(model_);
+                        return callGraph;
+                    };
+
                 @Override
-                public Caller<RequestT, ClientT, ModelT, CallbackT> retry(Delay delay) {
+                public Caller<RequestT, ClientT, ModelT, CallbackT> backoffDelay(Delay delay) {
                     CallContext.this.delay = delay;
                     return this;
                 }
@@ -158,7 +283,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
                 @Override
                 public <ResponseT>
                     Stabilizer<RequestT, ResponseT, ClientT, ModelT, CallbackT>
-                    call(BiFunction<RequestT, ProxyClient<ClientT>, ResponseT> caller) {
+                    makeServiceCall(BiFunction<RequestT, ProxyClient<ClientT>, ResponseT> caller) {
                     return new Stabilizer<RequestT, ResponseT, ClientT, ModelT, CallbackT>() {
 
                         private Callback<RequestT, ResponseT, ClientT, ModelT, CallbackT, Boolean> waitFor;
@@ -174,21 +299,52 @@ public class AmazonWebServicesClientProxy implements CallChain {
                         }
 
                         @Override
-                        public Completed<RequestT, ResponseT, ClientT, ModelT, CallbackT>
-                            exceptFilter(Callback<? super RequestT, Exception, ClientT, ModelT, CallbackT, Boolean> handler) {
-                            return exceptHandler((request, exception, client1, model1, context1) -> {
-                                if (handler.invoke(request, exception, client1, model1, context1)) {
-                                    return ProgressEvent.progress(model1, context1);
+                        public Completed<RequestT, ResponseT, ClientT, ModelT, CallbackT> retryErrorFilter(final Callback<
+                            ? super RequestT, Exception, ClientT, ModelT, CallbackT, Boolean> retryFilter) {
+                            return handleError(((request, exception, client_, model_, context_) -> {
+                                if (retryFilter.invoke(request, exception, client_, model_, context_)) {
+                                    throw RetryableException.builder().build();
                                 }
-                                return defaultHandler(request, exception, client1, model1, context1);
-                            });
+                                return defaultHandler(request, exception, client_, model_, context_);
+                            }));
                         }
 
                         @Override
-                        public Completed<RequestT, ResponseT, ClientT, ModelT, CallbackT> exceptHandler(Callback<? super RequestT,
-                            Exception, ClientT, ModelT, CallbackT, ProgressEvent<ModelT, CallbackT>> handler) {
-                            this.exceptHandler = handler;
+                        public Completed<RequestT, ResponseT, ClientT, ModelT, CallbackT> handleError(ExceptionPropagate<
+                            ? super RequestT, Exception, ClientT, ModelT, CallbackT, ProgressEvent<ModelT, CallbackT>> handler) {
+                            getExceptionHandler(handler);
                             return this;
+                        }
+
+                        private
+                            Callback<? super RequestT, Exception, ClientT, ModelT, CallbackT, ProgressEvent<ModelT, CallbackT>>
+                            getExceptionHandler(final ExceptionPropagate<? super RequestT, Exception, ClientT, ModelT, CallbackT,
+                                ProgressEvent<ModelT, CallbackT>> handler) {
+                            if (this.exceptHandler == null) {
+                                this.exceptHandler = ((request, exception, client_, model_, context_) -> {
+                                    ProgressEvent<ModelT, CallbackT> event = null;
+                                    Exception ex = exception;
+                                    ExceptionPropagate<? super RequestT, Exception, ClientT, ModelT, CallbackT,
+                                        ProgressEvent<ModelT, CallbackT>> inner = handler;
+                                    boolean defaultHandler = false;
+                                    do {
+                                        try {
+                                            event = inner.invoke(request, ex, client_, model_, context_);
+                                        } catch (RetryableException e) {
+                                            break;
+                                        } catch (Exception e) {
+                                            if (defaultHandler) {
+                                                throw new TerminalException("FRAMEWORK ERROR, LOOPING cause " + e, e);
+                                            }
+                                            defaultHandler = true;
+                                            ex = e;
+                                            inner = AmazonWebServicesClientProxy.this::defaultHandler;
+                                        }
+                                    } while (event == null);
+                                    return event;
+                                });
+                            }
+                            return this.exceptHandler;
                         }
 
                         @Override
@@ -199,19 +355,21 @@ public class AmazonWebServicesClientProxy implements CallChain {
                             // stabilization
                             // lambdas. This ensures that we call demux as necessary.
                             //
+                            final String callGraph = generator.callGraph(CallContext.this.callGraph, model, maker,
+                                client.client(), context);
+                            Delay delay = override.getDelay(callGraph, CallContext.this.delay);
                             Function<ModelT, RequestT> reqMaker = context.request(callGraph, maker);
                             BiFunction<RequestT, ProxyClient<ClientT>, ResponseT> resMaker = context.response(callGraph, caller);
                             if (waitFor != null) {
                                 waitFor = context.stabilize(callGraph, waitFor);
                             }
-                            Callback<? super RequestT, Exception, ClientT, ModelT, CallbackT,
-                                ProgressEvent<ModelT, CallbackT>> exceptHandler = this.exceptHandler != null
-                                    ? this.exceptHandler
-                                    : AmazonWebServicesClientProxy.this::defaultHandler;
                             int attempt = context.attempts(callGraph);
                             RequestT req = null;
                             ResponseT res = null;
                             ProgressEvent<ModelT, CallbackT> event = null;
+                            Callback<? super RequestT, Exception, ClientT, ModelT, CallbackT,
+                                ProgressEvent<ModelT, CallbackT>> exceptionHandler = getExceptionHandler(
+                                    AmazonWebServicesClientProxy.this::defaultHandler);
                             try {
                                 for (;;) {
                                     Instant now = Instant.now();
@@ -225,19 +383,10 @@ public class AmazonWebServicesClientProxy implements CallChain {
                                         } else {
                                             event = callback.invoke(req, res, client, model, context);
                                         }
+                                    } catch (BaseHandlerException e) {
+                                        throw e;
                                     } catch (Exception e) {
-                                        event = exceptHandler.invoke(req, e, client, model, context);
-                                        if (event.canContinueProgress()) {
-                                            event = null; // wait
-                                        }
-                                    }
-
-                                    if (event != null && (event.isFailed() || event.isSuccess())) {
-                                        return event;
-                                    }
-
-                                    if (inHandshakeMode) {
-                                        return ProgressEvent.defaultInProgressHandler(context, 60, model);
+                                        event = exceptionHandler.invoke(req, e, client, model, context);
                                     }
 
                                     if (event != null) {
@@ -259,14 +408,10 @@ public class AmazonWebServicesClientProxy implements CallChain {
                                         return ProgressEvent.failed(model, context, HandlerErrorCode.NotStabilized,
                                             "Exceeded attempts to wait");
                                     }
-                                    long remainingTime = getRemainingTimeInMillis();
-                                    long localWait = next.toMillis() + 2 * elapsed + 100;
-                                    if (remainingTime > localWait) {
-                                        Uninterruptibles.sleepUninterruptibly(next.getSeconds(), TimeUnit.SECONDS);
-                                        continue;
+                                    event = AmazonWebServicesClientProxy.this.waitStrategy.await(elapsed, next, context, model);
+                                    if (event != null) {
+                                        return event;
                                     }
-                                    return ProgressEvent.defaultInProgressHandler(context, Math.max((int) next.getSeconds(), 60),
-                                        model);
                                 }
                             } finally {
                                 //
@@ -291,10 +436,6 @@ public class AmazonWebServicesClientProxy implements CallChain {
 
     }
 
-    public final long getRemainingTimeInMillis() {
-        return remainingTimeInMillis.get();
-    }
-
     public <RequestT extends AmazonWebServiceRequest, ResultT extends AmazonWebServiceResult<ResponseMetadata>>
         ResultT
         injectCredentialsAndInvoke(final RequestT request, final Function<RequestT, ResultT> requestFunction) {
@@ -302,7 +443,9 @@ public class AmazonWebServicesClientProxy implements CallChain {
         request.setRequestCredentialsProvider(v1CredentialsProvider);
 
         try {
-            return requestFunction.apply(request);
+            ResultT respose = requestFunction.apply(request);
+            logRequestMetadata(request, respose);
+            return respose;
         } catch (final Throwable e) {
             loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
             throw e;
@@ -322,7 +465,9 @@ public class AmazonWebServicesClientProxy implements CallChain {
         RequestT wrappedRequest = (RequestT) request.toBuilder().overrideConfiguration(overrideConfiguration).build();
 
         try {
-            return requestFunction.apply(wrappedRequest);
+            ResultT response = requestFunction.apply(wrappedRequest);
+            logRequestMetadataV2(request, response);
+            return response;
         } catch (final Throwable e) {
             loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
             throw e;
@@ -341,7 +486,11 @@ public class AmazonWebServicesClientProxy implements CallChain {
         RequestT wrappedRequest = (RequestT) request.toBuilder().overrideConfiguration(overrideConfiguration).build();
 
         try {
-            return requestFunction.apply(wrappedRequest);
+            CompletableFuture<ResultT> response = requestFunction.apply(wrappedRequest).thenApplyAsync(resultT -> {
+                logRequestMetadataV2(request, resultT);
+                return resultT;
+            });
+            return response;
         } catch (final Throwable e) {
             loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
             throw e;
@@ -359,7 +508,51 @@ public class AmazonWebServicesClientProxy implements CallChain {
         RequestT wrappedRequest = (RequestT) request.toBuilder().overrideConfiguration(overrideConfiguration).build();
 
         try {
-            return requestFunction.apply(wrappedRequest);
+            IterableT response = requestFunction.apply(wrappedRequest);
+            response.forEach(r -> logRequestMetadataV2(request, r));
+            return response;
+        } catch (final Throwable e) {
+            loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
+            throw e;
+        }
+    }
+
+    public <RequestT extends AwsRequest, ResultT extends AwsResponse>
+        ResponseInputStream<ResultT>
+        injectCredentialsAndInvokeV2InputStream(final RequestT request,
+                                                final Function<RequestT, ResponseInputStream<ResultT>> requestFunction) {
+
+        AwsRequestOverrideConfiguration overrideConfiguration = AwsRequestOverrideConfiguration.builder()
+            .credentialsProvider(v2CredentialsProvider).build();
+
+        @SuppressWarnings("unchecked")
+        RequestT wrappedRequest = (RequestT) request.toBuilder().overrideConfiguration(overrideConfiguration).build();
+
+        try {
+            ResponseInputStream<ResultT> response = requestFunction.apply(wrappedRequest);
+            logRequestMetadataV2(request, response.response());
+            return response;
+        } catch (final Throwable e) {
+            loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
+            throw e;
+        }
+    }
+
+    public <RequestT extends AwsRequest, ResultT extends AwsResponse>
+        ResponseBytes<ResultT>
+        injectCredentialsAndInvokeV2Bytes(final RequestT request,
+                                          final Function<RequestT, ResponseBytes<ResultT>> requestFunction) {
+
+        AwsRequestOverrideConfiguration overrideConfiguration = AwsRequestOverrideConfiguration.builder()
+            .credentialsProvider(v2CredentialsProvider).build();
+
+        @SuppressWarnings("unchecked")
+        RequestT wrappedRequest = (RequestT) request.toBuilder().overrideConfiguration(overrideConfiguration).build();
+
+        try {
+            ResponseBytes<ResultT> response = requestFunction.apply(wrappedRequest);
+            logRequestMetadataV2(request, response.response());
+            return response;
         } catch (final Throwable e) {
             loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
             throw e;
@@ -368,7 +561,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
 
     public <RequestT, ClientT, ModelT, CallbackT extends StdCallbackContext>
         ProgressEvent<ModelT, CallbackT>
-        defaultHandler(RequestT request, Exception e, ClientT client, ModelT model, CallbackT context) {
+        defaultHandler(RequestT request, Exception e, ClientT client, ModelT model, CallbackT context) throws Exception {
         //
         // Client side exception, mapping this to InvalidRequest at the moment
         //
@@ -379,7 +572,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
         if (e instanceof AwsServiceException) {
             AwsServiceException sdkException = (AwsServiceException) e;
             AwsErrorDetails details = sdkException.awsErrorDetails();
-            String errMsg = "Code(" + details.errorCode() + "),  " + details.errorMessage();
+            String errMsg = sdkException.getMessage();
             switch (details.sdkHttpResponse().statusCode()) {
                 case HttpStatusCode.BAD_REQUEST:
                     //
@@ -411,7 +604,7 @@ public class AmazonWebServicesClientProxy implements CallChain {
                 case HttpStatusCode.GATEWAY_TIMEOUT:
                 case HttpStatusCode.THROTTLING: // Throttle, TOO many requests
                     AmazonWebServicesClientProxy.this.loggerProxy.log("Retrying for error " + details.errorMessage());
-                    return ProgressEvent.progress(model, context);
+                    throw RetryableException.builder().cause(e).build();
 
                 default:
                     return ProgressEvent.failed(model, context, HandlerErrorCode.GeneralServiceException, errMsg);
@@ -419,5 +612,34 @@ public class AmazonWebServicesClientProxy implements CallChain {
         }
         return ProgressEvent.failed(model, context, HandlerErrorCode.InternalFailure, e.getMessage());
 
+    }
+
+    private <RequestT extends AmazonWebServiceRequest, ResultT extends AmazonWebServiceResult<ResponseMetadata>>
+        void
+        logRequestMetadata(final RequestT request, final ResultT response) {
+        try {
+            String requestName = request.getClass().getSimpleName();
+            String requestId = (response == null || response.getSdkResponseMetadata() == null)
+                ? ""
+                : response.getSdkResponseMetadata().getRequestId();
+            loggerProxy
+                .log(String.format("{\"apiRequest\": {\"requestId\": \"%s\", \"requestName\": \"%s\"}}", requestId, requestName));
+        } catch (final Exception e) {
+            loggerProxy.log(e.getMessage());
+        }
+    }
+
+    private <RequestT extends AwsRequest, ResultT extends AwsResponse> void logRequestMetadataV2(final RequestT request,
+                                                                                                 final ResultT response) {
+        try {
+            String requestName = request.getClass().getSimpleName();
+            String requestId = (response == null || response.responseMetadata() == null)
+                ? ""
+                : response.responseMetadata().requestId();
+            loggerProxy
+                .log(String.format("{\"apiRequest\": {\"requestId\": \"%s\", \"requestName\": \"%s\"}}", requestId, requestName));
+        } catch (final Exception e) {
+            loggerProxy.log(e.getMessage());
+        }
     }
 }

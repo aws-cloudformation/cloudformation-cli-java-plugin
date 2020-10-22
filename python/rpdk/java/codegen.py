@@ -1,7 +1,11 @@
 # pylint: disable=useless-super-delegation,too-many-locals
 # pylint doesn't recognize abstract methods
 import logging
+import os
 import shutil
+import xml.etree.ElementTree as ET  # nosec
+from collections import namedtuple
+from xml.etree.ElementTree import ParseError  # nosec
 
 from rpdk.core.data_loaders import resource_stream
 from rpdk.core.exceptions import InternalError, SysExitRecommendedError
@@ -10,15 +14,53 @@ from rpdk.core.jsonutils.resolver import resolve_models
 from rpdk.core.plugin_base import LanguagePlugin
 
 from .resolver import translate_type
-from .utils import safe_reserved, validate_namespace
+from .utils import safe_reserved, validate_codegen_model, validate_namespace
 
 LOG = logging.getLogger(__name__)
 
 OPERATIONS = ("Create", "Read", "Update", "Delete", "List")
 EXECUTABLE = "cfn"
+AWSCODEGEN = namedtuple("AWSCODEGEN", "default guided default_code guided_code")
+CODEGEN = AWSCODEGEN("default", "guided_aws", "1", "2")
+
+
+def logdebug(func: object):
+    def wrapper(*args, **kwargs):
+        log_msg = func.__name__ if not func.__doc__ else func.__doc__
+        entry_message = "{} started".format(log_msg)
+        LOG.debug(entry_message)
+        if "entity" in kwargs:
+            writing_message = "Writing {}".format(kwargs["entity"])
+            LOG.debug(writing_message)
+        result = func(*args, **kwargs)
+        exit_message = "{} complete".format(log_msg)
+        LOG.debug(exit_message)
+        return result
+
+    return wrapper
+
+
+DEFAULT_PROTOCOL_VERSION = "2.0.0"
+PROTOCOL_VERSION_SETTING = "protocolVersion"
+DEFAULT_SETTINGS = {PROTOCOL_VERSION_SETTING: DEFAULT_PROTOCOL_VERSION}
+
+MINIMUM_JAVA_DEPENDENCY_VERSION = "2.0.0"
+MINIMUM_JAVA_DEPENDENCY_VERSION_EXECUTABLE_HANDLER_WRAPPER = "2.0.3"
 
 
 class JavaArchiveNotFoundError(SysExitRecommendedError):
+    pass
+
+
+class JavaPluginVersionNotSupportedError(SysExitRecommendedError):
+    pass
+
+
+class JavaPluginNotFoundError(SysExitRecommendedError):
+    pass
+
+
+class InvalidMavenPOMError(SysExitRecommendedError):
     pass
 
 
@@ -27,12 +69,14 @@ class JavaLanguagePlugin(LanguagePlugin):
     RUNTIME = "java8"
     ENTRY_POINT = "{}.HandlerWrapper::handleRequest"
     TEST_ENTRY_POINT = "{}.HandlerWrapper::testEntrypoint"
+    EXECUTABLE_ENTRY_POINT = "{}.HandlerWrapperExecutable"
     CODE_URI = "./target/{}-1.0-SNAPSHOT.jar"
 
     def __init__(self):
         self.env = self._setup_jinja_env(
             trim_blocks=True, lstrip_blocks=True, keep_trailing_newline=True
         )
+        self.codegen_template_path = None
         self.env.filters["translate_type"] = translate_type
         self.env.filters["safe_reserved"] = safe_reserved
         self.namespace = None
@@ -46,7 +90,7 @@ class JavaLanguagePlugin(LanguagePlugin):
             fallback = ("com",) + project.type_info
             namespace = tuple(safe_reserved(s.lower()) for s in fallback)
             self.namespace = project.settings["namespace"] = namespace
-            project._write_settings("java")  # pylint: disable=protected-access
+            project.write_settings()
 
         self.package_name = ".".join(self.namespace)
 
@@ -66,30 +110,92 @@ class JavaLanguagePlugin(LanguagePlugin):
         project.settings["namespace"] = self.namespace
         self.package_name = ".".join(self.namespace)
 
-    def init(self, project):
-        LOG.debug("Init started")
+    @staticmethod
+    def _prompt_for_codegen_model(project):
+        prompt = "Choose codegen model - 1 (default) or 2 (guided-aws): "
 
+        codegen_model = input_with_validation(
+            prompt, validate_codegen_model(CODEGEN.default_code)
+        )
+
+        project.settings["codegen_template_path"] = CODEGEN.default
+
+        if codegen_model == CODEGEN.guided_code:
+            project.settings["codegen_template_path"] = CODEGEN.guided
+
+    def _get_template(self, project, stage, name):
+        return self.env.get_template(
+            stage + "/" + project.settings["codegen_template_path"] + "/" + name
+        )
+
+    @staticmethod
+    def _is_aws_guided(project: object) -> bool:
+        return project.settings["codegen_template_path"] == CODEGEN.guided
+
+    @logdebug
+    def _writing_component(
+        self, project: object, src: str, entity: str, **kwargs  # noqa: C816
+    ) -> None:
+        """Writing module"""
+
+        stub_entity: str = kwargs.get("stub_entity")
+        operation: str = kwargs.get("operation")
+        pojo_name: str = kwargs.get("pojo_name")
+        call_graph: str = kwargs.get("call_graph")
+
+        if not stub_entity:
+            stub_entity = entity
+
+        template = self._get_template(project, "init", stub_entity)
+        path = src / entity
+        contents = template.render(
+            package_name=self.package_name,
+            operation=operation,
+            pojo_name=pojo_name,
+            call_graph=call_graph,
+        )
+        project.safewrite(path, contents)
+
+    @logdebug
+    def init(self, project):
+        """Init"""
         self._prompt_for_namespace(project)
+
+        self._prompt_for_codegen_model(project)
 
         self._init_settings(project)
 
+        # maven folder structure
+        src = (project.root / "src" / "main" / "java").joinpath(*self.namespace)
+        LOG.debug("Making source folder structure: %s", src)
+        src.mkdir(parents=True, exist_ok=True)
+        resources = project.root / "src" / "resources"
+        LOG.debug("Making resources folder structure: %s", resources)
+        resources.mkdir(parents=True, exist_ok=True)
+        tst = (project.root / "src" / "test" / "java").joinpath(*self.namespace)
+        LOG.debug("Making test folder structure: %s", tst)
+        tst.mkdir(parents=True, exist_ok=True)
+
+        # initialize shared files
+        self.init_shared(project, src, tst, resources)
+
+        # write specialized generated files
+        if self._is_aws_guided(project):
+            self.init_guided_aws(project, src, tst)
+
+    @logdebug
+    def init_shared(self, project, src, tst, resources):
+        """Writing project configuration"""
         # .gitignore
         path = project.root / ".gitignore"
         LOG.debug("Writing .gitignore: %s", path)
         contents = resource_stream(__name__, "data/java.gitignore").read()
         project.safewrite(path, contents)
 
-        # maven folder structure
-        src = (project.root / "src" / "main" / "java").joinpath(*self.namespace)
-        LOG.debug("Making source folder structure: %s", src)
-        src.mkdir(parents=True, exist_ok=True)
-        tst = (project.root / "src" / "test" / "java").joinpath(*self.namespace)
-        LOG.debug("Making test folder structure: %s", tst)
-        tst.mkdir(parents=True, exist_ok=True)
-
+        # pom.xml
         path = project.root / "pom.xml"
         LOG.debug("Writing Maven POM: %s", path)
-        template = self.env.get_template("pom.xml")
+        template = self.env.get_template("init/shared/pom.xml")
         artifact_id = "{}-handler".format(project.hypenated_name)
         contents = template.render(
             group_id=self.package_name,
@@ -100,17 +206,35 @@ class JavaLanguagePlugin(LanguagePlugin):
         )
         project.safewrite(path, contents)
 
+        # lombok.config
         path = project.root / "lombok.config"
         LOG.debug("Writing Lombok Config: %s", path)
-        template = self.env.get_template("lombok.config")
+        template = self.env.get_template("init/shared/lombok.config")
         contents = template.render()
+        project.safewrite(path, contents)
+
+        LOG.debug("Writing callback context")
+        template = self.env.get_template("init/shared/CallbackContext.java")
+        path = src / "CallbackContext.java"
+        contents = template.render(package_name=self.package_name)
+        project.safewrite(path, contents)
+
+        path = src / "Configuration.java"
+        LOG.debug("Writing configuration: %s", path)
+        template = self.env.get_template("init/shared/StubConfiguration.java")
+        contents = template.render(
+            package_name=self.package_name,
+            schema_file_name=project.schema_filename,
+            pojo_name="ResourceModel",
+        )
         project.safewrite(path, contents)
 
         # CloudFormation/SAM template for handler lambda
         path = project.root / "template.yml"
         LOG.debug("Writing SAM template: %s", path)
-        template = self.env.get_template("template.yml")
-
+        template = self.env.get_template(
+            "template.yml"
+        )  # this template is in the CLI itself
         handler_params = {
             "Handler": project.entrypoint,
             "Runtime": project.runtime,
@@ -128,29 +252,10 @@ class JavaLanguagePlugin(LanguagePlugin):
         )
         project.safewrite(path, contents)
 
-        LOG.debug("Writing handlers and tests")
-        self.init_handlers(project, src, tst)
-
-        LOG.debug("Writing callback context")
-        template = self.env.get_template("CallbackContext.java")
-        path = src / "CallbackContext.java"
-        contents = template.render(package_name=self.package_name)
-        project.safewrite(path, contents)
-
-        path = src / "Configuration.java"
-        LOG.debug("Writing configuration: %s", path)
-        template = self.env.get_template("StubConfiguration.java")
-        contents = template.render(
-            package_name=self.package_name,
-            schema_file_name=project.schema_filename,
-            pojo_name="ResourceModel",
-        )
-        project.safewrite(path, contents)
-
-        # generated docs
+        # generate docs
         path = project.root / "README.md"
         LOG.debug("Writing README: %s", path)
-        template = self.env.get_template("README.md")
+        template = self.env.get_template("init/shared/README.md")
         contents = template.render(
             type_name=project.type_name,
             schema_path=project.schema_path,
@@ -158,44 +263,63 @@ class JavaLanguagePlugin(LanguagePlugin):
         )
         project.safewrite(path, contents)
 
-        LOG.debug("Init complete")
+        # log4j2
+        path = resources / "log4j2.xml"
+        LOG.debug("Writing log4j2: %s", path)
+        contents = resource_stream(__name__, "data/log4j2.xml").read()
+        project.safewrite(path, contents)
 
+        self.init_handlers(project, src, tst)
+
+    @logdebug
+    def init_guided_aws(self, project, src, tst):
+        """Writing supporting modules"""
+        self._writing_component(project, src, entity="Translator.java")
+        self._writing_component(project, src, entity="ClientBuilder.java")
+        self._writing_component(project, src, entity="BaseHandlerStd.java")
+        self._writing_component(project, tst, entity="AbstractTestBase.java")
+
+    @logdebug
     def init_handlers(self, project, src, tst):
-        LOG.debug("Writing stub handlers")
+        """Writing stub handlers and tests"""
+        pojo_name = "ResourceModel"
         for operation in OPERATIONS:
-            if operation == "List":
-                template = self.env.get_template("StubListHandler.java")
-            else:
-                template = self.env.get_template("StubHandler.java")
-            path = src / "{}Handler.java".format(operation)
-            LOG.debug("%s handler: %s", operation, path)
-            contents = template.render(
-                package_name=self.package_name,
-                operation=operation,
-                pojo_name="ResourceModel",
-            )
-            project.safewrite(path, contents)
+            entity = "{}Handler.java".format(operation)
+            entity_test = "{}HandlerTest.java".format(operation)
 
-        LOG.debug("Writing stub tests")
-        for operation in OPERATIONS:
-            if operation == "List":
-                template = self.env.get_template("StubListHandlerTest.java")
-            else:
-                template = self.env.get_template("StubHandlerTest.java")
-
-            path = tst / "{}HandlerTest.java".format(operation)
-            LOG.debug("%s handler: %s", operation, path)
-            contents = template.render(
-                package_name=self.package_name,
-                operation=operation,
-                pojo_name="ResourceModel",
+            stub_entity = "Stub{}Handler.java".format(
+                operation if operation == "List" or self._is_aws_guided(project) else ""
             )
-            project.safewrite(path, contents)
+            stub_entity_test = "Stub{}HandlerTest.java".format(
+                operation if operation == "List" else ""
+            )
+
+            self._writing_component(
+                project,
+                src,
+                entity=entity,
+                stub_entity=stub_entity,
+                operation=operation,
+                pojo_name=pojo_name,
+                call_graph=project.type_name.replace("::", "-"),
+            )
+            self._writing_component(
+                project,
+                tst,
+                entity=entity_test,
+                stub_entity=stub_entity_test,
+                operation=operation,
+                pojo_name=pojo_name,
+            )
 
     def _init_settings(self, project):
         project.runtime = self.RUNTIME
         project.entrypoint = self.ENTRY_POINT.format(self.package_name)
         project.test_entrypoint = self.TEST_ENTRY_POINT.format(self.package_name)
+        project.executable_entrypoint = self.EXECUTABLE_ENTRY_POINT.format(
+            self.package_name
+        )
+        project.settings.update(DEFAULT_SETTINGS)
 
     @staticmethod
     def _get_generated_root(project):
@@ -205,8 +329,9 @@ class JavaLanguagePlugin(LanguagePlugin):
     def _get_generated_tests_root(project):
         return project.root / "target" / "generated-test-sources" / "rpdk"
 
+    @logdebug
     def generate(self, project):
-        LOG.debug("Generate started")
+        """Generate"""
 
         self._namespace_from_project(project)
 
@@ -230,17 +355,21 @@ class JavaLanguagePlugin(LanguagePlugin):
         # write generated handler integration with LambdaWrapper
         path = src / "HandlerWrapper.java"
         LOG.debug("Writing handler wrapper: %s", path)
-        template = self.env.get_template("HandlerWrapper.java")
+        template = self.env.get_template("generate/HandlerWrapper.java")
         contents = template.render(
             package_name=self.package_name,
             operations=project.schema.get("handlers", {}).keys(),
             pojo_name="ResourceModel",
+            wrapper_parent="LambdaWrapper",
         )
         project.overwrite(path, contents)
 
+        # write generated handler integration with ExecutableWrapper
+        self._write_executable_wrapper_class(src, project)
+
         path = src / "BaseConfiguration.java"
         LOG.debug("Writing base configuration: %s", path)
-        template = self.env.get_template("BaseConfiguration.java")
+        template = self.env.get_template("generate/BaseConfiguration.java")
         contents = template.render(
             package_name=self.package_name,
             schema_file_name=project.schema_filename,
@@ -250,7 +379,7 @@ class JavaLanguagePlugin(LanguagePlugin):
 
         path = src / "BaseHandler.java"
         LOG.debug("Writing base handler: %s", path)
-        template = self.env.get_template("BaseHandler.java")
+        template = self.env.get_template("generate/BaseHandler.java")
         contents = template.render(
             package_name=self.package_name,
             operations=OPERATIONS,
@@ -263,8 +392,8 @@ class JavaLanguagePlugin(LanguagePlugin):
 
         LOG.debug("Writing %d POJOs", len(models))
 
-        base_template = self.env.get_template("ResourceModel.java")
-        pojo_template = self.env.get_template("POJO.java")
+        base_template = self.env.get_template("generate/ResourceModel.java")
+        pojo_template = self.env.get_template("generate/POJO.java")
 
         for model_name, properties in models.items():
             path = src / "{}.java".format(model_name)
@@ -289,7 +418,75 @@ class JavaLanguagePlugin(LanguagePlugin):
                 )
             project.overwrite(path, contents)
 
+        self._update_settings(project)
+
         LOG.debug("Generate complete")
+
+    def _write_executable_wrapper_class(self, src, project):
+        try:
+            java_plugin_dependency_version = self._get_java_plugin_dependency_version(
+                project
+            )
+            if (
+                java_plugin_dependency_version
+                >= MINIMUM_JAVA_DEPENDENCY_VERSION_EXECUTABLE_HANDLER_WRAPPER
+            ):
+                path = src / "HandlerWrapperExecutable.java"
+                LOG.debug("Writing handler wrapper: %s", path)
+                template = self.env.get_template("generate/HandlerWrapper.java")
+                contents = template.render(
+                    package_name=self.package_name,
+                    operations=project.schema.get("handlers", {}).keys(),
+                    pojo_name="ResourceModel",
+                    wrapper_parent="ExecutableWrapper",
+                )
+                project.overwrite(path, contents)
+            else:
+                LOG.info(
+                    "Please update your java plugin dependency to version "
+                    "%s or above in order to use "
+                    "the Executable Handler Wrapper feature.",
+                    MINIMUM_JAVA_DEPENDENCY_VERSION_EXECUTABLE_HANDLER_WRAPPER,
+                )
+        except JavaPluginNotFoundError:
+            LOG.info(
+                "Please make sure to have 'aws-cloudformation-rpdk-java-plugin' "
+                "to version %s or above.",
+                MINIMUM_JAVA_DEPENDENCY_VERSION,
+            )
+
+    def _update_settings(self, project):
+        try:
+            java_plugin_dependency_version = self._get_java_plugin_dependency_version(
+                project
+            )
+            if java_plugin_dependency_version < MINIMUM_JAVA_DEPENDENCY_VERSION:
+                raise JavaPluginVersionNotSupportedError(
+                    "'aws-cloudformation-rpdk-java-plugin' {} is no longer supported."
+                    "Please update it in pom.xml to version {} or above.".format(
+                        java_plugin_dependency_version, MINIMUM_JAVA_DEPENDENCY_VERSION
+                    )
+                )
+        except JavaPluginNotFoundError:
+            LOG.info(
+                "Please make sure to have 'aws-cloudformation-rpdk-java-plugin' "
+                "to version %s or above.",
+                MINIMUM_JAVA_DEPENDENCY_VERSION,
+            )
+
+        protocol_version = project.settings.get(PROTOCOL_VERSION_SETTING)
+        if protocol_version != DEFAULT_PROTOCOL_VERSION:
+            project.settings[PROTOCOL_VERSION_SETTING] = DEFAULT_PROTOCOL_VERSION
+            project.write_settings()
+
+        if (
+            hasattr(project, "executable_entrypoint")
+            and not project.executable_entrypoint
+        ):
+            project.executable_entrypoint = self.EXECUTABLE_ENTRY_POINT.format(
+                self.package_name
+            )
+            project.write_settings()
 
     @staticmethod
     def _find_jar(project):
@@ -313,8 +510,29 @@ class JavaLanguagePlugin(LanguagePlugin):
 
         return jar_glob[0]
 
+    @staticmethod
+    def _get_java_plugin_dependency_version(project):
+        try:
+            tree = ET.parse(project.root / "pom.xml")
+            root = tree.getroot()
+            namespace = {"mvn": "http://maven.apache.org/POM/4.0.0"}
+            plugin_dependency_version = root.find(
+                "./mvn:dependencies/mvn:dependency"
+                "/[mvn:artifactId='aws-cloudformation-rpdk-java-plugin']/mvn:version",
+                namespace,
+            )
+            if plugin_dependency_version is None:
+                raise JavaPluginNotFoundError(
+                    "'aws-cloudformation-rpdk-java-plugin' maven dependency "
+                    "not found in pom.xml."
+                )
+            return plugin_dependency_version.text
+        except ParseError as e:
+            raise InvalidMavenPOMError("pom.xml is invalid.") from e
+
+    @logdebug
     def package(self, project, zip_file):
-        LOG.info("Packaging Java project")
+        """Packaging Java project"""
 
         def write_with_relative_path(path):
             relative = path.relative_to(project.root)
@@ -333,3 +551,23 @@ class JavaLanguagePlugin(LanguagePlugin):
         for path in (project.root / "target" / "generated-sources").rglob("*"):
             if path.is_file():
                 write_with_relative_path(path)
+
+    @logdebug
+    def generate_image_build_config(self, project):
+        """Generating image build config"""
+
+        jar_path = self._find_jar(project)
+
+        dockerfile_path = (
+            os.path.dirname(os.path.realpath(__file__))
+            + "/data/build-image-src/Dockerfile-"
+            + project.runtime
+        )
+
+        project_path = project.root
+
+        return {
+            "executable_name": str(jar_path.relative_to(project.root)),
+            "dockerfile_path": dockerfile_path,
+            "project_path": str(project_path),
+        }

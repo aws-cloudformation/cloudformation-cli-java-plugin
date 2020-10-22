@@ -14,7 +14,14 @@
 */
 package software.amazon.cloudformation.proxy.service;
 
-public interface ServiceClient {
+import software.amazon.awssdk.core.SdkClient;
+
+public interface ServiceClient extends SdkClient {
+
+    default String serviceName() {
+        return "serviceClient";
+    }
+
     CreateResponse createRepository(CreateRequest r);
 
     DescribeResponse describeRepository(DescribeRequest r);

@@ -79,4 +79,11 @@ public class CfnNotFoundExceptionTests {
             throw new CfnNotFoundException(new RuntimeException());
         }).satisfies(exception -> assertEquals(HandlerErrorCode.NotFound, exception.getErrorCode()));
     }
+
+    @Test
+    public void cfnNotFoundException_errorMessage() {
+        assertThatExceptionOfType(CfnNotFoundException.class).isThrownBy(() -> {
+            throw new CfnNotFoundException(new RuntimeException("something wrong"));
+        }).satisfies(exception -> assertEquals("something wrong", exception.getMessage()));
+    }
 }

@@ -15,8 +15,6 @@
 package software.amazon.cloudformation;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -31,49 +29,42 @@ import software.amazon.cloudformation.loggers.CloudWatchLogPublisher;
 import software.amazon.cloudformation.loggers.LogPublisher;
 import software.amazon.cloudformation.metrics.MetricsPublisher;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.CallbackAdapter;
 import software.amazon.cloudformation.proxy.HandlerRequest;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.resource.SchemaValidator;
 import software.amazon.cloudformation.resource.Serializer;
-import software.amazon.cloudformation.scheduler.CloudWatchScheduler;
 
 /**
  * Test class used for testing of LambdaWrapper functionality
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class WrapperOverride extends LambdaWrapper<TestModel, TestContext> {
+public class WrapperOverride extends AbstractWrapper<TestModel, TestContext> {
 
     /**
      * Invoked to test normal initialization flows
      */
-    public WrapperOverride() {
+    public WrapperOverride(final LogPublisher platformEventsLogger) {
+        this.platformLogPublisher = platformEventsLogger;
     }
 
     /**
      * This .ctor provided for testing
      */
-    public WrapperOverride(final CallbackAdapter<TestModel> callbackAdapter,
-                           final CredentialsProvider platformCredentialsProvider,
-                           final CredentialsProvider providerLoggingCredentialsProvider,
+    public WrapperOverride(final CredentialsProvider providerLoggingCredentialsProvider,
                            final LogPublisher platformEventsLogger,
                            final CloudWatchLogPublisher providerEventsLogger,
-                           final MetricsPublisher platformMetricsPublisher,
                            final MetricsPublisher providerMetricsPublisher,
-                           final CloudWatchScheduler scheduler,
                            final SchemaValidator validator,
                            final SdkHttpClient httpClient) {
-        super(callbackAdapter, platformCredentialsProvider, providerLoggingCredentialsProvider, providerEventsLogger,
-              platformEventsLogger, platformMetricsPublisher, providerMetricsPublisher, scheduler, validator, new Serializer(),
-              httpClient);
+        super(providerLoggingCredentialsProvider, platformEventsLogger, providerEventsLogger, providerMetricsPublisher, validator,
+              new Serializer(), httpClient);
     }
 
     @Override
     protected JSONObject provideResourceSchemaJSONObject() {
-        return new JSONObject(new JSONTokener(new ByteArrayInputStream("{ \"properties\": { \"property1\": { \"type\": \"string\" }, \"property2\": { \"type\": \"integer\" } }, \"additionalProperties\": false }"
-            .getBytes(StandardCharsets.UTF_8))));
+        return new JSONObject(new JSONTokener(this.getClass().getResourceAsStream("wrapper-override.json")));
     }
 
     @Override

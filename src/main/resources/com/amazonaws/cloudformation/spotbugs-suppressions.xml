@@ -19,8 +19,8 @@
     <!-- Method param can be null in the case of complete deserialization failure or bad payload -->
     <FindBugsFilter>
         <Match>
-            <Class name="software.amazon.cloudformation.LambdaWrapper" />
-            <Method name="handleRequest" />
+            <Class name="software.amazon.cloudformation.AbstractWrapper" />
+            <Method name="processRequest" />
             <Bug pattern="NP_NULL_PARAM_DEREF" />
         </Match>
     </FindBugsFilter>

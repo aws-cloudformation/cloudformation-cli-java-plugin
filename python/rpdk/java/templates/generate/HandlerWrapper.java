@@ -2,9 +2,12 @@
 package {{ package_name }};
 
 import com.amazonaws.AmazonServiceException;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.regions.PartitionMetadata;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.cloudformation.Action;
 import software.amazon.cloudformation.exceptions.BaseHandlerException;
-import software.amazon.cloudformation.LambdaWrapper;
+import software.amazon.cloudformation.{{ wrapper_parent }};
 import software.amazon.cloudformation.loggers.LambdaLogPublisher;
 import software.amazon.cloudformation.metrics.MetricsPublisher;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -23,18 +26,23 @@ import software.amazon.cloudformation.scheduler.CloudWatchScheduler;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.fasterxml.jackson.core.type.TypeReference;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 
 
-public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, CallbackContext> {
+public class {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "HandlerWrapperExecutable" }} extends {{ wrapper_parent }}<{{ pojo_name }}, CallbackContext> {
 
     private final Configuration configuration = new Configuration();
     private JSONObject resourceSchema;
@@ -47,7 +55,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
         new TypeReference<ResourceHandlerTestPayload<{{ pojo_name }}, CallbackContext>>() {};
 
 
-    public HandlerWrapper() {
+    public {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "HandlerWrapperExecutable" }}() {
         initialiseHandlers();
     }
 
@@ -59,11 +67,10 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
 
     @Override
     public ProgressEvent<{{ pojo_name }}, CallbackContext> invokeHandler(
-                final AmazonWebServicesClientProxy proxy,
-                final ResourceHandlerRequest<{{ pojo_name }}> request,
-                final Action action,
-                final CallbackContext callbackContext) {
-
+            final AmazonWebServicesClientProxy proxy,
+            final ResourceHandlerRequest<{{ pojo_name }}> request,
+            final Action action,
+            final CallbackContext callbackContext) {
         final String actionName = (action == null) ? "<null>" : action.toString(); // paranoia
         if (!handlers.containsKey(action))
             throw new RuntimeException("Unknown action " + actionName);
@@ -75,6 +82,9 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
         loggerProxy.log(String.format("[%s] handler invoked", actionName));
         return result;
     }
+
+    {% if wrapper_parent == "LambdaWrapper" -%}
+
 
     public void testEntrypoint(
             final InputStream inputStream,
@@ -98,17 +108,44 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
             response = invokeHandler(proxy, payload.getRequest(), payload.getAction(), payload.getCallbackContext());
         } catch (final BaseHandlerException e) {
             response = ProgressEvent.defaultFailureHandler(e, e.getErrorCode());
-        } catch (final AmazonServiceException e) {
+        } catch (final AmazonServiceException | AwsServiceException e) {
             response = ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.GeneralServiceException);
         } catch (final Throwable e) {
             e.printStackTrace();
             response = ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.InternalFailure);
         } finally {
-            final String output = this.serializer.serialize(response);
-            outputStream.write(output.getBytes(Charset.forName("UTF-8")));
+            writeResponse(outputStream, response);
             outputStream.close();
         }
     }
+    {% else %}
+    public static void main(String[] args) throws IOException {
+        if (args.length != 1){
+            System.exit(1);
+        }
+        final String outputFile = (UUID.randomUUID().toString() + ".txt");
+        try(FileOutputStream output = new FileOutputStream(outputFile)){
+            try(InputStream input=IOUtils.toInputStream(args[0],"UTF-8")){
+                new HandlerWrapperExecutable().handleRequest(input, output);
+                output.flush();
+            }
+        }
+        System.out.println("__CFN_RESOURCE_START_RESPONSE__");
+        readFileToSystemOut(outputFile);
+        System.out.println("__CFN_RESOURCE_END_RESPONSE__");
+    }
+
+private static void readFileToSystemOut(final String fileName) throws IOException {
+        //Create object of FileReader
+        final FileReader inputFile = new FileReader(fileName);
+        try(BufferedReader bufferReader = new BufferedReader(inputFile)) {
+            String line;
+            while ((line = bufferReader.readLine()) != null)   {
+                System.out.println(line);
+            }
+        }
+    }
+    {%- endif %}
 
     @Override
     public JSONObject provideResourceSchemaJSONObject() {
@@ -137,6 +174,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}, Callbac
             .logicalResourceIdentifier(request.getRequestData().getLogicalResourceId())
             .nextToken(request.getNextToken())
             .region(request.getRegion())
+            .awsPartition(PartitionMetadata.of(Region.of(request.getRegion())).id())
             .build();
     }
 

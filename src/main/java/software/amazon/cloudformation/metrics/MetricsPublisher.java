@@ -42,6 +42,11 @@ public abstract class MetricsPublisher {
                                        final HandlerErrorCode handlerErrorCode) {
     }
 
+    public void publishExceptionByErrorCodeAndCountBulkMetrics(final Instant timestamp,
+                                                               final Action action,
+                                                               final HandlerErrorCode handlerErrorCode) {
+    }
+
     public void publishInvocationMetric(final Instant timestamp, final Action action) {
     }
 

@@ -48,4 +48,92 @@ public class IdentifierUtilsTest {
         // string that is left to fix the max length.
         assertThat(result).startsWith("my-re-");
     }
+
+    @Test
+    public void generateResourceIdentifier_withStackNameStackId() {
+        String result = IdentifierUtils.generateResourceIdentifier("my-stack-name", "my-resource", "123456", 18);
+        assertThat(result.length()).isLessThanOrEqualTo(18);
+
+        // to ensure randomness in the identity, the result will always be a random
+        // string PREFIXED by the size of
+        // string that is left to fix the max length.
+        assertThat(result).startsWith("my-my-");
+    }
+
+    @Test
+    public void generateResourceIdentifier_withStackName() {
+        String result = IdentifierUtils.generateResourceIdentifier("my-stack-name", "my-resource", "123456", 50);
+        assertThat(result.length()).isLessThanOrEqualTo(49);
+
+        // to ensure randomness in the identity, the result will always be a random
+        // string PREFIXED by the size of
+        // string that is left to fix the max length.
+        assertThat(result).startsWith("my-stack-name-my-resource-");
+    }
+
+    @Test
+    public void generateResourceIdentifier_withStackNameLessThanPreferredLen() {
+        String result = IdentifierUtils.generateResourceIdentifier("my-stack-name", "my-resource", "123456", 16);
+        assertThat(result.length()).isLessThanOrEqualTo(16);
+
+        // to ensure randomness in the identity, the result will always be a random
+        // string PREFIXED by the size of
+        // string that is left to fix the max length.
+        assertThat(result).startsWith("mym-");
+    }
+
+    @Test
+    public void generateResourceIdentifier_withStackNameBothFitMaxLen() {
+        String result = IdentifierUtils.generateResourceIdentifier(
+            "arn:aws:cloudformation:us-east-1:123456789012:stack/my-stack-name/084c0bd1-082b-11eb-afdc-0a2fadfa68a5",
+            "my-resource", "123456", 255);
+        assertThat(result.length()).isLessThanOrEqualTo(44);
+        assertThat(result).isEqualTo("my-stack-name-my-resource-hDoP0dahAFjd");
+    }
+
+    @Test
+    public void generateResourceIdentifier_withLongStackNameAndShotLogicalId() {
+        String result = IdentifierUtils.generateResourceIdentifier(
+            "arn:aws:cloudformation:us-east-1:123456789012:stack/my-very-very-very-very-very-very-long-custom-stack-name/084c0bd1-082b-11eb-afdc-0a2fadfa68a5",
+            "abc", "123456", 36);
+        assertThat(result.length()).isLessThanOrEqualTo(36);
+        assertThat(result).isEqualTo("my-very-very-very-v-abc-hDoP0dahAFjd");
+    }
+
+    @Test
+    public void generateResourceIdentifier_withShortStackNameAndLongLogicalId() {
+        String result = IdentifierUtils.generateResourceIdentifier("abc",
+            "my-very-very-very-very-very-very-long-custom-logical-id", "123456", 36);
+        assertThat(result.length()).isLessThanOrEqualTo(36);
+        assertThat(result).isEqualTo("abc-my-very-very-very-v-hDoP0dahAFjd");
+    }
+
+    @Test
+    public void generateResourceIdentifier_withLongStackNameAndLongLogicalId() {
+        String result = IdentifierUtils.generateResourceIdentifier(
+            "arn:aws:cloudformation:us-east-1:123456789012:stack/my-very-very-very-very-very-very-long-custom-stack-name/084c0bd1-082b-11eb-afdc-0a2fadfa68a5",
+            "my-very-very-very-very-very-very-long-custom-logical-id", "123456", 36);
+        assertThat(result.length()).isEqualTo(36);
+        assertThat(result).isEqualTo("my-very-ver-my-very-ver-hDoP0dahAFjd");
+    }
+
+    @Test
+    public void generateResourceIdentifier_withStackInValidInput() {
+        try {
+            IdentifierUtils.generateResourceIdentifier("stack/my-stack-name", "my-resource", "123456", 255);
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).isEqualTo("stack/my-stack-name is not a valid Stack name");
+        }
+    }
+
+    @Test
+    public void generateResourceIdentifier_withStackValidStackId() {
+        try {
+            IdentifierUtils.generateResourceIdentifier(
+                "arn:aws:cloudformation:us-east-1:123456789012:stack/my-stack-name/084c0bd1-082b-11eb-afdc-0a2fadfa68a5",
+                "my-resource", "123456", 14);
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).isEqualTo("Cannot generate resource IDs shorter than 15 characters.");
+        }
+    }
 }

@@ -49,4 +49,11 @@ public class CfnServiceLimitExceededExceptionTests {
             throw new CfnServiceLimitExceededException(new RuntimeException());
         }).satisfies(exception -> assertEquals(HandlerErrorCode.ServiceLimitExceeded, exception.getErrorCode()));
     }
+
+    @Test
+    public void cfnServiceLimitExceededException_errorMessage() {
+        assertThatExceptionOfType(CfnServiceLimitExceededException.class).isThrownBy(() -> {
+            throw new CfnServiceLimitExceededException(new RuntimeException("something wrong"));
+        }).satisfies(exception -> assertEquals("something wrong", exception.getMessage()));
+    }
 }

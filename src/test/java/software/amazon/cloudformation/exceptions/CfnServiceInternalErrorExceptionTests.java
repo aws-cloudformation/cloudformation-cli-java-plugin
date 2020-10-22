@@ -49,4 +49,11 @@ public class CfnServiceInternalErrorExceptionTests {
             throw new CfnServiceInternalErrorException(new RuntimeException());
         }).satisfies(exception -> assertEquals(HandlerErrorCode.ServiceInternalError, exception.getErrorCode()));
     }
+
+    @Test
+    public void cfnServiceInternalErrorException_errorMessage() {
+        assertThatExceptionOfType(CfnServiceInternalErrorException.class).isThrownBy(() -> {
+            throw new CfnServiceInternalErrorException(new RuntimeException("something wrong"));
+        }).satisfies(exception -> assertEquals("something wrong", exception.getMessage()));
+    }
 }

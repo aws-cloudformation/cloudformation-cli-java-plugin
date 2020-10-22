@@ -6,7 +6,9 @@
     "responseEndpoint": "https://cloudformation.us-west-2.amazonaws.com",
     "resourceType": "AWS::Test::TestModel",
     "resourceTypeVersion": "1.0",
-    "requestContext": {},
+    "callbackContext": {
+        "contextPropertyA": "Value"
+    },
     "requestData": {
         "callerCredentials": {
             "accessKeyId": "IASAYK835GAIFHAHEI23",
@@ -20,10 +22,7 @@
         },
         "providerLogGroupName": "providerLoggingGroupName",
         "logicalResourceId": "myBucket",
-        "resourceProperties": {
-            "property1": "abc",
-            "property2": 123
-        },
+        "resourceProperties": {},
         "systemTags": {
             "aws:cloudformation:stack-id": "SampleStack"
         },

@@ -31,14 +31,92 @@ import java.util.function.Function;
  *
  * <ol>
  * <li>{@link CallChain#initiate(String, ProxyClient, Object, StdCallbackContext)}
- * <li>{@link RequestMaker#request(Function)}
- * <li>{@link Caller#call(BiFunction)}
+ * <li>{@link RequestMaker#translateToServiceRequest(Function)}
+ * <li>{@link Caller#makeServiceCall(BiFunction)}
  * <li>{@link Completed#done(Function)}
  * </ol>
  *
  * @see AmazonWebServicesClientProxy
  */
 public interface CallChain {
+
+    /**
+     * Provides an API initiator interface that works for all API calls that need
+     * conversion, retry-backoff strategy, common exception handling and more
+     * against desired state of the resource and callback context. This needs to be
+     * instantiated once with the client, model and callback context and used. It
+     * takes a reference to the desired state model, so any changes made on the
+     * model object will be reflected here. The model and callback can accessed from
+     * the instantiator instance
+     *
+     * @param <ClientT> the AWS Service client.
+     * @param <ModelT> the model object being worked on
+     * @param <CallbackT> the callback context
+     */
+    interface Initiator<ClientT, ModelT, CallbackT extends StdCallbackContext> extends RequestMaker<ClientT, ModelT, CallbackT> {
+        /**
+         * Each service call must be first initiated. Every call is provided a separate
+         * name called call graph. This is essential from both a tracing perspective as
+         * well as {@link StdCallbackContext} automated replay capabilities.
+         *
+         * @param callGraph, the name of the service operation this call graph is about.
+         * @return Provides the next logical set in the fluent API.
+         */
+        RequestMaker<ClientT, ModelT, CallbackT> initiate(String callGraph);
+
+        /**
+         * @return the model associated with the API initiator. Can not be null
+         */
+        ModelT getResourceModel();
+
+        /**
+         * @return the callback context associated with API initiator, Can not be null
+         */
+        CallbackT getCallbackContext();
+
+        /**
+         * @return logger associated to log messages
+         */
+        Logger getLogger();
+
+        /**
+         * Can rebind a new model to the call chain while retaining the client and
+         * callback context
+         *
+         * @param model, the new model for the callchain initiation
+         * @param <NewModelT>, this actual model type
+         * @return new {@link Initiator} that now has the new model associated with it
+         */
+        <NewModelT> Initiator<ClientT, NewModelT, CallbackT> rebindModel(NewModelT model);
+
+        /**
+         * Can rebind a new callback context for a call chain while retaining the model
+         * and client
+         *
+         * @param callback the new callback context
+         * @param <NewCallbackT> new callback context type
+         * @return new {@link Initiator} that now has the new callback associated with
+         *         it
+         */
+        <NewCallbackT extends StdCallbackContext> Initiator<ClientT, ModelT, NewCallbackT> rebindCallback(NewCallbackT callback);
+    }
+
+    /**
+     * factory method can created an {@link Initiator}
+     *
+     * @param client AWS Service Client. Recommend using Sync client as the
+     *            framework handles interleaving as needed.
+     * @param model the resource desired state model, usually
+     * @param context callback context that tracks all outbound API calls
+     * @param <ClientT> Actual client e.g. KinesisClient.
+     * @param <ModelT> The type (POJO) of Resource model.
+     * @param <CallbackT>, callback context the extends {@link StdCallbackContext}
+     *
+     * @return an instance of the {@link Initiator}
+     */
+    <ClientT, ModelT, CallbackT extends StdCallbackContext>
+        Initiator<ClientT, ModelT, CallbackT>
+        newInitiator(ProxyClient<ClientT> client, ModelT model, CallbackT context);
 
     /**
      * Each service call must be first initiated. Every call is provided a separate
@@ -71,6 +149,8 @@ public interface CallChain {
      */
     interface RequestMaker<ClientT, ModelT, CallbackT extends StdCallbackContext> {
         /**
+         * use {@link #translateToServiceRequest(Function)}
+         *
          * Take a reference to the tranlater that take the resource model POJO as input
          * and provide a request object as needed to make the Service call.
          *
@@ -78,7 +158,20 @@ public interface CallChain {
          * @param <RequestT>, the web service request created
          * @return returns the next step, to actually call the service.
          */
-        <RequestT> Caller<RequestT, ClientT, ModelT, CallbackT> request(Function<ModelT, RequestT> maker);
+        @Deprecated
+        default <RequestT> Caller<RequestT, ClientT, ModelT, CallbackT> request(Function<ModelT, RequestT> maker) {
+            return translateToServiceRequest(maker);
+        }
+
+        /**
+         * Take a reference to the tranlater that take the resource model POJO as input
+         * and provide a request object as needed to make the Service call.
+         *
+         * @param maker, provide a functional transform from model to request object.
+         * @param <RequestT>, the web service request created
+         * @return returns the next step, to actually call the service.
+         */
+        <RequestT> Caller<RequestT, ClientT, ModelT, CallbackT> translateToServiceRequest(Function<ModelT, RequestT> maker);
     }
 
     /**
@@ -86,17 +179,31 @@ public interface CallChain {
      * caller. This allow for the proxy to intercept and wrap the caller in cases of
      * replay and provide the memoized response back
      *
-     * @param <RequestT>
-     * @param <ClientT>
-     * @param <ModelT>
-     * @param <CallbackT>
+     * @param <RequestT>, the AWS serivce request we are making
+     * @param <ClientT>, the web service client to make the call
+     * @param <ModelT>, the current model we are using
+     * @param <CallbackT>, the callback context for handling all AWS service request
+     *            responses
      */
     interface Caller<RequestT, ClientT, ModelT, CallbackT extends StdCallbackContext> {
+        @Deprecated
+        default <ResponseT>
+            Stabilizer<RequestT, ResponseT, ClientT, ModelT, CallbackT>
+            call(BiFunction<RequestT, ProxyClient<ClientT>, ResponseT> caller) {
+            return makeServiceCall(caller);
+        }
+
         <ResponseT>
             Stabilizer<RequestT, ResponseT, ClientT, ModelT, CallbackT>
-            call(BiFunction<RequestT, ProxyClient<ClientT>, ResponseT> caller);
+            makeServiceCall(BiFunction<RequestT, ProxyClient<ClientT>, ResponseT> caller);
 
-        Caller<RequestT, ClientT, ModelT, CallbackT> retry(Delay delay);
+        @Deprecated
+        default Caller<RequestT, ClientT, ModelT, CallbackT> retry(Delay delay) {
+            return backoffDelay(delay);
+        }
+
+        Caller<RequestT, ClientT, ModelT, CallbackT> backoffDelay(Delay delay);
+
     }
 
     /**
@@ -119,18 +226,6 @@ public interface CallChain {
     @FunctionalInterface
     interface Callback<RequestT, ResponseT, ClientT, ModelT, CallbackT extends StdCallbackContext, ReturnT> {
         ReturnT invoke(RequestT request, ResponseT response, ProxyClient<ClientT> client, ModelT model, CallbackT context);
-
-        static <RequestT, ResponseT, ClientT, ModelT, CallbackT extends StdCallbackContext>
-            Callback<RequestT, ResponseT, ClientT, ModelT, CallbackT, ProgressEvent<ModelT, CallbackT>>
-            progress() {
-            return (r1, r2, c1, m1, c2) -> ProgressEvent.progress(m1, c2);
-        }
-
-        static <RequestT, ResponseT, ClientT, ModelT, CallbackT extends StdCallbackContext>
-            Callback<RequestT, ResponseT, ClientT, ModelT, CallbackT, ProgressEvent<ModelT, CallbackT>>
-            success() {
-            return (r1, r2, c1, m1, c2) -> ProgressEvent.success(m1, c2);
-        }
     }
 
     /**
@@ -154,8 +249,39 @@ public interface CallChain {
          * @return true of you want to attempt another retry of the operation. false to
          *         indicate propagate error/fault.
          */
+        @Deprecated
+        default Completed<RequestT, ResponseT, ClientT, ModelT, CallbackT>
+            exceptFilter(Callback<? super RequestT, Exception, ClientT, ModelT, CallbackT, Boolean> handler) {
+            return retryErrorFilter(handler);
+        }
+
+        /**
+         * @param handler, a predicate lambda expression that takes the web request,
+         *            exception, client, model and context to determine to retry the
+         *            exception thrown by the service or fail operation. This is the
+         *            simpler model then {@link #handleError(ExceptionPropagate)} for
+         *            most common retry scenarios If we need more control over the
+         *            outcome, then use {@link #handleError(ExceptionPropagate)}
+         * @return true of you want to attempt another retry of the operation. false to
+         *         indicate propagate error/fault.
+         */
         Completed<RequestT, ResponseT, ClientT, ModelT, CallbackT>
-            exceptFilter(Callback<? super RequestT, Exception, ClientT, ModelT, CallbackT, Boolean> handler);
+            retryErrorFilter(Callback<? super RequestT, Exception, ClientT, ModelT, CallbackT, Boolean> handler);
+
+        /**
+         * @param handler, a lambda expression that takes the web request, response,
+         *            client, model and context returns a successful or failed
+         *            {@link ProgressEvent} back or can rethrow service exception to
+         *            propagate errors. If handler needs to retry the exception, the it
+         *            will throw a
+         *            {@link software.amazon.awssdk.core.exception.RetryableException}
+         * @return a ProgressEvent for the model
+         */
+        @Deprecated
+        default Completed<RequestT, ResponseT, ClientT, ModelT, CallbackT> exceptHandler(ExceptionPropagate<? super RequestT,
+            Exception, ClientT, ModelT, CallbackT, ProgressEvent<ModelT, CallbackT>> handler) {
+            return handleError(handler);
+        }
 
         /**
          * @param handler, a lambda expression that take the web request, response,
@@ -164,8 +290,26 @@ public interface CallChain {
          * @return If status is {@link OperationStatus#IN_PROGRESS} we will attempt
          *         another retry. Otherwise failure is propagated.
          */
-        Completed<RequestT, ResponseT, ClientT, ModelT, CallbackT> exceptHandler(Callback<? super RequestT, Exception, ClientT,
-            ModelT, CallbackT, ProgressEvent<ModelT, CallbackT>> handler);
+        Completed<RequestT, ResponseT, ClientT, ModelT, CallbackT> handleError(ExceptionPropagate<? super RequestT, Exception,
+            ClientT, ModelT, CallbackT, ProgressEvent<ModelT, CallbackT>> handler);
+    }
+
+    /**
+     * When implementing this interface, developers can either propagate the
+     * exception as is. If the exception can be retried, throw
+     * {@link software.amazon.awssdk.core.exception.RetryableException}
+     *
+     * @param <RequestT> the API request object
+     * @param <E> the exception that is thrown by the API
+     * @param <ClientT> the service client
+     * @param <ModelT> current desired state resource model
+     * @param <CallbackT> current callback context
+     * @param <ReturnT> result object
+     */
+    @FunctionalInterface
+    interface ExceptionPropagate<RequestT, E extends Exception, ClientT, ModelT, CallbackT extends StdCallbackContext, ReturnT> {
+        ReturnT invoke(RequestT request, E exception, ProxyClient<ClientT> client, ModelT model, CallbackT context)
+            throws Exception;
     }
 
     /**
@@ -242,24 +386,27 @@ public interface CallChain {
             done(Callback<RequestT, ResponseT, ClientT, ModelT, CallbackT, ProgressEvent<ModelT, CallbackT>> callback);
 
         /**
-         * Helper function that provides a {@link OperationStatus#SUCCESS} status when
-         * the callchain is done
+         * @return {@link ProgressEvent} Helper function that provides a
+         *         {@link OperationStatus#SUCCESS} status when the callchain is done
          */
         default ProgressEvent<ModelT, CallbackT> success() {
             return done((request, response, client, model, context) -> ProgressEvent.success(model, context));
         }
 
         /**
-         * Helper function that provides a {@link OperationStatus#IN_PROGRESS} status
-         * when the callchain is done
+         * @return {@link ProgressEvent} Helper function that provides a
+         *         {@link OperationStatus#IN_PROGRESS} status when the callchain is done
          */
         default ProgressEvent<ModelT, CallbackT> progress() {
             return progress(0);
         }
 
         /**
-         * Helper function that provides a {@link OperationStatus#IN_PROGRESS} status
-         * when the callchain is done
+         * @param callbackDelay the number of seconds to delay before calling back into
+         *            this externally
+         * @return {@link ProgressEvent} Helper function that provides a
+         *         {@link OperationStatus#IN_PROGRESS} status when the callchain is done
+         *         with callback delay
          */
         default ProgressEvent<ModelT, CallbackT> progress(int callbackDelay) {
             return done((request, response, client, model, context) -> ProgressEvent.defaultInProgressHandler(context,

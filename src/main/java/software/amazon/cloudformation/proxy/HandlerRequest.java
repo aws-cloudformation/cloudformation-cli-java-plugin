@@ -29,10 +29,11 @@ public class HandlerRequest<ResourceT, CallbackT> {
     private String bearerToken;
     private String nextToken;
     private String region;
-    private String responseEndpoint;
     private String resourceType;
     private String resourceTypeVersion;
     private RequestData<ResourceT> requestData;
     private String stackId;
+    private CallbackT callbackContext;
+    private Boolean snapshotRequested;
     private RequestContext<CallbackT> requestContext;
 }
