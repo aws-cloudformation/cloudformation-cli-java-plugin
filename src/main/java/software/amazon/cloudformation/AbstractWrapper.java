@@ -231,7 +231,7 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
         } finally {
             // A response will be output on all paths, though CloudFormation will
             // not block on invoking the handlers, but rather listen for callbacks
-            writeResponse(outputStream, handlerResponse);
+            writeResponse(outputStream, handlerResponse, request);
             publishExceptionCodeAndCountMetrics(request == null ? null : request.getAction(), handlerResponse.getErrorCode());
         }
     }
@@ -372,7 +372,9 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
 
     }
 
-    protected void writeResponse(final OutputStream outputStream, final ProgressEvent<ResourceT, CallbackT> response)
+    protected void writeResponse(final OutputStream outputStream,
+                                 final ProgressEvent<ResourceT, CallbackT> response,
+                                 final HandlerRequest<ResourceT, CallbackT> request)
         throws IOException {
         if (response.getResourceModel() != null) {
             // strip write only properties on final results, we will need the intact model
@@ -383,6 +385,15 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
         }
 
         String output = this.serializer.serialize(response);
+        if (response.getStatus() == OperationStatus.IN_PROGRESS) {
+            this.log("----Handler Response Payload----");
+            if (request != null) {
+                this.log(request.getStackId());
+                this.log(request.getRequestData().getLogicalResourceId());
+            }
+            this.log(output);
+            this.log("--------------------------------");
+        }
         outputStream.write(output.getBytes(StandardCharsets.UTF_8));
         outputStream.flush();
     }
