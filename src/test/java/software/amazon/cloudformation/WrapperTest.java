@@ -160,7 +160,7 @@ public class WrapperTest {
             }
 
             verify(providerEventsLogger).refreshClient();
-            verify(providerEventsLogger, times(2)).publishLogEvent(any());
+            verify(providerEventsLogger, times(3)).publishLogEvent(any());
             verifyNoMoreInteractions(providerEventsLogger);
 
             // verify output response
@@ -1028,5 +1028,15 @@ public class WrapperTest {
         final String stackId = wrapper.getStackId(request);
         assertThat(stackId).isNotNull();
         assertThat(stackId).isEqualTo("AWSStackId");
+    }
+
+    @Test
+    public void getLogicalResourceId_setAndGetLogicalResourceId() {
+        final HandlerRequest<TestModel, TestContext> request = new HandlerRequest<>();
+        final RequestData<TestModel> requestData = new RequestData<>();
+        requestData.setLogicalResourceId("MyResource");
+        request.setRequestData(requestData);
+
+        assertThat(wrapper.getLogicalResourceId(request)).isEqualTo("MyResource");
     }
 }

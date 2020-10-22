@@ -385,14 +385,11 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
         }
 
         String output = this.serializer.serialize(response);
-        if (response.getStatus() == OperationStatus.IN_PROGRESS) {
-            this.log("----Handler Response Payload----");
-            if (request != null) {
-                this.log(request.getStackId());
-                this.log(request.getRequestData().getLogicalResourceId());
-            }
-            this.log(output);
-            this.log("--------------------------------");
+        if (response.getStatus() != OperationStatus.IN_PROGRESS) {
+            // if status is not IN_PROGRESS, it means the response has been sanitized
+            final String logicalResourceId = getLogicalResourceId(request);
+            final String stackId = getStackId(request);
+            this.log(String.format("StackId=%s LogicalResourceId=%s Response=%s", stackId, logicalResourceId, output));
         }
         outputStream.write(output.getBytes(StandardCharsets.UTF_8));
         outputStream.flush();
@@ -576,6 +573,15 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
     protected String getStackId(final HandlerRequest<ResourceT, CallbackT> request) {
         if (request != null) {
             return request.getStackId();
+        }
+
+        return null;
+    }
+
+    @VisibleForTesting
+    protected String getLogicalResourceId(final HandlerRequest<ResourceT, CallbackT> request) {
+        if (request != null && request.getRequestData() != null) {
+            return request.getRequestData().getLogicalResourceId();
         }
 
         return null;
