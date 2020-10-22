@@ -38,11 +38,13 @@ public class ResourceHandlerRequest<T> {
     private Map<String, String> desiredResourceTags;
     private Map<String, String> previousResourceTags;
     private Map<String, String> systemTags;
+    private Map<String, String> previousSystemTags;
     private String awsAccountId;
     private String awsPartition;
     private String logicalResourceIdentifier;
     private String nextToken;
     private Boolean snapshotRequested;
+    private Boolean rollback;
     private String region;
     private String stackId;
 }

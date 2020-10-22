@@ -262,6 +262,10 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
             resourceHandlerRequest.setPreviousResourceTags(getPreviousResourceTags(request));
             resourceHandlerRequest.setStackId(getStackId(request));
             resourceHandlerRequest.setSnapshotRequested(request.getSnapshotRequested());
+            resourceHandlerRequest.setRollback(request.getRollback());
+            if (request.getRequestData() != null) {
+                resourceHandlerRequest.setPreviousSystemTags(request.getRequestData().getPreviousSystemTags());
+            }
         }
 
         this.metricsPublisherProxy.publishInvocationMetric(Instant.now(), request.getAction());
