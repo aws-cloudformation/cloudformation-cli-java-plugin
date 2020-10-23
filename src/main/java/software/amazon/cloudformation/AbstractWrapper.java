@@ -395,6 +395,11 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
         outputStream.flush();
     }
 
+    protected void writeResponse(final OutputStream outputStream, final ProgressEvent<ResourceT, CallbackT> response)
+        throws IOException {
+        this.writeResponse(outputStream, response, null);
+    }
+
     protected ResourceT sanitizeModel(final ResourceT model) throws IOException {
         // strip write only properties on final results, we will need the intact model
         // while provisioning
