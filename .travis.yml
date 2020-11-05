@@ -40,7 +40,7 @@ jobs:
         - DIR=$(mktemp -d)
         - cd "$DIR"
         - ls -la
-        - printf "AWS::Foo::Bar\n\n1" | cfn init -vv
+        - cfn init -vv -t AWS::Foo::Bar
         - mvn verify
         - ls -la
     - stage: "integ guided"
@@ -53,6 +53,6 @@ jobs:
         - DIR=$(mktemp -d)
         - cd "$DIR"
         - ls -la
-        - printf "AWS::Foo::Bar\n\n2" | cfn init -vv
+        - cfn init -vv -t AWS::Foo::Bar
         - mvn verify
         - ls -la
