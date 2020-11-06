@@ -6,6 +6,7 @@ import software.amazon.awssdk.awscore.AwsResponse;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -89,6 +90,32 @@ public class Translator {
     // TODO: construct a request
     return awsRequest;
   }
+
+  /**
+   * Request to update Stack level tags. Stack tags are defined as Maps by cloudformation
+   * @param previousStackTags previous stack tags
+   * @param stackTags currently provided stack tags
+   * @return awsRequest the aws service request to modify a resource
+   */
+  static AwsRequest translateToStackTagUpdateRequest(final Map<String, String> previousStackTags, final Map<String, String> stackTags) {
+    final AwsRequest awsRequest = null;
+    // TODO: construct a request
+    return awsRequest;
+  }
+
+  /**
+   * Request to update Resource level tags. Resource tags are defined by the service teams and could be represented by any collection
+   * @param previousModel previous resource model, which contains previously provided resource tags
+   * @param model current resource model, which contains currently provided resource tags
+   * @return awsRequest the aws service request to modify a resource
+   */
+  static AwsRequest translateToResourceTagUpdateRequest(final ResourceModel previousModel, final ResourceModel model) {
+    final AwsRequest awsRequest = null;
+    // TODO: construct a request
+    return awsRequest;
+  }
+
+
 
   /**
    * Request to list resources
