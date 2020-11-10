@@ -1,11 +1,15 @@
 from rpdk.core.jsonutils.resolver import UNDEFINED, ContainerType
 
 PRIMITIVE_TYPES = {
-    "string": "String",
-    "integer": "Integer",
-    "boolean": "Boolean",
-    "number": "Double",
-    UNDEFINED: "Object",
+    "string": {"default": "String"},
+    "integer": {
+                "default": "Integer",
+                "int32": "Integer",
+                "int64": "Integer"
+                },
+    "boolean": {"default": "Boolean"},
+    "number":  {"default": "Double"},
+    UNDEFINED: {"default": "Object"}
 }
 
 
@@ -13,7 +17,7 @@ def translate_type(resolved_type):
     if resolved_type.container == ContainerType.MODEL:
         return resolved_type.type
     if resolved_type.container == ContainerType.PRIMITIVE:
-        return PRIMITIVE_TYPES[resolved_type.type]
+        return PRIMITIVE_TYPES[resolved_type.type].get(resolved_type.format)
 
     if resolved_type.container == ContainerType.MULTIPLE:
         return "Object"
