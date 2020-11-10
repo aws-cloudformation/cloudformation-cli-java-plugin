@@ -2,14 +2,10 @@ from rpdk.core.jsonutils.resolver import UNDEFINED, ContainerType
 
 PRIMITIVE_TYPES = {
     "string": {"default": "String"},
-    "integer": {
-                "default": "Integer",
-                "int32": "Integer",
-                "int64": "Integer"
-                },
+    "integer": {"default": "Integer", "int32": "Integer", "int64": "Long"},
     "boolean": {"default": "Boolean"},
-    "number":  {"default": "Double"},
-    UNDEFINED: {"default": "Object"}
+    "number": {"default": "Double"},
+    UNDEFINED: {"default": "Object"},
 }
 
 
@@ -17,7 +13,7 @@ def translate_type(resolved_type):
     if resolved_type.container == ContainerType.MODEL:
         return resolved_type.type
     if resolved_type.container == ContainerType.PRIMITIVE:
-        return PRIMITIVE_TYPES[resolved_type.type].get(resolved_type.format)
+        return PRIMITIVE_TYPES[resolved_type.type].get(resolved_type.type_format)
 
     if resolved_type.container == ContainerType.MULTIPLE:
         return "Object"
@@ -25,7 +21,7 @@ def translate_type(resolved_type):
     item_type = translate_type(resolved_type.type)
 
     if resolved_type.container == ContainerType.DICT:
-        key_type = PRIMITIVE_TYPES["string"]
+        key_type = PRIMITIVE_TYPES["string"]["default"]
         return f"Map<{key_type}, {item_type}>"
     if resolved_type.container == ContainerType.LIST:
         return f"List<{item_type}>"
