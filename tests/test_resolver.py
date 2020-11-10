@@ -61,3 +61,8 @@ def test_translate_type_unknown(resolved_type, _java_type):
 @pytest.mark.parametrize("resolved_type,java_type", RESOLVED_INTEGER_FORMATS)
 def test_translate_type_integer_formats(resolved_type, java_type):
     assert translate_type(resolved_type) == java_type
+
+
+def test_translate_type_unavailable_format():
+    resolved_type = ResolvedType(ContainerType.PRIMITIVE, "integer", "int128")
+    assert translate_type(resolved_type) == PRIMITIVE_TYPES["integer"]["default"]

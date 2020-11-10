@@ -1,4 +1,8 @@
-from rpdk.core.jsonutils.resolver import UNDEFINED, ContainerType
+import logging
+
+from rpdk.core.jsonutils.resolver import DEFAULT, UNDEFINED, ContainerType
+
+LOG = logging.getLogger(__name__)
 
 PRIMITIVE_TYPES = {
     "string": {"default": "String"},
@@ -13,7 +17,20 @@ def translate_type(resolved_type):
     if resolved_type.container == ContainerType.MODEL:
         return resolved_type.type
     if resolved_type.container == ContainerType.PRIMITIVE:
-        return PRIMITIVE_TYPES[resolved_type.type].get(resolved_type.type_format)
+        try:
+            primitive_format = PRIMITIVE_TYPES[resolved_type.type][
+                resolved_type.type_format
+            ]
+        except KeyError:
+            primitive_format = PRIMITIVE_TYPES[resolved_type.type][DEFAULT]
+            LOG.error(
+                "Could not find specified format '%s' for type '%s'. "
+                "Defaulting to '%s'",
+                resolved_type.type_format,
+                resolved_type.type,
+                primitive_format,
+            )
+        return primitive_format
 
     if resolved_type.container == ContainerType.MULTIPLE:
         return "Object"
