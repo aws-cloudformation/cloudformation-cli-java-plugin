@@ -132,8 +132,8 @@ public class ExecutableWrapperTest {
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
 
-            // verify that model validation occurred for CREATE/UPDATE/DELETE
-            if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
+            // verify that model validation occurred for CREATE/UPDATE
+            if (action == Action.CREATE || action == Action.UPDATE) {
                 verify(validator, times(1)).validateObject(any(JSONObject.class), any(JSONObject.class));
             }
 

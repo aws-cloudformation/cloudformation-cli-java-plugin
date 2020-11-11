@@ -154,8 +154,8 @@ public class WrapperTest {
             verify(providerMetricsPublisher).publishInvocationMetric(any(Instant.class), eq(action));
             verify(providerMetricsPublisher).publishDurationMetric(any(Instant.class), eq(action), anyLong());
 
-            // verify that model validation occurred for CREATE/UPDATE/DELETE
-            if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
+            // verify that model validation occurred for CREATE/UPDATE
+            if (action == Action.CREATE || action == Action.UPDATE) {
                 verify(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
             }
 
@@ -269,8 +269,8 @@ public class WrapperTest {
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
 
-            // verify that model validation occurred for CREATE/UPDATE/DELETE
-            if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
+            // verify that model validation occurred for CREATE/UPDATE
+            if (action == Action.CREATE || action == Action.UPDATE) {
                 verify(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
             }
 
@@ -325,8 +325,8 @@ public class WrapperTest {
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
 
-            // verify that model validation occurred for CREATE/UPDATE/DELETE
-            if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
+            // verify that model validation occurred for CREATE/UPDATE
+            if (action == Action.CREATE || action == Action.UPDATE) {
                 verify(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
             }
 
@@ -400,11 +400,12 @@ public class WrapperTest {
             verify(providerMetricsPublisher).publishInvocationMetric(any(Instant.class), eq(action));
             verify(providerMetricsPublisher).publishDurationMetric(any(Instant.class), eq(action), anyLong());
 
-            // verify that model validation occurred for CREATE/UPDATE/DELETE
-            if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
+            // verify that model validation occurred for CREATE/UPDATE
+            if (action == Action.CREATE || action == Action.UPDATE) {
                 verify(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
+            }
 
-                // verify output response
+            if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
                 verifyHandlerResponse(out, ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.IN_PROGRESS)
                     .resourceModel(TestModel.builder().property1("abc").property2(123).build()).build());
             } else {
@@ -465,8 +466,8 @@ public class WrapperTest {
             // validation failure metric should not be published
             verifyNoMoreInteractions(providerMetricsPublisher);
 
-            // verify that model validation occurred for CREATE/UPDATE/DELETE
-            if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
+            // verify that model validation occurred for CREATE/UPDATE
+            if (action == Action.CREATE || action == Action.UPDATE) {
                 verify(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
             }
 
@@ -477,7 +478,7 @@ public class WrapperTest {
     }
 
     @ParameterizedTest
-    @CsvSource({ "create.request.json,CREATE", "update.request.json,UPDATE", "delete.request.json,DELETE" })
+    @CsvSource({ "create.request.json,CREATE", "update.request.json,UPDATE" })
     public void invokeHandler_SchemaValidationFailure(final String requestDataPath, final String actionAsString)
         throws IOException {
         final Action action = Action.valueOf(actionAsString);
@@ -499,8 +500,8 @@ public class WrapperTest {
             // all metrics should be published, even for a single invocation
             verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
 
-            // verify that model validation occurred for CREATE/UPDATE/DELETE
-            if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
+            // verify that model validation occurred for CREATE/UPDATE
+            if (action == Action.CREATE || action == Action.UPDATE) {
                 verify(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
             }
 
