@@ -79,4 +79,22 @@ public class TypeConverterTest {
         assertThat(complexObject.value).isEqualTo("Value");
     }
 
+    @Test
+    public void castMultiTypePropertyWithInvalidReferences() throws IOException {
+        final Serializer ser = new Serializer();
+
+        // mimics if multitype was casted to an object
+        final Object multiTypeProperty = ser.deserialize(OBJECT, new TypeReference<Object>() {
+        });
+
+        try {
+            Object converted = TypeConverter.covertProperty(multiTypeProperty, new TypeReference<Integer>() {
+            }, new TypeReference<Boolean>() {
+            });
+
+        } catch (RuntimeException e) {
+            assertThat(e.getMessage()).isEqualTo("No Suitable Type Reference");
+        }
+    }
+
 }

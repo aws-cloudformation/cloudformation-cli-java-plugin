@@ -23,18 +23,27 @@ public class TypeConverter {
         throw new UnsupportedOperationException();
     }
 
-    public static <T> Object covertProperty(final Object input, final TypeReference<?>... typeReferences) // preserves order
-        throws IOException {
-        final Serializer serializer = new Serializer();
-        final String stringified_input = serializer.serialize(input);
+    public static Object covertProperty(final Object input, final TypeReference<?>... typeReferences) // preserves order
+    {
+        try {
+            final Serializer serializer = new Serializer();
+            final String stringified_input = serializer.serialize(input);
 
-        for (TypeReference<?> typeReference : typeReferences) {
-            try {
-                return serializer.deserialize(stringified_input, typeReference);
-            } catch (JsonProcessingException ignored) {
-                // An empty catch block
+            int iter = 0;
+            while (true) {
+                TypeReference<?> typeReference = typeReferences[iter];
+                try {
+                    return serializer.deserialize(stringified_input, typeReference);
+                } catch (JsonProcessingException exception) {
+                    if (iter < typeReferences.length - 1) {
+                        iter++;
+                    } else {
+                        throw new RuntimeException("No Suitable Type Reference");
+                    }
+                }
             }
+        } catch (IOException exception) {
+            throw new RuntimeException("Invalid Object to Stringify");
         }
-        return input; // if no suitable type references were provided we dont wanna fail
     }
 }
