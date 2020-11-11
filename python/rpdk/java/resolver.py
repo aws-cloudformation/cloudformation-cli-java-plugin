@@ -1,6 +1,6 @@
 import logging
 
-from rpdk.core.jsonutils.resolver import DEFAULT, UNDEFINED, ContainerType
+from rpdk.core.jsonutils.resolver import FORMAT_DEFAULT, UNDEFINED, ContainerType
 
 LOG = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ def translate_type(resolved_type):
                 resolved_type.type_format
             ]
         except KeyError:
-            primitive_format = PRIMITIVE_TYPES[resolved_type.type][DEFAULT]
+            primitive_format = PRIMITIVE_TYPES[resolved_type.type][FORMAT_DEFAULT]
             LOG.error(
                 "Could not find specified format '%s' for type '%s'. "
                 "Defaulting to '%s'",
