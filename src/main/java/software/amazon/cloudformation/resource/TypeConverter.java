@@ -23,7 +23,7 @@ public class TypeConverter {
         throw new UnsupportedOperationException();
     }
 
-    public static Object covertProperty(final Object input, final TypeReference<?>... typeReferences) // preserves order
+    public static Object convertProperty(final Object input, final TypeReference<?>... typeReferences) // preserves order
     {
         try {
             final Serializer serializer = new Serializer();
