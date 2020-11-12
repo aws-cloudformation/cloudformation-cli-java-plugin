@@ -49,7 +49,7 @@ public class TypeConverterTest {
         final Object multiTypeProperty = ser.deserialize(LIST_OF_OBJECTS, new TypeReference<Object>() {
         });
 
-        Object converted = TypeConverter.covertProperty(multiTypeProperty, typeReferenceComplexObject,
+        Object converted = TypeConverter.convertProperty(multiTypeProperty, typeReferenceComplexObject,
             typeReferenceComplexObjectList);
 
         assertThat(converted).isInstanceOf(List.class);
@@ -71,7 +71,7 @@ public class TypeConverterTest {
         final Object multiTypeProperty = ser.deserialize(OBJECT, new TypeReference<Object>() {
         });
 
-        Object converted = TypeConverter.covertProperty(multiTypeProperty, typeReferenceComplexObject,
+        Object converted = TypeConverter.convertProperty(multiTypeProperty, typeReferenceComplexObject,
             typeReferenceComplexObjectList);
         assertThat(converted).isInstanceOf(ComplexObject.class);
         ComplexObject complexObject = (ComplexObject) converted;
@@ -88,7 +88,7 @@ public class TypeConverterTest {
         });
 
         try {
-            Object converted = TypeConverter.covertProperty(multiTypeProperty, new TypeReference<Integer>() {
+            Object converted = TypeConverter.convertProperty(multiTypeProperty, new TypeReference<Integer>() {
             }, new TypeReference<Boolean>() {
             });
 
