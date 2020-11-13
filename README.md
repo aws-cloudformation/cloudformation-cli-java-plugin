@@ -23,7 +23,7 @@ pip3 install cloudformation-cli-java-plugin
 
 Refer to the [CloudFormation CLI User Guide](https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-types.html) for the [CloudFormation CLI](https://github.com/aws-cloudformation/cloudformation-cli) for usage instructions.
 
-###Alternate Type Formats
+### Alternate Type Formats
 The `format` keyword can be specified on primitive types defined in a resource provider's schema to allow the CloudFormation CLI Java Plugin to generate more than the defaults for primitive types. Consult the table below for what formats are available and defaults for various types. The `default` value is used if omitted:
 
 | JSON Schema Type | Format value | Generated variable type  |
