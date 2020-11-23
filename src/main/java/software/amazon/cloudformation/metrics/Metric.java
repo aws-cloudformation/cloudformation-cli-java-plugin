@@ -20,8 +20,10 @@ public class Metric {
     public static final String METRIC_NAME_HANDLER_EXCEPTION = "HandlerException";
     public static final String METRIC_NAME_HANDLER_EXCEPTION_BY_ERROR_CODE = "HandlerExceptionByErrorCode";
     public static final String METRIC_NAME_HANDLER_EXCEPTION_BY_EXCEPTION_COUNT = "HandlerExceptionByExceptionCount";
+    public static final String METRIC_NAME_HANDLER_EXCEPTION_DUE_TO_TAGGING = "HandlerExceptionByTagging";
     public static final String METRIC_NAME_HANDLER_DURATION = "HandlerInvocationDuration";
     public static final String METRIC_NAME_HANDLER_INVOCATION_COUNT = "HandlerInvocationCount";
+    public static final String ACCESS_DENIED_EXCEPTION_MESSAGE = "not authorized";
 
     public static final String DIMENSION_KEY_ACTION_TYPE = "Action";
     public static final String DIMENSION_KEY_EXCEPTION_TYPE = "ExceptionType";

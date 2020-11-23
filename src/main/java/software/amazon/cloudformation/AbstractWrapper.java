@@ -232,7 +232,8 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
             // A response will be output on all paths, though CloudFormation will
             // not block on invoking the handlers, but rather listen for callbacks
             writeResponse(outputStream, handlerResponse, request);
-            publishExceptionCodeAndCountMetrics(request == null ? null : request.getAction(), handlerResponse.getErrorCode());
+            publishExceptionCodeAndCountMetrics(handlerResponse.getStatus(), request == null ? null : request.getAction(),
+                handlerResponse.getErrorCode(), handlerResponse.getMessage());
         }
     }
 
@@ -496,9 +497,13 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
     /*
      * null-safe exception metrics delivery
      */
-    private void publishExceptionCodeAndCountMetrics(final Action action, final HandlerErrorCode handlerErrorCode) {
+    private void publishExceptionCodeAndCountMetrics(final OperationStatus status,
+                                                     final Action action,
+                                                     final HandlerErrorCode handlerErrorCode,
+                                                     final String message) {
         if (this.metricsPublisherProxy != null) {
-            this.metricsPublisherProxy.publishExceptionByErrorCodeAndCountBulkMetrics(Instant.now(), action, handlerErrorCode);
+            this.metricsPublisherProxy.publishExceptionByErrorCodeAndCountBulkMetrics(status, Instant.now(), action,
+                handlerErrorCode, message);
         }
     }
 
