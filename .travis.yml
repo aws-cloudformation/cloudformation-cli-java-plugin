@@ -53,6 +53,6 @@ jobs:
         - DIR=$(mktemp -d)
         - cd "$DIR"
         - ls -la
-        - cfn init -vv -t AWS::Foo::Bar
+        - cfn init -vv -t AWS::Foo::Bar -a RESOURCE
         - mvn verify
         - ls -la
