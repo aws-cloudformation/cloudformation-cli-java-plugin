@@ -14,10 +14,12 @@
 */
 package software.amazon.cloudformation.metrics;
 
+import static software.amazon.cloudformation.metrics.Metric.ACCESS_DENIED_EXCEPTION_MESSAGE;
 import com.google.common.collect.Sets;
 import java.time.Instant;
 import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
@@ -28,6 +30,7 @@ import software.amazon.cloudformation.Action;
 import software.amazon.cloudformation.injection.CloudWatchProvider;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
+import software.amazon.cloudformation.proxy.OperationStatus;
 
 public class MetricsPublisherImpl extends MetricsPublisher {
     private final CloudWatchProvider cloudWatchProvider;
@@ -69,27 +72,38 @@ public class MetricsPublisherImpl extends MetricsPublisher {
     }
 
     @Override
-    public void publishExceptionByErrorCodeAndCountBulkMetrics(final Instant timestamp,
+    public void publishExceptionByErrorCodeAndCountBulkMetrics(final OperationStatus status,
+                                                               final Instant timestamp,
                                                                final Action action,
-                                                               final HandlerErrorCode handlerErrorCode) {
+                                                               final HandlerErrorCode handlerErrorCode,
+                                                               final String message) {
         Set<MetricDatum> bulkData = new HashSet<>();
+        final String actionName = action == null ? "NO_ACTION" : action.name();
+        final String messageLowerCase = message == null ? "" : message.toLowerCase(Locale.ENGLISH);
 
         // By Error Code dimensions
 
-        EnumSet.allOf(HandlerErrorCode.class).forEach(
-            errorCode -> bulkData.add(MetricDatum.builder().metricName(Metric.METRIC_NAME_HANDLER_EXCEPTION_BY_ERROR_CODE)
-                .unit(StandardUnit.COUNT).value(errorCode == handlerErrorCode ? 1.0 : 0.0)
-                .dimensions(Sets.newHashSet(
-                    Dimension.builder().name(Metric.DIMENSION_KEY_ACTION_TYPE).value(action == null ? "NO_ACTION" : action.name())
-                        .build(),
+        EnumSet.allOf(HandlerErrorCode.class)
+            .forEach(errorCode -> bulkData.add(MetricDatum.builder()
+                .metricName(Metric.METRIC_NAME_HANDLER_EXCEPTION_BY_ERROR_CODE).unit(StandardUnit.COUNT)
+                .value(errorCode == handlerErrorCode ? 1.0 : 0.0)
+                .dimensions(Sets.newHashSet(Dimension.builder().name(Metric.DIMENSION_KEY_ACTION_TYPE).value(actionName).build(),
                     Dimension.builder().name(Metric.DIMENSION_KEY_HANDLER_ERROR_CODE).value(errorCode.name()).build()))
                 .timestamp(timestamp).build()));
 
         // By Count dimensions
         bulkData.add(MetricDatum.builder().metricName(Metric.METRIC_NAME_HANDLER_EXCEPTION_BY_EXCEPTION_COUNT)
-            .unit(StandardUnit.COUNT).value(handlerErrorCode == null ? 0.0 : 1.0).dimensions(Dimension.builder()
-                .name(Metric.DIMENSION_KEY_ACTION_TYPE).value(action == null ? "NO_ACTION" : action.name()).build())
-            .timestamp(timestamp).build());
+            .unit(StandardUnit.COUNT).value(handlerErrorCode == null ? 0.0 : 1.0)
+            .dimensions(Dimension.builder().name(Metric.DIMENSION_KEY_ACTION_TYPE).value(actionName).build()).timestamp(timestamp)
+            .build());
+
+        boolean authorizationError = status == OperationStatus.FAILED
+            && messageLowerCase.contains(ACCESS_DENIED_EXCEPTION_MESSAGE) && messageLowerCase.contains("tag");
+
+        bulkData.add(MetricDatum.builder().metricName(Metric.METRIC_NAME_HANDLER_EXCEPTION_DUE_TO_TAGGING)
+            .unit(StandardUnit.COUNT).value(authorizationError ? 1.0 : 0.0)
+            .dimensions(Dimension.builder().name(Metric.DIMENSION_KEY_ACTION_TYPE).value(actionName).build()).timestamp(timestamp)
+            .build());
 
         publishBulkMetrics(bulkData.toArray(new MetricDatum[bulkData.size()]));
     }

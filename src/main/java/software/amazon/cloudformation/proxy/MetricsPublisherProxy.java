@@ -35,11 +35,13 @@ public class MetricsPublisherProxy {
             .forEach(metricsPublisher -> metricsPublisher.publishExceptionMetric(timestamp, action, e, handlerErrorCode));
     }
 
-    public void publishExceptionByErrorCodeAndCountBulkMetrics(final Instant timestamp,
+    public void publishExceptionByErrorCodeAndCountBulkMetrics(final OperationStatus status,
+                                                               final Instant timestamp,
                                                                final Action action,
-                                                               final HandlerErrorCode handlerErrorCode) {
+                                                               final HandlerErrorCode handlerErrorCode,
+                                                               final String message) {
         metricsPublishers.stream().forEach(metricsPublisher -> metricsPublisher
-            .publishExceptionByErrorCodeAndCountBulkMetrics(timestamp, action, handlerErrorCode));
+            .publishExceptionByErrorCodeAndCountBulkMetrics(status, timestamp, action, handlerErrorCode, message));
     }
 
     public void publishInvocationMetric(final Instant timestamp, final Action action) {

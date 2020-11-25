@@ -17,6 +17,7 @@ package software.amazon.cloudformation.metrics;
 import java.time.Instant;
 import software.amazon.cloudformation.Action;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.OperationStatus;
 
 public abstract class MetricsPublisher {
 
@@ -42,9 +43,11 @@ public abstract class MetricsPublisher {
                                        final HandlerErrorCode handlerErrorCode) {
     }
 
-    public void publishExceptionByErrorCodeAndCountBulkMetrics(final Instant timestamp,
+    public void publishExceptionByErrorCodeAndCountBulkMetrics(final OperationStatus status,
+                                                               final Instant timestamp,
                                                                final Action action,
-                                                               final HandlerErrorCode handlerErrorCode) {
+                                                               final HandlerErrorCode handlerErrorCode,
+                                                               final String message) {
     }
 
     public void publishInvocationMetric(final Instant timestamp, final Action action) {

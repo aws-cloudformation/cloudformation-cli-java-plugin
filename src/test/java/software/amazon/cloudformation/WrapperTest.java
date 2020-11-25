@@ -147,8 +147,8 @@ public class WrapperTest {
             // validation failure metric should be published for final error handling
             verify(providerMetricsPublisher).publishExceptionMetric(any(Instant.class), any(), any(TerminalException.class),
                 any(HandlerErrorCode.class));
-            verify(providerMetricsPublisher).publishExceptionByErrorCodeAndCountBulkMetrics(any(Instant.class), any(),
-                any(HandlerErrorCode.class));
+            verify(providerMetricsPublisher).publishExceptionByErrorCodeAndCountBulkMetrics(any(OperationStatus.class),
+                any(Instant.class), any(), any(HandlerErrorCode.class), any());
 
             // all metrics should be published even on terminal failure
             verify(providerMetricsPublisher).publishInvocationMetric(any(Instant.class), eq(action));
@@ -417,8 +417,8 @@ public class WrapperTest {
 
             }
 
-            verify(providerMetricsPublisher).publishExceptionByErrorCodeAndCountBulkMetrics(any(Instant.class), eq(action),
-                any());
+            verify(providerMetricsPublisher).publishExceptionByErrorCodeAndCountBulkMetrics(any(), any(Instant.class), eq(action),
+                any(), any());
 
             // validation failure metric should not be published
             verifyNoMoreInteractions(providerMetricsPublisher);
@@ -459,8 +459,8 @@ public class WrapperTest {
             // all metrics should be published, once for a single invocation
             verify(providerMetricsPublisher).publishInvocationMetric(any(Instant.class), eq(action));
             verify(providerMetricsPublisher).publishDurationMetric(any(Instant.class), eq(action), anyLong());
-            verify(providerMetricsPublisher).publishExceptionByErrorCodeAndCountBulkMetrics(any(Instant.class), eq(action),
-                any());
+            verify(providerMetricsPublisher).publishExceptionByErrorCodeAndCountBulkMetrics(any(), any(Instant.class), eq(action),
+                any(), any());
 
             // validation failure metric should not be published
             verifyNoMoreInteractions(providerMetricsPublisher);
@@ -825,8 +825,8 @@ public class WrapperTest {
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
 
-            verify(providerMetricsPublisher).publishExceptionByErrorCodeAndCountBulkMetrics(any(Instant.class), any(Action.class),
-                any(HandlerErrorCode.class));
+            verify(providerMetricsPublisher).publishExceptionByErrorCodeAndCountBulkMetrics(any(OperationStatus.class),
+                any(Instant.class), any(Action.class), any(HandlerErrorCode.class), any(String.class));
 
             // no further calls to metrics publisher should occur
             verifyNoMoreInteractions(providerMetricsPublisher);
