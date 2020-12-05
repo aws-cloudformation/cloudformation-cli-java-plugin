@@ -231,7 +231,7 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
         } finally {
             // A response will be output on all paths, though CloudFormation will
             // not block on invoking the handlers, but rather listen for callbacks
-            writeResponse(outputStream, handlerResponse, request);
+            writeResponse(outputStream, handlerResponse);
             publishExceptionCodeAndCountMetrics(request == null ? null : request.getAction(), handlerResponse.getErrorCode());
         }
     }
@@ -376,9 +376,7 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
 
     }
 
-    protected void writeResponse(final OutputStream outputStream,
-                                 final ProgressEvent<ResourceT, CallbackT> response,
-                                 final HandlerRequest<ResourceT, CallbackT> request)
+    protected void writeResponse(final OutputStream outputStream, final ProgressEvent<ResourceT, CallbackT> response)
         throws IOException {
         if (response.getResourceModel() != null) {
             // strip write only properties on final results, we will need the intact model
@@ -389,19 +387,8 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
         }
 
         String output = this.serializer.serialize(response);
-        if (response.getStatus() != OperationStatus.IN_PROGRESS) {
-            // if status is not IN_PROGRESS, it means the response has been sanitized
-            final String logicalResourceId = getLogicalResourceId(request);
-            final String stackId = getStackId(request);
-            this.log(String.format("StackId=%s LogicalResourceId=%s Response=%s", stackId, logicalResourceId, output));
-        }
         outputStream.write(output.getBytes(StandardCharsets.UTF_8));
         outputStream.flush();
-    }
-
-    protected void writeResponse(final OutputStream outputStream, final ProgressEvent<ResourceT, CallbackT> response)
-        throws IOException {
-        this.writeResponse(outputStream, response, null);
     }
 
     protected ResourceT sanitizeModel(final ResourceT model) throws IOException {
@@ -582,15 +569,6 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
     protected String getStackId(final HandlerRequest<ResourceT, CallbackT> request) {
         if (request != null) {
             return request.getStackId();
-        }
-
-        return null;
-    }
-
-    @VisibleForTesting
-    protected String getLogicalResourceId(final HandlerRequest<ResourceT, CallbackT> request) {
-        if (request != null && request.getRequestData() != null) {
-            return request.getRequestData().getLogicalResourceId();
         }
 
         return null;
