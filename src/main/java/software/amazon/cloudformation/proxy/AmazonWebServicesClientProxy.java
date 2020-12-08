@@ -443,9 +443,12 @@ public class AmazonWebServicesClientProxy implements CallChain {
         request.setRequestCredentialsProvider(v1CredentialsProvider);
 
         try {
-            ResultT respose = requestFunction.apply(request);
-            logRequestMetadata(request, respose);
-            return respose;
+            ResultT response = requestFunction.apply(request);
+            if(response != null) {
+                logRequestMetadata(request, response);
+            }
+
+            return response;
         } catch (final Throwable e) {
             loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
             throw e;
