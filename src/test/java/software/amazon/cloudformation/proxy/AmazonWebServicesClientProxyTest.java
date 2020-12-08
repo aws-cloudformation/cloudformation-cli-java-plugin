@@ -76,6 +76,12 @@ public class AmazonWebServicesClientProxyTest {
     //
     private final AwsSessionCredentials MockCreds = AwsSessionCredentials.create("accessKeyId", "secretKey", "token");
 
+    //
+    // Empty method for testing injectCredentialsAndInvoke with void returns
+    //
+    public static void dummyMethod(DescribeStackEventsRequest request) {
+    }
+
     @Test
     public void testInjectCredentialsAndInvoke() {
 
@@ -100,6 +106,23 @@ public class AmazonWebServicesClientProxyTest {
 
         // ensure the return type matches
         assertThat(result).isEqualTo(expectedResult);
+    }
+
+    @Test
+    public void testInjectCredentialsAndInvokeWithVoidFunction() {
+
+        final LoggerProxy loggerProxy = mock(LoggerProxy.class);
+        final Credentials credentials = new Credentials("accessKeyId", "secretAccessKey", "sessionToken");
+
+        final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(loggerProxy, credentials, () -> 1000L);
+
+        final DescribeStackEventsRequest request = mock(DescribeStackEventsRequest.class);
+
+        proxy.injectCredentialsAndInvoke(request, AmazonWebServicesClientProxyTest::dummyMethod);
+
+        // ensure credentials are injected and then removed
+        verify(request).setRequestCredentialsProvider(any(AWSStaticCredentialsProvider.class));
+        verify(request).setRequestCredentialsProvider(eq(null));
     }
 
     @Test

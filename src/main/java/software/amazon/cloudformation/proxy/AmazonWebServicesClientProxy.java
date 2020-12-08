@@ -455,9 +455,8 @@ public class AmazonWebServicesClientProxy implements CallChain {
         }
     }
 
-    public <RequestT extends AmazonWebServiceRequest>
-    void
-    injectCredentialsAndInvoke(final RequestT request, final Consumer<RequestT> requestFunction) {
+    public <RequestT extends AmazonWebServiceRequest> void injectCredentialsAndInvoke(final RequestT request,
+                                                                                      final Consumer<RequestT> requestFunction) {
 
         request.setRequestCredentialsProvider(v1CredentialsProvider);
 
@@ -490,8 +489,6 @@ public class AmazonWebServicesClientProxy implements CallChain {
             throw e;
         }
     }
-
-
 
     public <RequestT extends AwsRequest, ResultT extends AwsResponse>
         CompletableFuture<ResultT>
