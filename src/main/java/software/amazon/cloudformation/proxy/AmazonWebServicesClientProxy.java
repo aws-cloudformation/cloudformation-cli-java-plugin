@@ -27,6 +27,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import javax.annotation.Nonnull;
@@ -443,9 +444,24 @@ public class AmazonWebServicesClientProxy implements CallChain {
         request.setRequestCredentialsProvider(v1CredentialsProvider);
 
         try {
-            ResultT respose = requestFunction.apply(request);
-            logRequestMetadata(request, respose);
-            return respose;
+            ResultT response = requestFunction.apply(request);
+            logRequestMetadata(request, response);
+            return response;
+        } catch (final Throwable e) {
+            loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
+            throw e;
+        } finally {
+            request.setRequestCredentialsProvider(null);
+        }
+    }
+
+    public <RequestT extends AmazonWebServiceRequest> void injectCredentialsAndInvoke(final RequestT request,
+                                                                                      final Consumer<RequestT> requestFunction) {
+
+        request.setRequestCredentialsProvider(v1CredentialsProvider);
+
+        try {
+            requestFunction.accept(request);
         } catch (final Throwable e) {
             loggerProxy.log(String.format("Failed to execute remote function: {%s}", e.getMessage()));
             throw e;
