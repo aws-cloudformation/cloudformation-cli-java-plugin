@@ -1,0 +1,49 @@
+# This workflow will install dependencies, run tests for both plugin and library components
+name: CloudFormation CLI  Java Plugin Pull Request CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    env:
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_REGION: us-east-1
+    strategy:
+      matrix:
+        python: [3.6, 3.7, 3.8]
+        java: [8, 11]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+    - name: Set up Java ${{ matrix.java }}
+      uses: actions/setup-java@v1
+      with:
+        java-version: ${{ matrix.java }}
+    - name: Install python dependencies
+      run: |
+        pip install --upgrade 'attrs==19.2.0' wheel -r https://raw.githubusercontent.com/aws-cloudformation/cloudformation-cli/master/requirements.txt
+    - name: Install cloudformation-cli-java-plugin
+      run: |
+        pip install .
+    - name: Run pre-commit, twine checks for cloudformation-cli-java-plugin
+      run: |
+        pre-commit run --all-files
+        python setup.py sdist bdist_wheel
+        twine check ./dist/*
+    - name: Verify java package
+      run:
+        mvn verify
+    - name: Integration standard e2e
+      run:
+        ./e2e_test.sh 1
+    - name: Integration guided e2e
+      run:
+        ./e2e_test.sh 2
