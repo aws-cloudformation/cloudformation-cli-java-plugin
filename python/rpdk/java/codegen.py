@@ -1,5 +1,6 @@
 # pylint: disable=useless-super-delegation,too-many-locals
 # pylint doesn't recognize abstract methods
+import json
 import logging
 import os
 import shutil
@@ -15,6 +16,7 @@ from rpdk.core.plugin_base import LanguagePlugin
 
 from .resolver import translate_type
 from .utils import safe_reserved, validate_codegen_model, validate_namespace
+from . import __version__
 
 LOG = logging.getLogger(__name__)
 
@@ -47,6 +49,7 @@ DEFAULT_SETTINGS = {PROTOCOL_VERSION_SETTING: DEFAULT_PROTOCOL_VERSION}
 MINIMUM_JAVA_DEPENDENCY_VERSION = "2.0.0"
 MINIMUM_JAVA_DEPENDENCY_VERSION_EXECUTABLE_HANDLER_WRAPPER = "2.0.3"
 
+CFN_METADATA_FILE_NAME = "_cfn_metadata.json"
 
 class JavaArchiveNotFoundError(SysExitRecommendedError):
     pass
@@ -545,6 +548,12 @@ class JavaLanguagePlugin(LanguagePlugin):
         for path in (project.root / "src").rglob("*"):
             if path.is_file():
                 write_with_relative_path(path)
+
+        with open(CFN_METADATA_FILE_NAME, "w") as metadata_file:
+            version_metadata = {}
+            version_metadata['plugin-version'] = __version__
+            version_metadata['plugin-name'] = 'java'
+            json.dump(version_metadata, metadata_file)
 
         # include these for completeness...
         # we'd probably auto-gen then again, but it can't hurt
