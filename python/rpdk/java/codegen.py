@@ -14,9 +14,9 @@ from rpdk.core.init import input_with_validation
 from rpdk.core.jsonutils.resolver import resolve_models
 from rpdk.core.plugin_base import LanguagePlugin
 
+from . import __version__
 from .resolver import translate_type
 from .utils import safe_reserved, validate_codegen_model, validate_namespace
-from . import __version__
 
 LOG = logging.getLogger(__name__)
 
@@ -50,6 +50,7 @@ MINIMUM_JAVA_DEPENDENCY_VERSION = "2.0.0"
 MINIMUM_JAVA_DEPENDENCY_VERSION_EXECUTABLE_HANDLER_WRAPPER = "2.0.3"
 
 CFN_METADATA_FILE_NAME = "_cfn_metadata.json"
+
 
 class JavaArchiveNotFoundError(SysExitRecommendedError):
     pass
@@ -551,8 +552,8 @@ class JavaLanguagePlugin(LanguagePlugin):
 
         with open(CFN_METADATA_FILE_NAME, "w") as metadata_file:
             version_metadata = {}
-            version_metadata['plugin-version'] = __version__
-            version_metadata['plugin-name'] = 'java'
+            version_metadata["plugin-version"] = __version__
+            version_metadata["plugin-name"] = "java"
             json.dump(version_metadata, metadata_file)
 
         # include these for completeness...
