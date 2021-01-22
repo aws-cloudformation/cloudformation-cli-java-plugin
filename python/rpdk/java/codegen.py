@@ -1,6 +1,5 @@
 # pylint: disable=useless-super-delegation,too-many-locals
 # pylint doesn't recognize abstract methods
-import json
 import logging
 import os
 import shutil
@@ -574,6 +573,7 @@ class JavaLanguagePlugin(LanguagePlugin):
             "project_path": str(project_path),
         }
 
+    @logdebug
     def get_plugin_information(self):
         plugin_information = {}
         plugin_information["plugin-version"] = __version__
