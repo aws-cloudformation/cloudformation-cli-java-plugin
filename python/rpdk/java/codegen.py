@@ -49,8 +49,6 @@ DEFAULT_SETTINGS = {PROTOCOL_VERSION_SETTING: DEFAULT_PROTOCOL_VERSION}
 MINIMUM_JAVA_DEPENDENCY_VERSION = "2.0.0"
 MINIMUM_JAVA_DEPENDENCY_VERSION_EXECUTABLE_HANDLER_WRAPPER = "2.0.3"
 
-CFN_METADATA_FILE_NAME = "_cfn_metadata.json"
-
 
 class JavaArchiveNotFoundError(SysExitRecommendedError):
     pass
@@ -550,12 +548,6 @@ class JavaLanguagePlugin(LanguagePlugin):
             if path.is_file():
                 write_with_relative_path(path)
 
-        with open(CFN_METADATA_FILE_NAME, "w") as metadata_file:
-            version_metadata = {}
-            version_metadata["plugin-version"] = __version__
-            version_metadata["plugin-name"] = "java"
-            json.dump(version_metadata, metadata_file)
-
         # include these for completeness...
         # we'd probably auto-gen then again, but it can't hurt
         for path in (project.root / "target" / "generated-sources").rglob("*"):
@@ -581,3 +573,10 @@ class JavaLanguagePlugin(LanguagePlugin):
             "dockerfile_path": dockerfile_path,
             "project_path": str(project_path),
         }
+
+    def get_plugin_information(self):
+        plugin_information = {}
+        plugin_information["plugin-version"] = __version__
+        plugin_information["plugin-name"] = "java"
+
+        return plugin_information
