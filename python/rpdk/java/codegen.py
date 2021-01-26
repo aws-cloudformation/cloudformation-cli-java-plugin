@@ -575,11 +575,10 @@ class JavaLanguagePlugin(LanguagePlugin):
 
     @staticmethod
     def _get_plugin_information():
-        plugin_information = {}
-        plugin_information["plugin-version"] = __version__
-        plugin_information["plugin-name"] = "java"
-
-        return plugin_information
+        return {
+            "plugin-version": __version__,
+            "plugin-name": "java",
+        }
 
     @logdebug
     def get_plugin_information(self):
