@@ -574,12 +574,15 @@ class JavaLanguagePlugin(LanguagePlugin):
         }
 
     @staticmethod
-    def _get_plugin_information():
+    def _get_plugin_information(project):
         return {
-            "plugin-version": __version__,
+            "plugin-tool-version": __version__,
             "plugin-name": "java",
+            "plugin-version": JavaLanguagePlugin._get_java_plugin_dependency_version(
+                project
+            ),
         }
 
     @logdebug
-    def get_plugin_information(self):
-        return self._get_plugin_information()
+    def get_plugin_information(self, project):
+        return self._get_plugin_information(project)

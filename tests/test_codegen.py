@@ -348,7 +348,7 @@ def test_generate_executable_entrypoint_old_project_version(project):
 
 
 def test_get_plugin_information(project):
-    plugin_information = project._plugin.get_plugin_information()
+    plugin_information = project._plugin.get_plugin_information(project)
 
-    assert plugin_information["plugin-version"] == __version__
+    assert plugin_information["plugin-tool-version"] == __version__
     assert plugin_information["plugin-name"] == "java"
