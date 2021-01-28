@@ -352,3 +352,6 @@ def test_get_plugin_information(project):
 
     assert plugin_information["plugin-tool-version"] == __version__
     assert plugin_information["plugin-name"] == "java"
+    assert plugin_information[
+        "plugin-version"
+    ] == JavaLanguagePlugin._get_java_plugin_dependency_version(project)
