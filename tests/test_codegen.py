@@ -8,6 +8,7 @@ import yaml
 import pytest
 from rpdk.core.exceptions import InternalError, SysExitRecommendedError
 from rpdk.core.project import Project
+from rpdk.java.__init__ import __version__
 from rpdk.java.codegen import (
     InvalidMavenPOMError,
     JavaArchiveNotFoundError,
@@ -344,3 +345,13 @@ def test_generate_executable_entrypoint_old_project_version(project):
     plugin._namespace_from_project(project)
 
     assert not hasattr(project, "executable_entrypoint")
+
+
+def test_get_plugin_information(project):
+    plugin_information = project._plugin.get_plugin_information(project)
+
+    assert plugin_information["plugin-tool-version"] == __version__
+    assert plugin_information["plugin-name"] == "java"
+    assert plugin_information[
+        "plugin-version"
+    ] == JavaLanguagePlugin._get_java_plugin_dependency_version(project)

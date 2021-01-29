@@ -13,6 +13,7 @@ from rpdk.core.init import input_with_validation
 from rpdk.core.jsonutils.resolver import resolve_models
 from rpdk.core.plugin_base import LanguagePlugin
 
+from . import __version__
 from .resolver import translate_type
 from .utils import safe_reserved, validate_codegen_model, validate_namespace
 
@@ -571,3 +572,17 @@ class JavaLanguagePlugin(LanguagePlugin):
             "dockerfile_path": dockerfile_path,
             "project_path": str(project_path),
         }
+
+    @staticmethod
+    def _get_plugin_information(project):
+        return {
+            "plugin-tool-version": __version__,
+            "plugin-name": "java",
+            "plugin-version": JavaLanguagePlugin._get_java_plugin_dependency_version(
+                project
+            ),
+        }
+
+    @logdebug
+    def get_plugin_information(self, project):
+        return self._get_plugin_information(project)
