@@ -36,5 +36,6 @@ public class HandlerRequest<ResourceT, CallbackT> {
     private CallbackT callbackContext;
     private Boolean snapshotRequested;
     private Boolean rollback;
+    private Boolean driftable;
     private RequestContext<CallbackT> requestContext;
 }
