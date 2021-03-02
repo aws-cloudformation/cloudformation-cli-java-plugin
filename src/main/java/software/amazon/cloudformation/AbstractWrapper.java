@@ -19,6 +19,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -73,8 +74,8 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
 
     public static final SdkHttpClient HTTP_CLIENT = ApacheHttpClient.builder().build();
 
-    private static final Set<Action> MUTATING_ACTIONS = Set.of(Action.CREATE, Action.DELETE, Action.UPDATE);
-    private static final Set<Action> VALIDATING_ACTIONS = Set.of(Action.CREATE, Action.UPDATE);
+    private static final Set<Action> MUTATING_ACTIONS = ImmutableSet.of(Action.CREATE, Action.DELETE, Action.UPDATE);
+    private static final Set<Action> VALIDATING_ACTIONS = ImmutableSet.of(Action.CREATE, Action.UPDATE);
 
     protected final Serializer serializer;
     protected LoggerProxy loggerProxy;
