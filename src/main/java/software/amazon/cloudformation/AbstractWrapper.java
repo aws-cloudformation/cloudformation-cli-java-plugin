@@ -19,16 +19,17 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -73,7 +74,8 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
 
     public static final SdkHttpClient HTTP_CLIENT = ApacheHttpClient.builder().build();
 
-    private static final List<Action> MUTATING_ACTIONS = Arrays.asList(Action.CREATE, Action.DELETE, Action.UPDATE);
+    private static final Set<Action> MUTATING_ACTIONS = ImmutableSet.of(Action.CREATE, Action.DELETE, Action.UPDATE);
+    private static final Set<Action> VALIDATING_ACTIONS = ImmutableSet.of(Action.CREATE, Action.UPDATE);
 
     protected final Serializer serializer;
     protected LoggerProxy loggerProxy;
@@ -245,7 +247,8 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
             throw new TerminalException("Invalid request object received");
         }
 
-        if (MUTATING_ACTIONS.contains(request.getAction())) {
+        final boolean isMutatingAction = MUTATING_ACTIONS.contains(request.getAction());
+        if (isMutatingAction) {
             if (request.getRequestData().getResourceProperties() == null) {
                 throw new TerminalException("Invalid resource properties object received");
             }
@@ -271,13 +274,16 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
 
         this.metricsPublisherProxy.publishInvocationMetric(Instant.now(), request.getAction());
 
-        // for CUD actions, validate incoming model - any error is a terminal failure on
+        // for create and update actions, validate incoming model - any error is a
+        // terminal failure on
         // the invocation
         // NOTE: we validate the raw pre-deserialized payload to account for lenient
         // serialization.
+        // NOTE: Validation is not required on deletion as only the primary identifier
+        // is required to delete.
         // Here, we want to surface ALL input validation errors to the caller.
-        boolean isMutatingAction = MUTATING_ACTIONS.contains(request.getAction());
-        if (isMutatingAction) {
+        final boolean shouldValidate = VALIDATING_ACTIONS.contains(request.getAction());
+        if (shouldValidate) {
             // validate entire incoming payload, including extraneous fields which
             // are stripped by the Serializer (due to FAIL_ON_UNKNOWN_PROPERTIES setting)
             JSONObject rawModelObject = rawRequest.getJSONObject("requestData").getJSONObject("resourceProperties");
