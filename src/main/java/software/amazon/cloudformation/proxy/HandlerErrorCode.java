@@ -73,7 +73,7 @@ public enum HandlerErrorCode {
 
     /**
      * the downstream resource failed to complete all of its ready state checks
-     * (Retriable)
+     * (Terminal)
      */
     NotStabilized(ExceptionMessages.NOT_STABILIZED),
 
