@@ -23,9 +23,9 @@ public class CfnNotStabilizedExceptionTests {
     @Test
     public void cfnNotStabilizedException_isBaseHandlerException() {
         assertThatExceptionOfType(BaseHandlerException.class).isThrownBy(() -> {
-            throw new CfnNotStabilizedException("AWS::Type::Resource", "myId", new RuntimeException());
+            throw new CfnNotStabilizedException("AWS::Type::Resource", "myId", "Reason", new RuntimeException());
         }).withCauseInstanceOf(RuntimeException.class).withMessageContaining("AWS::Type::Resource").withMessageContaining("myId")
-            .withMessageContaining("not stabilize");
+            .withMessageContaining("not stabilize").withMessageContaining("Reason");
     }
 
     @Test
@@ -38,9 +38,9 @@ public class CfnNotStabilizedExceptionTests {
     @Test
     public void cfnNotStabilizedException_noCauseGiven() {
         assertThatExceptionOfType(CfnNotStabilizedException.class).isThrownBy(() -> {
-            throw new CfnNotStabilizedException("AWS::Type::Resource", "myId");
+            throw new CfnNotStabilizedException("AWS::Type::Resource", "myId", "Reason");
         }).withNoCause().withMessageContaining("AWS::Type::Resource").withMessageContaining("myId")
-            .withMessageContaining("not stabilize");
+            .withMessageContaining("not stabilize").withMessageContaining("Reason");
     }
 
     @Test
