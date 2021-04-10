@@ -34,8 +34,8 @@ public class HandlerRequest<ResourceT, CallbackT> {
     private RequestData<ResourceT> requestData;
     private String stackId;
     private CallbackT callbackContext;
-    private Boolean snapshotRequested;
-    private Boolean rollback;
-    private Boolean driftable;
+    private boolean snapshotRequested;
+    private boolean rollback;
+    private boolean driftable;
     private RequestContext<CallbackT> requestContext;
 }

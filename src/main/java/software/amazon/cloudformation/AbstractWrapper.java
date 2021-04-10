@@ -264,9 +264,9 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
         if (resourceHandlerRequest != null) {
             resourceHandlerRequest.setPreviousResourceTags(getPreviousResourceTags(request));
             resourceHandlerRequest.setStackId(getStackId(request));
-            resourceHandlerRequest.setSnapshotRequested(request.getSnapshotRequested());
-            resourceHandlerRequest.setRollback(request.getRollback());
-            resourceHandlerRequest.setDriftable(request.getDriftable());
+            resourceHandlerRequest.setSnapshotRequested(request.isSnapshotRequested());
+            resourceHandlerRequest.setRollback(request.isRollback());
+            resourceHandlerRequest.setDriftable(request.isDriftable());
             if (request.getRequestData() != null) {
                 resourceHandlerRequest.setPreviousSystemTags(request.getRequestData().getPreviousSystemTags());
             }
