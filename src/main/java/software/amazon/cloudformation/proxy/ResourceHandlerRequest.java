@@ -43,9 +43,9 @@ public class ResourceHandlerRequest<T> {
     private String awsPartition;
     private String logicalResourceIdentifier;
     private String nextToken;
-    private Boolean snapshotRequested;
-    private Boolean rollback;
-    private Boolean driftable;
+    private boolean snapshotRequested;
+    private boolean rollback;
+    private boolean driftable;
     private String region;
     private String stackId;
 }
