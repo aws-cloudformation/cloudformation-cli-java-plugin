@@ -56,4 +56,22 @@ public class CfnNotStabilizedExceptionTests {
             throw new CfnNotStabilizedException(new RuntimeException("something wrong"));
         }).satisfies(exception -> assertEquals("something wrong", exception.getMessage()));
     }
+
+    @Deprecated
+    @Test
+    public void cfnNotStabilizedExceptionWithoutReason_isBaseHandlerException() {
+        assertThatExceptionOfType(BaseHandlerException.class).isThrownBy(() -> {
+            throw new CfnNotStabilizedException("AWS::Type::Resource", "myId", new RuntimeException());
+        }).withCauseInstanceOf(RuntimeException.class).withMessageContaining("AWS::Type::Resource").withMessageContaining("myId")
+            .withMessageContaining("not stabilize");
+    }
+
+    @Deprecated
+    @Test
+    public void cfnNotStabilizedExceptionWithoutReason_noCauseGiven() {
+        assertThatExceptionOfType(CfnNotStabilizedException.class).isThrownBy(() -> {
+            throw new CfnNotStabilizedException("AWS::Type::Resource", "myId");
+        }).withNoCause().withMessageContaining("AWS::Type::Resource").withMessageContaining("myId")
+            .withMessageContaining("not stabilize");
+    }
 }
