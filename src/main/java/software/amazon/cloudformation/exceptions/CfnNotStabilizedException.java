@@ -25,16 +25,6 @@ public class CfnNotStabilizedException extends BaseHandlerException {
         super(cause, ERROR_CODE);
     }
 
-    /**
-     * @param resourceTypeName
-     * @param resourceIdentifier
-     * @param reason Reason why the resource did not stabilize. This should include the current
-     *               state. For AWS resources, this should include the relevant API Action name in
-     *               IAM format and the RequestId
-     *
-     *               Example: "Current Status: modifying (API: rds:DescribeDBClusters,
-     *                         RequestId: d682b02c-1383-11b4-a6bb-172dfac7f170)"
-     */
     public CfnNotStabilizedException(final String resourceTypeName,
                                      final String resourceIdentifier,
                                      final String reason) {
