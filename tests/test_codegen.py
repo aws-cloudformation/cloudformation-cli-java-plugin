@@ -177,9 +177,8 @@ def test_generate_without_java_plugin_in_pom_should_not_fail(project):
 
 
 def test__get_plugin_version_invalid_pom(project):
-    pom = open(project.root / "pom.xml", "w")
-    pom.write("invalid pom")
-    pom.close()
+    with open(project.root / "pom.xml", "w") as pom:
+        pom.write("invalid pom")
     with pytest.raises(InvalidMavenPOMError):
         project._plugin._get_java_plugin_dependency_version(project)
 

@@ -26,13 +26,53 @@ public class CfnNotStabilizedException extends BaseHandlerException {
     }
 
     public CfnNotStabilizedException(final String resourceTypeName,
-                                     final String resourceIdentifier) {
-        this(resourceTypeName, resourceIdentifier, null);
+                                     final String resourceIdentifier,
+                                     final String reason) {
+        this(resourceTypeName, resourceIdentifier, reason, null);
     }
 
+    /**
+     * @param resourceTypeName
+     * @param resourceIdentifier
+     * @param reason Reason why the resource did not stabilize. This should include the current
+     *               state. For AWS resources, this should include the relevant API Action name in
+     *               IAM format and the RequestId
+     *
+     *               Example: "Current Status: modifying (API: rds:DescribeDBClusters,
+     *                         RequestId: d682b02c-1383-11b4-a6bb-172dfac7f170)"
+     * @param cause
+     */
+    public CfnNotStabilizedException(final String resourceTypeName,
+                                     final String resourceIdentifier,
+                                     final String reason,
+                                     final Throwable cause) {
+        super(String.format(ERROR_CODE.getMessage(), resourceTypeName, resourceIdentifier, reason),
+            cause, ERROR_CODE);
+    }
+
+    /**
+     * use {@link #CfnNotStabilizedException(String, String, String)}
+     *
+     * @param resourceTypeName
+     * @param resourceIdentifier
+     */
+    @Deprecated
+    public CfnNotStabilizedException(final String resourceTypeName,
+                                     final String resourceIdentifier) {
+        this(resourceTypeName, resourceIdentifier, (Throwable) null);
+    }
+
+    /**
+     * use {@link #CfnNotStabilizedException(String, String, String, Throwable)}
+     *
+     * @param resourceTypeName
+     * @param resourceIdentifier
+     * @param cause
+     */
+    @Deprecated
     public CfnNotStabilizedException(final String resourceTypeName,
                                      final String resourceIdentifier,
                                      final Throwable cause) {
-        super(String.format(ERROR_CODE.getMessage(), resourceTypeName, resourceIdentifier), cause, ERROR_CODE);
+        this(resourceTypeName, resourceIdentifier, "", cause);
     }
 }
