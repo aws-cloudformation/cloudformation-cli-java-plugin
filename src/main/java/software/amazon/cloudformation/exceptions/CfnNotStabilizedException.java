@@ -28,11 +28,12 @@ public class CfnNotStabilizedException extends BaseHandlerException {
     /**
      * @param resourceTypeName
      * @param resourceIdentifier
-     * @param reason Reason why the resource did not stabilize. This should include the current and
-     *               desired state.
+     * @param reason Reason why the resource did not stabilize. This should include the current
+     *               state. For AWS resources, this should include the relevant API Action name in
+     *               IAM format and the RequestId
      *
-     *               Example: "Exceeded retry limit for DescribeResourceStatus.
-     *               Current Value: IN_PROGRESS. Desired Value: COMPLETE."
+     *               Example: "Current Status: modifying (API: rds:DescribeDBClusters,
+     *                         RequestId: d682b02c-1383-11b4-a6bb-172dfac7f170)"
      */
     public CfnNotStabilizedException(final String resourceTypeName,
                                      final String resourceIdentifier,
@@ -43,11 +44,12 @@ public class CfnNotStabilizedException extends BaseHandlerException {
     /**
      * @param resourceTypeName
      * @param resourceIdentifier
-     * @param reason Reason why the resource did not stabilize. This should include the current and
-     *               desired state.
+     * @param reason Reason why the resource did not stabilize. This should include the current
+     *               state. For AWS resources, this should include the relevant API Action name in
+     *               IAM format and the RequestId
      *
-     *               Example: "Exceeded retry limit for DescribeResourceStatus.
-     *               Current Value: IN_PROGRESS. Desired Value: COMPLETE."
+     *               Example: "Current Status: modifying (API: rds:DescribeDBClusters,
+     *                         RequestId: d682b02c-1383-11b4-a6bb-172dfac7f170)"
      * @param cause
      */
     public CfnNotStabilizedException(final String resourceTypeName,
