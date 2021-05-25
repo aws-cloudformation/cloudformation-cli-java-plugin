@@ -46,6 +46,7 @@ public class ResourceHandlerRequest<T> {
     private Boolean snapshotRequested;
     private Boolean rollback;
     private Boolean driftable;
+    private Map<String, Object> features;
     private String region;
     private String stackId;
 }

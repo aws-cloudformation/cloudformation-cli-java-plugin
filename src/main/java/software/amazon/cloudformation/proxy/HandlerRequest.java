@@ -14,6 +14,7 @@
 */
 package software.amazon.cloudformation.proxy;
 
+import java.util.Map;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import software.amazon.cloudformation.Action;
@@ -37,5 +38,6 @@ public class HandlerRequest<ResourceT, CallbackT> {
     private Boolean snapshotRequested;
     private Boolean rollback;
     private Boolean driftable;
+    private Map<String, Object> features;
     private RequestContext<CallbackT> requestContext;
 }
