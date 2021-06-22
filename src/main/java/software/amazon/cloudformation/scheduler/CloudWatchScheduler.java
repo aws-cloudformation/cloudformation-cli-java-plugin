@@ -81,9 +81,10 @@ public class CloudWatchScheduler {
      * @param <ResourceT> resource model state configuration to apply
      * @param <CallbackT> callback context associated with reschedule context
      */
-    public <ResourceT, CallbackT> void rescheduleAfterMinutes(final String functionArn,
-                                                              final int minutesFromNow,
-                                                              final HandlerRequest<ResourceT, CallbackT> handlerRequest) {
+    public <ResourceT, CallbackT,
+        ConfigurationT> void rescheduleAfterMinutes(final String functionArn,
+                                                    final int minutesFromNow,
+                                                    final HandlerRequest<ResourceT, CallbackT, ConfigurationT> handlerRequest) {
         assert client != null : "CloudWatchEventsClient was not initialised. You must call refreshClient() first.";
 
         // generate a cron expression; minutes must be a positive integer

@@ -29,7 +29,8 @@ import software.amazon.cloudformation.metrics.MetricsPublisher;
 import software.amazon.cloudformation.resource.SchemaValidator;
 import software.amazon.cloudformation.resource.Serializer;
 
-public abstract class ExecutableWrapper<ResourceT, CallbackT> extends AbstractWrapper<ResourceT, CallbackT> {
+public abstract class ExecutableWrapper<ResourceT, CallbackT, ConfigurationT>
+    extends AbstractWrapper<ResourceT, CallbackT, ConfigurationT> {
     private Logger platformLogger = LoggerFactory.getLogger("GLOBAL");
 
     public ExecutableWrapper() {

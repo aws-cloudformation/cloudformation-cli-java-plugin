@@ -26,6 +26,7 @@ import java.io.InputStream;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Test;
 import software.amazon.cloudformation.Action;
+import software.amazon.cloudformation.TestConfigurationModel;
 import software.amazon.cloudformation.TestContext;
 import software.amazon.cloudformation.TestModel;
 import software.amazon.cloudformation.proxy.HandlerRequest;
@@ -35,9 +36,9 @@ public class SerializerTest {
 
     private static final String TEST_DATA_BASE_PATH = "src/test/java/software/amazon/cloudformation/data/%s";
 
-    private final TypeReference<
-        HandlerRequest<TestModel, TestContext>> typeReference = new TypeReference<HandlerRequest<TestModel, TestContext>>() {
-        };
+    private final TypeReference<HandlerRequest<TestModel, TestContext, TestConfigurationModel>> typeReference = new TypeReference<
+        HandlerRequest<TestModel, TestContext, TestConfigurationModel>>() {
+    };
 
     public static String loadRequestJson(final String fileName) throws IOException {
         final File file = new File(String.format(TEST_DATA_BASE_PATH, fileName));
@@ -63,7 +64,7 @@ public class SerializerTest {
 
         final String in = loadRequestJson("create.request.json");
 
-        final HandlerRequest<TestModel, TestContext> r = s.deserialize(in, typeReference);
+        final HandlerRequest<TestModel, TestContext, TestConfigurationModel> r = s.deserialize(in, typeReference);
 
         assertThat(r).isNotNull();
         assertThat(r.getAction()).isEqualTo(Action.CREATE);
@@ -78,7 +79,7 @@ public class SerializerTest {
             .isEqualTo("arn:aws:cloudformation:us-east-1:123456789012:stack/SampleStack/e722ae60-fe62-11e8-9a0e-0ae8cc519968");
         assertThat(r.getCallbackContext()).isNull();
 
-        final RequestData<TestModel> requestData = r.getRequestData();
+        final RequestData<TestModel, TestConfigurationModel> requestData = r.getRequestData();
         assertThat(requestData.getCallerCredentials()).isNotNull();
         assertThat(requestData.getCallerCredentials().getAccessKeyId()).isEqualTo("IASAYK835GAIFHAHEI23");
         assertThat(requestData.getCallerCredentials().getSecretAccessKey()).isEqualTo("66iOGPN5LnpZorcLr8Kh25u8AbjHVllv5/poh2O0");
@@ -100,7 +101,7 @@ public class SerializerTest {
         // however but model validation will consider raw payload
         final String in = loadRequestJson("create.request.with-extraneous-request-fields.json");
 
-        final HandlerRequest<TestModel, TestContext> r = s.deserialize(in, typeReference);
+        final HandlerRequest<TestModel, TestContext, TestConfigurationModel> r = s.deserialize(in, typeReference);
 
         assertThat(r).isNotNull();
         assertThat(r.getAction()).isEqualTo(Action.CREATE);
@@ -115,7 +116,7 @@ public class SerializerTest {
             .isEqualTo("arn:aws:cloudformation:us-east-1:123456789012:stack/SampleStack/e722ae60-fe62-11e8-9a0e-0ae8cc519968");
         assertThat(r.getCallbackContext()).isNull();
 
-        final RequestData<TestModel> requestData = r.getRequestData();
+        final RequestData<TestModel, TestConfigurationModel> requestData = r.getRequestData();
         assertThat(requestData.getCallerCredentials()).isNotNull();
         assertThat(requestData.getCallerCredentials().getAccessKeyId()).isEqualTo("IASAYK835GAIFHAHEI23");
         assertThat(requestData.getCallerCredentials().getSecretAccessKey()).isEqualTo("66iOGPN5LnpZorcLr8Kh25u8AbjHVllv5/poh2O0");
@@ -139,7 +140,7 @@ public class SerializerTest {
         // however but model validation will consider raw payload
         final String in = loadRequestJson("create.request.with-extraneous-model-fields.json");
 
-        final HandlerRequest<TestModel, TestContext> r = s.deserialize(in, typeReference);
+        final HandlerRequest<TestModel, TestContext, TestConfigurationModel> r = s.deserialize(in, typeReference);
 
         assertThat(r).isNotNull();
         assertThat(r.getAction()).isEqualTo(Action.CREATE);
@@ -154,7 +155,7 @@ public class SerializerTest {
         assertThat(r.getStackId())
             .isEqualTo("arn:aws:cloudformation:us-east-1:123456789012:stack/SampleStack/e722ae60-fe62-11e8-9a0e-0ae8cc519968");
 
-        final RequestData<TestModel> requestData = r.getRequestData();
+        final RequestData<TestModel, TestConfigurationModel> requestData = r.getRequestData();
         assertThat(requestData.getCallerCredentials()).isNotNull();
         assertThat(requestData.getCallerCredentials().getAccessKeyId()).isEqualTo("IASAYK835GAIFHAHEI23");
         assertThat(requestData.getCallerCredentials().getSecretAccessKey()).isEqualTo("66iOGPN5LnpZorcLr8Kh25u8AbjHVllv5/poh2O0");

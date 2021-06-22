@@ -29,6 +29,7 @@ final class ExceptionMessages {
     static final String SERVICE_INTERNAL_ERROR = "Internal error reported from downstream service during operation '%s'.";
     static final String SERVICE_LIMIT_EXCEEDED = "Limit exceeded for resource of type '%s'. Reason: %s";
     static final String THROTTLING = "Rate exceeded for operation '%s'.";
+    static final String INVALID_TYPECONFIGURATION = "Invalid TypeConfiguration provided for type '%s'. Reason: %s";
 
     private ExceptionMessages() {
     }

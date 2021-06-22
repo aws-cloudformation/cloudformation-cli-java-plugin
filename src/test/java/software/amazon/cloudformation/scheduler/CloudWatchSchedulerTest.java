@@ -33,6 +33,7 @@ import software.amazon.awssdk.services.cloudwatchevents.CloudWatchEventsClient;
 import software.amazon.awssdk.services.cloudwatchevents.model.DeleteRuleRequest;
 import software.amazon.awssdk.services.cloudwatchevents.model.RemoveTargetsRequest;
 import software.amazon.awssdk.services.cloudwatchevents.model.RuleState;
+import software.amazon.cloudformation.TestConfigurationModel;
 import software.amazon.cloudformation.TestContext;
 import software.amazon.cloudformation.TestModel;
 import software.amazon.cloudformation.injection.CloudWatchEventsProvider;
@@ -156,7 +157,7 @@ public class CloudWatchSchedulerTest {
         when(cronHelper.generateOneTimeCronExpression(1)).thenReturn("cron(41 14 31 10 ? 2019)");
         final CloudWatchScheduler scheduler = new CloudWatchScheduler(provider, loggerProxy, cronHelper, serializer);
         scheduler.refreshClient();
-        final HandlerRequest<TestModel, TestContext> request = new HandlerRequest<>();
+        final HandlerRequest<TestModel, TestContext, TestConfigurationModel> request = new HandlerRequest<>();
 
         request.setRequestContext(requestContext);
 

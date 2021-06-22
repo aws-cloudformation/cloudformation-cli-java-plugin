@@ -42,17 +42,17 @@ import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 
 
-public class {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "HandlerWrapperExecutable" }} extends {{ wrapper_parent }}<{{ pojo_name }}, CallbackContext> {
+public class {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "HandlerWrapperExecutable" }} extends {{ wrapper_parent }}<{{ pojo_name }}, CallbackContext, TypeConfigurationModel> {
 
     private final Configuration configuration = new Configuration();
     private JSONObject resourceSchema;
-    private final Map<Action, BaseHandler<CallbackContext>> handlers = new HashMap<>();
-    private final static TypeReference<HandlerRequest<{{ pojo_name }}, CallbackContext>> REQUEST_REFERENCE =
-        new TypeReference<HandlerRequest<{{ pojo_name }}, CallbackContext>>() {};
+    private final Map<Action, BaseHandler<CallbackContext{{ ', TypeConfigurationModel' if contains_type_configuration }}>> handlers = new HashMap<>();
+    private final static TypeReference<HandlerRequest<{{ pojo_name }}, CallbackContext, TypeConfigurationModel>> REQUEST_REFERENCE =
+        new TypeReference<HandlerRequest<{{ pojo_name }}, CallbackContext, TypeConfigurationModel>>() {};
     private final static TypeReference<{{ pojo_name }}> TYPE_REFERENCE =
         new TypeReference<{{ pojo_name }}>() {};
-    private final static TypeReference<ResourceHandlerTestPayload<{{ pojo_name }}, CallbackContext>> TEST_ENTRY_TYPE_REFERENCE =
-        new TypeReference<ResourceHandlerTestPayload<{{ pojo_name }}, CallbackContext>>() {};
+    private final static TypeReference<ResourceHandlerTestPayload<{{ pojo_name }}, CallbackContext, TypeConfigurationModel>> TEST_ENTRY_TYPE_REFERENCE =
+        new TypeReference<ResourceHandlerTestPayload<{{ pojo_name }}, CallbackContext, TypeConfigurationModel>>() {};
 
 
     public {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "HandlerWrapperExecutable" }}() {
@@ -67,18 +67,22 @@ public class {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "Hand
 
     @Override
     public ProgressEvent<{{ pojo_name }}, CallbackContext> invokeHandler(
-            final AmazonWebServicesClientProxy proxy,
-            final ResourceHandlerRequest<{{ pojo_name }}> request,
-            final Action action,
-            final CallbackContext callbackContext) {
+    	final AmazonWebServicesClientProxy proxy,
+        final ResourceHandlerRequest<{{ pojo_name }}> request,
+        final Action action,
+        final CallbackContext callbackContext,
+        final TypeConfigurationModel typeConfiguration) {
+
         final String actionName = (action == null) ? "<null>" : action.toString(); // paranoia
         if (!handlers.containsKey(action))
             throw new RuntimeException("Unknown action " + actionName);
 
-        final BaseHandler<CallbackContext> handler = handlers.get(action);
+
+        final BaseHandler<CallbackContext{{ ', TypeConfigurationModel' if contains_type_configuration }}> handler = handlers.get(action);
 
         loggerProxy.log(String.format("[%s] invoking handler...", actionName));
-        final ProgressEvent<{{ pojo_name }}, CallbackContext> result = handler.handleRequest(proxy, request, callbackContext, loggerProxy);
+        final ProgressEvent<{{ pojo_name }}, CallbackContext> result = handler.handleRequest(proxy, request,
+            callbackContext, loggerProxy{{ ', typeConfiguration' if contains_type_configuration }});
         loggerProxy.log(String.format("[%s] handler invoked", actionName));
         return result;
     }
@@ -94,10 +98,11 @@ public class {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "Hand
         this.loggerProxy = new LoggerProxy();
         this.loggerProxy.addLogPublisher(new LambdaLogPublisher(context.getLogger()));
 
-        ProgressEvent<{{ pojo_name }}, CallbackContext> response = ProgressEvent.failed(null, null, HandlerErrorCode.InternalFailure, "Uninitialized");
+        ProgressEvent<{{ pojo_name }}, CallbackContext> response = ProgressEvent.failed(null, null,
+            HandlerErrorCode.InternalFailure, "Uninitialized");
         try {
             final String input = IOUtils.toString(inputStream, "UTF-8");
-            final ResourceHandlerTestPayload<{{ pojo_name }}, CallbackContext> payload =
+            final ResourceHandlerTestPayload<{{ pojo_name }}, CallbackContext, TypeConfigurationModel> payload =
                 this.serializer.deserialize(
                     input,
                     TEST_ENTRY_TYPE_REFERENCE);
@@ -105,7 +110,8 @@ public class {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "Hand
             final AmazonWebServicesClientProxy proxy = new AmazonWebServicesClientProxy(
                 loggerProxy, payload.getCredentials(), () -> (long) context.getRemainingTimeInMillis());
 
-            response = invokeHandler(proxy, payload.getRequest(), payload.getAction(), payload.getCallbackContext());
+            response = invokeHandler(proxy, payload.getRequest(), payload.getAction(), payload.getCallbackContext(),
+                            payload.getTypeConfiguration());
         } catch (final BaseHandlerException e) {
             response = ProgressEvent.defaultFailureHandler(e, e.getErrorCode());
         } catch (final AmazonServiceException | AwsServiceException e) {
@@ -135,7 +141,7 @@ public class {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "Hand
         System.out.println("__CFN_RESOURCE_END_RESPONSE__");
     }
 
-private static void readFileToSystemOut(final String fileName) throws IOException {
+    private static void readFileToSystemOut(final String fileName) throws IOException {
         //Create object of FileReader
         final FileReader inputFile = new FileReader(fileName);
         try(BufferedReader bufferReader = new BufferedReader(inputFile)) {
@@ -161,8 +167,10 @@ private static void readFileToSystemOut(final String fileName) throws IOExceptio
     }
 
     @Override
-    protected ResourceHandlerRequest<{{ pojo_name }}> transform(final HandlerRequest<{{ pojo_name }}, CallbackContext> request) throws IOException {
-        final RequestData<{{ pojo_name }}> requestData = request.getRequestData();
+    protected ResourceHandlerRequest<{{ pojo_name }}> transform(
+        final HandlerRequest<{{ pojo_name }}, CallbackContext,TypeConfigurationModel> request) throws IOException {
+
+        final RequestData<{{ pojo_name }}, TypeConfigurationModel> requestData = request.getRequestData();
 
         return ResourceHandlerRequest.<{{ pojo_name }}>builder()
             .clientRequestToken(request.getBearerToken())
@@ -179,7 +187,7 @@ private static void readFileToSystemOut(final String fileName) throws IOExceptio
     }
 
     @Override
-    protected TypeReference<HandlerRequest<{{ pojo_name }}, CallbackContext>> getTypeReference() {
+    protected TypeReference<HandlerRequest<{{ pojo_name }}, CallbackContext, TypeConfigurationModel>> getTypeReference() {
         return REQUEST_REFERENCE;
     }
 

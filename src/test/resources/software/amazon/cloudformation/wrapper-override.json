@@ -11,7 +11,8 @@
                         "type": "string"
                     }
                 }
-            }
+            },
+            "additionalProperties": false
         }
     },
     "properties": {
@@ -27,7 +28,8 @@
                 "subProperty": {
                     "$ref": "#/definitions/subProperty"
                 }
-            }
+            },
+            "additionalProperties": false
         }
     },
     "additionalProperties": false,

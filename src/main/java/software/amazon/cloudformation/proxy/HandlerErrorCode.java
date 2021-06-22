@@ -99,7 +99,12 @@ public enum HandlerErrorCode {
      * an unexpected error occurred within the handler, such as an NPE, etc.
      * (Terminal)
      */
-    InternalFailure(ExceptionMessages.INTERNAL_FAILURE);
+    InternalFailure(ExceptionMessages.INTERNAL_FAILURE),
+
+    /**
+     * typeConfiguration is null or required typeConfiguration property is null
+     */
+    InvalidTypeConfiguration(ExceptionMessages.INVALID_TYPECONFIGURATION);
 
     @Getter
     private String message;

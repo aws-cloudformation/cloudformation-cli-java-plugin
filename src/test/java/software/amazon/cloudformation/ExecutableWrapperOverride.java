@@ -37,7 +37,7 @@ import software.amazon.cloudformation.resource.Serializer;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class ExecutableWrapperOverride extends ExecutableWrapper<TestModel, TestContext> {
+public class ExecutableWrapperOverride extends ExecutableWrapper<TestModel, TestContext, TestConfigurationModel> {
 
     /**
      * This .ctor provided for testing
@@ -61,7 +61,8 @@ public class ExecutableWrapperOverride extends ExecutableWrapper<TestModel, Test
     public ProgressEvent<TestModel, TestContext> invokeHandler(final AmazonWebServicesClientProxy awsClientProxy,
                                                                final ResourceHandlerRequest<TestModel> request,
                                                                final Action action,
-                                                               final TestContext callbackContext)
+                                                               final TestContext callbackContext,
+                                                               final TestConfigurationModel testConfigurationModel)
         throws Exception {
         this.awsClientProxy = awsClientProxy;
         this.request = request;
@@ -102,7 +103,8 @@ public class ExecutableWrapperOverride extends ExecutableWrapper<TestModel, Test
     }
 
     @Override
-    protected ResourceHandlerRequest<TestModel> transform(final HandlerRequest<TestModel, TestContext> request) {
+    protected ResourceHandlerRequest<TestModel>
+        transform(final HandlerRequest<TestModel, TestContext, TestConfigurationModel> request) {
         return transformResponse;
     }
 
@@ -114,8 +116,8 @@ public class ExecutableWrapperOverride extends ExecutableWrapper<TestModel, Test
     public ResourceHandlerRequest<TestModel> transformResponse;
 
     @Override
-    protected TypeReference<HandlerRequest<TestModel, TestContext>> getTypeReference() {
-        return new TypeReference<HandlerRequest<TestModel, TestContext>>() {
+    protected TypeReference<HandlerRequest<TestModel, TestContext, TestConfigurationModel>> getTypeReference() {
+        return new TypeReference<HandlerRequest<TestModel, TestContext, TestConfigurationModel>>() {
         };
     }
 

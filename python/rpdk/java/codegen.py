@@ -360,6 +360,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         contents = template.render(
             package_name=self.package_name,
             operations=project.schema.get("handlers", {}).keys(),
+            contains_type_configuration=project.configuration_schema,
             pojo_name="ResourceModel",
             wrapper_parent="LambdaWrapper",
         )
@@ -384,12 +385,20 @@ class JavaLanguagePlugin(LanguagePlugin):
         contents = template.render(
             package_name=self.package_name,
             operations=OPERATIONS,
+            contains_type_configuration=project.configuration_schema,
             pojo_name="ResourceModel",
         )
         project.overwrite(path, contents)
 
         # generate POJOs
         models = resolve_models(project.schema)
+        if project.configuration_schema:
+            configuration_schema_path = self._get_generated_root(project) / project.configuration_schema_filename
+            project.write_configuration_schema(configuration_schema_path)
+            configuration_models = resolve_models(project.configuration_schema, "TypeConfigurationModel")
+        else:
+            configuration_models = {"TypeConfigurationModel": {}}
+        models.update(configuration_models)
 
         LOG.debug("Writing %d POJOs", len(models))
 
@@ -416,6 +425,7 @@ class JavaLanguagePlugin(LanguagePlugin):
                     package_name=self.package_name,
                     model_name=model_name,
                     properties=properties,
+                    no_args_constructor_required=(model_name != "TypeConfigurationModel" or len(properties) != 0)
                 )
             project.overwrite(path, contents)
 
@@ -439,6 +449,7 @@ class JavaLanguagePlugin(LanguagePlugin):
                     package_name=self.package_name,
                     operations=project.schema.get("handlers", {}).keys(),
                     pojo_name="ResourceModel",
+                    contains_type_configuration=project.configuration_schema,
                     wrapper_parent="ExecutableWrapper",
                 )
                 project.overwrite(path, contents)
@@ -495,7 +506,7 @@ class JavaLanguagePlugin(LanguagePlugin):
             (project.root / "target").glob("{}-*.jar".format(project.hypenated_name))
         )
         if not jar_glob:
-            LOG.debug("No Java ARchives match")
+            LOG.debug("No Java Archives matched at" + str(project.root / "target"))
             raise JavaArchiveNotFoundError(
                 "No JAR artifact was found.\n"
                 "Please run 'mvn package' or the equivalent command "
