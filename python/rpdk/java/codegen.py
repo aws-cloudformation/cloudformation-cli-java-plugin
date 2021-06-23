@@ -393,9 +393,14 @@ class JavaLanguagePlugin(LanguagePlugin):
         # generate POJOs
         models = resolve_models(project.schema)
         if project.configuration_schema:
-            configuration_schema_path = self._get_generated_root(project) / project.configuration_schema_filename
+            configuration_schema_path = (
+                self._get_generated_root(project)
+                / project.configuration_schema_filename
+            )
             project.write_configuration_schema(configuration_schema_path)
-            configuration_models = resolve_models(project.configuration_schema, "TypeConfigurationModel")
+            configuration_models = resolve_models(
+                project.configuration_schema, "TypeConfigurationModel"
+            )
         else:
             configuration_models = {"TypeConfigurationModel": {}}
         models.update(configuration_models)
@@ -425,7 +430,9 @@ class JavaLanguagePlugin(LanguagePlugin):
                     package_name=self.package_name,
                     model_name=model_name,
                     properties=properties,
-                    no_args_constructor_required=(model_name != "TypeConfigurationModel" or len(properties) != 0)
+                    no_args_constructor_required=(
+                        model_name != "TypeConfigurationModel" or len(properties) != 0
+                    ),
                 )
             project.overwrite(path, contents)
 
@@ -506,7 +513,7 @@ class JavaLanguagePlugin(LanguagePlugin):
             (project.root / "target").glob("{}-*.jar".format(project.hypenated_name))
         )
         if not jar_glob:
-            LOG.debug("No Java Archives matched at" + str(project.root / "target"))
+            LOG.debug("No Java Archives matched at %s", str(project.root / "target"))
             raise JavaArchiveNotFoundError(
                 "No JAR artifact was found.\n"
                 "Please run 'mvn package' or the equivalent command "
