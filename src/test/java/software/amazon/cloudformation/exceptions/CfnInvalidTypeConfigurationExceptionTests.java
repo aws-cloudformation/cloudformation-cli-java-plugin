@@ -9,7 +9,7 @@ public class CfnInvalidTypeConfigurationExceptionTests {
     public void cfnInvalidTypeConfigurationException_isBaseHandlerException() {
         assertThatExceptionOfType(BaseHandlerException.class).isThrownBy(() -> {
             throw new CfnInvalidTypeConfigurationException("AWS::Type::Resource", "<request>");
-        }).withCauseInstanceOf(RuntimeException.class).withMessageContaining("<request>")
+        }).withNoCause().withMessageContaining("<request>")
             .withMessageContaining("AWS::Type::Resource")
             .withMessageContaining("Invalid TypeConfiguration");
     }
