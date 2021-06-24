@@ -41,6 +41,9 @@ jobs:
     - name: Verify java package
       run:
         mvn verify
+    - name: Install java package
+      run:
+        mvn install
     - name: Integration standard e2e
       run:
         ./e2e_test.sh 1
