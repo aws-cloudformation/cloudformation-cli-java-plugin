@@ -37,7 +37,7 @@ import software.amazon.cloudformation.proxy.service.ServiceClient;
 import software.amazon.cloudformation.resource.SchemaValidator;
 import software.amazon.cloudformation.resource.Serializer;
 
-public class ServiceHandlerWrapper extends AbstractWrapper<Model, StdCallbackContext> {
+public class ServiceHandlerWrapper extends AbstractWrapper<Model, StdCallbackContext, TypeConfigurationModel> {
 
     private final ServiceClient serviceClient;
 
@@ -55,7 +55,8 @@ public class ServiceHandlerWrapper extends AbstractWrapper<Model, StdCallbackCon
     }
 
     @Override
-    protected ResourceHandlerRequest<Model> transform(final HandlerRequest<Model, StdCallbackContext> request) {
+    protected ResourceHandlerRequest<Model>
+        transform(final HandlerRequest<Model, StdCallbackContext, TypeConfigurationModel> request) {
         final Model desiredResourceState;
         final Model previousResourceState;
         final Map<String, String> systemTags;
@@ -99,7 +100,8 @@ public class ServiceHandlerWrapper extends AbstractWrapper<Model, StdCallbackCon
     public ProgressEvent<Model, StdCallbackContext> invokeHandler(final AmazonWebServicesClientProxy proxy,
                                                                   final ResourceHandlerRequest<Model> request,
                                                                   final Action action,
-                                                                  final StdCallbackContext callbackContext) {
+                                                                  final StdCallbackContext callbackContext,
+                                                                  final TypeConfigurationModel typeConfigurationModel) {
         switch (action) {
             case CREATE:
                 return new CreateHandler(serviceClient).handleRequest(proxy, request, callbackContext,
@@ -116,8 +118,8 @@ public class ServiceHandlerWrapper extends AbstractWrapper<Model, StdCallbackCon
     }
 
     @Override
-    protected TypeReference<HandlerRequest<Model, StdCallbackContext>> getTypeReference() {
-        return new TypeReference<HandlerRequest<Model, StdCallbackContext>>() {
+    protected TypeReference<HandlerRequest<Model, StdCallbackContext, TypeConfigurationModel>> getTypeReference() {
+        return new TypeReference<HandlerRequest<Model, StdCallbackContext, TypeConfigurationModel>>() {
         };
     }
 

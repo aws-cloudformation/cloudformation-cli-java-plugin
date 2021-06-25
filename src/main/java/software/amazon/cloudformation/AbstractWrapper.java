@@ -70,7 +70,7 @@ import software.amazon.cloudformation.resource.Serializer;
 import software.amazon.cloudformation.resource.Validator;
 import software.amazon.cloudformation.resource.exceptions.ValidationException;
 
-public abstract class AbstractWrapper<ResourceT, CallbackT> {
+public abstract class AbstractWrapper<ResourceT, CallbackT, ConfigurationT> {
 
     public static final SdkHttpClient HTTP_CLIENT = ApacheHttpClient.builder().build();
 
@@ -90,7 +90,7 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
     protected final CloudWatchProvider providerCloudWatchProvider;
     protected final CloudWatchLogsProvider cloudWatchLogsProvider;
     protected final SchemaValidator validator;
-    protected final TypeReference<HandlerRequest<ResourceT, CallbackT>> typeReference;
+    protected final TypeReference<HandlerRequest<ResourceT, CallbackT, ConfigurationT>> typeReference;
 
     protected MetricsPublisher providerMetricsPublisher;
 
@@ -179,7 +179,7 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
         TerminalException {
 
         ProgressEvent<ResourceT, CallbackT> handlerResponse = null;
-        HandlerRequest<ResourceT, CallbackT> request = null;
+        HandlerRequest<ResourceT, CallbackT, ConfigurationT> request = null;
         scrubFiles();
         try {
             if (inputStream == null) {
@@ -239,7 +239,8 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
     }
 
     private ProgressEvent<ResourceT, CallbackT>
-        processInvocation(final JSONObject rawRequest, final HandlerRequest<ResourceT, CallbackT> request) throws IOException,
+        processInvocation(final JSONObject rawRequest, final HandlerRequest<ResourceT, CallbackT, ConfigurationT> request)
+            throws IOException,
             TerminalException {
         assert request != null : "Invalid request object received";
 
@@ -260,6 +261,7 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
 
         // transform the request object to pass to caller
         ResourceHandlerRequest<ResourceT> resourceHandlerRequest = transform(request);
+        ConfigurationT typeConfiguration = request.getRequestData().getTypeConfiguration();
 
         if (resourceHandlerRequest != null) {
             resourceHandlerRequest.setPreviousResourceTags(getPreviousResourceTags(request));
@@ -325,7 +327,7 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
         }
 
         ProgressEvent<ResourceT, CallbackT> handlerResponse = wrapInvocationAndHandleErrors(awsClientProxy,
-            resourceHandlerRequest, request, callbackContext);
+            resourceHandlerRequest, request, callbackContext, typeConfiguration);
 
         if (handlerResponse.getStatus() == OperationStatus.IN_PROGRESS && !isMutatingAction) {
             throw new TerminalException("READ and LIST handlers must return synchronously.");
@@ -334,8 +336,9 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
         return handlerResponse;
     }
 
-    private void
-        logUnhandledError(final String errorDescription, final HandlerRequest<ResourceT, CallbackT> request, final Throwable e) {
+    private void logUnhandledError(final String errorDescription,
+                                   final HandlerRequest<ResourceT, CallbackT, ConfigurationT> request,
+                                   final Throwable e) {
         log(String.format("%s in a %s action on a %s: %s%n%s", errorDescription, request.getAction(), request.getResourceType(),
             e.toString(), ExceptionUtils.getStackTrace(e)));
     }
@@ -349,13 +352,14 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
     private ProgressEvent<ResourceT, CallbackT>
         wrapInvocationAndHandleErrors(final AmazonWebServicesClientProxy awsClientProxy,
                                       final ResourceHandlerRequest<ResourceT> resourceHandlerRequest,
-                                      final HandlerRequest<ResourceT, CallbackT> request,
-                                      final CallbackT callbackContext) {
+                                      final HandlerRequest<ResourceT, CallbackT, ConfigurationT> request,
+                                      final CallbackT callbackContext,
+                                      final ConfigurationT typeConfiguration) {
 
         Date startTime = Date.from(Instant.now());
         try {
             ProgressEvent<ResourceT, CallbackT> handlerResponse = invokeHandler(awsClientProxy, resourceHandlerRequest,
-                request.getAction(), callbackContext);
+                request.getAction(), callbackContext, typeConfiguration);
             if (handlerResponse != null) {
                 this.log(String.format("Handler returned %s", handlerResponse.getStatus()));
             } else {
@@ -384,7 +388,8 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
 
     }
 
-    protected void writeResponse(final OutputStream outputStream, final ProgressEvent<ResourceT, CallbackT> response)
+    protected void writeResponse(final OutputStream outputStream,
+                                 final ProgressEvent<ResourceT, CallbackT> response)
         throws IOException {
         if (response.getResourceModel() != null) {
             // strip write only properties on final results, we will need the intact model
@@ -437,7 +442,7 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
      *            and is not needed by the handler implementations
      * @return A converted ResourceHandlerRequest model
      */
-    protected abstract ResourceHandlerRequest<ResourceT> transform(HandlerRequest<ResourceT, CallbackT> request)
+    protected abstract ResourceHandlerRequest<ResourceT> transform(HandlerRequest<ResourceT, CallbackT, ConfigurationT> request)
         throws IOException;
 
     /**
@@ -465,6 +470,7 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
      *            {@link Action#DELETE}, {@link Action#READ} {@link Action#LIST} or
      *            {@link Action#UPDATE}
      * @param callbackContext the callback context to handle reentrant calls
+     * @param typeConfiguration the configuration for the type set by type consumer
      * @return progress event indicating success, in progress with delay callback or
      *         failed state
      * @throws Exception propagate any unexpected errors
@@ -472,7 +478,8 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
     public abstract ProgressEvent<ResourceT, CallbackT> invokeHandler(AmazonWebServicesClientProxy proxy,
                                                                       ResourceHandlerRequest<ResourceT> request,
                                                                       Action action,
-                                                                      CallbackT callbackContext)
+                                                                      CallbackT callbackContext,
+                                                                      ConfigurationT typeConfiguration)
         throws Exception;
 
     /*
@@ -512,7 +519,7 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
         }
     }
 
-    protected abstract TypeReference<HandlerRequest<ResourceT, CallbackT>> getTypeReference();
+    protected abstract TypeReference<HandlerRequest<ResourceT, CallbackT, ConfigurationT>> getTypeReference();
 
     protected abstract TypeReference<ResourceT> getModelTypeReference();
 
@@ -536,7 +543,7 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
      * @return a Map of Tag names to Tag values
      */
     @VisibleForTesting
-    protected Map<String, String> getDesiredResourceTags(final HandlerRequest<ResourceT, CallbackT> request) {
+    protected Map<String, String> getDesiredResourceTags(final HandlerRequest<ResourceT, CallbackT, ConfigurationT> request) {
         Map<String, String> desiredResourceTags = new HashMap<>();
         JSONObject object;
 
@@ -559,7 +566,7 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
      * @return a Map of Tag names to Tag values
      */
     @VisibleForTesting
-    protected Map<String, String> getPreviousResourceTags(final HandlerRequest<ResourceT, CallbackT> request) {
+    protected Map<String, String> getPreviousResourceTags(final HandlerRequest<ResourceT, CallbackT, ConfigurationT> request) {
         Map<String, String> previousResourceTags = new HashMap<>();
 
         if (request != null && request.getRequestData() != null) {
@@ -574,7 +581,7 @@ public abstract class AbstractWrapper<ResourceT, CallbackT> {
     }
 
     @VisibleForTesting
-    protected String getStackId(final HandlerRequest<ResourceT, CallbackT> request) {
+    protected String getStackId(final HandlerRequest<ResourceT, CallbackT, ConfigurationT> request) {
         if (request != null) {
             return request.getStackId();
         }

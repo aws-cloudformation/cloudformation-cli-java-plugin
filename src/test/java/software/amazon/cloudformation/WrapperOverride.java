@@ -40,7 +40,7 @@ import software.amazon.cloudformation.resource.Serializer;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class WrapperOverride extends AbstractWrapper<TestModel, TestContext> {
+public class WrapperOverride extends AbstractWrapper<TestModel, TestContext, TestConfigurationModel> {
 
     /**
      * Invoked to test normal initialization flows
@@ -71,7 +71,8 @@ public class WrapperOverride extends AbstractWrapper<TestModel, TestContext> {
     public ProgressEvent<TestModel, TestContext> invokeHandler(final AmazonWebServicesClientProxy awsClientProxy,
                                                                final ResourceHandlerRequest<TestModel> request,
                                                                final Action action,
-                                                               final TestContext callbackContext)
+                                                               final TestContext callbackContext,
+                                                               final TestConfigurationModel testConfigurationModel)
         throws Exception {
         this.awsClientProxy = awsClientProxy;
         this.request = request;
@@ -85,7 +86,6 @@ public class WrapperOverride extends AbstractWrapper<TestModel, TestContext> {
         } else {
             return invokeHandlerResponses.remove();
         }
-
     }
 
     // lets tests assert on the passed in arguments
@@ -93,6 +93,7 @@ public class WrapperOverride extends AbstractWrapper<TestModel, TestContext> {
     public ResourceHandlerRequest<TestModel> request;
     public Action action;
     public TestContext callbackContext;
+    public TestConfigurationModel typeConfiguration;
 
     // allows test to have the invoke throw an exception
     public Exception invokeHandlerException;
@@ -112,7 +113,8 @@ public class WrapperOverride extends AbstractWrapper<TestModel, TestContext> {
     }
 
     @Override
-    protected ResourceHandlerRequest<TestModel> transform(final HandlerRequest<TestModel, TestContext> request) {
+    protected ResourceHandlerRequest<TestModel>
+        transform(final HandlerRequest<TestModel, TestContext, TestConfigurationModel> request) {
         return transformResponse;
     }
 
@@ -124,8 +126,8 @@ public class WrapperOverride extends AbstractWrapper<TestModel, TestContext> {
     public ResourceHandlerRequest<TestModel> transformResponse;
 
     @Override
-    protected TypeReference<HandlerRequest<TestModel, TestContext>> getTypeReference() {
-        return new TypeReference<HandlerRequest<TestModel, TestContext>>() {
+    protected TypeReference<HandlerRequest<TestModel, TestContext, TestConfigurationModel>> getTypeReference() {
+        return new TypeReference<HandlerRequest<TestModel, TestContext, TestConfigurationModel>>() {
         };
     }
 

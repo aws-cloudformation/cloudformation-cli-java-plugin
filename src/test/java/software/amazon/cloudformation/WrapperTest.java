@@ -944,8 +944,8 @@ public class WrapperTest {
         resourceTags.put("Tag2", "Value2");
         final TestModel model = TestModel.builder().tags(resourceTags).build();
 
-        final HandlerRequest<TestModel, TestContext> request = new HandlerRequest<>();
-        final RequestData<TestModel> requestData = new RequestData<>();
+        final HandlerRequest<TestModel, TestContext, TestConfigurationModel> request = new HandlerRequest<>();
+        final RequestData<TestModel, TestConfigurationModel> requestData = new RequestData<>();
         requestData.setResourceProperties(model);
         requestData.setStackTags(stackTags);
         request.setRequestData(requestData);
@@ -966,8 +966,8 @@ public class WrapperTest {
         resourceTags.put("Tag1", "Value2");
         final TestModel model = TestModel.builder().tags(resourceTags).build();
 
-        final HandlerRequest<TestModel, TestContext> request = new HandlerRequest<>();
-        final RequestData<TestModel> requestData = new RequestData<>();
+        final HandlerRequest<TestModel, TestContext, TestConfigurationModel> request = new HandlerRequest<>();
+        final RequestData<TestModel, TestConfigurationModel> requestData = new RequestData<>();
         requestData.setResourceProperties(model);
         requestData.setStackTags(stackTags);
         request.setRequestData(requestData);
@@ -987,8 +987,8 @@ public class WrapperTest {
         resourceTags.put("Tag2", "Value2");
         final TestModel model = TestModel.builder().tags(resourceTags).build();
 
-        final HandlerRequest<TestModel, TestContext> request = new HandlerRequest<>();
-        final RequestData<TestModel> requestData = new RequestData<>();
+        final HandlerRequest<TestModel, TestContext, TestConfigurationModel> request = new HandlerRequest<>();
+        final RequestData<TestModel, TestConfigurationModel> requestData = new RequestData<>();
         requestData.setPreviousResourceProperties(model);
         requestData.setPreviousStackTags(stackTags);
         request.setRequestData(requestData);
@@ -1009,8 +1009,8 @@ public class WrapperTest {
         resourceTags.put("Tag1", "Value2");
         final TestModel model = TestModel.builder().tags(resourceTags).build();
 
-        final HandlerRequest<TestModel, TestContext> request = new HandlerRequest<>();
-        final RequestData<TestModel> requestData = new RequestData<>();
+        final HandlerRequest<TestModel, TestContext, TestConfigurationModel> request = new HandlerRequest<>();
+        final RequestData<TestModel, TestConfigurationModel> requestData = new RequestData<>();
         requestData.setPreviousResourceProperties(model);
         requestData.setPreviousStackTags(stackTags);
         request.setRequestData(requestData);
@@ -1023,7 +1023,7 @@ public class WrapperTest {
 
     @Test
     public void getStackId_setAndGetStackId() {
-        final HandlerRequest<TestModel, TestContext> request = new HandlerRequest<>();
+        final HandlerRequest<TestModel, TestContext, TestConfigurationModel> request = new HandlerRequest<>();
         request.setStackId("AWSStackId");
 
         final String stackId = wrapper.getStackId(request);

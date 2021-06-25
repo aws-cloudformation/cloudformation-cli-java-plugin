@@ -31,9 +31,10 @@ import software.amazon.cloudformation.Action;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder(toBuilder = true)
-public class ResourceHandlerTestPayload<ModelT, CallbackT> {
+public class ResourceHandlerTestPayload<ModelT, CallbackT, ConfigurationT> {
     private Credentials credentials;
     private Action action;
     private ResourceHandlerRequest<ModelT> request;
     private CallbackT callbackContext;
+    private ConfigurationT typeConfiguration;
 }

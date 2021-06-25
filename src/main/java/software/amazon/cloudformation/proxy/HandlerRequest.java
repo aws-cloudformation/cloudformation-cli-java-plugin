@@ -24,7 +24,7 @@ import software.amazon.cloudformation.Action;
  */
 @Data
 @NoArgsConstructor
-public class HandlerRequest<ResourceT, CallbackT> {
+public class HandlerRequest<ResourceT, CallbackT, ConfigurationT> {
     private Action action;
     private String awsAccountId;
     private String bearerToken;
@@ -32,7 +32,7 @@ public class HandlerRequest<ResourceT, CallbackT> {
     private String region;
     private String resourceType;
     private String resourceTypeVersion;
-    private RequestData<ResourceT> requestData;
+    private RequestData<ResourceT, ConfigurationT> requestData;
     private String stackId;
     private CallbackT callbackContext;
     private Boolean snapshotRequested;

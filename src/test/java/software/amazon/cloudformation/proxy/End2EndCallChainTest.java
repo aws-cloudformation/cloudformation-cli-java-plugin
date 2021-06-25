@@ -46,6 +46,7 @@ import software.amazon.cloudformation.loggers.LogPublisher;
 import software.amazon.cloudformation.metrics.MetricsPublisher;
 import software.amazon.cloudformation.proxy.handler.Model;
 import software.amazon.cloudformation.proxy.handler.ServiceHandlerWrapper;
+import software.amazon.cloudformation.proxy.handler.TypeConfigurationModel;
 import software.amazon.cloudformation.proxy.service.AccessDenied;
 import software.amazon.cloudformation.proxy.service.CreateRequest;
 import software.amazon.cloudformation.proxy.service.CreateResponse;
@@ -127,8 +128,8 @@ public class End2EndCallChainTest {
         assertThat(event.getMessage()).contains("Repo already exists");
     }
 
-    private HandlerRequest<Model, StdCallbackContext> prepareRequest(Model model) throws Exception {
-        HandlerRequest<Model, StdCallbackContext> request = new HandlerRequest<>();
+    private HandlerRequest<Model, StdCallbackContext, TypeConfigurationModel> prepareRequest(Model model) throws Exception {
+        HandlerRequest<Model, StdCallbackContext, TypeConfigurationModel> request = new HandlerRequest<>();
         request.setAction(Action.CREATE);
         request.setAwsAccountId("1234567891234");
         request.setBearerToken("dwezxdfgfgh");
@@ -136,18 +137,20 @@ public class End2EndCallChainTest {
         request.setRegion("us-east-2");
         request.setResourceType("AWS::Code::Repository");
         request.setStackId(UUID.randomUUID().toString());
-        RequestData<Model> data = new RequestData<>();
+        RequestData<Model, TypeConfigurationModel> data = new RequestData<>();
         data.setResourceProperties(model);
         data.setCallerCredentials(credentials);
         request.setRequestData(data);
         return request;
     }
 
-    private HandlerRequest<Model, StdCallbackContext> prepareRequest() throws Exception {
+    private HandlerRequest<Model, StdCallbackContext, TypeConfigurationModel> prepareRequest() throws Exception {
         return prepareRequest(Model.builder().repoName("repository").build());
     }
 
-    private InputStream prepareStream(Serializer serializer, HandlerRequest<Model, StdCallbackContext> request) throws Exception {
+    private InputStream prepareStream(Serializer serializer,
+                                      HandlerRequest<Model, StdCallbackContext, TypeConfigurationModel> request)
+        throws Exception {
 
         ByteArrayOutputStream out = new ByteArrayOutputStream(2048);
         Writer writer = new OutputStreamWriter(out, StandardCharsets.UTF_8);
@@ -177,7 +180,8 @@ public class End2EndCallChainTest {
     @Order(5)
     @Test
     public void notFound() throws Exception {
-        final HandlerRequest<Model, StdCallbackContext> request = prepareRequest(Model.builder().repoName("repository").build());
+        final HandlerRequest<Model, StdCallbackContext,
+            TypeConfigurationModel> request = prepareRequest(Model.builder().repoName("repository").build());
         request.setAction(Action.READ);
         final Model model = request.getRequestData().getResourceProperties();
         final Serializer serializer = new Serializer();
@@ -228,7 +232,7 @@ public class End2EndCallChainTest {
     @Order(10)
     @Test
     public void createHandler() throws Exception {
-        final HandlerRequest<Model, StdCallbackContext> request = prepareRequest();
+        final HandlerRequest<Model, StdCallbackContext, TypeConfigurationModel> request = prepareRequest();
         final Serializer serializer = new Serializer();
         final InputStream stream = prepareStream(serializer, request);
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
@@ -280,7 +284,7 @@ public class End2EndCallChainTest {
     @Order(20)
     @Test
     public void createHandlerAlreadyExists() throws Exception {
-        final HandlerRequest<Model, StdCallbackContext> request = prepareRequest();
+        final HandlerRequest<Model, StdCallbackContext, TypeConfigurationModel> request = prepareRequest();
         final Serializer serializer = new Serializer();
         final InputStream stream = prepareStream(serializer, request);
         final ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
@@ -333,7 +337,8 @@ public class End2EndCallChainTest {
     @Order(30)
     @Test
     public void createHandlerThrottleException() throws Exception {
-        HandlerRequest<Model, StdCallbackContext> request = prepareRequest(Model.builder().repoName("repository").build());
+        HandlerRequest<Model, StdCallbackContext,
+            TypeConfigurationModel> request = prepareRequest(Model.builder().repoName("repository").build());
         request.setAction(Action.CREATE);
         final Serializer serializer = new Serializer();
         final InputStream stream = prepareStream(serializer, request);
@@ -397,7 +402,8 @@ public class End2EndCallChainTest {
     @Order(40)
     @Test
     public void createHandlerThottleExceptionEarlyInProgressBailout() throws Exception {
-        final HandlerRequest<Model, StdCallbackContext> request = prepareRequest(Model.builder().repoName("repository").build());
+        final HandlerRequest<Model, StdCallbackContext,
+            TypeConfigurationModel> request = prepareRequest(Model.builder().repoName("repository").build());
         request.setAction(Action.CREATE);
         final Serializer serializer = new Serializer();
         final InputStream stream = prepareStream(serializer, request);
@@ -449,7 +455,8 @@ public class End2EndCallChainTest {
     @Order(40)
     @Test
     public void accessDenied() throws Exception {
-        final HandlerRequest<Model, StdCallbackContext> request = prepareRequest(Model.builder().repoName("repository").build());
+        final HandlerRequest<Model, StdCallbackContext,
+            TypeConfigurationModel> request = prepareRequest(Model.builder().repoName("repository").build());
         request.setAction(Action.READ);
         final Serializer serializer = new Serializer();
         final InputStream stream = prepareStream(serializer, request);

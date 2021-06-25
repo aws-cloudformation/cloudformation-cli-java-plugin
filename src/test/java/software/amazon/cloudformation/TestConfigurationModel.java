@@ -12,24 +12,21 @@
 * express or implied. See the License for the specific language governing
 * permissions and limitations under the License.
 */
-package software.amazon.cloudformation.proxy;
+package software.amazon.cloudformation;
 
-import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
+@AllArgsConstructor
 @NoArgsConstructor
-public class RequestData<ResourceT, ConfigurationT> {
-    private Credentials callerCredentials;
-    private Credentials providerCredentials;
-    private String providerLogGroupName;
-    private String logicalResourceId;
-    private ResourceT resourceProperties;
-    private ResourceT previousResourceProperties;
-    private ConfigurationT typeConfiguration;
-    private Map<String, String> systemTags;
-    private Map<String, String> previousSystemTags;
-    private Map<String, String> stackTags;
-    private Map<String, String> previousStackTags;
+@Builder
+public class TestConfigurationModel {
+
+    private String property1;
+
+    private Integer property2;
+
 }

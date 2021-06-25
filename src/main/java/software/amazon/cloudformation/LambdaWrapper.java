@@ -29,8 +29,8 @@ import software.amazon.cloudformation.metrics.MetricsPublisher;
 import software.amazon.cloudformation.resource.SchemaValidator;
 import software.amazon.cloudformation.resource.Serializer;
 
-public abstract class LambdaWrapper<ResourceT, CallbackT> extends AbstractWrapper<ResourceT, CallbackT>
-    implements RequestStreamHandler {
+public abstract class LambdaWrapper<ResourceT, CallbackT, ConfigurationT>
+    extends AbstractWrapper<ResourceT, CallbackT, ConfigurationT> implements RequestStreamHandler {
 
     public LambdaWrapper() {
         super();
