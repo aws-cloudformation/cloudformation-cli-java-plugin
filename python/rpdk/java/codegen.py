@@ -8,14 +8,23 @@ from collections import namedtuple
 from xml.etree.ElementTree import ParseError  # nosec
 
 from rpdk.core.data_loaders import resource_stream
-from rpdk.core.exceptions import InternalError, SysExitRecommendedError
-from rpdk.core.init import input_with_validation
+from rpdk.core.exceptions import (
+    InternalError,
+    SysExitRecommendedError,
+    WizardValidationError,
+)
+from rpdk.core.init import input_with_validation, print_error
 from rpdk.core.jsonutils.resolver import resolve_models
 from rpdk.core.plugin_base import LanguagePlugin
 
 from . import __version__
 from .resolver import translate_type
-from .utils import safe_reserved, validate_codegen_model, validate_namespace
+from .utils import (
+    get_default_namespace,
+    safe_reserved,
+    validate_codegen_model,
+    validate_namespace,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -77,7 +86,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         self.env = self._setup_jinja_env(
             trim_blocks=True, lstrip_blocks=True, keep_trailing_newline=True
         )
-        self.codegen_template_path = None
+        self.codegen_model = None
         self.env.filters["translate_type"] = translate_type
         self.env.filters["safe_reserved"] = safe_reserved
         self.namespace = None
@@ -96,42 +105,52 @@ class JavaLanguagePlugin(LanguagePlugin):
         self.package_name = ".".join(self.namespace)
 
     def _prompt_for_namespace(self, project):
-        if project.type_info[0] == "AWS":
-            namespace = ("software", "amazon") + project.type_info[1:]
-        else:
-            namespace = ("com",) + project.type_info
-
-        namespace = tuple(safe_reserved(s.lower()) for s in namespace)
+        default_namespace = get_default_namespace(project)
+        settings_namespace = project.settings.get("namespace")
 
         prompt = "Enter a package name (empty for default '{}'): ".format(
-            ".".join(namespace)
+            ".".join(default_namespace)
         )
 
-        self.namespace = input_with_validation(prompt, validate_namespace(namespace))
+        namespace_validator = validate_namespace(default_namespace)
+
+        if settings_namespace == "default":
+            self.namespace = default_namespace
+        elif settings_namespace:
+            try:
+                self.namespace = namespace_validator(settings_namespace)
+            except WizardValidationError as error:
+                print_error(error)
+                self.namespace = input_with_validation(prompt, namespace_validator)
+        else:
+            self.namespace = input_with_validation(prompt, namespace_validator)
+
         project.settings["namespace"] = self.namespace
         self.package_name = ".".join(self.namespace)
 
     @staticmethod
     def _prompt_for_codegen_model(project):
-        prompt = "Choose codegen model - 1 (default) or 2 (guided-aws): "
+        codegen_model = project.settings.get("codegen_model")
+        if not codegen_model:
+            prompt = "Choose codegen model - 1 (default) or 2 (guided-aws): "
 
-        codegen_model = input_with_validation(
-            prompt, validate_codegen_model(CODEGEN.default_code)
-        )
+            codegen_model_code = input_with_validation(
+                prompt, validate_codegen_model(CODEGEN.default_code)
+            )
 
-        project.settings["codegen_template_path"] = CODEGEN.default
+            project.settings["codegen_model"] = CODEGEN.default
 
-        if codegen_model == CODEGEN.guided_code:
-            project.settings["codegen_template_path"] = CODEGEN.guided
+            if codegen_model_code == CODEGEN.guided_code:
+                project.settings["codegen_model"] = CODEGEN.guided
 
     def _get_template(self, project, stage, name):
         return self.env.get_template(
-            stage + "/" + project.settings["codegen_template_path"] + "/" + name
+            stage + "/" + project.settings["codegen_model"] + "/" + name
         )
 
     @staticmethod
     def _is_aws_guided(project: object) -> bool:
-        return project.settings["codegen_template_path"] == CODEGEN.guided
+        return project.settings["codegen_model"] == CODEGEN.guided
 
     @logdebug
     def _writing_component(

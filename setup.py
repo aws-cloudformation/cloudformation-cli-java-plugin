@@ -38,7 +38,10 @@ setup(
     zip_safe=True,
     install_requires=["cloudformation-cli>=0.2.13"],
     python_requires=">=3.6",
-    entry_points={"rpdk.v1.languages": ["java = rpdk.java.codegen:JavaLanguagePlugin"]},
+    entry_points={
+        "rpdk.v1.languages": ["java = rpdk.java.codegen:JavaLanguagePlugin"],
+        "rpdk.v1.parsers": ["java = rpdk.java.parser:setup_subparser"],
+    },
     license="Apache License 2.0",
     classifiers=[
         "Development Status :: 5 - Production/Stable",

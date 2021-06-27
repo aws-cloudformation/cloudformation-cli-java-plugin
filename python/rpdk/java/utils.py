@@ -64,6 +64,16 @@ def safe_reserved(token):
     return token
 
 
+def get_default_namespace(project):
+    if project.type_info[0] == "AWS":
+        namespace = ("software", "amazon") + project.type_info[1:]
+    else:
+        namespace = ("com",) + project.type_info
+
+    namespace = tuple(safe_reserved(s.lower()) for s in namespace)
+    return namespace
+
+
 def validate_namespace(default):
     pattern = r"^[_a-z][_a-z0-9]+$"
 
