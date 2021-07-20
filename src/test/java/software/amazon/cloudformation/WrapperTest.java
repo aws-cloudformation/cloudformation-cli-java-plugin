@@ -435,7 +435,7 @@ public class WrapperTest {
     @ParameterizedTest
     @CsvSource({ "create.with-callback-context.request.json,CREATE", "update.with-callback-context.request.json,UPDATE",
         "delete.with-callback-context.request.json,DELETE" })
-    public void reInvokeHandler_InProgress_returnsInProgress(final String requestDataPath, final String actionAsString)
+    public void reInvokeHandler_InProgress_returnsInProgressWithContext(final String requestDataPath, final String actionAsString)
         throws IOException {
         final Action action = Action.valueOf(actionAsString);
         final TestModel model = TestModel.builder().property1("abc").property2(123).build();
@@ -445,8 +445,55 @@ public class WrapperTest {
         // interval >= 1 minute is scheduled
         // against CloudWatch. Shorter intervals are able to run locally within same
         // function context if runtime permits
-        final ProgressEvent<TestModel, TestContext> pe = ProgressEvent.<TestModel, TestContext>builder()
-            .status(OperationStatus.IN_PROGRESS).callbackDelaySeconds(60).resourceModel(model).build();
+        final ProgressEvent<TestModel,
+            TestContext> pe = ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.IN_PROGRESS)
+                .callbackDelaySeconds(60).resourceModel(model)
+                .callbackContext(TestContext.builder().contextPropertyA("Value").build()).build();
+        wrapper.setInvokeHandlerResponse(pe);
+
+        wrapper.setTransformResponse(resourceHandlerRequest);
+
+        try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
+            wrapper.processRequest(in, out);
+
+            // verify initialiseRuntime was called and initialised dependencies
+            verifyInitialiseRuntime();
+
+            // all metrics should be published, once for a single invocation
+            verify(providerMetricsPublisher).publishInvocationMetric(any(Instant.class), eq(action));
+            verify(providerMetricsPublisher).publishDurationMetric(any(Instant.class), eq(action), anyLong());
+            verify(providerMetricsPublisher).publishExceptionByErrorCodeAndCountBulkMetrics(any(Instant.class), eq(action),
+                any());
+
+            // validation failure metric should not be published
+            verifyNoMoreInteractions(providerMetricsPublisher);
+
+            // verify that NO model validation occurred for CREATE/UPDATE
+            verifyNoMoreInteractions(validator);
+
+            // verify output response
+            verifyHandlerResponse(out, ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.IN_PROGRESS)
+                .resourceModel(TestModel.builder().property1("abc").property2(123).build()).build());
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({ "create.without-callback-context.request.json,CREATE", "update.without-callback-context.request.json,UPDATE" })
+    public void reInvokeHandler_InProgress_returnsInProgressWithoutContext(final String requestDataPath,
+                                                                           final String actionAsString)
+        throws IOException {
+        final Action action = Action.valueOf(actionAsString);
+        final TestModel model = TestModel.builder().property1("abc").property2(123).build();
+
+        // an InProgress response is always re-scheduled.
+        // If no explicit time is supplied, a 1-minute interval is used, and any
+        // interval >= 1 minute is scheduled
+        // against CloudWatch. Shorter intervals are able to run locally within same
+        // function context if runtime permits
+        final ProgressEvent<TestModel,
+            TestContext> pe = ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.IN_PROGRESS)
+                .callbackDelaySeconds(60).resourceModel(model)
+                .callbackContext(TestContext.builder().contextPropertyA("Value").build()).build();
         wrapper.setInvokeHandlerResponse(pe);
 
         wrapper.setTransformResponse(resourceHandlerRequest);
@@ -467,9 +514,7 @@ public class WrapperTest {
             verifyNoMoreInteractions(providerMetricsPublisher);
 
             // verify that model validation occurred for CREATE/UPDATE
-            if (action == Action.CREATE || action == Action.UPDATE) {
-                verify(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
-            }
+            verify(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
 
             // verify output response
             verifyHandlerResponse(out, ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.IN_PROGRESS)
