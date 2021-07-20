@@ -285,7 +285,7 @@ public abstract class AbstractWrapper<ResourceT, CallbackT, ConfigurationT> {
         // NOTE: Validation is not required on deletion as only the primary identifier
         // is required to delete.
         // Here, we want to surface ALL input validation errors to the caller.
-        final boolean shouldValidate = VALIDATING_ACTIONS.contains(request.getAction());
+        final boolean shouldValidate = VALIDATING_ACTIONS.contains(request.getAction()) && request.getCallbackContext() == null;
         if (shouldValidate) {
             // validate entire incoming payload, including extraneous fields which
             // are stripped by the Serializer (due to FAIL_ON_UNKNOWN_PROPERTIES setting)
@@ -388,8 +388,7 @@ public abstract class AbstractWrapper<ResourceT, CallbackT, ConfigurationT> {
 
     }
 
-    protected void writeResponse(final OutputStream outputStream,
-                                 final ProgressEvent<ResourceT, CallbackT> response)
+    protected void writeResponse(final OutputStream outputStream, final ProgressEvent<ResourceT, CallbackT> response)
         throws IOException {
         if (response.getResourceModel() != null) {
             // strip write only properties on final results, we will need the intact model
