@@ -1,11 +1,11 @@
 repos:
 - repo: https://github.com/pre-commit/mirrors-isort
-  rev: v4.3.17
+  rev: v5.9.3
   hooks:
   - id: isort
     # language_version: python3.6
 - repo: https://github.com/ambv/black
-  rev: stable
+  rev: 21.7b0
   hooks:
   - id: black
     # language_version: python3.6
@@ -35,13 +35,13 @@ repos:
   - id: check-merge-conflict
   - id: check-yaml
 - repo: https://github.com/pre-commit/pygrep-hooks
-  rev: v1.3.0
+  rev: v1.9.0
   hooks:
   - id: python-check-blanket-noqa
   - id: python-check-mock-methods
   - id: python-no-log-warn
 - repo: https://github.com/PyCQA/bandit
-  rev: f5a6f0ca62  # TODO: update once a release > 1.5.1 hits with this change in
+  rev: 1.7.0  # TODO: update once a release > 1.5.1 hits with this change in
   hooks:
   - id: bandit
     files: "^python/"
