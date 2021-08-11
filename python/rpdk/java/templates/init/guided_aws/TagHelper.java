@@ -95,37 +95,43 @@ public class TagHelper {
     /**
      * shouldUpdateTags
      *
-     * Determines whether user defined tags or system tags have been changed during update.
+     * Determines whether user defined tags have been changed during update.
      */
     public final boolean shouldUpdateTags(final ResourceModel resourceModel, final ResourceHandlerRequest<ResourceModel> handlerRequest) {
-        return areResourceTagsChanging(resourceModel, handlerRequest) || areSystemTagsChanging(handlerRequest);
-    }
-
-    private boolean areResourceTagsChanging(final ResourceModel resourceModel, final ResourceHandlerRequest<ResourceModel> handlerRequest) {
-        final Map<String, String> currentTags = getCurrentTags(handlerRequest);
+        final Map<String, String> currentTags = getPreviouslyAttachedTags(handlerRequest);
         final Map<String, String> desiredTags = getNewDesiredTags(resourceModel, handlerRequest);
         return ObjectUtils.notEqual(currentTags, desiredTags);
     }
 
-    private Map<String, String> getCurrentTags(final ResourceHandlerRequest<ResourceModel> handlerRequest) {
+    /**
+     * getPreviouslyAttachedTags
+     *
+     * If stack tags and resource tags are not merged together in Configuration class,
+     * we will get previous attached user defined tags from both handlerRequest.getPreviousResourceTags (stack tags)
+     * and handlerRequest.getPreviousResourceState (resource tags).
+     */
+    public Map<String, String> getPreviouslyAttachedTags(final ResourceHandlerRequest<ResourceModel> handlerRequest) {
+        // get previous stack level tags from handlerRequest
         final Map<String, String> currentTags = handlerRequest.getPreviousResourceTags();
-        // TODO: get tags from previous resource state based on your tag property name
+
+        // TODO: get resource level tags from previous resource state based on your tag property name
         // TODO: currentTags.putAll(handlerRequest.getPreviousResourceState().getTags());
         return currentTags;
     }
 
-    private Map<String, String> getNewDesiredTags(final ResourceModel resourceModel, final ResourceHandlerRequest<ResourceModel> handlerRequest) {
+    /**
+     * getNewDesiredTags
+     *
+     * If stack tags and resource tags are not merged together in Configuration class,
+     * we will get new user defined tags from both resource model and previous stack tags.
+     */
+    public Map<String, String> getNewDesiredTags(final ResourceModel resourceModel, final ResourceHandlerRequest<ResourceModel> handlerRequest) {
+        // get new stack level tags from handlerRequest
         final Map<String, String> desiredTags = handlerRequest.getDesiredResourceTags();
+
         // TODO: get tags from resource model based on your tag property name
         // TODO: desiredTags.putAll(convertToMap(resourceModel.getTags()));
         return desiredTags;
-    }
-
-    private boolean areSystemTagsChanging(final ResourceHandlerRequest<ResourceModel> handlerRequest) {
-        final Map<String, String> currentSystemTags = handlerRequest.getPreviousSystemTags();
-        final Map<String, String> desiredSystemTags = handlerRequest.getSystemTags();
-
-        return !Objects.equals(currentSystemTags, desiredSystemTags);
     }
 
     /**
@@ -184,14 +190,14 @@ public class TagHelper {
                                                                       final ResourceModel resourceModel, final ResourceHandlerRequest<ResourceModel> handlerRequest, final CallbackContext callbackContext, final Logger logger) {
         return ProgressEvent.progress(resourceModel, callbackContext)
             .then(progress -> {
-                final Map<String, String> tagsToAdd = generateTagsToAdd(getCurrentTags(handlerRequest), getNewDesiredTags(resourceModel, handlerRequest));
+                final Map<String, String> tagsToAdd = generateTagsToAdd(getPreviouslyAttachedTags(handlerRequest), getNewDesiredTags(resourceModel, handlerRequest));
                 if (!tagsToAdd.isEmpty()) {
                     return tagResource(proxy, serviceClient, resourceModel, handlerRequest, callbackContext, tagsToAdd, logger);
                 }
                 return ProgressEvent.defaultInProgressHandler(callbackContext, 0, resourceModel);
             })
             .then(progress -> {
-                final Set<String> tagsToRemove = generateTagsToRemove(getCurrentTags(handlerRequest), getNewDesiredTags(resourceModel, handlerRequest));
+                final Set<String> tagsToRemove = generateTagsToRemove(getPreviouslyAttachedTags(handlerRequest), getNewDesiredTags(resourceModel, handlerRequest));
                 if (!tagsToRemove.isEmpty()) {
                     return untagResource(proxy, serviceClient, resourceModel, handlerRequest, callbackContext, tagsToRemove, logger);
                 }
