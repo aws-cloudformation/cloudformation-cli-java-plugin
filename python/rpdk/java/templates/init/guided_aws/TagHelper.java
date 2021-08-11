@@ -71,7 +71,7 @@ public class TagHelper {
     }
 
     /**
-     * shouldUpdateTags
+     * generateTagsForCreate
      *
      * Generate tags to put into resource creation request.
      * This includes user defined tags and system tags as well.
