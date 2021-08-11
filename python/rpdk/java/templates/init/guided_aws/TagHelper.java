@@ -1,4 +1,4 @@
-package software.amazon.cloudformation.resource;
+package {{ package_name }};
 
 import java.util.Collection;
 import java.util.Collections;
@@ -23,7 +23,7 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
 
-public class TagTest {
+public class TagHelper {
     /**
      * convertToMap
      *
