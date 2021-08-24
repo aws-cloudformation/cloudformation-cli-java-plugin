@@ -15,7 +15,7 @@ import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.core.SdkClient;
-// TODO: Replace the Tag model below according to your resource
+// TODO: Critical! Please replace the CloudFormation Tag model below with your service's own SDK Tag model
 import software.amazon.awssdk.services.cloudformation.model.Tag;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
@@ -79,9 +79,8 @@ public class TagHelper {
     public final Map<String, String> generateTagsForCreate(final ResourceModel resourceModel, final ResourceHandlerRequest<ResourceModel> handlerRequest) {
         final Map<String, String> tagMap = new HashMap<>();
 
-        if (handlerRequest.getSystemTags() != null) {
-            tagMap.putAll(handlerRequest.getSystemTags());
-        }
+        // merge system tags with desired resource tags if your service supports CloudFormation system tags
+        tagMap.putAll(handlerRequest.getSystemTags());
 
         if (handlerRequest.getDesiredResourceTags() != null) {
             tagMap.putAll(handlerRequest.getDesiredResourceTags());
@@ -98,9 +97,9 @@ public class TagHelper {
      * Determines whether user defined tags have been changed during update.
      */
     public final boolean shouldUpdateTags(final ResourceModel resourceModel, final ResourceHandlerRequest<ResourceModel> handlerRequest) {
-        final Map<String, String> currentTags = getPreviouslyAttachedTags(handlerRequest);
+        final Map<String, String> previousTags = getPreviouslyAttachedTags(handlerRequest);
         final Map<String, String> desiredTags = getNewDesiredTags(resourceModel, handlerRequest);
-        return ObjectUtils.notEqual(currentTags, desiredTags);
+        return ObjectUtils.notEqual(previousTags, desiredTags);
     }
 
     /**
@@ -112,11 +111,11 @@ public class TagHelper {
      */
     public Map<String, String> getPreviouslyAttachedTags(final ResourceHandlerRequest<ResourceModel> handlerRequest) {
         // get previous stack level tags from handlerRequest
-        final Map<String, String> currentTags = handlerRequest.getPreviousResourceTags();
+        final Map<String, String> previousTags = handlerRequest.getPreviousResourceTags();
 
         // TODO: get resource level tags from previous resource state based on your tag property name
-        // TODO: currentTags.putAll(handlerRequest.getPreviousResourceState().getTags());
-        return currentTags;
+        // TODO: previousTags.putAll(handlerRequest.getPreviousResourceState().getTags());
+        return previousTags;
     }
 
     /**
@@ -135,13 +134,13 @@ public class TagHelper {
     }
 
     /**
-     * getTagsToAdd
+     * generateTagsToAdd
      *
      * Determines the tags the customer desired to define or redefine.
      */
-    public Map<String, String> generateTagsToAdd(final Map<String, String> currentTags, final Map<String, String> desiredTags) {
+    public Map<String, String> generateTagsToAdd(final Map<String, String> previousTags, final Map<String, String> desiredTags) {
         return desiredTags.entrySet().stream()
-            .filter(e -> !currentTags.containsKey(e.getKey()) || !Objects.equals(currentTags.get(e.getKey()), e.getValue()))
+            .filter(e -> !previousTags.containsKey(e.getKey()) || !Objects.equals(previousTags.get(e.getKey()), e.getValue()))
             .collect(Collectors.toMap(
                 Map.Entry::getKey,
                 Map.Entry::getValue));
@@ -152,21 +151,21 @@ public class TagHelper {
      *
      * Determines the tags the customer desired to remove from the function.
      */
-    public Set<String> generateTagsToRemove(final Map<String, String> currentTags, final Map<String, String> desiredTags) {
+    public Set<String> generateTagsToRemove(final Map<String, String> previousTags, final Map<String, String> desiredTags) {
         final Set<String> desiredTagNames = desiredTags.keySet();
 
-        return currentTags.keySet().stream()
+        return previousTags.keySet().stream()
             .filter(tagName -> !desiredTagNames.contains(tagName))
             .collect(Collectors.toSet());
     }
 
     /**
-     * getTagsToAdd
+     * generateTagsToAdd
      *
      * Determines the tags the customer desired to define or redefine.
      */
-    public Set<Tag> generateTagsToAdd(final Set<Tag> currentTags, final Set<Tag> desiredTags) {
-        return Sets.difference(new HashSet<>(desiredTags), new HashSet<>(currentTags));
+    public Set<Tag> generateTagsToAdd(final Set<Tag> previousTags, final Set<Tag> desiredTags) {
+        return Sets.difference(new HashSet<>(desiredTags), new HashSet<>(previousTags));
     }
 
     /**
@@ -174,36 +173,10 @@ public class TagHelper {
      *
      * Determines the tags the customer desired to remove from the function.
      */
-    public Set<Tag> generateTagsToRemove(final Set<Tag> currentTags, final Set<Tag> desiredTags) {
-        return Sets.difference(new HashSet<>(currentTags), new HashSet<>(desiredTags));
+    public Set<Tag> generateTagsToRemove(final Set<Tag> previousTags, final Set<Tag> desiredTags) {
+        return Sets.difference(new HashSet<>(previousTags), new HashSet<>(desiredTags));
     }
 
-    /**
-     * doUpdateTags
-     *
-     * This function updates the target resource's user defined tags. It first
-     * calculate what tags to add and remove, and then calls TagResource/UntagResource
-     * to achieve the customer's desired set of tags as specified in their CloudFormation template.
-     *
-     */
-    public ProgressEvent<ResourceModel, CallbackContext> doUpdateTags(final AmazonWebServicesClientProxy proxy, final ProxyClient<SdkClient> serviceClient,
-                                                                      final ResourceModel resourceModel, final ResourceHandlerRequest<ResourceModel> handlerRequest, final CallbackContext callbackContext, final Logger logger) {
-        return ProgressEvent.progress(resourceModel, callbackContext)
-            .then(progress -> {
-                final Map<String, String> tagsToAdd = generateTagsToAdd(getPreviouslyAttachedTags(handlerRequest), getNewDesiredTags(resourceModel, handlerRequest));
-                if (!tagsToAdd.isEmpty()) {
-                    return tagResource(proxy, serviceClient, resourceModel, handlerRequest, callbackContext, tagsToAdd, logger);
-                }
-                return ProgressEvent.defaultInProgressHandler(callbackContext, 0, resourceModel);
-            })
-            .then(progress -> {
-                final Set<String> tagsToRemove = generateTagsToRemove(getPreviouslyAttachedTags(handlerRequest), getNewDesiredTags(resourceModel, handlerRequest));
-                if (!tagsToRemove.isEmpty()) {
-                    return untagResource(proxy, serviceClient, resourceModel, handlerRequest, callbackContext, tagsToRemove, logger);
-                }
-                return ProgressEvent.defaultInProgressHandler(callbackContext, 0, resourceModel);
-            });
-    }
 
     /**
      * tagResource during update
