@@ -111,7 +111,8 @@ public class TagHelper {
      */
     public Map<String, String> getPreviouslyAttachedTags(final ResourceHandlerRequest<ResourceModel> handlerRequest) {
         // get previous stack level tags from handlerRequest
-        final Map<String, String> previousTags = handlerRequest.getPreviousResourceTags();
+        final Map<String, String> previousTags = handlerRequest.getPreviousResourceTags() != null ?
+            handlerRequest.getPreviousResourceTags() : Collections.emptyMap();
 
         // TODO: get resource level tags from previous resource state based on your tag property name
         // TODO: previousTags.putAll(handlerRequest.getPreviousResourceState().getTags());
@@ -126,9 +127,10 @@ public class TagHelper {
      */
     public Map<String, String> getNewDesiredTags(final ResourceModel resourceModel, final ResourceHandlerRequest<ResourceModel> handlerRequest) {
         // get new stack level tags from handlerRequest
-        final Map<String, String> desiredTags = handlerRequest.getDesiredResourceTags();
+        final Map<String, String> desiredTags = handlerRequest.getDesiredResourceTags() != null ?
+            handlerRequest.getDesiredResourceTags() : Collections.emptyMap();
 
-        // TODO: get tags from resource model based on your tag property name
+        // TODO: get resource level tags from resource model based on your tag property name
         // TODO: desiredTags.putAll(convertToMap(resourceModel.getTags()));
         return desiredTags;
     }
