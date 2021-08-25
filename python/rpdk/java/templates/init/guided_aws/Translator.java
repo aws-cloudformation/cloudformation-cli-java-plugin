@@ -6,7 +6,9 @@ import software.amazon.awssdk.awscore.AwsResponse;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -120,5 +122,29 @@ public class Translator {
     return Optional.ofNullable(collection)
         .map(Collection::stream)
         .orElseGet(Stream::empty);
+  }
+
+  /**
+   * Request to add tags to a resource
+   * @param model resource model
+   * @return awsRequest the aws service request to create a resource
+   */
+  static AwsRequest tagResourceRequest(final ResourceModel model, final Map<String, String> addedTags) {
+    final AwsRequest awsRequest = null;
+    // TODO: construct a request
+    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/2077c92299aeb9a68ae8f4418b5e932b12a8b186/aws-logs-loggroup/src/main/java/com/aws/logs/loggroup/Translator.java#L39-L43
+    return awsRequest;
+  }
+
+  /**
+   * Request to add tags to a resource
+   * @param model resource model
+   * @return awsRequest the aws service request to create a resource
+   */
+  static AwsRequest untagResourceRequest(final ResourceModel model, final Set<String> removedTags) {
+    final AwsRequest awsRequest = null;
+    // TODO: construct a request
+    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/2077c92299aeb9a68ae8f4418b5e932b12a8b186/aws-logs-loggroup/src/main/java/com/aws/logs/loggroup/Translator.java#L39-L43
+    return awsRequest;
   }
 }

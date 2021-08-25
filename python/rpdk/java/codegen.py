@@ -278,6 +278,13 @@ class JavaLanguagePlugin(LanguagePlugin):
         self._writing_component(project, src, entity="Translator.java")
         self._writing_component(project, src, entity="ClientBuilder.java")
         self._writing_component(project, src, entity="BaseHandlerStd.java")
+        self._writing_component(
+            project,
+            src,
+            entity="TagHelper.java",
+            operation="TagOps",
+            call_graph=project.type_name.replace("::", "-"),
+        )
         self._writing_component(project, tst, entity="AbstractTestBase.java")
 
     @logdebug
