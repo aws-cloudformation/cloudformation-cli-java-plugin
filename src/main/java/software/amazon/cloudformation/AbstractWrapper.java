@@ -374,7 +374,8 @@ public abstract class AbstractWrapper<ResourceT, CallbackT, ConfigurationT> {
             return ProgressEvent.defaultFailureHandler(e, e.getErrorCode());
         } catch (final AmazonServiceException | AwsServiceException e) {
             if ((e instanceof AwsServiceException && ((AwsServiceException) e).isThrottlingException()) ||
-                (e instanceof AmazonServiceException && ((AmazonServiceException) e).getErrorCode().contains("Throttling"))) {
+                (e instanceof AmazonServiceException && ((AmazonServiceException) e).getErrorCode() != null
+                    && ((AmazonServiceException) e).getErrorCode().contains("Throttling"))) {
                 this.log(String.format("%s [%s] call throttled by downstream service", request.getResourceType(), request.getAction()));
                 publishExceptionMetric(request.getAction(), e, HandlerErrorCode.Throttling);
                 return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.Throttling);
