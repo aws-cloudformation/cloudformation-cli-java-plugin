@@ -786,6 +786,41 @@ public class WrapperTest {
     }
 
     @Test
+    public void invokeHandler_throwsThrottlingException_returnsCFNThrottlingException() throws IOException {
+        AmazonServiceException exception = new AmazonServiceException("Rate Exceed ...");
+        exception.setErrorCode("Throttling");
+        wrapper.setInvokeHandlerException(exception);
+
+        wrapper.setTransformResponse(resourceHandlerRequest);
+
+        try (final InputStream in = loadRequestStream("create.request.json");
+             final OutputStream out = new ByteArrayOutputStream()) {
+
+            wrapper.processRequest(in, out);
+
+            // verify initialiseRuntime was called and initialised dependencies
+            verifyInitialiseRuntime();
+
+            // all metrics should be published, once for a single invocation
+            verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
+            verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(Action.CREATE), anyLong());
+
+            // failure metric should be published
+            verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
+                any(AmazonServiceException.class), any(HandlerErrorCode.class));
+
+            // verify that model validation occurred for CREATE/UPDATE/DELETE
+            verify(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
+
+            // verify output response
+            verifyHandlerResponse(out,
+                ProgressEvent.<TestModel, TestContext>builder().errorCode(HandlerErrorCode.Throttling)
+                    .status(OperationStatus.FAILED)
+                    .message("some error (Service: null; Status Code: 0; Error Code: null; Request ID: null)").build());
+        }
+    }
+
+    @Test
     public void invokeHandler_throwsResourceAlreadyExistsException_returnsAlreadyExists() throws IOException {
         // exceptions are caught consistently by LambdaWrapper
         wrapper.setInvokeHandlerException(new ResourceAlreadyExistsException("AWS::Test::TestModel", "id-1234"));
