@@ -15,6 +15,7 @@
 package software.amazon.cloudformation;
 
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.retry.RetryUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
@@ -373,9 +374,16 @@ public abstract class AbstractWrapper<ResourceT, CallbackT, ConfigurationT> {
             logUnhandledError(e.getMessage(), request, e);
             return ProgressEvent.defaultFailureHandler(e, e.getErrorCode());
         } catch (final AmazonServiceException | AwsServiceException e) {
-            publishExceptionMetric(request.getAction(), e, HandlerErrorCode.GeneralServiceException);
-            logUnhandledError("A downstream service error occurred", request, e);
-            return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.GeneralServiceException);
+            if ((e instanceof AwsServiceException && ((AwsServiceException) e).isThrottlingException()) ||
+                (e instanceof AmazonServiceException && RetryUtils.isThrottlingException((AmazonServiceException) e))) {
+                this.log(String.format("%s [%s] call throttled by downstream service", request.getResourceType(), request.getAction()));
+                publishExceptionMetric(request.getAction(), e, HandlerErrorCode.Throttling);
+                return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.Throttling);
+            } else {
+                publishExceptionMetric(request.getAction(), e, HandlerErrorCode.GeneralServiceException);
+                logUnhandledError("A downstream service error occurred", request, e);
+                return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.GeneralServiceException);
+            }
         } catch (final Throwable e) {
             publishExceptionMetric(request.getAction(), e, HandlerErrorCode.InternalFailure);
             logUnhandledError("An unknown error occurred ", request, e);
