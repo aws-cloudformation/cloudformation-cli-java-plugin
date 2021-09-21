@@ -15,6 +15,7 @@
 package software.amazon.cloudformation;
 
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.retry.RetryUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
@@ -374,8 +375,7 @@ public abstract class AbstractWrapper<ResourceT, CallbackT, ConfigurationT> {
             return ProgressEvent.defaultFailureHandler(e, e.getErrorCode());
         } catch (final AmazonServiceException | AwsServiceException e) {
             if ((e instanceof AwsServiceException && ((AwsServiceException) e).isThrottlingException()) ||
-                (e instanceof AmazonServiceException && ((AmazonServiceException) e).getErrorCode() != null
-                    && ((AmazonServiceException) e).getErrorCode().contains("Throttling"))) {
+                (e instanceof AmazonServiceException && RetryUtils.isThrottlingException((AmazonServiceException) e))) {
                 this.log(String.format("%s [%s] call throttled by downstream service", request.getResourceType(), request.getAction()));
                 publishExceptionMetric(request.getAction(), e, HandlerErrorCode.Throttling);
                 return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.Throttling);
