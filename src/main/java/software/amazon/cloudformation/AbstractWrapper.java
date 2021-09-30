@@ -409,6 +409,11 @@ public abstract class AbstractWrapper<ResourceT, CallbackT, ConfigurationT> {
             }
         }
 
+        if (response.getResult() != null) {
+            // remove any non-resource specific fields from response
+            response.setResult(null);
+        }
+
         String output = this.serializer.serialize(response);
         outputStream.write(output.getBytes(StandardCharsets.UTF_8));
         outputStream.flush();

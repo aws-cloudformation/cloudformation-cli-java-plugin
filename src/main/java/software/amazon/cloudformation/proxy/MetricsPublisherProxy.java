@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import software.amazon.cloudformation.Action;
+import software.amazon.cloudformation.HookInvocationPoint;
 import software.amazon.cloudformation.metrics.MetricsPublisher;
 
 public class MetricsPublisherProxy {
@@ -35,6 +36,14 @@ public class MetricsPublisherProxy {
             .forEach(metricsPublisher -> metricsPublisher.publishExceptionMetric(timestamp, action, e, handlerErrorCode));
     }
 
+    public void publishExceptionMetric(final Instant timestamp,
+                                       final HookInvocationPoint invocationPoint,
+                                       final Throwable e,
+                                       final HandlerErrorCode handlerErrorCode) {
+        metricsPublishers.stream().forEach(
+            metricsPublisher -> metricsPublisher.publishExceptionMetric(timestamp, invocationPoint, e, handlerErrorCode));
+    }
+
     public void publishExceptionByErrorCodeAndCountBulkMetrics(final Instant timestamp,
                                                                final Action action,
                                                                final HandlerErrorCode handlerErrorCode) {
@@ -42,13 +51,31 @@ public class MetricsPublisherProxy {
             .publishExceptionByErrorCodeAndCountBulkMetrics(timestamp, action, handlerErrorCode));
     }
 
+    public void publishExceptionByErrorCodeAndCountBulkMetrics(final Instant timestamp,
+                                                               final HookInvocationPoint invocationPoint,
+                                                               final HandlerErrorCode handlerErrorCode) {
+        metricsPublishers.stream().forEach(metricsPublishers -> metricsPublishers
+            .publishExceptionByErrorCodeAndCountBulkMetrics(timestamp, invocationPoint, handlerErrorCode));
+    }
+
     public void publishInvocationMetric(final Instant timestamp, final Action action) {
         metricsPublishers.stream().forEach(metricsPublisher -> metricsPublisher.publishInvocationMetric(timestamp, action));
+    }
+
+    public void publishInvocationMetric(final Instant timestamp, final HookInvocationPoint invocationPoint) {
+        metricsPublishers.stream()
+            .forEach(metricsPublisher -> metricsPublisher.publishInvocationMetric(timestamp, invocationPoint));
     }
 
     public void publishDurationMetric(final Instant timestamp, final Action action, final long milliseconds) {
         metricsPublishers.stream()
             .forEach(metricsPublisher -> metricsPublisher.publishDurationMetric(timestamp, action, milliseconds));
+    }
+
+    public void
+        publishDurationMetric(final Instant timestamp, final HookInvocationPoint invocationPoint, final long milliseconds) {
+        metricsPublishers.stream()
+            .forEach(metricsPublisher -> metricsPublisher.publishDurationMetric(timestamp, invocationPoint, milliseconds));
     }
 
     public void publishProviderLogDeliveryExceptionMetric(final Instant timestamp, final Throwable exception) {

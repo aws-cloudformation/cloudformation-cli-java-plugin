@@ -1,0 +1,52 @@
+{
+    "typeName": "Company::Test::Hook",
+    "description": "Test hook type",
+    "definitions": {
+        "cidrBlock": {
+            "$comment": "TODO: regex could be more strict, for example this allows the cidr 999.999.999.999 and 999.999.999.999/32",
+            "description": "Classless Inter-Domain Routing (CIDR) block",
+            "type": "string",
+            "pattern": "^([0-9]{1,3}.){3}[0-9]{1,3}(/([0-9]|[1-2][0-9]|3[0-2]))?$"
+        }
+    },
+    "properties": {
+        "limitSize": {
+            "description": "string",
+            "type": "string"
+        },
+        "cidr": {
+            "$ref": "#/definitions/cidrBlock"
+        },
+        "encryptionAlgorithm": {
+            "description": "Encryption algorithm for SSE",
+            "default": "AES256",
+            "type": "string"
+        }
+    },
+    "required": [
+        "limitSize"
+    ],
+    "handlers": {
+        "preCreate": {
+            "targetNames": [
+                "AWS::S3::Bucket",
+                "AWS::SQS::Queue",
+                "AWS::AutoScaling::AutoScalingGroup",
+                "AWS::Route53::HealthCheck"
+            ],
+            "permissions": [
+                "s3:ListBucket",
+                "sqs:ListQueues"
+            ]
+        },
+        "preUpdate": {
+            "targetNames": [
+                "AWS::S3::Bucket"
+            ],
+            "permissions": [
+                "s3:ListBucket"
+            ]
+        }
+    },
+    "additionalProperties": false
+}

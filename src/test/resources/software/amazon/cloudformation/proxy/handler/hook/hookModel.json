@@ -1,0 +1,12 @@
+{
+    "typeName": "AWS::CFN::Hook",
+    "description": "Hook Type definition for AWS::CFN::Hook",
+    "properties": {
+        "InputParameter": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "InputParameter"
+    ]
+}

@@ -1,0 +1,22 @@
+{
+    "typeName": "Test::Resource::Type",
+    "description": "a test schema",
+    "properties": {
+        "Property1": {
+            "type": "string"
+        },
+        "Property2": {
+            "type": "integer"
+        },
+        "Tags": {
+            "type": "object"
+        }
+    },
+    "primaryIdentifier": [
+        "/properties/Property1"
+    ],
+    "readOnlyProperties": [
+        "/properties/Property1"
+    ],
+    "additionalProperties": false
+}

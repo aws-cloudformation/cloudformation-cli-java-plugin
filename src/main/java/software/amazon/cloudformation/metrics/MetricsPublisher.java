@@ -16,16 +16,17 @@ package software.amazon.cloudformation.metrics;
 
 import java.time.Instant;
 import software.amazon.cloudformation.Action;
+import software.amazon.cloudformation.HookInvocationPoint;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 
 public abstract class MetricsPublisher {
 
-    protected String resourceTypeName;
-    protected String resourceNamespace;
+    protected String typeName;
+    protected String namespace;
 
-    public MetricsPublisher(final String resourceTypeName) {
-        this.resourceTypeName = resourceTypeName;
-        this.resourceNamespace = resourceTypeName.replace("::", "/");
+    public MetricsPublisher(final String typeName) {
+        this.typeName = typeName;
+        this.namespace = typeName.replace("::", "/");
     }
 
     /**
@@ -42,15 +43,33 @@ public abstract class MetricsPublisher {
                                        final HandlerErrorCode handlerErrorCode) {
     }
 
+    public void publishExceptionMetric(final Instant timestamp,
+                                       final HookInvocationPoint invocationPoint,
+                                       final Throwable e,
+                                       final HandlerErrorCode handlerErrorCode) {
+    }
+
     public void publishExceptionByErrorCodeAndCountBulkMetrics(final Instant timestamp,
                                                                final Action action,
+                                                               final HandlerErrorCode handlerErrorCode) {
+    }
+
+    public void publishExceptionByErrorCodeAndCountBulkMetrics(final Instant timestamp,
+                                                               final HookInvocationPoint invocationPoint,
                                                                final HandlerErrorCode handlerErrorCode) {
     }
 
     public void publishInvocationMetric(final Instant timestamp, final Action action) {
     }
 
+    public void publishInvocationMetric(final Instant timestamp, final HookInvocationPoint invocationPoint) {
+    }
+
     public void publishDurationMetric(final Instant timestamp, final Action action, final long milliseconds) {
+    }
+
+    public void
+        publishDurationMetric(final Instant timestamp, final HookInvocationPoint invocationPoint, final long milliseconds) {
     }
 
     public void publishProviderLogDeliveryExceptionMetric(final Instant timestamp, final Throwable exception) {

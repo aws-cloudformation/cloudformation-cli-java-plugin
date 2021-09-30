@@ -23,6 +23,21 @@
             <Method name="processRequest" />
             <Bug pattern="NP_NULL_PARAM_DEREF" />
         </Match>
+        <Match>
+            <Class name="software.amazon.cloudformation.HookAbstractWrapper" />
+            <Method name="processRequest" />
+            <Bug pattern="NP_NULL_PARAM_DEREF" />
+        </Match>
+        <Match>
+            <Class name="software.amazon.cloudformation.proxy.hook.targetmodel.GenericHookTargetModel" />
+            <Method name="setTargetModelProperties" />
+            <Bug pattern="UPM_UNCALLED_PRIVATE_METHOD" />
+        </Match>
+        <Match>
+            <Class name="software.amazon.cloudformation.proxy.hook.targetmodel.ResourceHookTarget." />
+            <Method name="setAdditionalProperty" />
+            <Bug pattern="UPM_UNCALLED_PRIVATE_METHOD" />
+        </Match>
     </FindBugsFilter>
 
 </FindBugsFilter>

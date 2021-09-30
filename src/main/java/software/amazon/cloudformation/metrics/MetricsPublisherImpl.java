@@ -49,7 +49,7 @@ public class MetricsPublisherImpl extends MetricsPublisher {
     }
 
     private String getResourceTypeName() {
-        return this.resourceTypeName;
+        return this.typeName;
     }
 
     @Override
@@ -131,9 +131,8 @@ public class MetricsPublisherImpl extends MetricsPublisher {
         assert cloudWatchClient != null : "CloudWatchEventsClient was not initialised. You must call refreshClient() first.";
 
         try {
-            this.cloudWatchClient.putMetricData(
-                PutMetricDataRequest.builder().namespace(String.format("%s/%s", Metric.METRIC_NAMESPACE_ROOT, resourceNamespace))
-                    .metricData(metricData).build());
+            this.cloudWatchClient.putMetricData(PutMetricDataRequest.builder()
+                .namespace(String.format("%s/%s", Metric.METRIC_NAMESPACE_ROOT, namespace)).metricData(metricData).build());
         } catch (final Exception e) {
             log(String.format("An error occurred while publishing metrics: %s", e.getMessage()));
         }

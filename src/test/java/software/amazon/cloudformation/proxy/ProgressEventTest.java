@@ -36,6 +36,7 @@ public class ProgressEventTest {
         assertThat(progressEvent.getResourceModel()).isNull();
         assertThat(progressEvent.getResourceModels()).isNull();
         assertThat(progressEvent.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(progressEvent.isFailed()).isTrue();
     }
 
     @Test
@@ -52,6 +53,7 @@ public class ProgressEventTest {
         assertThat(progressEvent.getResourceModel()).isEqualTo(model);
         assertThat(progressEvent.getResourceModels()).isNull();
         assertThat(progressEvent.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(progressEvent.isInProgress()).isTrue();
     }
 
     @Test
@@ -66,6 +68,7 @@ public class ProgressEventTest {
         assertThat(progressEvent.getResourceModel()).isEqualTo(model);
         assertThat(progressEvent.getResourceModels()).isNull();
         assertThat(progressEvent.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(progressEvent.isSuccess()).isTrue();
     }
 
     @Test

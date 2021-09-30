@@ -55,4 +55,33 @@ public class CfnInvalidRequestExceptionTests {
             throw new CfnInvalidRequestException(new RuntimeException("something wrong"));
         }).satisfies(exception -> assertEquals("something wrong", exception.getMessage()));
     }
+
+    @Test
+    public void unsupportedTargetException_isCfnInvalidRequestException() {
+        assertThatExceptionOfType(CfnInvalidRequestException.class).isThrownBy(() -> {
+            throw new UnsupportedTargetException("AWS::Type::Target", new RuntimeException());
+        }).withCauseInstanceOf(RuntimeException.class).withMessageContaining("AWS::Type::Target")
+            .withMessageContaining("Unsupported target");
+    }
+
+    @Test
+    public void unsupportedTargetException_singleArgConstructorHasNoMessage() {
+        assertThatExceptionOfType(UnsupportedTargetException.class).isThrownBy(() -> {
+            throw new UnsupportedTargetException(new RuntimeException());
+        }).withRootCauseExactlyInstanceOf(RuntimeException.class).withMessage(null);
+    }
+
+    @Test
+    public void unsupportedTargetException_noCauseGiven() {
+        assertThatExceptionOfType(UnsupportedTargetException.class).isThrownBy(() -> {
+            throw new UnsupportedTargetException("AWS::Type::Target");
+        }).withNoCause().withMessageContaining("AWS::Type::Target").withMessageContaining("Unsupported target");
+    }
+
+    @Test
+    public void unsupportedTargetException_errorCodeIsAppropriate() {
+        assertThatExceptionOfType(UnsupportedTargetException.class).isThrownBy(() -> {
+            throw new UnsupportedTargetException(new RuntimeException());
+        }).satisfies(exception -> assertEquals(HandlerErrorCode.InvalidRequest, exception.getErrorCode()));
+    }
 }

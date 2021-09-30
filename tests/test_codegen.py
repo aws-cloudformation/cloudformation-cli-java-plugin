@@ -20,6 +20,72 @@ from rpdk.java.codegen import (
 )
 
 RESOURCE = "DZQWCC"
+HOOK = "CCWQZD"
+
+TEST_TARGET_INFO = {
+    "My::Example::Resource": {
+        "TargetName": "My::Example::Resource",
+        "TargetType": "RESOURCE",
+        "Schema": {
+            "typeName": "My::Example::Resource",
+            "additionalProperties": False,
+            "properties": {
+                "Id": {"type": "string"},
+                "Tags": {
+                    "type": "array",
+                    "uniqueItems": False,
+                    "items": {"$ref": "#/definitions/Tag"},
+                },
+            },
+            "required": [],
+            "definitions": {
+                "Tag": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "Value": {"type": "string"},
+                        "Key": {"type": "string"},
+                    },
+                    "required": ["Value", "Key"],
+                }
+            },
+        },
+        "ProvisioningType": "FULLY_MUTTABLE",
+        "IsCfnRegistrySupportedType": True,
+        "SchemaFileAvailable": True,
+    },
+    "My::Other::Resource": {
+        "TargetName": "My::Other::Resource",
+        "TargetType": "RESOURCE",
+        "Schema": {
+            "typeName": "My::Other::Resource",
+            "additionalProperties": False,
+            "properties": {
+                "Id": {"type": "string"},
+                "Tags": {
+                    "type": "array",
+                    "uniqueItems": False,
+                    "items": {"$ref": "#/definitions/Tag"},
+                },
+            },
+            "required": [],
+            "definitions": {
+                "Tag": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "Value": {"type": "string"},
+                        "Key": {"type": "string"},
+                    },
+                    "required": ["Value", "Key"],
+                }
+            },
+        },
+        "ProvisioningType": "NOT_PROVISIONABLE",
+        "IsCfnRegistrySupportedType": False,
+        "SchemaFileAvailable": True,
+    },
+}
 
 
 @pytest.fixture(params=["1", "2"])
@@ -42,43 +108,84 @@ def project(tmpdir, request):
     return project
 
 
+@pytest.fixture(params=["1", "2"])
+def hook_project(tmpdir, request):
+    def mock_input_with_validation(prompt, validate):  # pylint: disable=unused-argument
+        if prompt.startswith("Enter a package name"):
+            return ("software", "amazon", "foo", HOOK.lower())
+        if prompt.startswith("Choose codegen model"):
+            return request.param
+        return ""
+
+    hook_project = Project(root=tmpdir)
+    mock_cli = MagicMock(side_effect=mock_input_with_validation)
+    with patch.dict(
+        "rpdk.core.plugin_registry.PLUGIN_REGISTRY",
+        {"test": lambda: JavaLanguagePlugin},
+        clear=True,
+    ), patch("rpdk.java.codegen.input_with_validation", new=mock_cli):
+        hook_project.init_hook("AWS::Foo::{}".format(RESOURCE), "test")
+    return hook_project
+
+
 def test_java_language_plugin_module_is_set():
     plugin = JavaLanguagePlugin()
     assert plugin.MODULE_NAME
 
 
 def test_initialize(project):
-    assert (project.root / "README.md").is_file()
+    expected_group_id = "software.amazon.foo.{}".format(RESOURCE.lower())
+    handler = "{}.HandlerWrapper::handleRequest".format(expected_group_id)
+    assert_test_initialize(project, handler, expected_group_id)
 
-    pom_tree = ET.parse(str(project.root / "pom.xml"))
+
+def test_hook_initialize(hook_project):
+    expected_group_id = "software.amazon.foo.{}".format(HOOK.lower())
+    handler = "{}.HookHandlerWrapper::handleRequest".format(expected_group_id)
+    assert_test_initialize(hook_project, handler, expected_group_id)
+
+
+def assert_test_initialize(
+    test_project, handler, expected_group_id
+):  # pylint: disable=protected-access
+    assert (test_project.root / "README.md").is_file()
+
+    pom_tree = ET.parse(str(test_project.root / "pom.xml"))
     namespace = {"maven": "http://maven.apache.org/POM/4.0.0"}
     actual_group_id = pom_tree.find("maven:groupId", namespace)
-    expected_group_id = "software.amazon.foo.{}".format(RESOURCE.lower())
     assert actual_group_id.text == expected_group_id
-    path = project.root / "template.yml"
+    path = test_project.root / "template.yml"
     with path.open("r", encoding="utf-8") as f:
         template = yaml.safe_load(f)
-
     handler_properties = template["Resources"]["TypeFunction"]["Properties"]
-
-    code_uri = "./target/{}-handler-1.0-SNAPSHOT.jar".format(project.hypenated_name)
+    code_uri = "./target/{}-handler-1.0-SNAPSHOT.jar".format(
+        test_project.hypenated_name
+    )
     assert handler_properties["CodeUri"] == code_uri
-    handler = "{}.HandlerWrapper::handleRequest".format(expected_group_id)
     assert handler_properties["Handler"] == handler
-    assert handler_properties["Runtime"] == project._plugin.RUNTIME
+    assert handler_properties["Runtime"] == test_project._plugin.RUNTIME
 
 
 def test_generate(project):
     project.load_schema()
+    assert_generate_test(project, RESOURCE)
 
-    generated_root = project._plugin._get_generated_root(project)
-    generated_tests_root = project._plugin._get_generated_tests_root(project)
+
+def test_hook_generate(hook_project):
+    with patch.object(hook_project, "_load_target_info", return_value=TEST_TARGET_INFO):
+        hook_project.load_hook_schema()
+        assert_generate_test(hook_project, HOOK)
+
+
+def assert_generate_test(test_project, test_type):  # pylint: disable=protected-access
+    generated_root = test_project._plugin._get_generated_root(test_project)
+    generated_tests_root = test_project._plugin._get_generated_tests_root(test_project)
 
     # generated root shouldn't be present
     assert not generated_root.is_dir()
     assert not generated_tests_root.is_dir()
 
-    project.generate()
+    test_project.generate()
 
     src_file = generated_root / "test"
     src_file.touch()
@@ -86,7 +193,7 @@ def test_generate(project):
     test_file = generated_tests_root / "test"
     test_file.touch()
 
-    project.generate()
+    test_project.generate()
 
     # assert TypeConfigurationModel is added to generated directory
     type_configuration_model_file = (
@@ -94,7 +201,7 @@ def test_generate(project):
         / "software"
         / "amazon"
         / "foo"
-        / RESOURCE.lower()
+        / test_type.lower()
         / "TypeConfigurationModel.java"
     )
     assert type_configuration_model_file.is_file()
@@ -158,6 +265,76 @@ def test_generate_with_out_type_configuration(project, tmpdir):
 
     assert type_configuration_model_file.is_file()
     assert not type_configuration_schema_file.is_file()
+
+
+def test_hook_generate_with_type_configuration(hook_project, tmpdir):
+    copyfile(
+        str(Path.cwd() / "tests/data/hook-schema-with-typeconfiguration.json"),
+        str(tmpdir / "hook-schema-with-typeconfiguration.json"),
+    )
+
+    with patch.object(hook_project, "_load_target_info", return_value=TEST_TARGET_INFO):
+        hook_project.type_info = ("hook", "schema", "with", "typeconfiguration")
+        hook_project.load_hook_schema()
+        hook_project.load_configuration_schema()
+        hook_project.generate()
+        generated_root = hook_project._plugin._get_generated_root(hook_project)
+
+    # assert TypeConfigurationModel is added to generated directory
+    type_configuration_model_file = (
+        generated_root
+        / "software"
+        / "amazon"
+        / "foo"
+        / HOOK.lower()
+        / "TypeConfigurationModel.java"
+    )
+    type_configuration_schema_file = (
+        generated_root / "hook-schema-with-typeconfiguration-configuration.json"
+    )
+
+    assert type_configuration_model_file.is_file()
+    assert type_configuration_schema_file.is_file()
+
+
+def test_hook_generate_with_non_registry_targets(hook_project, tmpdir):
+    copyfile(
+        str(Path.cwd() / "tests/data/hook-schema-with-typeconfiguration.json"),
+        str(tmpdir / "hook-schema-with-typeconfiguration.json"),
+    )
+
+    test_target_info = dict(TEST_TARGET_INFO)
+    test_target_info["My::Unreleased::Resource"] = {
+        "TargetName": "My::Unreleased::Resource",
+        "TargetType": "RESOURCE",
+        "Schema": {},
+        "ProvisioningType": "NOT_PROVISIONABLE",
+        "IsCfnRegistrySupportedType": False,
+        "SchemaFileAvailable": False,
+    }
+
+    with patch.object(hook_project, "_load_target_info", return_value=test_target_info):
+        hook_project.type_info = ("hook", "schema", "with", "typeconfiguration")
+        hook_project.load_hook_schema()
+        hook_project.load_configuration_schema()
+        hook_project.generate()
+        generated_root = hook_project._plugin._get_generated_root(hook_project)
+
+    # assert TypeConfigurationModel is added to generated directory
+    non_registry_target_model_file = (
+        generated_root
+        / "software"
+        / "amazon"
+        / "foo"
+        / HOOK.lower()
+        / "model"
+        / "my"
+        / "unreleased"
+        / "resource"
+        / "MyUnreleasedResourceTargetModel.java"
+    )
+
+    assert non_registry_target_model_file.is_file()
 
 
 def test_protocol_version_is_set(project):
@@ -274,7 +451,7 @@ def test__prompt_for_namespace_aws_default():
     project = Mock(type_info=("AWS", "Clown", "Service"), settings={})
     plugin = JavaLanguagePlugin()
 
-    with patch("rpdk.core.init.input", return_value="") as mock_input:
+    with patch("rpdk.core.utils.init_utils.input", return_value="") as mock_input:
         plugin._prompt_for_namespace(project)
 
     mock_input.assert_called_once()
@@ -287,7 +464,7 @@ def test__prompt_for_namespace_aws_overwritten():
     plugin = JavaLanguagePlugin()
 
     with patch(
-        "rpdk.core.init.input", return_value="com.red.clown.service"
+        "rpdk.core.utils.init_utils.input", return_value="com.red.clown.service"
     ) as mock_input:
         plugin._prompt_for_namespace(project)
 
@@ -300,7 +477,7 @@ def test__prompt_for_namespace_other_default():
     project = Mock(type_info=("Balloon", "Clown", "Service"), settings={})
     plugin = JavaLanguagePlugin()
 
-    with patch("rpdk.core.init.input", return_value="") as mock_input:
+    with patch("rpdk.core.utils.init_utils.input", return_value="") as mock_input:
         plugin._prompt_for_namespace(project)
 
     mock_input.assert_called_once()
@@ -313,7 +490,7 @@ def test__prompt_for_namespace_other_overwritten():
     plugin = JavaLanguagePlugin()
 
     with patch(
-        "rpdk.core.init.input", return_value="com.ball.clown.service"
+        "rpdk.core.utils.init_utils.input", return_value="com.ball.clown.service"
     ) as mock_input:
         plugin._prompt_for_namespace(project)
 
@@ -345,7 +522,7 @@ def test__prompt_for_codegen_model_no_selection():
     project = Mock(type_info=("AWS", "Clown", "Service"), settings={})
     plugin = JavaLanguagePlugin()
 
-    with patch("rpdk.core.init.input", return_value="") as mock_input:
+    with patch("rpdk.core.utils.init_utils.input", return_value="") as mock_input:
         plugin._prompt_for_codegen_model(project)
 
     mock_input.assert_called_once()
@@ -357,7 +534,7 @@ def test__prompt_for_codegen_model_default():
     project = Mock(type_info=("AWS", "Clown", "Service"), settings={})
     plugin = JavaLanguagePlugin()
 
-    with patch("rpdk.core.init.input", return_value="1") as mock_input:
+    with patch("rpdk.core.utils.init_utils.input", return_value="1") as mock_input:
         plugin._prompt_for_codegen_model(project)
 
     mock_input.assert_called_once()
@@ -369,7 +546,7 @@ def test__prompt_for_codegen_model_guided_aws():
     project = Mock(type_info=("AWS", "Clown", "Service"), settings={})
     plugin = JavaLanguagePlugin()
 
-    with patch("rpdk.core.init.input", return_value="2") as mock_input:
+    with patch("rpdk.core.utils.init_utils.input", return_value="2") as mock_input:
         plugin._prompt_for_codegen_model(project)
 
     mock_input.assert_called_once()
@@ -402,6 +579,19 @@ def test_generate_executable_entrypoint_not_specified(project):
     assert (
         project.executable_entrypoint
         == plugin.package_name + ".HandlerWrapperExecutable"
+    )
+
+
+def test_generate_hook_executable_entrypoint_not_specified(hook_project):
+    hook_project.executable_entrypoint = None
+    with patch.object(hook_project, "_load_target_info", return_value=TEST_TARGET_INFO):
+        hook_project.generate()
+    plugin = JavaLanguagePlugin()
+    plugin._namespace_from_project(hook_project)
+
+    assert (
+        hook_project.executable_entrypoint
+        == plugin.package_name + ".HookHandlerWrapperExecutable"
     )
 
 
