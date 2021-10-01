@@ -39,5 +39,6 @@ public class HandlerRequest<ResourceT, CallbackT, ConfigurationT> {
     private Boolean rollback;
     private Boolean driftable;
     private Map<String, Object> features;
+    private Map<String, Object> updatePolicy;
     private RequestContext<CallbackT> requestContext;
 }

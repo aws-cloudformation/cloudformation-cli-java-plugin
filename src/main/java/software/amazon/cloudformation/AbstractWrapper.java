@@ -271,6 +271,7 @@ public abstract class AbstractWrapper<ResourceT, CallbackT, ConfigurationT> {
             resourceHandlerRequest.setRollback(request.getRollback());
             resourceHandlerRequest.setDriftable(request.getDriftable());
             resourceHandlerRequest.setFeatures(request.getFeatures());
+            resourceHandlerRequest.setUpdatePolicy(request.getUpdatePolicy());
             if (request.getRequestData() != null) {
                 resourceHandlerRequest.setPreviousSystemTags(request.getRequestData().getPreviousSystemTags());
             }
@@ -374,9 +375,10 @@ public abstract class AbstractWrapper<ResourceT, CallbackT, ConfigurationT> {
             logUnhandledError(e.getMessage(), request, e);
             return ProgressEvent.defaultFailureHandler(e, e.getErrorCode());
         } catch (final AmazonServiceException | AwsServiceException e) {
-            if ((e instanceof AwsServiceException && ((AwsServiceException) e).isThrottlingException()) ||
-                (e instanceof AmazonServiceException && RetryUtils.isThrottlingException((AmazonServiceException) e))) {
-                this.log(String.format("%s [%s] call throttled by downstream service", request.getResourceType(), request.getAction()));
+            if ((e instanceof AwsServiceException && ((AwsServiceException) e).isThrottlingException())
+                || (e instanceof AmazonServiceException && RetryUtils.isThrottlingException((AmazonServiceException) e))) {
+                this.log(String.format("%s [%s] call throttled by downstream service", request.getResourceType(),
+                    request.getAction()));
                 publishExceptionMetric(request.getAction(), e, HandlerErrorCode.Throttling);
                 return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.Throttling);
             } else {
