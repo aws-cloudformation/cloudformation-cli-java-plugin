@@ -67,7 +67,8 @@ public class SerializerTest {
         final String in = loadRequestJson("create.request.json");
 
         final HandlerRequest<TestModel, TestContext, TestConfigurationModel> r = s.deserialize(in, typeReference);
-        Map<String, Object> updatePolicy = Maps.newHashMap("Custom", "Term");
+        final Map<String, Object> updatePolicy = Maps.newHashMap("Custom", "Term"),
+            creationPolicy = Maps.newHashMap("Custom", "Term");
 
         assertThat(r).isNotNull();
         assertThat(r.getAction()).isEqualTo(Action.CREATE);
@@ -79,6 +80,7 @@ public class SerializerTest {
         assertThat(r.getResourceType()).isEqualTo("AWS::Test::TestModel");
         assertThat(r.getResourceTypeVersion()).isEqualTo("1.0");
         assertThat(r.getUpdatePolicy()).isEqualTo(updatePolicy);
+        assertThat(r.getCreationPolicy()).isEqualTo(creationPolicy);
         assertThat(r.getStackId())
             .isEqualTo("arn:aws:cloudformation:us-east-1:123456789012:stack/SampleStack/e722ae60-fe62-11e8-9a0e-0ae8cc519968");
         assertThat(r.getCallbackContext()).isNull();

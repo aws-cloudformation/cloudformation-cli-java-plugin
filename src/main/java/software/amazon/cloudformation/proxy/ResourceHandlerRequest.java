@@ -48,6 +48,7 @@ public class ResourceHandlerRequest<T> {
     private Boolean driftable;
     private Map<String, Object> features;
     private Map<String, Object> updatePolicy;
+    private Map<String, Object> creationPolicy;
     private String region;
     private String stackId;
 }

@@ -37,5 +37,8 @@
     "updatePolicy": {
         "Custom": "Term"
     },
+    "creationPolicy": {
+        "Custom": "Term"
+    },
     "stackId": "arn:aws:cloudformation:us-east-1:123456789012:stack/SampleStack/e722ae60-fe62-11e8-9a0e-0ae8cc519968"
 }
