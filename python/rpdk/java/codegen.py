@@ -1,5 +1,6 @@
 # pylint: disable=useless-super-delegation,too-many-locals
 # pylint doesn't recognize abstract methods
+import json
 import logging
 import os
 import shutil
@@ -9,17 +10,19 @@ from xml.etree.ElementTree import ParseError  # nosec
 
 from rpdk.core.data_loaders import resource_stream
 from rpdk.core.exceptions import InternalError, SysExitRecommendedError
-from rpdk.core.init import input_with_validation
-from rpdk.core.jsonutils.resolver import resolve_models
+from rpdk.core.jsonutils.resolver import ContainerType, ResolvedType, resolve_models
 from rpdk.core.plugin_base import LanguagePlugin
+from rpdk.core.project import ARTIFACT_TYPE_HOOK
+from rpdk.core.utils.init_utils import input_with_validation
 
 from . import __version__
-from .resolver import translate_type
+from .resolver import UNDEFINED, translate_type
 from .utils import safe_reserved, validate_codegen_model, validate_namespace
 
 LOG = logging.getLogger(__name__)
 
-OPERATIONS = ("Create", "Read", "Update", "Delete", "List")
+HOOK_OPERATIONS = ("PreCreate", "PreUpdate", "PreDelete")
+RESOURCE_OPERATIONS = ("Create", "Read", "Update", "Delete", "List")
 EXECUTABLE = "cfn"
 AWSCODEGEN = namedtuple("AWSCODEGEN", "default guided default_code guided_code")
 CODEGEN = AWSCODEGEN("default", "guided_aws", "1", "2")
@@ -68,9 +71,12 @@ class InvalidMavenPOMError(SysExitRecommendedError):
 class JavaLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
     RUNTIME = "java8"
-    ENTRY_POINT = "{}.HandlerWrapper::handleRequest"
-    TEST_ENTRY_POINT = "{}.HandlerWrapper::testEntrypoint"
-    EXECUTABLE_ENTRY_POINT = "{}.HandlerWrapperExecutable"
+    HOOK_ENTRY_POINT = "{}.HookHandlerWrapper::handleRequest"
+    HOOK_TEST_ENTRY_POINT = "{}.HookHandlerWrapper::testEntrypoint"
+    HOOK_EXECUTABLE_ENTRY_POINT = "{}.HookHandlerWrapperExecutable"
+    RESOURCE_ENTRY_POINT = "{}.HandlerWrapper::handleRequest"
+    RESOURCE_TEST_ENTRY_POINT = "{}.HandlerWrapper::testEntrypoint"
+    RESOURCE_EXECUTABLE_ENTRY_POINT = "{}.HandlerWrapperExecutable"
     CODE_URI = "./target/{}-1.0-SNAPSHOT.jar"
 
     def __init__(self):
@@ -143,6 +149,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         operation: str = kwargs.get("operation")
         pojo_name: str = kwargs.get("pojo_name")
         call_graph: str = kwargs.get("call_graph")
+        target_names: list = kwargs.get("target_names")
 
         if not stub_entity:
             stub_entity = entity
@@ -154,6 +161,7 @@ class JavaLanguagePlugin(LanguagePlugin):
             operation=operation,
             pojo_name=pojo_name,
             call_graph=call_graph,
+            target_names=target_names,
         )
         project.safewrite(path, contents)
 
@@ -222,11 +230,18 @@ class JavaLanguagePlugin(LanguagePlugin):
 
         path = src / "Configuration.java"
         LOG.debug("Writing configuration: %s", path)
-        template = self.env.get_template("init/shared/StubConfiguration.java")
+        config_template = (
+            "init/shared/StubHookConfiguration.java"
+            if project.artifact_type == ARTIFACT_TYPE_HOOK
+            else "init/shared/StubConfiguration.java"
+        )
+        template = self.env.get_template(config_template)
         contents = template.render(
             package_name=self.package_name,
             schema_file_name=project.schema_filename,
-            pojo_name="ResourceModel",
+            pojo_name="HookInputModel"
+            if project.artifact_type == ARTIFACT_TYPE_HOOK
+            else "ResourceModel",
         )
         project.safewrite(path, contents)
 
@@ -234,7 +249,9 @@ class JavaLanguagePlugin(LanguagePlugin):
         path = project.root / "template.yml"
         LOG.debug("Writing SAM template: %s", path)
         template = self.env.get_template(
-            "template.yml"
+            "template_hook.yml"
+            if project.artifact_type == ARTIFACT_TYPE_HOOK
+            else "template.yml"
         )  # this template is in the CLI itself
         handler_params = {
             "Handler": project.entrypoint,
@@ -256,7 +273,12 @@ class JavaLanguagePlugin(LanguagePlugin):
         # generate docs
         path = project.root / "README.md"
         LOG.debug("Writing README: %s", path)
-        template = self.env.get_template("init/shared/README.md")
+        doc_template = (
+            "init/shared/README_HOOK.md"
+            if project.artifact_type == ARTIFACT_TYPE_HOOK
+            else "init/shared/README_RESOURCE.md"
+        )
+        template = self.env.get_template(doc_template)
         contents = template.render(
             type_name=project.type_name,
             schema_path=project.schema_path,
@@ -270,28 +292,78 @@ class JavaLanguagePlugin(LanguagePlugin):
         contents = resource_stream(__name__, "data/log4j2.xml").read()
         project.safewrite(path, contents)
 
-        self.init_handlers(project, src, tst)
+        if project.artifact_type == ARTIFACT_TYPE_HOOK:
+            self.init_hook_handlers(project, src, tst)
+        else:
+            self.init_resource_handlers(project, src, tst)
 
     @logdebug
     def init_guided_aws(self, project, src, tst):
         """Writing supporting modules"""
-        self._writing_component(project, src, entity="Translator.java")
-        self._writing_component(project, src, entity="ClientBuilder.java")
-        self._writing_component(project, src, entity="BaseHandlerStd.java")
-        self._writing_component(
-            project,
-            src,
-            entity="TagHelper.java",
-            operation="TagOps",
-            call_graph=project.type_name.replace("::", "-"),
-        )
-        self._writing_component(project, tst, entity="AbstractTestBase.java")
+        if project.artifact_type == ARTIFACT_TYPE_HOOK:
+            self._writing_component(
+                project,
+                src,
+                entity="Translator.java",
+                stub_entity="HookTranslator.java",
+            )
+            self._writing_component(project, src, entity="ClientBuilder.java")
+            self._writing_component(project, src, entity="BaseHookHandlerStd.java")
+            self._writing_component(project, tst, entity="AbstractTestBase.java")
+        else:
+            self._writing_component(project, src, entity="Translator.java")
+            self._writing_component(project, src, entity="ClientBuilder.java")
+            self._writing_component(project, src, entity="BaseHandlerStd.java")
+            self._writing_component(
+                project,
+                src,
+                entity="TagHelper.java",
+                operation="TagOps",
+                call_graph=project.type_name.replace("::", "-"),
+            )
+            self._writing_component(project, tst, entity="AbstractTestBase.java")
 
     @logdebug
-    def init_handlers(self, project, src, tst):
+    def init_hook_handlers(self, project, src, tst):
+        """Writing hook stub handlers and tests"""
+        handlers = project.schema.get("handlers")
+        for operation in HOOK_OPERATIONS:
+            entity = "{}HookHandler.java".format(operation)
+            entity_test = "{}HookHandlerTest.java".format(operation)
+
+            stub_entity = "Stub{}HookHandler.java".format(
+                operation if self._is_aws_guided(project) else ""
+            )
+            stub_entity_test = "Stub{}HookHandlerTest.java".format(
+                operation if self._is_aws_guided(project) else ""
+            )
+            target_names = handlers.get(operation[0].lower() + operation[1:], {}).get(
+                "targetNames", ["My::Example::Resource"]
+            )
+
+            self._writing_component(
+                project,
+                src,
+                entity=entity,
+                stub_entity=stub_entity,
+                operation=operation,
+                call_graph=project.type_name.replace("::", "-"),
+                target_names=target_names,
+            )
+            self._writing_component(
+                project,
+                tst,
+                entity=entity_test,
+                stub_entity=stub_entity_test,
+                operation=operation,
+                target_names=target_names,
+            )
+
+    @logdebug
+    def init_resource_handlers(self, project, src, tst):
         """Writing stub handlers and tests"""
         pojo_name = "ResourceModel"
-        for operation in OPERATIONS:
+        for operation in RESOURCE_OPERATIONS:
             entity = "{}Handler.java".format(operation)
             entity_test = "{}HandlerTest.java".format(operation)
 
@@ -322,11 +394,22 @@ class JavaLanguagePlugin(LanguagePlugin):
 
     def _init_settings(self, project):
         project.runtime = self.RUNTIME
-        project.entrypoint = self.ENTRY_POINT.format(self.package_name)
-        project.test_entrypoint = self.TEST_ENTRY_POINT.format(self.package_name)
-        project.executable_entrypoint = self.EXECUTABLE_ENTRY_POINT.format(
-            self.package_name
-        )
+        if project.artifact_type == ARTIFACT_TYPE_HOOK:
+            project.entrypoint = self.HOOK_ENTRY_POINT.format(self.package_name)
+            project.test_entrypoint = self.HOOK_TEST_ENTRY_POINT.format(
+                self.package_name
+            )
+            project.executable_entrypoint = self.HOOK_EXECUTABLE_ENTRY_POINT.format(
+                self.package_name
+            )
+        else:
+            project.entrypoint = self.RESOURCE_ENTRY_POINT.format(self.package_name)
+            project.test_entrypoint = self.RESOURCE_TEST_ENTRY_POINT.format(
+                self.package_name
+            )
+            project.executable_entrypoint = self.RESOURCE_EXECUTABLE_ENTRY_POINT.format(
+                self.package_name
+            )
         project.settings.update(DEFAULT_SETTINGS)
 
     @staticmethod
@@ -360,7 +443,14 @@ class JavaLanguagePlugin(LanguagePlugin):
         LOG.debug("Making generated tests folder structure: %s", test_src)
         test_src.mkdir(parents=True, exist_ok=True)
 
-        # write generated handler integration with LambdaWrapper
+        if project.artifact_type == ARTIFACT_TYPE_HOOK:
+            self.generate_hook(src, project)
+        else:
+            self.generate_resource(src, project)
+
+    @logdebug
+    def generate_resource(self, src, project):
+        # write generated resource handler integration with LambdaWrapper
         path = src / "HandlerWrapper.java"
         LOG.debug("Writing handler wrapper: %s", path)
         template = self.env.get_template("generate/HandlerWrapper.java")
@@ -391,7 +481,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         template = self.env.get_template("generate/BaseHandler.java")
         contents = template.render(
             package_name=self.package_name,
-            operations=OPERATIONS,
+            operations=RESOURCE_OPERATIONS,
             contains_type_configuration=project.configuration_schema,
             pojo_name="ResourceModel",
         )
@@ -447,6 +537,188 @@ class JavaLanguagePlugin(LanguagePlugin):
 
         LOG.debug("Generate complete")
 
+    @logdebug
+    def generate_hook(self, src, project):  # pylint: disable=too-many-statements
+        # write generated hook handler integration with HookLambdaWrapper
+        path = src / "HookHandlerWrapper.java"
+        LOG.debug("Writing hook handler wrapper: %s", path)
+        template = self.env.get_template("generate/hook/HookHandlerWrapper.java")
+        contents = template.render(
+            package_name=self.package_name,
+            operations=project.schema.get("handlers", {}).keys(),
+            wrapper_parent="HookLambdaWrapper",
+        )
+        project.overwrite(path, contents)
+
+        # write generated handler integration with HookExecutableWrapper
+        self._write_executable_wrapper_class(src, project)
+
+        path = src / "BaseHookHandler.java"
+        LOG.debug("Writing base hook handler: %s", path)
+        template = self.env.get_template("generate/hook/BaseHookHandler.java")
+        contents = template.render(
+            package_name=self.package_name, operations=HOOK_OPERATIONS
+        )
+        project.overwrite(path, contents)
+
+        # generate POJOs
+        models = resolve_models(project.schema, "HookInputModel")
+        if project.configuration_schema:
+            configuration_schema_path = (
+                self._get_generated_root(project)
+                / project.configuration_schema_filename
+            )
+            project.write_configuration_schema(configuration_schema_path)
+            configuration_models = resolve_models(
+                project.configuration_schema, "TypeConfigurationModel"
+            )
+        else:
+            configuration_models = {"TypeConfigurationModel": {}}
+        models.update(configuration_models)
+
+        LOG.debug("Writing %d POJOs", len(models))
+
+        base_template = self.env.get_template("generate/hook/HookInputModel.java")
+        pojo_template = self.env.get_template("generate/POJO.java")
+
+        for model_name, properties in models.items():
+            path = src / "{}.java".format(model_name)
+            LOG.debug("%s POJO: %s", model_name, path)
+
+            if model_name == "HookInputModel":  # pragma: no cover
+                contents = base_template.render(
+                    type_name=project.type_name,
+                    package_name=self.package_name,
+                    model_name=model_name,
+                    properties=properties,
+                )
+            else:
+                contents = pojo_template.render(
+                    package_name=self.package_name,
+                    model_name=model_name,
+                    properties=properties,
+                    no_args_constructor_required=(
+                        model_name != "TypeConfigurationModel" or len(properties) != 0
+                    ),
+                )
+            project.overwrite(path, contents)
+
+        loaded_target_schema_file_names = {}
+        for target_type_name, target_info in project.target_info.items():
+            target_schema = target_info["Schema"]
+
+            target_namespace = [
+                s.lower() for s in target_type_name.split("::")
+            ]  # AWS::SQS::Queue -> awssqsqueue
+            target_name = "".join(
+                [s.capitalize() for s in target_namespace]
+            )  # awssqsqueue -> AwsSqsQueue
+            target_schema_file_name = "{}.json".format(
+                "-".join(target_namespace)
+            )  # awssqsqueue -> aws-sqs-queue.json
+            target_model_package_name = "{}.model.{}".format(
+                self.package_name, ".".join(target_namespace)
+            )
+            target_model_dir = (src / "model").joinpath(*target_namespace)
+            target_model_dir.mkdir(parents=True, exist_ok=True)
+
+            loaded_target_schemas_dir = (
+                project.root / "target" / "loaded-target-schemas"
+            )
+            loaded_target_schemas_dir.mkdir(parents=True, exist_ok=True)
+            if target_info.get("SchemaFileAvailable"):  # pragma: no cover
+                contents = json.dumps(target_schema, indent=4)
+                path = loaded_target_schemas_dir / target_schema_file_name
+                project.overwrite(path, contents)
+                loaded_target_schema_file_names[
+                    target_type_name
+                ] = target_schema_file_name
+
+            is_registry_type = target_info.get("IsCfnRegistrySupportedType")
+
+            if not target_schema:
+                target_schema = {
+                    "typeName": target_name,
+                    "properties": {},
+                    "required": [],
+                    "additionalProperties": False,
+                }
+
+            # generate POJOs
+            models = resolve_models(target_schema, target_name)
+
+            # TODO: Remove once tagging is fully supported
+            if models.get(target_name, {}).get("Tags"):  # pragma: no cover
+                models[target_name]["Tags"] = ResolvedType(
+                    ContainerType.PRIMITIVE, UNDEFINED
+                )
+
+            LOG.debug("Writing %d POJOs", len(models))
+
+            base_template = self.env.get_template(
+                "generate/hook/ResourceHookTargetModel.java"
+            )
+            target_template = self.env.get_template(
+                "generate/hook/ResourceHookTarget.java"
+            )
+            pojo_template = self.env.get_template("generate/POJO.java")
+
+            for model_name, properties in models.items():
+                path = target_model_dir / "{}.java".format(model_name)
+                LOG.debug("%s POJO: %s", model_name, path)
+
+                if model_name == target_name:
+                    contents = target_template.render(
+                        type_name=target_type_name,
+                        package_name=target_model_package_name,
+                        model_name=target_name,
+                        is_registry_type=is_registry_type,
+                        schema_available=(
+                            target_info.get("SchemaFileAvailable", False)
+                        ),
+                        schema_path=loaded_target_schema_file_names.get(
+                            target_type_name
+                        ),
+                        properties=properties,
+                        primaryIdentifier=target_schema.get("primaryIdentifier", []),
+                        additionalIdentifiers=target_schema.get(
+                            "additionalIdentifiers", []
+                        ),
+                    )
+                else:
+                    contents = pojo_template.render(
+                        package_name=target_model_package_name,
+                        model_name=model_name,
+                        properties=properties,
+                        no_args_constructor_required=(
+                            model_name != "TypeConfigurationModel"
+                            or len(properties) != 0
+                        ),
+                    )
+                project.overwrite(path, contents)
+
+            path = target_model_dir / "{}TargetModel.java".format(target_name)
+            contents = base_template.render(
+                type_name=target_type_name,
+                model_name=target_name,
+                package_name=target_model_package_name,
+            )
+            project.overwrite(path, contents)
+
+        path = src / "BaseHookConfiguration.java"
+        LOG.debug("Writing base hook configuration: %s", path)
+        template = self.env.get_template("generate/hook/BaseHookConfiguration.java")
+        contents = template.render(
+            package_name=self.package_name,
+            schema_file_name=project.schema_filename,
+            target_schema_paths=loaded_target_schema_file_names,
+        )
+        project.overwrite(path, contents)
+
+        self._update_settings(project)
+
+        LOG.debug("Generate complete")
+
     def _write_executable_wrapper_class(self, src, project):
         try:
             java_plugin_dependency_version = self._get_java_plugin_dependency_version(
@@ -456,16 +728,28 @@ class JavaLanguagePlugin(LanguagePlugin):
                 java_plugin_dependency_version
                 >= MINIMUM_JAVA_DEPENDENCY_VERSION_EXECUTABLE_HANDLER_WRAPPER
             ):
-                path = src / "HandlerWrapperExecutable.java"
-                LOG.debug("Writing handler wrapper: %s", path)
-                template = self.env.get_template("generate/HandlerWrapper.java")
-                contents = template.render(
-                    package_name=self.package_name,
-                    operations=project.schema.get("handlers", {}).keys(),
-                    pojo_name="ResourceModel",
-                    contains_type_configuration=project.configuration_schema,
-                    wrapper_parent="ExecutableWrapper",
-                )
+                if project.artifact_type == ARTIFACT_TYPE_HOOK:
+                    path = src / "HookHandlerWrapperExecutable.java"
+                    LOG.debug("Writing handler wrapper: %s", path)
+                    template = self.env.get_template(
+                        "generate/hook/HookHandlerWrapper.java"
+                    )
+                    contents = template.render(
+                        package_name=self.package_name,
+                        operations=project.schema.get("handlers", {}).keys(),
+                        wrapper_parent="HookExecutableWrapper",
+                    )
+                else:
+                    path = src / "HandlerWrapperExecutable.java"
+                    LOG.debug("Writing handler wrapper: %s", path)
+                    template = self.env.get_template("generate/HandlerWrapper.java")
+                    contents = template.render(
+                        package_name=self.package_name,
+                        operations=project.schema.get("handlers", {}).keys(),
+                        pojo_name="ResourceModel",
+                        contains_type_configuration=project.configuration_schema,
+                        wrapper_parent="ExecutableWrapper",
+                    )
                 project.overwrite(path, contents)
             else:
                 LOG.info(
@@ -509,9 +793,14 @@ class JavaLanguagePlugin(LanguagePlugin):
             hasattr(project, "executable_entrypoint")
             and not project.executable_entrypoint
         ):
-            project.executable_entrypoint = self.EXECUTABLE_ENTRY_POINT.format(
-                self.package_name
-            )
+            if project.artifact_type == ARTIFACT_TYPE_HOOK:
+                project.executable_entrypoint = self.HOOK_EXECUTABLE_ENTRY_POINT.format(
+                    self.package_name
+                )
+            else:
+                project.executable_entrypoint = (
+                    self.RESOURCE_EXECUTABLE_ENTRY_POINT.format(self.package_name)
+                )
             project.write_settings()
 
     @staticmethod

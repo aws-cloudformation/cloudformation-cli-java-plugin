@@ -104,7 +104,27 @@ public enum HandlerErrorCode {
     /**
      * typeConfiguration is null or required typeConfiguration property is null
      */
-    InvalidTypeConfiguration(ExceptionMessages.INVALID_TYPECONFIGURATION);
+    InvalidTypeConfiguration(ExceptionMessages.INVALID_TYPECONFIGURATION),
+
+    /**
+     * an internal error occurred within the handler, such as an NPE, etc.
+     * (Terminal)
+     */
+    HandlerInternalFailure(ExceptionMessages.HANDLER_INTERNAL_FAILURE),
+
+    /**
+     * the specified target of the Hook is in a non-compliant state. Only applicable
+     * to Hook type handlers (Terminal) Hook Handlers return this error when the
+     * hook's compliance checks have failed.
+     */
+    NonCompliant(ExceptionMessages.NON_COMPLIANT),
+
+    /**
+     * the Hook has returned a failure for an Unknown reason. Only applicable to
+     * Hook type handlers (terminal) Hook Handlers can return this when a hook has
+     * failed for a reason other than non-compliance
+     */
+    Unknown(ExceptionMessages.UNKNOWN);
 
     @Getter
     private String message;

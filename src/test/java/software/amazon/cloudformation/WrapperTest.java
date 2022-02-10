@@ -122,6 +122,7 @@ public class WrapperTest {
         assertThat(handlerResponse.getNextToken()).isEqualTo(expected.getNextToken());
         assertThat(handlerResponse.getStatus()).isEqualTo(expected.getStatus());
         assertThat(handlerResponse.getResourceModel()).isEqualTo(expected.getResourceModel());
+        assertThat(handlerResponse.getResult()).isNull();
     }
 
     @ParameterizedTest
@@ -145,9 +146,9 @@ public class WrapperTest {
             verifyInitialiseRuntime();
 
             // validation failure metric should be published for final error handling
-            verify(providerMetricsPublisher).publishExceptionMetric(any(Instant.class), any(), any(TerminalException.class),
-                any(HandlerErrorCode.class));
-            verify(providerMetricsPublisher).publishExceptionByErrorCodeAndCountBulkMetrics(any(Instant.class), any(),
+            verify(providerMetricsPublisher).publishExceptionMetric(any(Instant.class), any(Action.class),
+                any(TerminalException.class), any(HandlerErrorCode.class));
+            verify(providerMetricsPublisher).publishExceptionByErrorCodeAndCountBulkMetrics(any(Instant.class), any(Action.class),
                 any(HandlerErrorCode.class));
 
             // all metrics should be published even on terminal failure
@@ -229,7 +230,7 @@ public class WrapperTest {
             verify(providerMetricsPublisher, times(0)).refreshClient();
 
             // validation failure metric should be published for final error handling
-            verify(providerMetricsPublisher, times(0)).publishExceptionMetric(any(Instant.class), any(),
+            verify(providerMetricsPublisher, times(0)).publishExceptionMetric(any(Instant.class), any(Action.class),
                 any(TerminalException.class), any(HandlerErrorCode.class));
 
             // all metrics should be published even on terminal failure
@@ -556,6 +557,78 @@ public class WrapperTest {
         }
     }
 
+    @ParameterizedTest
+    @CsvSource({ "create.request.json,CREATE", "update.request.json,UPDATE", "delete.request.json,DELETE",
+        "read.request.json,READ", "list.request.json,LIST" })
+    public void invokeHandler_ignoreNonResourceFieldsInResponse(final String requestDataPath, final String actionAsString)
+        throws IOException {
+
+        for (final OperationStatus status : OperationStatus.values()) {
+            if (status == OperationStatus.PENDING)
+                continue;
+
+            final Action action = Action.valueOf(actionAsString);
+            final TestModel model = new TestModel();
+
+            final ProgressEvent<TestModel, TestContext> pe = ProgressEvent.<TestModel, TestContext>builder()
+                .result("Here is the result for non resource invocation").build();
+            if (status == OperationStatus.SUCCESS) {
+                pe.setStatus(OperationStatus.SUCCESS);
+            } else if (status == OperationStatus.IN_PROGRESS) {
+                model.setProperty1("abc");
+                model.setProperty2(123);
+                pe.setStatus(OperationStatus.IN_PROGRESS);
+                pe.setResourceModel(model);
+            } else {
+                pe.setStatus(OperationStatus.FAILED);
+                pe.setErrorCode(HandlerErrorCode.InternalFailure);
+                pe.setMessage("Custom Fault");
+            }
+            wrapper.setInvokeHandlerResponse(pe);
+
+            if (status != OperationStatus.FAILED) {
+                lenient().when(resourceHandlerRequest.getDesiredResourceState()).thenReturn(model);
+            }
+
+            wrapper.setTransformResponse(resourceHandlerRequest);
+
+            try (final InputStream in = loadRequestStream(requestDataPath);
+                final OutputStream out = new ByteArrayOutputStream()) {
+                wrapper.processRequest(in, out);
+
+                if (status == OperationStatus.SUCCESS) {
+                    // verify output response
+                    verifyHandlerResponse(out,
+                        ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.SUCCESS).build());
+                } else if (status == OperationStatus.IN_PROGRESS) {
+                    if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
+                        verifyHandlerResponse(out,
+                            ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.IN_PROGRESS)
+                                .resourceModel(TestModel.builder().property1("abc").property2(123).build()).build());
+                    } else {
+                        verifyHandlerResponse(out,
+                            ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.FAILED)
+                                .errorCode(HandlerErrorCode.InternalFailure)
+                                .message("READ and LIST handlers must return synchronously.").build());
+                        verify(providerMetricsPublisher).publishExceptionMetric(any(Instant.class), eq(action),
+                            any(TerminalException.class), eq(HandlerErrorCode.InternalFailure));
+
+                    }
+                } else {
+                    verifyHandlerResponse(out,
+                        ProgressEvent.<TestModel, TestContext>builder().errorCode(HandlerErrorCode.InternalFailure)
+                            .status(OperationStatus.FAILED).message("Custom Fault").build());
+                }
+
+                // assert handler receives correct injections
+                assertThat(wrapper.awsClientProxy).isNotNull();
+                assertThat(wrapper.getRequest()).isEqualTo(resourceHandlerRequest);
+                assertThat(wrapper.action).isEqualTo(action);
+                assertThat(wrapper.callbackContext).isNull();
+            }
+        }
+    }
+
     @Test
     public void invokeHandler_invalidModelTypes_causesSchemaValidationFailure() throws IOException {
         // use actual validator to verify behaviour
@@ -738,7 +811,7 @@ public class WrapperTest {
             verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(Action.CREATE), anyLong());
 
             // failure metric should be published
-            verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
+            verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(Action.class),
                 any(AmazonServiceException.class), any(HandlerErrorCode.class));
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
@@ -771,7 +844,7 @@ public class WrapperTest {
             verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(Action.CREATE), anyLong());
 
             // failure metric should be published
-            verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
+            verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(Action.class),
                 any(CloudWatchLogsException.class), any(HandlerErrorCode.class));
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
@@ -806,7 +879,7 @@ public class WrapperTest {
             verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(Action.CREATE), anyLong());
 
             // failure metric should be published
-            verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
+            verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(Action.class),
                 any(AmazonServiceException.class), any(HandlerErrorCode.class));
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
@@ -840,7 +913,7 @@ public class WrapperTest {
             verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(Action.CREATE), anyLong());
 
             // failure metric should be published
-            verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
+            verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(Action.class),
                 any(ResourceAlreadyExistsException.class), any(HandlerErrorCode.class));
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
@@ -873,7 +946,7 @@ public class WrapperTest {
             verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(Action.CREATE), anyLong());
 
             // failure metric should be published
-            verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(),
+            verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(Action.class),
                 any(ResourceNotFoundException.class), any(HandlerErrorCode.class));
 
             // verify that model validation occurred for CREATE/UPDATE/DELETE
@@ -891,8 +964,9 @@ public class WrapperTest {
     public void invokeHandler_metricPublisherThrowable_returnsFailureResponse() throws IOException {
         // simulate runtime Errors in the metrics publisher (such as dependency
         // resolution conflicts)
-        doThrow(new Error("not an Exception")).when(providerMetricsPublisher).publishInvocationMetric(any(), any());
-        doThrow(new Error("not an Exception")).when(providerMetricsPublisher).publishExceptionMetric(any(), any(), any(), any());
+        doThrow(new Error("not an Exception")).when(providerMetricsPublisher).publishInvocationMetric(any(), any(Action.class));
+        doThrow(new Error("not an Exception")).when(providerMetricsPublisher).publishExceptionMetric(any(), any(Action.class),
+            any(), any());
 
         try (final InputStream in = loadRequestStream("create.request.json");
             final OutputStream out = new ByteArrayOutputStream()) {

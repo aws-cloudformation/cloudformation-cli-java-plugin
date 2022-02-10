@@ -36,13 +36,13 @@ import software.amazon.cloudformation.proxy.aws.AWSServiceSerdeModule;
 
 public class Serializer {
 
+    public static final TypeReference<Map<String, Object>> MAP_TYPE_REFERENCE = new TypeReference<Map<String, Object>>() {
+    };
     public static final String COMPRESSED = "__COMPRESSED__";
     private static final String COMPRESSION_METHOD = "__COMPRESSION_METHOD__";
     private static final String COMPRESSION_GZIP_BASE64 = "gzip_base64";
     private static final ObjectMapper OBJECT_MAPPER;
     private static final ObjectMapper STRICT_OBJECT_MAPPER;
-    private static final TypeReference<Map<String, Object>> MAP_TYPE_REFERENCE = new TypeReference<Map<String, Object>>() {
-    };
 
     /**
      * Configures the specified ObjectMapper with the (de)serialization behaviours
@@ -121,5 +121,9 @@ public class Serializer {
 
     public <T> T deserializeStrict(final String s, final TypeReference<T> reference) throws IOException {
         return STRICT_OBJECT_MAPPER.readValue(s, reference);
+    }
+
+    public <T> T convert(final Object obj, final TypeReference<T> reference) {
+        return OBJECT_MAPPER.convertValue(obj, reference);
     }
 }

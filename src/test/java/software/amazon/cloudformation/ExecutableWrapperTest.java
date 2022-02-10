@@ -106,6 +106,7 @@ public class ExecutableWrapperTest {
         assertThat(handlerResponse.getNextToken()).isEqualTo(expected.getNextToken());
         assertThat(handlerResponse.getStatus()).isEqualTo(expected.getStatus());
         assertThat(handlerResponse.getResourceModel()).isEqualTo(expected.getResourceModel());
+        assertThat(handlerResponse.getResult()).isNull();
     }
 
     @ParameterizedTest

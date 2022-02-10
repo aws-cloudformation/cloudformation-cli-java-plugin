@@ -46,6 +46,12 @@ public class ProgressEvent<ResourceT, CallbackT> {
     private String message;
 
     /**
+     * The optional data to be returned by a hook handler as part of the invocation
+     * result. This field is ignored for resource handlers.
+     */
+    private String result;
+
+    /**
      * The callback context is an arbitrary datum which the handler can return in an
      * IN_PROGRESS event to allow the passing through of additional state or
      * metadata between subsequent retries; for example to pass through a Resource
@@ -148,6 +154,17 @@ public class ProgressEvent<ResourceT, CallbackT> {
         ProgressEvent<ResourceT, CallbackT> event = progress(model, cxt);
         event.setStatus(OperationStatus.SUCCESS);
         return event;
+    }
+
+    public static <ResourceT,
+        CallbackT> ProgressEvent<ResourceT, CallbackT> success(ResourceT model, CallbackT cxt, String message) {
+        return success(model, cxt, message, null);
+    }
+
+    public static <ResourceT,
+        CallbackT> ProgressEvent<ResourceT, CallbackT> success(ResourceT model, CallbackT cxt, String message, String result) {
+        return ProgressEvent.<ResourceT, CallbackT>builder().resourceModel(model).callbackContext(cxt).message(message)
+            .result(result).status(OperationStatus.SUCCESS).build();
     }
 
     public ProgressEvent<ResourceT, CallbackT>
