@@ -74,9 +74,6 @@ public class HookWrapperTest {
     private CredentialsProvider providerLoggingCredentialsProvider;
 
     @Mock
-    private MetricsPublisher platformMetricsPublisher;
-
-    @Mock
     private MetricsPublisher providerMetricsPublisher;
 
     @Mock
@@ -102,7 +99,7 @@ public class HookWrapperTest {
     @BeforeEach
     public void initWrapper() {
         wrapper = new HookWrapperOverride(providerLoggingCredentialsProvider, platformEventsLogger, providerEventsLogger,
-                                          platformMetricsPublisher, providerMetricsPublisher, validator, httpClient, cipher);
+                                          providerMetricsPublisher, validator, httpClient, cipher);
     }
 
     private static InputStream loadRequestStream(final String fileName) {
@@ -118,7 +115,6 @@ public class HookWrapperTest {
 
     private void verifyInitialiseRuntime() {
         verify(providerLoggingCredentialsProvider).setCredentials(any(Credentials.class));
-        verify(platformMetricsPublisher).refreshClient();
         verify(providerMetricsPublisher).refreshClient();
     }
 
@@ -156,14 +152,10 @@ public class HookWrapperTest {
             verifyInitialiseRuntime();
 
             // validation failure metric should be published for final error handling
-            verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(HookInvocationPoint.class),
-                any(TerminalException.class), any(HandlerErrorCode.class));
             verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(HookInvocationPoint.class),
                 any(TerminalException.class), any(HandlerErrorCode.class));
 
             // all metrics should be published even on terminal failure
-            verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(invocationPoint));
-            verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(invocationPoint), anyLong());
             verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(invocationPoint));
             verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(invocationPoint), anyLong());
 
@@ -200,20 +192,17 @@ public class HookWrapperTest {
 
             wrapper.processRequest(in, out);
 
-            // verify initialiseRuntime was called and initialised dependencies
+            // verify initialiseRuntime was called and provider dependencies not setup as no
+            // credentials provided
             verify(providerLoggingCredentialsProvider, times(0)).setCredentials(any(Credentials.class));
-            verify(platformMetricsPublisher).refreshClient();
             verify(providerMetricsPublisher, times(0)).refreshClient();
 
-            // validation failure metric should be published for final error handling
-            verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(HookInvocationPoint.class),
-                any(TerminalException.class), any(HandlerErrorCode.class));
+            // validation failure metric should not be published since provider metric
+            // publisher is not setup
             verify(providerMetricsPublisher, times(0)).publishExceptionMetric(any(Instant.class), any(HookInvocationPoint.class),
                 any(TerminalException.class), any(HandlerErrorCode.class));
 
-            // all metrics should be published even on terminal failure
-            verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(invocationPoint));
-            verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(invocationPoint), anyLong());
+            // no metrics should be published since provider metric publisher is not setup
             verify(providerMetricsPublisher, times(0)).publishInvocationMetric(any(Instant.class), eq(invocationPoint));
             verify(providerMetricsPublisher, times(0)).publishDurationMetric(any(Instant.class), eq(invocationPoint), anyLong());
 
@@ -249,15 +238,6 @@ public class HookWrapperTest {
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
 
-            // all metrics should be published, once for a single invocation
-            verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(invocationPoint));
-            verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(invocationPoint), anyLong());
-            verify(platformMetricsPublisher, times(1)).publishExceptionByErrorCodeAndCountBulkMetrics(any(Instant.class),
-                any(HookInvocationPoint.class), eq(HandlerErrorCode.InternalFailure));
-
-            // validation failure metric should not be published
-            verifyNoMoreInteractions(platformMetricsPublisher);
-
             // verify output response
             verifyHandlerResponse(out, HookProgressEvent.<TestContext>builder().clientRequestToken("123456")
                 .errorCode(HandlerErrorCode.InternalFailure).hookStatus(HookStatus.FAILED).message("Custom Fault").build());
@@ -282,8 +262,7 @@ public class HookWrapperTest {
         try (final InputStream in = null; final OutputStream out = new ByteArrayOutputStream()) {
             wrapper.processRequest(in, out);
 
-            verifyNoMoreInteractions(platformMetricsPublisher, platformEventsLogger, providerMetricsPublisher,
-                providerEventsLogger);
+            verifyNoMoreInteractions(platformEventsLogger, providerMetricsPublisher, providerEventsLogger);
         }
     }
 
@@ -311,15 +290,6 @@ public class HookWrapperTest {
 
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
-
-            // all metrics should be published, once for a single invocation
-            verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(invocationPoint));
-            verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(invocationPoint), anyLong());
-            verify(platformMetricsPublisher, times(1)).publishExceptionByErrorCodeAndCountBulkMetrics(any(Instant.class),
-                any(HookInvocationPoint.class), isNull());
-
-            // validation failure metric should not be published
-            verifyNoMoreInteractions(platformMetricsPublisher);
 
             // verify output response
             verifyHandlerResponse(out,
@@ -389,14 +359,10 @@ public class HookWrapperTest {
             verifyInitialiseRuntime();
 
             // all metrics should be published, once for a single invocation
-            verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(invocationPoint));
-            verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(invocationPoint), anyLong());
             verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(invocationPoint));
             verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(invocationPoint), anyLong());
 
             // verify exception and error code count published
-            verify(platformMetricsPublisher, times(1)).publishExceptionByErrorCodeAndCountBulkMetrics(any(Instant.class),
-                any(HookInvocationPoint.class), isNull());
             verify(providerMetricsPublisher, times(1)).publishExceptionByErrorCodeAndCountBulkMetrics(any(Instant.class),
                 any(HookInvocationPoint.class), isNull());
 
@@ -405,7 +371,6 @@ public class HookWrapperTest {
                 HookProgressEvent.<TestContext>builder().clientRequestToken("123456").hookStatus(HookStatus.IN_PROGRESS).build());
 
             // validation failure metric should not be published
-            verifyNoMoreInteractions(platformMetricsPublisher);
             verifyNoMoreInteractions(providerMetricsPublisher);
 
             // assert handler receives correct injections
@@ -445,20 +410,14 @@ public class HookWrapperTest {
             verifyInitialiseRuntime();
 
             // all metrics should be published, once for a single invocation
-            verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(invocationPoint));
-            verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(invocationPoint), anyLong());
-
             verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(invocationPoint));
             verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(invocationPoint), anyLong());
 
             // verify exception and error code count published
-            verify(platformMetricsPublisher, times(1)).publishExceptionByErrorCodeAndCountBulkMetrics(any(Instant.class),
-                any(HookInvocationPoint.class), isNull());
             verify(providerMetricsPublisher, times(1)).publishExceptionByErrorCodeAndCountBulkMetrics(any(Instant.class),
                 any(HookInvocationPoint.class), isNull());
 
             // validation failure metric should not be published
-            verifyNoMoreInteractions(platformMetricsPublisher);
             verifyNoMoreInteractions(providerMetricsPublisher);
 
             // verify output response
@@ -552,22 +511,6 @@ public class HookWrapperTest {
     }
 
     @Test
-    public void invokeHandler_clientsRefreshedOnEveryInvoke() throws IOException {
-        try (InputStream in = loadRequestStream("preCreate.request.json"); OutputStream out = new ByteArrayOutputStream()) {
-            wrapper.processRequest(in, out);
-        }
-
-        verify(platformMetricsPublisher, times(1)).refreshClient();
-
-        // invoke the same wrapper instance again to ensure client is refreshed
-        try (InputStream in = loadRequestStream("preCreate.request.json"); OutputStream out = new ByteArrayOutputStream()) {
-            wrapper.processRequest(in, out);
-        }
-
-        verify(platformMetricsPublisher, times(2)).refreshClient();
-    }
-
-    @Test
     public void invokeHandler_platformCredentialsRefreshedOnEveryInvoke() throws IOException {
         try (InputStream in = loadRequestStream("preCreate.request.json"); OutputStream out = new ByteArrayOutputStream()) {
             wrapper.processRequest(in, out);
@@ -603,20 +546,12 @@ public class HookWrapperTest {
             verifyInitialiseRuntime();
 
             // all metrics should be published, once for a single invocation
-            verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class),
-                eq(HookInvocationPoint.CREATE_PRE_PROVISION));
-            verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class),
-                eq(HookInvocationPoint.CREATE_PRE_PROVISION), anyLong());
-
             verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class),
                 eq(HookInvocationPoint.CREATE_PRE_PROVISION));
             verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class),
                 eq(HookInvocationPoint.CREATE_PRE_PROVISION), anyLong());
 
             // failure metric should be published
-            verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(HookInvocationPoint.class),
-                any(AmazonServiceException.class), any(HandlerErrorCode.class));
-
             verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(HookInvocationPoint.class),
                 any(AmazonServiceException.class), any(HandlerErrorCode.class));
 
@@ -648,20 +583,12 @@ public class HookWrapperTest {
             verifyInitialiseRuntime();
 
             // all metrics should be published, once for a single invocation
-            verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class),
-                eq(HookInvocationPoint.CREATE_PRE_PROVISION));
-            verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class),
-                eq(HookInvocationPoint.CREATE_PRE_PROVISION), anyLong());
-
             verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class),
                 eq(HookInvocationPoint.CREATE_PRE_PROVISION));
             verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class),
                 eq(HookInvocationPoint.CREATE_PRE_PROVISION), anyLong());
 
             // failure metric should be published
-            verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(HookInvocationPoint.class),
-                any(AwsServiceException.class), any(HandlerErrorCode.class));
-
             verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(HookInvocationPoint.class),
                 any(AwsServiceException.class), any(HandlerErrorCode.class));
 
@@ -692,20 +619,12 @@ public class HookWrapperTest {
             verifyInitialiseRuntime();
 
             // all metrics should be published, once for a single invocation
-            verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class),
-                eq(HookInvocationPoint.CREATE_PRE_PROVISION));
-            verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class),
-                eq(HookInvocationPoint.CREATE_PRE_PROVISION), anyLong());
-
             verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class),
                 eq(HookInvocationPoint.CREATE_PRE_PROVISION));
             verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class),
                 eq(HookInvocationPoint.CREATE_PRE_PROVISION), anyLong());
 
             // failure metric should be published
-            verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(HookInvocationPoint.class),
-                any(AmazonServiceException.class), any(HandlerErrorCode.class));
-
             verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(HookInvocationPoint.class),
                 any(AmazonServiceException.class), any(HandlerErrorCode.class));
 
@@ -736,20 +655,12 @@ public class HookWrapperTest {
             verifyInitialiseRuntime();
 
             // all metrics should be published, once for a single invocation
-            verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class),
-                eq(HookInvocationPoint.CREATE_PRE_PROVISION));
-            verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class),
-                eq(HookInvocationPoint.CREATE_PRE_PROVISION), anyLong());
-
             verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class),
                 eq(HookInvocationPoint.CREATE_PRE_PROVISION));
             verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class),
                 eq(HookInvocationPoint.CREATE_PRE_PROVISION), anyLong());
 
             // failure metric should be published
-            verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(HookInvocationPoint.class),
-                any(AmazonServiceException.class), any(HandlerErrorCode.class));
-
             verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(HookInvocationPoint.class),
                 any(AmazonServiceException.class), any(HandlerErrorCode.class));
 
@@ -780,20 +691,12 @@ public class HookWrapperTest {
             verifyInitialiseRuntime();
 
             // all metrics should be published, once for a single invocation
-            verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class),
-                eq(HookInvocationPoint.CREATE_PRE_PROVISION));
-            verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class),
-                eq(HookInvocationPoint.CREATE_PRE_PROVISION), anyLong());
-
             verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class),
                 eq(HookInvocationPoint.CREATE_PRE_PROVISION));
             verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class),
                 eq(HookInvocationPoint.CREATE_PRE_PROVISION), anyLong());
 
             // failure metric should be published
-            verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(HookInvocationPoint.class),
-                any(AmazonServiceException.class), any(HandlerErrorCode.class));
-
             verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(HookInvocationPoint.class),
                 any(AmazonServiceException.class), any(HandlerErrorCode.class));
 
@@ -823,20 +726,12 @@ public class HookWrapperTest {
             verifyInitialiseRuntime();
 
             // all metrics should be published, once for a single invocation
-            verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class),
-                eq(HookInvocationPoint.CREATE_PRE_PROVISION));
-            verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class),
-                eq(HookInvocationPoint.CREATE_PRE_PROVISION), anyLong());
-
             verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class),
                 eq(HookInvocationPoint.CREATE_PRE_PROVISION));
             verify(providerMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class),
                 eq(HookInvocationPoint.CREATE_PRE_PROVISION), anyLong());
 
             // failure metric should be published
-            verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(HookInvocationPoint.class),
-                any(ResourceNotFoundException.class), any(HandlerErrorCode.class));
-
             verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(HookInvocationPoint.class),
                 any(ResourceNotFoundException.class), any(HandlerErrorCode.class));
 
@@ -852,9 +747,7 @@ public class HookWrapperTest {
     public void invokeHandler_metricPublisherThrowable_returnsFailureResponse() throws IOException {
         // simulate runtime Errors in the metrics publisher (such as dependency
         // resolution conflicts)
-        doThrow(new Error("not an Exception")).when(platformMetricsPublisher).publishInvocationMetric(any(),
-            any(HookInvocationPoint.class));
-        doThrow(new Error("not an Exception")).when(platformMetricsPublisher).publishExceptionMetric(any(),
+        doThrow(new Error("not an Exception")).when(providerMetricsPublisher).publishExceptionMetric(any(),
             any(HookInvocationPoint.class), any(), any());
 
         lenient().when(cipher.decryptCredentials(any())).thenReturn(new Credentials("123", "123", "123"));
@@ -872,14 +765,8 @@ public class HookWrapperTest {
             verifyInitialiseRuntime();
 
             // verify exception and error code count published
-            verify(platformMetricsPublisher, times(1)).publishExceptionByErrorCodeAndCountBulkMetrics(any(Instant.class),
-                any(HookInvocationPoint.class), eq(HandlerErrorCode.InternalFailure));
             verify(providerMetricsPublisher, times(1)).publishExceptionByErrorCodeAndCountBulkMetrics(any(Instant.class),
                 any(HookInvocationPoint.class), eq(HandlerErrorCode.InternalFailure));
-
-            // no further calls to metrics publisher should occur
-            verifyNoMoreInteractions(platformMetricsPublisher);
-            verifyNoMoreInteractions(providerMetricsPublisher);
 
             // verify output response
             verifyHandlerResponse(out, HookProgressEvent.<TestContext>builder().clientRequestToken("123456")
@@ -980,8 +867,8 @@ public class HookWrapperTest {
         // construct a valid POJO
         SchemaValidator validator = new Validator();
         final HookWrapperOverride wrapper = new HookWrapperOverride(providerLoggingCredentialsProvider, platformEventsLogger,
-                                                                    providerEventsLogger, platformMetricsPublisher,
-                                                                    providerMetricsPublisher, validator, httpClient, cipher);
+                                                                    providerEventsLogger, providerMetricsPublisher, validator,
+                                                                    httpClient, cipher);
 
         // explicit fault response is treated as an unsuccessful synchronous completion
         final ProgressEvent<TestModel, TestContext> pe = ProgressEvent.<TestModel, TestContext>builder()
@@ -1009,8 +896,8 @@ public class HookWrapperTest {
         throws IOException {
         final HookInvocationPoint invocationPoint = HookInvocationPoint.valueOf(invocationPointString);
         final HookWrapperOverride wrapper = new HookWrapperOverride(providerLoggingCredentialsProvider, platformEventsLogger,
-                                                                    providerEventsLogger, platformMetricsPublisher,
-                                                                    providerMetricsPublisher, validator, httpClient, null);
+                                                                    providerEventsLogger, providerMetricsPublisher, validator,
+                                                                    httpClient, null);
 
         // a null response is a terminal fault
         wrapper.setInvokeHandlerResponse(null);
@@ -1021,19 +908,16 @@ public class HookWrapperTest {
 
             wrapper.processRequest(in, out);
 
-            // verify initialiseRuntime was called and initialised dependencies
+            // verify initialiseRuntime was called and provider dependencies not setup since
+            // no credentials' decryption key provided
             verify(providerLoggingCredentialsProvider, times(0)).setCredentials(any(Credentials.class));
-            verify(platformMetricsPublisher).refreshClient();
 
-            // validation failure metric should be published for final error handling
-            verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(HookInvocationPoint.class),
-                any(TerminalException.class), any(HandlerErrorCode.class));
+            // validation failure metric should not be published since provider metric
+            // publisher is not setup
             verify(providerMetricsPublisher, times(0)).publishExceptionMetric(any(Instant.class), any(HookInvocationPoint.class),
                 any(TerminalException.class), any(HandlerErrorCode.class));
 
-            // all metrics should be published even on terminal failure
-            verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(invocationPoint));
-            verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(invocationPoint), anyLong());
+            // no metrics should be published since provider metric publisher is not setup
             verify(providerMetricsPublisher, times(0)).publishInvocationMetric(any(Instant.class), eq(invocationPoint));
             verify(providerMetricsPublisher, times(0)).publishDurationMetric(any(Instant.class), eq(invocationPoint), anyLong());
 
@@ -1050,8 +934,8 @@ public class HookWrapperTest {
         throws IOException {
         final HookInvocationPoint invocationPoint = HookInvocationPoint.valueOf(invocationPointString);
         final HookWrapperOverride wrapper = new HookWrapperOverride(providerLoggingCredentialsProvider, platformEventsLogger,
-                                                                    providerEventsLogger, platformMetricsPublisher,
-                                                                    providerMetricsPublisher, validator, httpClient, null);
+                                                                    providerEventsLogger, providerMetricsPublisher, validator,
+                                                                    httpClient, null);
 
         // a null response is a terminal fault
         wrapper.setInvokeHandlerResponse(null);
@@ -1062,19 +946,16 @@ public class HookWrapperTest {
 
             wrapper.processRequest(in, out);
 
-            // verify initialiseRuntime was called and initialised dependencies
+            // verify initialiseRuntime was called and provider dependencies not setup since
+            // no credentials' decryption key role provided
             verify(providerLoggingCredentialsProvider, times(0)).setCredentials(any(Credentials.class));
-            verify(platformMetricsPublisher).refreshClient();
 
-            // validation failure metric should be published for final error handling
-            verify(platformMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(HookInvocationPoint.class),
-                any(TerminalException.class), any(HandlerErrorCode.class));
+            // validation failure metric should not be published since provider metric
+            // publisher is not setup
             verify(providerMetricsPublisher, times(0)).publishExceptionMetric(any(Instant.class), any(HookInvocationPoint.class),
                 any(TerminalException.class), any(HandlerErrorCode.class));
 
-            // all metrics should be published even on terminal failure
-            verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(invocationPoint));
-            verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(invocationPoint), anyLong());
+            // no metrics should be published since provider metric publisher is not setup
             verify(providerMetricsPublisher, times(0)).publishInvocationMetric(any(Instant.class), eq(invocationPoint));
             verify(providerMetricsPublisher, times(0)).publishDurationMetric(any(Instant.class), eq(invocationPoint), anyLong());
 
@@ -1092,7 +973,7 @@ public class HookWrapperTest {
         final HookInvocationPoint invocationPoint = HookInvocationPoint.valueOf(invocationPointString);
 
         wrapper = new HookWrapperOverride(providerLoggingCredentialsProvider, platformEventsLogger, providerEventsLogger,
-                                          platformMetricsPublisher, providerMetricsPublisher, validator, httpClient, null);
+                                          providerMetricsPublisher, validator, httpClient, null);
 
         // if the handler responds Complete, this is treated as a successful synchronous
         // completion
@@ -1109,20 +990,7 @@ public class HookWrapperTest {
             verify(cipher, times(0)).decryptCredentials(anyString());
             verify(providerLoggingCredentialsProvider)
                 .setCredentials(eq((new Credentials("providerAccessKeyId", "providerSecretAccessKey", "providerSessionToken"))));
-            verify(platformMetricsPublisher).refreshClient();
             verify(providerMetricsPublisher).refreshClient();
-
-            // verify initialiseRuntime was called and initialised dependencies
-            // verifyInitialiseRuntime();
-
-            // all metrics should be published, once for a single invocation
-            verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(invocationPoint));
-            verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(invocationPoint), anyLong());
-            verify(platformMetricsPublisher, times(1)).publishExceptionByErrorCodeAndCountBulkMetrics(any(Instant.class),
-                any(HookInvocationPoint.class), isNull());
-
-            // validation failure metric should not be published
-            verifyNoMoreInteractions(platformMetricsPublisher);
 
             // verify output response
             verifyHandlerResponse(out,

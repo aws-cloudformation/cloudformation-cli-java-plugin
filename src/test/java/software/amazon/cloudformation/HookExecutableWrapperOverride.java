@@ -50,13 +50,12 @@ public class HookExecutableWrapperOverride extends HookExecutableWrapper<TestMod
     public HookExecutableWrapperOverride(final CredentialsProvider providerLoggingCredentialsProvider,
                                          final LogPublisher platformEventsLogger,
                                          final CloudWatchLogPublisher providerEventsLogger,
-                                         final MetricsPublisher platformMetricsPublisher,
                                          final MetricsPublisher providerMetricsPublisher,
                                          final SchemaValidator validator,
                                          final SdkHttpClient httpClient,
                                          final Cipher cipher) {
-        super(providerLoggingCredentialsProvider, providerEventsLogger, platformEventsLogger, platformMetricsPublisher,
-              providerMetricsPublisher, validator, new Serializer(), httpClient, cipher);
+        super(providerLoggingCredentialsProvider, providerEventsLogger, platformEventsLogger, providerMetricsPublisher, validator,
+              new Serializer(), httpClient, cipher);
     }
 
     @Override

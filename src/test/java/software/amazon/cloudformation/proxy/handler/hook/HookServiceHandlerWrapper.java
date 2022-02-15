@@ -48,15 +48,14 @@ public class HookServiceHandlerWrapper extends HookLambdaWrapper<Model, StdCallb
     public HookServiceHandlerWrapper(final CredentialsProvider providerLoggingCredentialsProvider,
                                      final CloudWatchLogPublisher providerEventsLogger,
                                      final LogPublisher platformEventsLogger,
-                                     final MetricsPublisher platformMetricsPublisher,
                                      final MetricsPublisher providerMetricsPublisher,
                                      final SchemaValidator validator,
                                      final Serializer serializer,
                                      final ServiceClient client,
                                      final SdkHttpClient httpClient,
                                      final KMSCipher cipher) {
-        super(providerLoggingCredentialsProvider, providerEventsLogger, platformEventsLogger, platformMetricsPublisher,
-              providerMetricsPublisher, validator, serializer, httpClient, cipher);
+        super(providerLoggingCredentialsProvider, providerEventsLogger, platformEventsLogger, providerMetricsPublisher, validator,
+              serializer, httpClient, cipher);
         this.serviceClient = client;
     }
 

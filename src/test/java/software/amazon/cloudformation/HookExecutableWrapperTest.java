@@ -16,13 +16,8 @@ package software.amazon.cloudformation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -31,7 +26,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -62,9 +56,6 @@ public class HookExecutableWrapperTest {
     private CredentialsProvider providerLoggingCredentialsProvider;
 
     @Mock
-    private MetricsPublisher platformMetricsPublisher;
-
-    @Mock
     private MetricsPublisher providerMetricsPublisher;
 
     @Mock
@@ -90,8 +81,8 @@ public class HookExecutableWrapperTest {
     @BeforeEach
     public void initWrapper() {
         wrapper = new HookExecutableWrapperOverride(providerLoggingCredentialsProvider, platformEventsLogger,
-                                                    providerEventsLogger, platformMetricsPublisher, providerMetricsPublisher,
-                                                    validator, httpClient, cipher);
+                                                    providerEventsLogger, providerMetricsPublisher, validator, httpClient,
+                                                    cipher);
     }
 
     private static InputStream loadRequestStream(final String fileName) {
@@ -107,7 +98,6 @@ public class HookExecutableWrapperTest {
 
     private void verifyInitialiseRuntime() {
         verify(providerLoggingCredentialsProvider).setCredentials(any(Credentials.class));
-        verify(platformMetricsPublisher).refreshClient();
         verify(providerMetricsPublisher).refreshClient();
     }
 
@@ -150,15 +140,6 @@ public class HookExecutableWrapperTest {
 
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
-
-            // all metrics should be published, once for a single invocation
-            verify(platformMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(invocationPoint));
-            verify(platformMetricsPublisher, times(1)).publishDurationMetric(any(Instant.class), eq(invocationPoint), anyLong());
-            verify(platformMetricsPublisher, times(1)).publishExceptionByErrorCodeAndCountBulkMetrics(any(Instant.class),
-                any(HookInvocationPoint.class), isNull());
-
-            // validation failure metric should not be published
-            verifyNoMoreInteractions(platformMetricsPublisher);
 
             // verify output response
             verifyHandlerResponse(out,
