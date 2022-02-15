@@ -35,7 +35,6 @@ import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.awssdk.http.HttpStatusFamily;
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
-import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.cloudformation.encryption.Cipher;
 import software.amazon.cloudformation.encryption.KMSCipher;
 import software.amazon.cloudformation.exceptions.BaseHandlerException;
@@ -67,7 +66,6 @@ import software.amazon.cloudformation.proxy.hook.HookStatus;
 import software.amazon.cloudformation.resource.SchemaValidator;
 import software.amazon.cloudformation.resource.Serializer;
 import software.amazon.cloudformation.resource.Validator;
-import software.amazon.cloudformation.resource.exceptions.ValidationException;
 
 public abstract class HookAbstractWrapper<TargetT, CallbackT, ConfigurationT> {
 
@@ -199,19 +197,6 @@ public abstract class HookAbstractWrapper<TargetT, CallbackT, ConfigurationT> {
             // deserialize incoming payload to modeled request
             request = this.serializer.deserialize(input, typeReference);
             handlerResponse = processInvocation(rawInput, request);
-        } catch (final ValidationException e) {
-            String message;
-            String fullExceptionMessage = ValidationException.buildFullExceptionMessage(e);
-            if (!StringUtils.isEmpty(fullExceptionMessage)) {
-                message = String.format("Model validation failed (%s)", fullExceptionMessage);
-            } else {
-                message = "Model validation failed with unknown cause.";
-            }
-
-            handlerResponse = ProgressEvent.defaultFailureHandler(new TerminalException(message, e),
-                HandlerErrorCode.InvalidRequest);
-            publishExceptionMetric(request != null ? request.getActionInvocationPoint() : null, e,
-                HandlerErrorCode.InvalidRequest);
         } catch (final Throwable e) {
             // Exceptions are wrapped as a consistent error response to the caller (i.e;
             // CloudFormation)
