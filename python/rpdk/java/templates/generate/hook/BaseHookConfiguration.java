@@ -44,7 +44,7 @@ public abstract class BaseHookConfiguration {
             new JSONTokener(
                 this.targetSchemas.computeIfAbsent(
                     targetName,
-                    tn -> this.getClass().getClassLoader().getResourceAsStream(tn)
+                    tn -> this.getClass().getClassLoader().getResourceAsStream(this.targetSchemaPaths.get(tn))
                 )
             )
         );
