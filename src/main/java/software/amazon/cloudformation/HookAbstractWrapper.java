@@ -90,7 +90,6 @@ public abstract class HookAbstractWrapper<TargetT, CallbackT, ConfigurationT> {
     final SchemaValidator validator;
     final TypeReference<HookInvocationRequest<ConfigurationT, CallbackT>> typeReference;
 
-    private MetricsPublisher platformMetricsPublisher;
     private MetricsPublisher providerMetricsPublisher;
 
     private CloudWatchLogHelper cloudWatchLogHelper;
@@ -112,7 +111,6 @@ public abstract class HookAbstractWrapper<TargetT, CallbackT, ConfigurationT> {
     public HookAbstractWrapper(final CredentialsProvider providerCredentialsProvider,
                                final CloudWatchLogPublisher providerEventsLogger,
                                final LogPublisher platformEventsLogger,
-                               final MetricsPublisher platformMetricsPublisher,
                                final MetricsPublisher providerMetricsPublisher,
                                final SchemaValidator validator,
                                final Serializer serializer,
@@ -123,7 +121,6 @@ public abstract class HookAbstractWrapper<TargetT, CallbackT, ConfigurationT> {
         this.cloudWatchLogsProvider = new CloudWatchLogsProvider(this.providerCredentialsProvider, httpClient);
         this.providerEventsLogger = providerEventsLogger;
         this.platformLogPublisher = platformEventsLogger;
-        this.platformMetricsPublisher = platformMetricsPublisher;
         this.providerMetricsPublisher = providerMetricsPublisher;
         this.serializer = serializer;
         this.validator = validator;
@@ -147,21 +144,13 @@ public abstract class HookAbstractWrapper<TargetT, CallbackT, ConfigurationT> {
         this.loggerProxy = new LoggerProxy();
         this.loggerProxy.addLogPublisher(this.platformLogPublisher);
 
+        // Initialisation skipped if dependencies were set during injection (in unit
+        // tests).
+
         // Initialize a KMS cipher to decrypt customer credentials in HookRequestData
         if (this.cipher == null && hookEncryptionKeyArn != null && hookEncryptionKeyRole != null) {
             this.cipher = new KMSCipher(hookEncryptionKeyArn, hookEncryptionKeyRole);
         }
-
-        // Initialisation skipped if dependencies were set during injection (in unit
-        // tests).
-        // e.g. "if (this.platformMetricsPublisher == null)"
-        if (this.platformMetricsPublisher == null) {
-            // platformMetricsPublisher needs aws account id to differentiate metrics
-            // namespace
-            this.platformMetricsPublisher = new HookMetricsPublisherImpl(this.platformLoggerProxy, awsAccountId, hookTypeName);
-        }
-        this.metricsPublisherProxy.addMetricsPublisher(this.platformMetricsPublisher);
-        this.platformMetricsPublisher.refreshClient();
 
         // NOTE: providerCredentials and providerLogGroupName are null/not null in
         // sync.

@@ -19,8 +19,6 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashSet;
-import software.amazon.awssdk.core.SdkSystemSetting;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.MetricDatum;
@@ -32,9 +30,7 @@ import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 
 public class HookMetricsPublisherImpl extends MetricsPublisher {
-    private static final String DEFAULT_REGION = "us-east-1";
-
-    private CloudWatchProvider cloudWatchProvider;
+    private final CloudWatchProvider cloudWatchProvider;
     private Logger loggerProxy;
     private String awsAccountId;
     private CloudWatchClient cloudWatchClient;
@@ -49,20 +45,9 @@ public class HookMetricsPublisherImpl extends MetricsPublisher {
         this.awsAccountId = awsAccountId;
     }
 
-    public HookMetricsPublisherImpl(final Logger loggerProxy,
-                                    final String awsAccountId,
-                                    final String hookTypeName) {
-        super(hookTypeName);
-        this.loggerProxy = loggerProxy;
-        this.awsAccountId = awsAccountId;
-        this.cloudWatchClient = createClient();
-    }
-
     @Override
     public void refreshClient() {
-        if (cloudWatchProvider != null) {
-            this.cloudWatchClient = cloudWatchProvider.get();
-        }
+        this.cloudWatchClient = cloudWatchProvider.get();
     }
 
     private String getHookTypeName() {
@@ -164,11 +149,6 @@ public class HookMetricsPublisherImpl extends MetricsPublisher {
         if (loggerProxy != null) {
             loggerProxy.log(String.format("%s%n", message));
         }
-    }
-
-    private CloudWatchClient createClient() {
-        final String region = SdkSystemSetting.AWS_REGION.getStringValue().map(Object::toString).orElse(DEFAULT_REGION);
-        return CloudWatchClient.builder().region(Region.of(region)).build();
     }
 
 }

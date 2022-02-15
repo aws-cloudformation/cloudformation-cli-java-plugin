@@ -43,14 +43,13 @@ public abstract class HookLambdaWrapper<TargetT, CallbackT, ConfigurationT>
     public HookLambdaWrapper(final CredentialsProvider providerCredentialsProvider,
                              final CloudWatchLogPublisher providerEventsLogger,
                              final LogPublisher platformEventsLogger,
-                             final MetricsPublisher platformMetricsPublisher,
                              final MetricsPublisher providerMetricsPublisher,
                              final SchemaValidator validator,
                              final Serializer serializer,
                              final SdkHttpClient httpClient,
                              final Cipher cipher) {
-        super(providerCredentialsProvider, providerEventsLogger, platformEventsLogger, platformMetricsPublisher,
-              providerMetricsPublisher, validator, serializer, httpClient, cipher);
+        super(providerCredentialsProvider, providerEventsLogger, platformEventsLogger, providerMetricsPublisher, validator,
+              serializer, httpClient, cipher);
     }
 
     @Override
