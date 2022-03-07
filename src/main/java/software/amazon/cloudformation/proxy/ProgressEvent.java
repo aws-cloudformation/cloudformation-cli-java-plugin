@@ -17,6 +17,8 @@ package software.amazon.cloudformation.proxy;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.List;
 import java.util.function.Function;
+
+import jdk.nashorn.internal.codegen.CompilerConstants;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -41,7 +43,10 @@ public class ProgressEvent<ResourceT, CallbackT> {
     /**
      * The handler can (and should) specify a contextual information message which
      * can be shown to callers to indicate the nature of a progress transition or
-     * callback delay; for example a message indicating "propagating to edge"
+     * callback delay; for example a message indicating "propagating to edge."
+     *
+     * For certain resource providers, a custom message can be provided specifying
+     * the event.
      */
     private String message;
 
@@ -82,6 +87,11 @@ public class ProgressEvent<ResourceT, CallbackT> {
     private String nextToken;
 
     /**
+     * The type of event being reported to the stack - used for custom event messaging
+     */
+    private EventType eventType;
+
+    /**
      * Convenience method for constructing a FAILED response
      *
      * @param e actual service exception
@@ -95,6 +105,14 @@ public class ProgressEvent<ResourceT, CallbackT> {
         defaultFailureHandler(final Throwable e, final HandlerErrorCode handlerErrorCode) {
 
         return failed(null, null, handlerErrorCode, e.getMessage());
+    }
+
+    public ProgressEvent<ResourceT, CallbackT>
+        failed(ResourceT model, CallbackT cxt, HandlerErrorCode code, EventType eventType, String message) {
+
+        ProgressEvent<ResourceT, CallbackT> event = failed(model, cxt, code, message);
+        event.setEventType(eventType);
+        return event;
     }
 
     public static <ResourceT, CallbackT>
@@ -128,7 +146,26 @@ public class ProgressEvent<ResourceT, CallbackT> {
             .callbackDelaySeconds(callbackDelaySeconds).resourceModel(resourceModel).status(OperationStatus.IN_PROGRESS).build();
     }
 
-    public static <ResourceT, CallbackT> ProgressEvent<ResourceT, CallbackT> progress(ResourceT model, CallbackT cxt) {
+
+    /**
+     * Overloaded method for progress() that has customized message based on eventType
+     */
+    public static <ResourceT, CallbackT> ProgressEvent<ResourceT, CallbackT>
+        progress(ResourceT model, CallbackT cxt, EventType eventType, String message) {
+
+        return ProgressEvent.<ResourceT, CallbackT>builder().callbackContext(cxt).resourceModel(model)
+                    .status(OperationStatus.IN_PROGRESS).eventType(eventType).message(message).build();
+    }
+
+    public static <ResourceT, CallbackT> ProgressEvent<ResourceT, CallbackT>
+        progress(ResourceT model, CallbackT cxt, EventType eventType) {
+
+        return ProgressEvent.<ResourceT, CallbackT>builder().callbackContext(cxt).resourceModel(model)
+                .status(OperationStatus.IN_PROGRESS).eventType(eventType).build();
+    }
+
+    public static <ResourceT, CallbackT> ProgressEvent<ResourceT, CallbackT>
+        progress(ResourceT model, CallbackT cxt) {
 
         return ProgressEvent.<ResourceT, CallbackT>builder().callbackContext(cxt).resourceModel(model)
             .status(OperationStatus.IN_PROGRESS).build();

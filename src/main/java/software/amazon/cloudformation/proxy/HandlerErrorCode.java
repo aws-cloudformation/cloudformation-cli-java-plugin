@@ -120,6 +120,11 @@ public enum HandlerErrorCode {
     NonCompliant(ExceptionMessages.NON_COMPLIANT),
 
     /**
+     * invalid enum is sent to ProgressEvent
+     */
+    InvalidEventType(ExceptionMessages.INVALID_EVENT_TYPE),
+
+    /**
      * the Hook has returned a failure for an Unknown reason. Only applicable to
      * Hook type handlers (terminal) Hook Handlers can return this when a hook has
      * failed for a reason other than non-compliance

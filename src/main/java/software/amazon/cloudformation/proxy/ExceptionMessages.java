@@ -32,6 +32,7 @@ final class ExceptionMessages {
     static final String INVALID_TYPECONFIGURATION = "Invalid TypeConfiguration provided for type '%s'. Reason: %s";
     static final String HANDLER_INTERNAL_FAILURE = "Internal error occurred in the handler.";
     static final String NON_COMPLIANT = "Hook of type '%s' returned a Non-Complaint status. Reason %s";
+    static final String INVALID_EVENT_TYPE = "Invalid event type provided for type '%s'.";
     static final String UNKNOWN = "Unknown error occurred.";
 
     private ExceptionMessages() {
