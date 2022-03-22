@@ -226,12 +226,6 @@ public abstract class HookAbstractWrapper<TargetT, CallbackT, ConfigurationT> {
             throw new TerminalException("Invalid request object received. Target Model can not be null.");
         }
 
-        if (request.getActionInvocationPoint() == HookInvocationPoint.UPDATE_POST_PROVISION) {
-            if (request.getRequestData().getTargetModel().get("PreviousResourceProperties") == null) {
-                throw new TerminalException("Invalid hook invocation request object received");
-            }
-        }
-
         // TODO: Include hook schema validation here after schema is finalized
 
         try {

@@ -16,11 +16,8 @@ package software.amazon.cloudformation;
 
 public enum HookInvocationPoint {
     CREATE_PRE_PROVISION("PreCreate"),
-    CREATE_POST_PROVISION("PostCreate"),
     UPDATE_PRE_PROVISION("PreUpdate"),
-    UPDATE_POST_PROVISION("PostUpdate"),
-    DELETE_PRE_PROVISION("PreDelete"),
-    DELETE_POST_PROVISION("PostDelete");
+    DELETE_PRE_PROVISION("PreDelete");
 
     private final String shortName;
 
