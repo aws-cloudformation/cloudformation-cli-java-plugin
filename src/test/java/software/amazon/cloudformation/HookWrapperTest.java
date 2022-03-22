@@ -48,6 +48,7 @@ import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.cloudformation.encryption.KMSCipher;
+import software.amazon.cloudformation.exceptions.EncryptionException;
 import software.amazon.cloudformation.exceptions.ResourceNotFoundException;
 import software.amazon.cloudformation.exceptions.TerminalException;
 import software.amazon.cloudformation.injection.CredentialsProvider;
@@ -740,6 +741,34 @@ public class HookWrapperTest {
                 HookProgressEvent.<TestContext>builder().clientRequestToken("123456").errorCode(HandlerErrorCode.NotFound)
                     .hookStatus(HookStatus.FAILED)
                     .message("Resource of type 'AWS::Test::TestModel' with identifier 'id-1234' was not found.").build());
+        }
+    }
+
+    @Test
+    public void invokeHandler_throwsEncryptionException_returnsAccessDenied() throws IOException {
+        wrapper.setTransformResponse(hookHandlerRequest);
+
+        lenient().when(cipher.decryptCredentials(any())).thenThrow(new EncryptionException("Failed to decrypt credentials."));
+
+        try (final InputStream in = loadRequestStream("preCreate.request.json");
+            final OutputStream out = new ByteArrayOutputStream()) {
+
+            wrapper.processRequest(in, out);
+
+            // all metrics should be published, once for a single invocation
+            verify(providerMetricsPublisher, times(0)).publishInvocationMetric(any(Instant.class),
+                eq(HookInvocationPoint.CREATE_PRE_PROVISION));
+            verify(providerMetricsPublisher, times(0)).publishDurationMetric(any(Instant.class),
+                eq(HookInvocationPoint.CREATE_PRE_PROVISION), anyLong());
+
+            // failure metric should be published
+            verify(providerMetricsPublisher, times(0)).publishExceptionMetric(any(Instant.class), any(HookInvocationPoint.class),
+                any(ResourceNotFoundException.class), any(HandlerErrorCode.class));
+
+            // verify output response
+            verifyHandlerResponse(out,
+                HookProgressEvent.<TestContext>builder().clientRequestToken("123456").errorCode(HandlerErrorCode.AccessDenied)
+                    .hookStatus(HookStatus.FAILED).message("Failed to decrypt credentials.").build());
         }
     }
 
