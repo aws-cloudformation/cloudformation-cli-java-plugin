@@ -87,7 +87,13 @@ public class KMSCipher implements Cipher {
         try {
             final CryptoResult<byte[],
                 KmsMasterKey> result = cryptoHelper.decryptData(kmsKeyProvider, Base64.decode(encryptedCredentials));
-            return serializer.deserialize(new String(result.getResult(), StandardCharsets.UTF_8), this.credentialsTypeReference);
+            final Credentials credentials = serializer.deserialize(new String(result.getResult(), StandardCharsets.UTF_8),
+                this.credentialsTypeReference);
+            if (credentials == null) {
+                throw new EncryptionException("Failed to decrypt credentials. Decrypted credentials are 'null'.");
+            }
+
+            return credentials;
         } catch (final IOException | AwsCryptoException e) {
             throw new EncryptionException("Failed to decrypt credentials.", e);
         }

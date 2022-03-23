@@ -38,6 +38,7 @@ import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.cloudformation.encryption.Cipher;
 import software.amazon.cloudformation.encryption.KMSCipher;
 import software.amazon.cloudformation.exceptions.BaseHandlerException;
+import software.amazon.cloudformation.exceptions.EncryptionException;
 import software.amazon.cloudformation.exceptions.FileScrubberException;
 import software.amazon.cloudformation.exceptions.TerminalException;
 import software.amazon.cloudformation.injection.CloudWatchLogsProvider;
@@ -233,33 +234,41 @@ public abstract class HookAbstractWrapper<TargetT, CallbackT, ConfigurationT> {
 
         // TODO: Include hook schema validation here after schema is finalized
 
-        // initialise dependencies with platform credentials
-        initialiseRuntime(request.getHookTypeName(), request.getRequestData().getProviderCredentials(),
-            request.getRequestData().getProviderLogGroupName(), request.getAwsAccountId(),
-            request.getRequestData().getHookEncryptionKeyArn(), request.getRequestData().getHookEncryptionKeyRole());
+        try {
+            // initialise dependencies with platform credentials
+            initialiseRuntime(request.getHookTypeName(), request.getRequestData().getProviderCredentials(),
+                request.getRequestData().getProviderLogGroupName(), request.getAwsAccountId(),
+                request.getRequestData().getHookEncryptionKeyArn(), request.getRequestData().getHookEncryptionKeyRole());
 
-        // transform the request object to pass to caller
-        HookHandlerRequest hookHandlerRequest = transform(request);
-        ConfigurationT typeConfiguration = request.getHookModel();
+            // transform the request object to pass to caller
+            HookHandlerRequest hookHandlerRequest = transform(request);
+            ConfigurationT typeConfiguration = request.getHookModel();
 
-        HookRequestContext<CallbackT> requestContext = request.getRequestContext();
+            HookRequestContext<CallbackT> requestContext = request.getRequestContext();
 
-        this.metricsPublisherProxy.publishInvocationMetric(Instant.now(), request.getActionInvocationPoint());
+            this.metricsPublisherProxy.publishInvocationMetric(Instant.now(), request.getActionInvocationPoint());
 
-        // last mile proxy creation with passed-in credentials (unless we are operating
-        // in a non-AWS model)
-        AmazonWebServicesClientProxy awsClientProxy = null;
-        Credentials processedCallerCredentials = processCredentials(request.getRequestData().getCallerCredentials());
-        if (processedCallerCredentials != null) {
-            awsClientProxy = new AmazonWebServicesClientProxy(this.loggerProxy, processedCallerCredentials,
-                                                              DelayFactory.CONSTANT_DEFAULT_DELAY_FACTORY,
-                                                              WaitStrategy.scheduleForCallbackStrategy());
+            // last mile proxy creation with passed-in credentials (unless we are operating
+            // in a non-AWS model)
+            AmazonWebServicesClientProxy awsClientProxy = null;
+            Credentials processedCallerCredentials = processCredentials(request.getRequestData().getCallerCredentials());
+            if (processedCallerCredentials != null) {
+                awsClientProxy = new AmazonWebServicesClientProxy(this.loggerProxy, processedCallerCredentials,
+                                                                  DelayFactory.CONSTANT_DEFAULT_DELAY_FACTORY,
+                                                                  WaitStrategy.scheduleForCallbackStrategy());
 
+            }
+
+            CallbackT callbackContext = (requestContext != null) ? requestContext.getCallbackContext() : null;
+
+            return wrapInvocationAndHandleErrors(awsClientProxy, hookHandlerRequest, request, callbackContext, typeConfiguration);
+
+        } catch (EncryptionException e) {
+            publishExceptionMetric(request.getActionInvocationPoint(), e, HandlerErrorCode.AccessDenied);
+            logUnhandledError("An encryption error occurred while processing request", request, e);
+
+            return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.AccessDenied);
         }
-
-        CallbackT callbackContext = (requestContext != null) ? requestContext.getCallbackContext() : null;
-
-        return wrapInvocationAndHandleErrors(awsClientProxy, hookHandlerRequest, request, callbackContext, typeConfiguration);
     }
 
     private void logUnhandledError(final String errorDescription,
