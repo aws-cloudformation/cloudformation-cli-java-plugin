@@ -880,9 +880,8 @@ public class HookWrapperTest {
 
             // verify output response
             verifyHandlerResponse(out,
-                HookProgressEvent.<TestContext>builder().clientRequestToken("123456").hookStatus(HookStatus.FAILED)
-                    .errorCode(HandlerErrorCode.InternalFailure).hookStatus(HookStatus.FAILED)
-                    .message("Invalid hook invocation request object received").build());
+                HookProgressEvent.<TestContext>builder().hookStatus(HookStatus.FAILED).errorCode(HandlerErrorCode.InternalFailure)
+                    .hookStatus(HookStatus.FAILED).message("Invalid hook invocation request object received").build());
         }
     }
 
