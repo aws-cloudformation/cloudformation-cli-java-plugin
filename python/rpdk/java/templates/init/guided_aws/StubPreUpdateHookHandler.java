@@ -1,11 +1,12 @@
 package {{ package_name }};
 
-import {{ package_name }}.model.my.example.resource.MyExampleResource;
-import {{ package_name }}.model.my.example.resource.MyExampleResourceTargetModel;
+import {{ package_name }}.model.aws.s3.bucket.AwsS3Bucket;
+import {{ package_name }}.model.aws.s3.bucket.AwsS3BucketTargetModel;
+import {{ package_name }}.model.aws.s3.bucket.BucketEncryption;
 import software.amazon.awssdk.core.SdkClient;
-import software.amazon.cloudformation.exceptions.UnsupportedTargetException;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -13,6 +14,8 @@ import software.amazon.cloudformation.proxy.hook.HookContext;
 import software.amazon.cloudformation.proxy.hook.HookHandlerRequest;
 import software.amazon.cloudformation.proxy.hook.targetmodel.HookTargetModel;
 import software.amazon.cloudformation.proxy.hook.targetmodel.ResourceHookTargetModel;
+
+import java.util.Objects;
 
 public class {{ operation }}HookHandler extends BaseHookHandlerStd {
 
@@ -28,51 +31,28 @@ public class {{ operation }}HookHandler extends BaseHookHandlerStd {
         final HookContext hookContext = request.getHookContext();
         final String targetName = hookContext.getTargetName();
 
-        if (!"My::Example::Resource".equals(targetName)) {
-            throw new UnsupportedTargetException(targetName);
-        }
-
         logger.log(String.format("Successfully invoked {{ operation }}HookHandler for target %s.", targetName));
 
-        final String expectedEncryptionAlgorithm = typeConfiguration.getEncryptionAlgorithm();
-        logger.log(String.format("Verifying server side encryption for target %s, expecting target server side encryption algorithm to be %s.",
-            targetName, expectedEncryptionAlgorithm));
+        final ResourceHookTargetModel<AwsS3Bucket> targetModel = hookContext.getTargetModel(AwsS3BucketTargetModel.class);
 
-        final ResourceHookTargetModel<MyExampleResource> targetModel = hookContext.getTargetModel(MyExampleResourceTargetModel.class);
+        final AwsS3Bucket previousResourceProperties = targetModel.getPreviousResourceProperties();
+        final AwsS3Bucket resourceProperties = targetModel.getResourceProperties();
 
-        final MyExampleResource previousResourceProperties = targetModel.getPreviousResourceProperties();
-        final String previousTargetEncryptionAlgorithm = (String) previousResourceProperties.get("MyEncryptionAlgorithm");
-        logger.log(String.format("Target resource's previous server side encryption algorithm is %s.", previousTargetEncryptionAlgorithm));
+        logger.log(String.format("Verifying encryption has not been modified for bucket: %s", resourceProperties.getBucketName()));
 
-        final MyExampleResource resourceProperties = targetModel.getResourceProperties();
-        final String targetEncryptionAlgorithm = (String) resourceProperties.get("MyEncryptionAlgorithm");
+        final BucketEncryption previousBucketEncryption = previousResourceProperties.getBucketEncryption();
+        final BucketEncryption bucketEncryption = resourceProperties.getBucketEncryption();
 
-        if (targetEncryptionAlgorithm == null) {
-            final String failureMessage = String.format("Failed to verify server side encryption for target %s, target does not have server side encryption enabled.",
-                targetName);
-            logger.log(failureMessage);
-
+        if (Objects.equals(bucketEncryption, previousBucketEncryption)) {
             return ProgressEvent.<HookTargetModel, CallbackContext>builder()
-                .status(OperationStatus.FAILED)
-                .message(failureMessage)
-                .build();
-        }
-
-        if (!targetEncryptionAlgorithm.equals(expectedEncryptionAlgorithm)) {
-            final String failureMessage = String.format("Failed to verify server side encryption for target %s, expecting encryption algorithm to be %s, acutal encryption algorithm is %s",
-                targetName, expectedEncryptionAlgorithm, targetEncryptionAlgorithm);
-            logger.log(failureMessage);
-
+                    .status(OperationStatus.SUCCESS)
+                    .build();
+        } else {
             return ProgressEvent.<HookTargetModel, CallbackContext>builder()
-                .status(OperationStatus.FAILED)
-                .message(failureMessage)
-                .build();
+                    .status(OperationStatus.FAILED)
+                    .errorCode(HandlerErrorCode.NonCompliant)
+                    .message(String.format("Encryption has been modified for bucket: %s", resourceProperties.getBucketName()))
+                    .build();
         }
-
-        final String successMessage = String.format("Successfully verified server side encryption for target %s.", targetName);
-        return ProgressEvent.<HookTargetModel, CallbackContext>builder()
-            .status(OperationStatus.SUCCESS)
-            .message(successMessage)
-            .build();
     }
 }

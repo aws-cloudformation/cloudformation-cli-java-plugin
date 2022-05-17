@@ -1,11 +1,12 @@
 package {{ package_name }};
 
-import {{ package_name }}.model.other.example.resource.OtherExampleResource;
-import {{ package_name }}.model.other.example.resource.OtherExampleResourceTargetModel;
+import com.google.common.collect.ImmutableSet;
+import {{ package_name }}.model.aws.s3.bucket.AwsS3Bucket;
+import {{ package_name }}.model.aws.s3.bucket.AwsS3BucketTargetModel;
 import software.amazon.awssdk.core.SdkClient;
-import software.amazon.cloudformation.exceptions.UnsupportedTargetException;
-import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -14,7 +15,13 @@ import software.amazon.cloudformation.proxy.hook.HookHandlerRequest;
 import software.amazon.cloudformation.proxy.hook.targetmodel.HookTargetModel;
 import software.amazon.cloudformation.proxy.hook.targetmodel.ResourceHookTargetModel;
 
+import java.util.Collection;
+
 public class {{ operation }}HookHandler extends BaseHookHandlerStd {
+
+    private static final Collection<String> DO_NOT_DELETE_IDENTIFIERS = ImmutableSet.of(
+            "DO_NOT_DELETE", "DO-NOT-DELETE", "do_not_delete", "do-not-delete"
+    );
 
     @Override
     public ProgressEvent<HookTargetModel, CallbackContext> handleRequest(
@@ -28,47 +35,25 @@ public class {{ operation }}HookHandler extends BaseHookHandlerStd {
         final HookContext hookContext = request.getHookContext();
         final String targetName = hookContext.getTargetName();
 
-        if (!"Other::Example::Resource".equals(targetName)) {
-            throw new UnsupportedTargetException(targetName);
-        }
-
         logger.log(String.format("Successfully invoked {{ operation }}HookHandler for target %s.", targetName));
 
-        final String expectedEncryptionAlgorithm = typeConfiguration.getEncryptionAlgorithm();
-        logger.log(String.format("Verifying server side encryption for target %s, expecting target server side encryption algorithm to be %s.",
-            targetName, expectedEncryptionAlgorithm));
+        final ResourceHookTargetModel<AwsS3Bucket> targetModel = hookContext.getTargetModel(AwsS3BucketTargetModel.class);
 
-        final ResourceHookTargetModel<OtherExampleResource> targetModel = hookContext.getTargetModel(OtherExampleResourceTargetModel.class);
+        final AwsS3Bucket resourceProperties = targetModel.getResourceProperties();
 
-        final OtherExampleResource resourceProperties = targetModel.getResourceProperties();
-        final String targetEncryptionAlgorithm = (String) resourceProperties.get("OtherEncryptionAlgorithm");
-
-        if (targetEncryptionAlgorithm == null) {
-            final String failureMessage = String.format("Failed to verify server side encryption for target %s, target does not have server side encryption enabled.",
-                targetName);
-            logger.log(failureMessage);
-
-            return ProgressEvent.<HookTargetModel, CallbackContext>builder()
-                .status(OperationStatus.FAILED)
-                .message(failureMessage)
-                .build();
+        final String bucketName = resourceProperties.getBucketName();
+        for (final String identifier : DO_NOT_DELETE_IDENTIFIERS) {
+            if (bucketName.contains(identifier)) {
+                return ProgressEvent.<HookTargetModel, CallbackContext>builder()
+                        .status(OperationStatus.FAILED)
+                        .errorCode(HandlerErrorCode.NonCompliant)
+                        .message(String.format("Bucket name contains a 'DO_NOT_DELETE' identifier: %s", bucketName))
+                        .build();
+            }
         }
 
-        if (!targetEncryptionAlgorithm.equals(expectedEncryptionAlgorithm)) {
-            final String failureMessage = String.format("Failed to verify server side encryption for target %s, expecting encryption algorithm to be %s, acutal encryption algorithm is %s",
-                targetName, expectedEncryptionAlgorithm, targetEncryptionAlgorithm);
-            logger.log(failureMessage);
-
-            return ProgressEvent.<HookTargetModel, CallbackContext>builder()
-                .status(OperationStatus.FAILED)
-                .message(failureMessage)
-                .build();
-        }
-
-        final String successMessage = String.format("Successfully verified server side encryption for target %s.", targetName);
         return ProgressEvent.<HookTargetModel, CallbackContext>builder()
-            .status(OperationStatus.SUCCESS)
-            .message(successMessage)
-            .build();
+                .status(OperationStatus.SUCCESS)
+                .build();
     }
 }

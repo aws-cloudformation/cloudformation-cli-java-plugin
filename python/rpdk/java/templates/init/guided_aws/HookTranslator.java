@@ -1,8 +1,5 @@
 package {{ package_name }};
 
-
-import {{ package_name }}.model.my.example.resource.MyExampleResourceTargetModel;
-import {{ package_name }}.model.other.example.resource.OtherExampleResourceTargetModel;
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.cloudformation.proxy.hook.targetmodel.HookTargetModel;
 
@@ -20,28 +17,10 @@ public class Translator {
      * @return awsRequest the aws service request
      */
     static AwsRequest translateToRequest(final HookTargetModel targetModel) {
-        final AwsRequest awsRequest;
-        if (targetModel instanceof MyExampleResourceTargetModel) {
-            awsRequest = translateToRequest((MyExampleResourceTargetModel) targetModel);
-        } else if (targetModel instanceof OtherExampleResourceTargetModel) {
-            awsRequest = translateToRequest((OtherExampleResourceTargetModel) targetModel);
-        } else {
-            // TODO: construct a request
-            awsRequest = null;
-        }
-
-        return awsRequest;
-    }
-
-    static AwsRequest translateToRequest(final MyExampleResourceTargetModel targetModel) {
         final AwsRequest awsRequest = null;
         // TODO: construct a request
-        return awsRequest;
-    }
+        // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/2077c92299aeb9a68ae8f4418b5e932b12a8b186/aws-logs-loggroup/src/main/java/com/aws/logs/loggroup/Translator.java#L39-L43
 
-    static AwsRequest translateToRequest(final OtherExampleResourceTargetModel targetModel) {
-        final AwsRequest awsRequest = null;
-        // TODO: construct a request
         return awsRequest;
     }
 
