@@ -1,23 +1,29 @@
 package {{ package_name }};
 
-import java.util.Map;
-import java.util.HashMap;
-import software.amazon.cloudformation.proxy.Logger;
-import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-import software.amazon.cloudformation.proxy.OperationStatus;
-import software.amazon.cloudformation.proxy.ProgressEvent;
-import software.amazon.cloudformation.proxy.hook.HookHandlerRequest;
-import software.amazon.cloudformation.proxy.hook.HookContext;
-import software.amazon.cloudformation.proxy.hook.targetmodel.HookTargetModel;
+import {{ package_name }}.model.aws.s3.bucket.AwsS3Bucket;
+import {{ package_name }}.model.aws.s3.bucket.BucketEncryption;
+import {{ package_name }}.model.aws.s3.bucket.ServerSideEncryptionByDefault;
+import {{ package_name }}.model.aws.s3.bucket.ServerSideEncryptionRule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
+import software.amazon.cloudformation.proxy.Logger;
+import software.amazon.cloudformation.proxy.OperationStatus;
+import software.amazon.cloudformation.proxy.ProgressEvent;
+import software.amazon.cloudformation.proxy.hook.HookContext;
+import software.amazon.cloudformation.proxy.hook.HookHandlerRequest;
+import software.amazon.cloudformation.proxy.hook.targetmodel.HookTargetModel;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class {{ operation }}HookHandlerTest extends AbstractTestBase {
@@ -38,17 +44,35 @@ public class {{ operation }}HookHandlerTest extends AbstractTestBase {
     public void handleRequest_SimpleSuccess() {
         final {{ operation }}HookHandler handler = new {{ operation }}HookHandler();
 
-        final TypeConfigurationModel typeConfiguration = mock(TypeConfigurationModel.class);
-        when(typeConfiguration.getEncryptionAlgorithm()).thenReturn("AES256");
+        final TypeConfigurationModel typeConfiguration = TypeConfigurationModel.builder().build();
+
+        final ServerSideEncryptionByDefault serverSideEncryptionByDefault = ServerSideEncryptionByDefault.builder()
+                .sSEAlgorithm("AES256")
+                .build();
+        final ServerSideEncryptionRule serverSideEncryptionRule = ServerSideEncryptionRule.builder()
+                .serverSideEncryptionByDefault(serverSideEncryptionByDefault)
+                .build();
+
+        final BucketEncryption encryption = BucketEncryption.builder()
+                .serverSideEncryptionConfiguration(Collections.singletonList(serverSideEncryptionRule))
+                .build();
+
+        final AwsS3Bucket resourceProperties = AwsS3Bucket.builder()
+                .bucketName("MyBucket")
+                .bucketEncryption(encryption)
+                .build();
+
+        final AwsS3Bucket previousResourceProperties = AwsS3Bucket.builder()
+                .bucketName("MyBucket")
+                .bucketEncryption(encryption)
+                .build();
 
         final Map<String, Object> targetModel = new HashMap<>();
-        final Map<String, Object> resourceProperties = new HashMap<>();
-        resourceProperties.put("MyEncryptionAlgorithm", "AES256");
         targetModel.put("ResourceProperties", resourceProperties);
-        targetModel.put("PreviousResourceProperties", new HashMap<>());
+        targetModel.put("PreviousResourceProperties", previousResourceProperties);
 
         final HookHandlerRequest request = HookHandlerRequest.builder()
-            .hookContext(HookContext.builder().targetName("My::Example::Resource").targetModel(HookTargetModel.of(targetModel)).build())
+            .hookContext(HookContext.builder().targetName("AWS::S3::Bucket").targetModel(HookTargetModel.of(targetModel)).build())
             .build();
 
         final ProgressEvent<HookTargetModel, CallbackContext> response = handler.handleRequest(proxy, request, null, logger, typeConfiguration);
@@ -57,7 +81,62 @@ public class {{ operation }}HookHandlerTest extends AbstractTestBase {
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
         assertThat(response.getCallbackContext()).isNull();
         assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-        assertThat(response.getMessage()).isNotNull();
         assertThat(response.getErrorCode()).isNull();
+    }
+
+    @Test
+    public void handleRequest_nonCompliant() {
+        final {{ operation }}HookHandler handler = new {{ operation }}HookHandler();
+
+        final TypeConfigurationModel typeConfiguration = TypeConfigurationModel.builder().build();
+
+        final ServerSideEncryptionByDefault serverSideEncryptionByDefault = ServerSideEncryptionByDefault.builder()
+                .sSEAlgorithm("AES128")
+                .build();
+        final ServerSideEncryptionRule serverSideEncryptionRule = ServerSideEncryptionRule.builder()
+                .serverSideEncryptionByDefault(serverSideEncryptionByDefault)
+                .build();
+
+        final BucketEncryption encryption = BucketEncryption.builder()
+                .serverSideEncryptionConfiguration(Collections.singletonList(serverSideEncryptionRule))
+                .build();
+
+        final AwsS3Bucket resourceProperties = AwsS3Bucket.builder()
+                .bucketName("MyBucket")
+                .bucketEncryption(encryption)
+                .build();
+
+        final ServerSideEncryptionByDefault previousServerSideEncryptionByDefault = ServerSideEncryptionByDefault.builder()
+                .sSEAlgorithm("AES256")
+                .build();
+        final ServerSideEncryptionRule previousServerSideEncryptionRule = ServerSideEncryptionRule.builder()
+                .serverSideEncryptionByDefault(previousServerSideEncryptionByDefault)
+                .build();
+
+        final BucketEncryption previousEncryption = BucketEncryption.builder()
+                .serverSideEncryptionConfiguration(Collections.singletonList(previousServerSideEncryptionRule))
+                .build();
+
+        final AwsS3Bucket previousResourceProperties = AwsS3Bucket.builder()
+                .bucketName("MyBucket")
+                .bucketEncryption(previousEncryption)
+                .build();
+
+
+        final Map<String, Object> targetModel = new HashMap<>();
+        targetModel.put("ResourceProperties", resourceProperties);
+        targetModel.put("PreviousResourceProperties", previousResourceProperties);
+
+        final HookHandlerRequest request = HookHandlerRequest.builder()
+            .hookContext(HookContext.builder().targetName("AWS::S3::Bucket").targetModel(HookTargetModel.of(targetModel)).build())
+            .build();
+
+        final ProgressEvent<HookTargetModel, CallbackContext> response = handler.handleRequest(proxy, request, null, logger, typeConfiguration);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(response.getCallbackContext()).isNull();
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.NonCompliant);
     }
 }
