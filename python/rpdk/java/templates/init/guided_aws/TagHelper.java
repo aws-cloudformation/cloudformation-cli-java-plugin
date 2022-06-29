@@ -128,7 +128,6 @@ public class TagHelper {
      * stack.
      */
     public Map<String, String> getNewDesiredTags(final ResourceModel resourceModel, final ResourceHandlerRequest<ResourceModel> handlerRequest) {
-        // get new stack level tags from handlerRequest
         final Map<String, String> desiredTags = new HashMap<>();
 
         // get system tags
