@@ -71,27 +71,6 @@ public class TagHelper {
     }
 
     /**
-     * generateTagsForCreate
-     *
-     * Generate tags to put into resource creation request.
-     * This includes user defined tags and system tags as well.
-     */
-    public final Map<String, String> generateTagsForCreate(final ResourceModel resourceModel, final ResourceHandlerRequest<ResourceModel> handlerRequest) {
-        final Map<String, String> tagMap = new HashMap<>();
-
-        // merge system tags with desired resource tags if your service supports CloudFormation system tags
-        tagMap.putAll(handlerRequest.getSystemTags());
-
-        if (handlerRequest.getDesiredResourceTags() != null) {
-            tagMap.putAll(handlerRequest.getDesiredResourceTags());
-        }
-
-        // TODO: get tags from resource model based on your tag property name
-        // TODO: tagMap.putAll(convertToMap(resourceModel.getTags()));
-        return Collections.unmodifiableMap(tagMap);
-    }
-
-    /**
      * shouldUpdateTags
      *
      * Determines whether user defined tags have been changed during update.
@@ -105,33 +84,66 @@ public class TagHelper {
     /**
      * getPreviouslyAttachedTags
      *
-     * If stack tags and resource tags are not merged together in Configuration class,
-     * we will get previous attached user defined tags from both handlerRequest.getPreviousResourceTags (stack tags)
+     * If stack tags and resource tags are not merged together in Configuration
+     * class,
+     * we will get previously attached system (with `aws:cloudformation` prefix) and
+     * user defined tags
+     * from handlerRequest.getPreviousSystemTags(),
+     * handlerRequest.getPreviousResourceTags (stack tags),
      * and handlerRequest.getPreviousResourceState (resource tags).
+     * System tags can change on resource update if the resource is imported to the
+     * stack.
      */
     public Map<String, String> getPreviouslyAttachedTags(final ResourceHandlerRequest<ResourceModel> handlerRequest) {
+        final Map<String, String> previousTags = new HashMap<>();
+
+        // get previous system tags
+        if (handlerRequest.getPreviousSystemTags() != null) {
+            previousTags.putAll(handlerRequest.getPreviousSystemTags());
+        }
+
         // get previous stack level tags from handlerRequest
-        final Map<String, String> previousTags = handlerRequest.getPreviousResourceTags() != null ?
-            handlerRequest.getPreviousResourceTags() : Collections.emptyMap();
+        if (handlerRequest.getPreviousResourceTags() != null) {
+            previousTags.putAll(handlerRequest.getPreviousResourceTags());
+        }
 
         // TODO: get resource level tags from previous resource state based on your tag property name
-        // TODO: previousTags.putAll(handlerRequest.getPreviousResourceState().getTags());
+        // TODO:
+        // previousTags.putAll(handlerRequest.getPreviousResourceState().getTags()); //
+        // if tags are not null
         return previousTags;
     }
 
     /**
      * getNewDesiredTags
      *
-     * If stack tags and resource tags are not merged together in Configuration class,
-     * we will get new user defined tags from both resource model and previous stack tags.
+     * If stack tags and resource tags are not merged together in Configuration
+     * class,
+     * we will get new desired attached system (with `aws:cloudformation` prefix)
+     * and user defined tags
+     * from handlerRequest.getSystemTags(), handlerRequest.getPreviousResourceTags
+     * (stack tags),
+     * and handlerRequest.getPreviousResourceState (resource tags).
+     * System tags can change on resource update if the resource is imported to the
+     * stack.
      */
     public Map<String, String> getNewDesiredTags(final ResourceModel resourceModel, final ResourceHandlerRequest<ResourceModel> handlerRequest) {
         // get new stack level tags from handlerRequest
-        final Map<String, String> desiredTags = handlerRequest.getDesiredResourceTags() != null ?
-            handlerRequest.getDesiredResourceTags() : Collections.emptyMap();
+        final Map<String, String> desiredTags = new HashMap<>();
+
+        // get system tags
+        if (handlerRequest.getSystemTags() != null) {
+            desiredTags.putAll(handlerRequest.getSystemTags());
+        }
+
+        // get desired stack level tags from handlerRequest
+        if (handlerRequest.getDesiredResourceTags() != null) {
+            desiredTags.putAll(handlerRequest.getDesiredResourceTags());
+        }
 
         // TODO: get resource level tags from resource model based on your tag property name
-        // TODO: desiredTags.putAll(convertToMap(resourceModel.getTags()));
+        // TODO: desiredTags.putAll(convertToMap(resourceModel.getTags())); // if tags
+        // are not null
         return desiredTags;
     }
 
