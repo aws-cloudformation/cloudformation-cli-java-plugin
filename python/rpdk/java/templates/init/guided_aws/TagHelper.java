@@ -84,15 +84,12 @@ public class TagHelper {
     /**
      * getPreviouslyAttachedTags
      *
-     * If stack tags and resource tags are not merged together in Configuration
-     * class,
-     * we will get previously attached system (with `aws:cloudformation` prefix) and
-     * user defined tags
+     * If stack tags and resource tags are not merged together in Configuration class,
+     * we will get previously attached system (with `aws:cloudformation` prefix) and user defined tags
      * from handlerRequest.getPreviousSystemTags(),
      * handlerRequest.getPreviousResourceTags (stack tags),
      * and handlerRequest.getPreviousResourceState (resource tags).
-     * System tags can change on resource update if the resource is imported to the
-     * stack.
+     * System tags can change on resource update if the resource is imported to the stack.
      */
     public Map<String, String> getPreviouslyAttachedTags(final ResourceHandlerRequest<ResourceModel> handlerRequest) {
         final Map<String, String> previousTags = new HashMap<>();
@@ -109,23 +106,18 @@ public class TagHelper {
 
         // TODO: get resource level tags from previous resource state based on your tag property name
         // TODO:
-        // previousTags.putAll(handlerRequest.getPreviousResourceState().getTags()); //
-        // if tags are not null
+        // previousTags.putAll(handlerRequest.getPreviousResourceState().getTags()); // if tags are not null
         return previousTags;
     }
 
     /**
      * getNewDesiredTags
      *
-     * If stack tags and resource tags are not merged together in Configuration
-     * class,
-     * we will get new desired attached system (with `aws:cloudformation` prefix)
-     * and user defined tags
-     * from handlerRequest.getSystemTags(), handlerRequest.getPreviousResourceTags
-     * (stack tags),
+     * If stack tags and resource tags are not merged together in Configuration class,
+     * we will get new desired attached system (with `aws:cloudformation` prefix) and user defined tags
+     * from handlerRequest.getSystemTags(), handlerRequest.getPreviousResourceTags (stack tags),
      * and handlerRequest.getPreviousResourceState (resource tags).
-     * System tags can change on resource update if the resource is imported to the
-     * stack.
+     * System tags can change on resource update if the resource is imported to the stack.
      */
     public Map<String, String> getNewDesiredTags(final ResourceModel resourceModel, final ResourceHandlerRequest<ResourceModel> handlerRequest) {
         final Map<String, String> desiredTags = new HashMap<>();
@@ -141,8 +133,7 @@ public class TagHelper {
         }
 
         // TODO: get resource level tags from resource model based on your tag property name
-        // TODO: desiredTags.putAll(convertToMap(resourceModel.getTags())); // if tags
-        // are not null
+        // TODO: desiredTags.putAll(convertToMap(resourceModel.getTags())); // if tags are not null
         return desiredTags;
     }
 
