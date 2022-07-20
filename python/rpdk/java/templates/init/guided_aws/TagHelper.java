@@ -89,7 +89,7 @@ public class TagHelper {
      * handlerRequest.getPreviousSystemTags() (system tags),
      * handlerRequest.getPreviousResourceTags() (stack tags),
      * handlerRequest.getPreviousResourceState().getTags() (resource tags).
-     * 
+     *
      * System tags are an optional feature. Merge them to your tags if you have enabled them for your resource.
      * System tags can change on resource update if the resource is imported to the stack.
      */
@@ -119,7 +119,7 @@ public class TagHelper {
      * handlerRequest.getSystemTags() (system tags), 
      * handlerRequest.getDesiredResourceTags() (stack tags),
      * handlerRequest.getDesiredResourceState().getTags() (resource tags).
-     * 
+     *
      * System tags are an optional feature. Merge them to your tags if you have enabled them for your resource.
      * System tags can change on resource update if the resource is imported to the stack.
      */
