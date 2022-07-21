@@ -116,7 +116,7 @@ public class TagHelper {
      *
      * If stack tags and resource tags are not merged together in Configuration class,
      * we will get new desired system (with `aws:cloudformation` prefix) and user defined tags from
-     * handlerRequest.getSystemTags() (system tags), 
+     * handlerRequest.getSystemTags() (system tags),
      * handlerRequest.getDesiredResourceTags() (stack tags),
      * handlerRequest.getDesiredResourceState().getTags() (resource tags).
      *
