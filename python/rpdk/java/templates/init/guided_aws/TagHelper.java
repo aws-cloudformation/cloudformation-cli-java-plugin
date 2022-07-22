@@ -96,10 +96,10 @@ public class TagHelper {
     public Map<String, String> getPreviouslyAttachedTags(final ResourceHandlerRequest<ResourceModel> handlerRequest) {
         final Map<String, String> previousTags = new HashMap<>();
 
-        // get previous system tags if your service supports CloudFormation system tags
-        if (handlerRequest.getPreviousSystemTags() != null) {
-            previousTags.putAll(handlerRequest.getPreviousSystemTags());
-        }
+        // TODO: get previous system tags if your service supports CloudFormation system tags
+        // if (handlerRequest.getPreviousSystemTags() != null) {
+        //     previousTags.putAll(handlerRequest.getPreviousSystemTags());
+        // }
 
         // get previous stack level tags from handlerRequest
         if (handlerRequest.getPreviousResourceTags() != null) {
