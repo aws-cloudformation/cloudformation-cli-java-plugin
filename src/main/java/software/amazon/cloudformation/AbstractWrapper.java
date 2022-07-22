@@ -88,8 +88,8 @@ public abstract class AbstractWrapper<ResourceT, CallbackT, ConfigurationT> {
     // provider... prefix indicates credential provided by resource owner
     protected final CredentialsProvider providerCredentialsProvider;
 
-    protected final CloudWatchProvider providerCloudWatchProvider;
-    protected final CloudWatchLogsProvider cloudWatchLogsProvider;
+    protected CloudWatchProvider providerCloudWatchProvider;
+    protected CloudWatchLogsProvider cloudWatchLogsProvider;
     protected final SchemaValidator validator;
     protected final TypeReference<HandlerRequest<ResourceT, CallbackT, ConfigurationT>> typeReference;
 
@@ -151,9 +151,13 @@ public abstract class AbstractWrapper<ResourceT, CallbackT, ConfigurationT> {
         // Both are required parameters when LoggingConfig (optional) is provided when
         // 'RegisterType'.
         if (providerCredentials != null) {
+
             if (this.providerCredentialsProvider != null) {
                 this.providerCredentialsProvider.setCredentials(providerCredentials);
             }
+
+            this.providerCloudWatchProvider = new CloudWatchProvider(this.providerCredentialsProvider, HTTP_CLIENT);
+            this.cloudWatchLogsProvider = new CloudWatchLogsProvider(this.providerCredentialsProvider, HTTP_CLIENT);
 
             if (this.providerMetricsPublisher == null) {
                 this.providerMetricsPublisher = new MetricsPublisherImpl(this.providerCloudWatchProvider, this.loggerProxy,
