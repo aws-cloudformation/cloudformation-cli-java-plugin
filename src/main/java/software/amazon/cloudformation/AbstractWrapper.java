@@ -88,8 +88,8 @@ public abstract class AbstractWrapper<ResourceT, CallbackT, ConfigurationT> {
     // provider... prefix indicates credential provided by resource owner
     protected final CredentialsProvider providerCredentialsProvider;
 
-    protected CloudWatchProvider providerCloudWatchProvider;
-    protected CloudWatchLogsProvider cloudWatchLogsProvider;
+    protected final CloudWatchProvider providerCloudWatchProvider;
+    protected final CloudWatchLogsProvider cloudWatchLogsProvider;
     protected final SchemaValidator validator;
     protected final TypeReference<HandlerRequest<ResourceT, CallbackT, ConfigurationT>> typeReference;
 
