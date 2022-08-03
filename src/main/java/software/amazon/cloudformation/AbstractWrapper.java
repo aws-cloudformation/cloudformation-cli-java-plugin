@@ -150,14 +150,18 @@ public abstract class AbstractWrapper<ResourceT, CallbackT, ConfigurationT> {
         // sync.
         // Both are required parameters when LoggingConfig (optional) is provided when
         // 'RegisterType'.
-        if (providerCredentials != null) {
-
+        if (providerCredentials == null) {
+            // reset provider credentials back to null to avoid reusing stale credentials
+            if (this.providerCredentialsProvider != null) {
+                this.providerCredentialsProvider.resetCredentials();
+            }
+            this.providerMetricsPublisher = null;
+            this.providerEventsLogger = null;
+            this.cloudWatchLogHelper = null;
+        } else {
             if (this.providerCredentialsProvider != null) {
                 this.providerCredentialsProvider.setCredentials(providerCredentials);
             }
-
-            this.providerCloudWatchProvider = new CloudWatchProvider(this.providerCredentialsProvider, HTTP_CLIENT);
-            this.cloudWatchLogsProvider = new CloudWatchLogsProvider(this.providerCredentialsProvider, HTTP_CLIENT);
 
             if (this.providerMetricsPublisher == null) {
                 this.providerMetricsPublisher = new MetricsPublisherImpl(this.providerCloudWatchProvider, this.loggerProxy,
