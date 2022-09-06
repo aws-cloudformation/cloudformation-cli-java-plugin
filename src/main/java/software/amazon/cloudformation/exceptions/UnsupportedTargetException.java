@@ -14,6 +14,12 @@
 */
 package software.amazon.cloudformation.exceptions;
 
+/**
+ * Uses for this exception class should delegate instead to
+ * CfnUnsupportedTargetException as it maps to UnsupportedTarget error code.
+ * This deprecated exception maps to an InvalidRequest error code. Keeping the
+ * same for backwards-compatibility
+ */
 public class UnsupportedTargetException extends CfnInvalidRequestException {
 
     private static final long serialVersionUID = -1646136434112354328L;
