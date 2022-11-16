@@ -120,6 +120,13 @@ public enum HandlerErrorCode {
     NonCompliant(ExceptionMessages.NON_COMPLIANT),
 
     /**
+     * The specified target in the hook request is not supported. Applicable when
+     * hook has wildcard targets. Hook wildcard may be matched to target that hook
+     * did not support at time of registration
+     */
+    UnsupportedTarget(ExceptionMessages.UNSUPPORTED_TARGET),
+
+    /**
      * the Hook has returned a failure for an Unknown reason. Only applicable to
      * Hook type handlers (terminal) Hook Handlers can return this when a hook has
      * failed for a reason other than non-compliance
