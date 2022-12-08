@@ -16,7 +16,6 @@ package software.amazon.cloudformation.proxy;
 
 import static org.assertj.core.api.AssertionsForClassTypes.*;
 import static org.junit.jupiter.api.Assertions.*;
-import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -175,7 +174,7 @@ public class StdCallackContextTest {
 
     @Test
     public void testIncorrectMapType() {
-        assertThrows(JsonGenerationException.class, () -> {
+        assertThrows(JsonMappingException.class, () -> {
             LinkedHashMap<String, Object> callGraphs = new LinkedHashMap<>();
             Map<Integer, String> wrong = new HashMap<>();
             wrong.put(1, "");
