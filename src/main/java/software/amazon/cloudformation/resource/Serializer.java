@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -51,10 +52,9 @@ public class Serializer {
      * @param objectMapper ObjectMapper instance to configure
      */
     static {
-        STRICT_OBJECT_MAPPER = new ObjectMapper();
-        STRICT_OBJECT_MAPPER.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, true);
-        STRICT_OBJECT_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
-        STRICT_OBJECT_MAPPER.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
+        STRICT_OBJECT_MAPPER = JsonMapper.builder().configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, true)
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true)
+            .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true).build();
         STRICT_OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_ABSENT);
         STRICT_OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
         STRICT_OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
@@ -73,10 +73,9 @@ public class Serializer {
      * @param objectMapper ObjectMapper instance to configure
      */
     static {
-        OBJECT_MAPPER = new ObjectMapper();
-        OBJECT_MAPPER.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, true);
-        OBJECT_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        OBJECT_MAPPER.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
+        OBJECT_MAPPER = JsonMapper.builder().configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, true)
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true).build();
         OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_ABSENT);
         OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
         OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
