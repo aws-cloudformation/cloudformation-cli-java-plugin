@@ -37,14 +37,14 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <awssdk.version>2.15.19</awssdk.version>
+        <awssdk.version>2.19.0</awssdk.version>
         <checkstyle.version>8.36.2</checkstyle.version>
         <commons-io.version>2.8.0</commons-io.version>
         <jackson.version>2.14.1</jackson.version>
         <maven-checkstyle-plugin.version>3.1.1</maven-checkstyle-plugin.version>
         <mockito.version>3.6.0</mockito.version>
         <spotbugs.version>4.1.4</spotbugs.version>
-        <spotless.version>2.5.0</spotless.version>
+        <spotless.version>2.28.0</spotless.version>
         <maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
         <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
     </properties>
@@ -118,7 +118,7 @@
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-core</artifactId>
-            <version>1.11.1034</version>
+            <version>1.12.367</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.amazonaws/aws-lambda-java-core -->
         <dependency>
@@ -142,7 +142,7 @@
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-sts</artifactId>
-            <version>1.11.1034</version>
+            <version>1.12.368</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.google.code.findbugs/annotations -->
         <dependency>
@@ -154,7 +154,7 @@
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-kms</artifactId>
-            <version>1.11.1034</version>
+            <version>1.12.368</version>
         </dependency>
         <!-- AWS Java SDK v2 Dependencies -->
         <dependency>
@@ -213,7 +213,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>29.0-jre</version>
+            <version>31.1-jre</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-cloudformation -->
         <dependency>
@@ -229,11 +229,18 @@
             <version>3.12.2</version>
             <scope>test</scope>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/junit/junit -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.1</version>
+            <scope>test</scope>
+        </dependency>
         <!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>5.5.0</version>
+            <version>5.9.1</version>
             <scope>test</scope>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.mockito/mockito-core -->
@@ -283,7 +290,7 @@
                     <java>
                         <!-- this automatically inserts line breaks, so apply it before eclipse formatter! -->
                         <importOrder>
-                            <order>com,java,javax,org,software</order>
+                            <order>com,edu,java,lombok,javax,org,software</order>
                         </importOrder>
                         <removeUnusedImports/>
                         <eclipse>

@@ -19,7 +19,20 @@
         "-//Puppy Crawl//DTD Suppressions 1.1//EN"
         "http://www.puppycrawl.com/dtds/suppressions_1_1.dtd">
 <suppressions>
-
-    <!-- No suppressions currently in place -->
+    <suppress checks="AbbreviationAsWordInName"
+              files="KMSCipher.java"/>
+    <suppress checks="AbstractWrapper.java"
+              files="KMSCipher.java"/>
+    <suppress checks="AbbreviationAsWordInName"
+              files="HookTargetModel.java"/>
+    <suppress checks="AbbreviationAsWordInName"
+              files="AbstractWrapper.java"/>
+    <suppress checks="AbbreviationAsWordInName"
+              files="ResourceHookTarget.java"/>
+    <suppress checks="AbbreviationAsWordInName"
+              files="HookAbstractWrapper.java"/>
+    <!-- The placement of javax in this file is incorrect after linting -->
+    <suppress checks="CustomImportOrder"
+              files="HookTargetModel.java"/>
 
 </suppressions>
