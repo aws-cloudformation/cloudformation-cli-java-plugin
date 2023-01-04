@@ -165,8 +165,8 @@ class JavaLanguagePlugin(LanguagePlugin):
         )
         project.safewrite(path, contents)
 
+    @staticmethod
     def _get_jacoco_maven_plugin_excluded_paths(
-        self,
         project,
     ):
         """Return a list of excluded paths based on the extension type."""
