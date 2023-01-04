@@ -165,6 +165,26 @@ class JavaLanguagePlugin(LanguagePlugin):
         )
         project.safewrite(path, contents)
 
+    @staticmethod
+    def _get_jacoco_maven_plugin_excluded_paths(
+        project,
+    ):
+        """Return a list of excluded paths based on the extension type."""
+        jacoco_excluded_paths = []
+
+        if project.artifact_type == ARTIFACT_TYPE_HOOK:
+            jacoco_excluded_paths.append("**/hook/model/**")
+            jacoco_excluded_paths.append("**/BaseHookConfiguration*")
+            jacoco_excluded_paths.append("**/HookHandlerWrapper*")
+            jacoco_excluded_paths.append("**/Configuration*")
+        else:
+            jacoco_excluded_paths.append("**/BaseConfiguration*")
+            jacoco_excluded_paths.append("**/BaseHandler*")
+            jacoco_excluded_paths.append("**/HandlerWrapper*")
+            jacoco_excluded_paths.append("**/ResourceModel*")
+
+        return jacoco_excluded_paths
+
     @logdebug
     def init(self, project):
         """Init"""
@@ -206,12 +226,19 @@ class JavaLanguagePlugin(LanguagePlugin):
         LOG.debug("Writing Maven POM: %s", path)
         template = self.env.get_template("init/shared/pom.xml")
         artifact_id = "{}-handler".format(project.hypenated_name)
+        jacoco_excluded_paths = self._get_jacoco_maven_plugin_excluded_paths(
+            project=project,
+        )
         contents = template.render(
             group_id=self.package_name,
             artifact_id=artifact_id,
             executable=EXECUTABLE,
             schema_file_name=project.schema_filename,
             package_name=self.package_name,
+            jacoco_maven_plugin_exclude_path_1=jacoco_excluded_paths[0],
+            jacoco_maven_plugin_exclude_path_2=jacoco_excluded_paths[1],
+            jacoco_maven_plugin_exclude_path_3=jacoco_excluded_paths[2],
+            jacoco_maven_plugin_exclude_path_4=jacoco_excluded_paths[3],
         )
         project.safewrite(path, contents)
 
