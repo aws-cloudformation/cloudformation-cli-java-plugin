@@ -206,12 +206,26 @@ class JavaLanguagePlugin(LanguagePlugin):
         LOG.debug("Writing Maven POM: %s", path)
         template = self.env.get_template("init/shared/pom.xml")
         artifact_id = "{}-handler".format(project.hypenated_name)
+        if project.artifact_type == ARTIFACT_TYPE_HOOK:
+            jacoco_maven_plugin_exclude_path_1 = "**/hook/model/**"
+            jacoco_maven_plugin_exclude_path_2 = "**/BaseHookConfiguration*"
+            jacoco_maven_plugin_exclude_path_3 = "**/HookHandlerWrapper*"
+            jacoco_maven_plugin_exclude_path_4 = "**/Configuration*"
+        else:
+            jacoco_maven_plugin_exclude_path_1 = "**/BaseConfiguration*"
+            jacoco_maven_plugin_exclude_path_2 = "**/BaseHandler*"
+            jacoco_maven_plugin_exclude_path_3 = "**/HandlerWrapper*"
+            jacoco_maven_plugin_exclude_path_4 = "**/ResourceModel*"
         contents = template.render(
             group_id=self.package_name,
             artifact_id=artifact_id,
             executable=EXECUTABLE,
             schema_file_name=project.schema_filename,
             package_name=self.package_name,
+            jacoco_maven_plugin_exclude_path_1=jacoco_maven_plugin_exclude_path_1,
+            jacoco_maven_plugin_exclude_path_2=jacoco_maven_plugin_exclude_path_2,
+            jacoco_maven_plugin_exclude_path_3=jacoco_maven_plugin_exclude_path_3,
+            jacoco_maven_plugin_exclude_path_4=jacoco_maven_plugin_exclude_path_4,
         )
         project.safewrite(path, contents)
 
