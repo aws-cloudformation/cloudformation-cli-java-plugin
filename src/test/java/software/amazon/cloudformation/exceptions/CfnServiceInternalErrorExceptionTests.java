@@ -14,8 +14,8 @@
 */
 package software.amazon.cloudformation.exceptions;
 
-import static junit.framework.Assert.assertEquals;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.junit.Assert.assertEquals;
 import org.junit.jupiter.api.Test;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 
