@@ -48,8 +48,12 @@ public class CappedExponential extends MinDelayAbstractBase {
 
     @Override
     public Duration nextDelay(int attempt) {
-        if (attempt == 0) return minDelay;
-        if (System.currentTimeMillis() - startTimeInMillis > timeout.toMillis()) return Duration.ZERO;
+        if (attempt == 0) {
+            return minDelay;
+        }
+        if (System.currentTimeMillis() - startTimeInMillis > timeout.toMillis()) {
+            return Duration.ZERO;
+        }
         long next = Math.round(minDelay.toMillis() * Math.pow(powerBy, attempt - 1));
         return Duration.ofSeconds(Math.min(maxDelay.getSeconds(), TimeUnit.MILLISECONDS.toSeconds(next)));
     }
