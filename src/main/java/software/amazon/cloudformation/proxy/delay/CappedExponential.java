@@ -16,9 +16,10 @@ public class CappedExponential extends MinDelayAbstractBase {
     CappedExponential(Duration timeout, Duration minDelay, Double powerBy, Duration maxDelay) {
         super(timeout, minDelay);
         Preconditions.checkArgument(powerBy >= 1.0, "powerBy >= 1.0");
+        Preconditions.checkArgument(maxDelay != null && maxDelay.toMillis() >= 0, "maxDelay must be > 0");
         Preconditions.checkArgument(maxDelay.compareTo(minDelay) >= 0, "maxDelay.compareTo(minDelay) >= 0");
-        this.powerBy = powerBy == null ? 2.0 : powerBy;
-        this.maxDelay = maxDelay == null ? Duration.ofSeconds(20) : maxDelay;
+        this.powerBy = powerBy;
+        this.maxDelay = maxDelay;
         this.startTimeInMillis = System.currentTimeMillis();
     }
 
@@ -28,15 +29,15 @@ public class CappedExponential extends MinDelayAbstractBase {
 
     public static final class Builder extends MinDelayBasedBuilder<CappedExponential, Builder> {
         private double powerBy = 2;
-        private Duration maxDelay = Duration.ZERO;
+        private Duration maxDelay =Duration.ofSeconds(20);
 
         public CappedExponential.Builder powerBy(Double powerBy) {
-            this.powerBy = powerBy == null ? 2.0 : powerBy;
+            this.powerBy = powerBy;
             return this;
         }
 
         public CappedExponential.Builder maxDelay(Duration maxDelay) {
-            this.maxDelay = maxDelay == null ? Duration.ZERO : maxDelay;
+            this.maxDelay = maxDelay;
             return this;
         }
 

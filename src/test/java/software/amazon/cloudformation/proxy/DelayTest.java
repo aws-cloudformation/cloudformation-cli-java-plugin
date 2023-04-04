@@ -243,5 +243,6 @@ public class DelayTest {
                 assertThat(MAX_DELAY.getSeconds()).isEqualTo(delay.getSeconds());
             }
         }
+
     }
 }
