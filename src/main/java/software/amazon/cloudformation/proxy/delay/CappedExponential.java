@@ -27,7 +27,6 @@ public class CappedExponential extends MinDelayAbstractBase {
     }
 
     public static final class Builder extends MinDelayBasedBuilder<CappedExponential, Builder> {
-
         private double powerBy = 2;
         private Duration maxDelay = Duration.ZERO;
 
