@@ -16,6 +16,7 @@ public class CappedExponential extends MinDelayAbstractBase {
     CappedExponential(Duration timeout, Duration minDelay, Double powerBy, Duration maxDelay) {
         super(timeout, minDelay);
         Preconditions.checkArgument(powerBy >= 1.0, "powerBy >= 1.0");
+        Preconditions.checkArgument(maxDelay.compareTo(minDelay) >= 0, "maxDelay.compareTo(minDelay) >= 0");
         this.powerBy = powerBy == null ? 2.0 : powerBy;
         this.maxDelay = maxDelay == null ? Duration.ofSeconds(20) : maxDelay;
         this.startTimeInMillis = System.currentTimeMillis();
