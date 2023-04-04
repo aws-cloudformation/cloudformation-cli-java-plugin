@@ -31,12 +31,12 @@ public class CappedExponential extends MinDelayAbstractBase {
         private Duration maxDelay = Duration.ZERO;
 
         public CappedExponential.Builder powerBy(Double powerBy) {
-            this.powerBy = powerBy;
+            this.powerBy = powerBy == null ? 2.0 : powerBy;
             return this;
         }
 
         public CappedExponential.Builder maxDelay(Duration maxDelay) {
-            this.maxDelay = maxDelay;
+            this.maxDelay = maxDelay == null ? Duration.ZERO : maxDelay;
             return this;
         }
 
