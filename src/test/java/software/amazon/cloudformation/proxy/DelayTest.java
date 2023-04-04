@@ -20,11 +20,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
-import software.amazon.cloudformation.proxy.delay.Blended;
-import software.amazon.cloudformation.proxy.delay.Constant;
-import software.amazon.cloudformation.proxy.delay.Exponential;
-import software.amazon.cloudformation.proxy.delay.MultipleOf;
-import software.amazon.cloudformation.proxy.delay.ShiftByMultipleOf;
+import software.amazon.cloudformation.proxy.delay.*;
 
 public class DelayTest {
 
@@ -202,5 +198,51 @@ public class DelayTest {
             accrued += next.getSeconds();
         }
         assertThat(3).isEqualTo(attempt);
+    }
+
+    @Test
+    public void cappedExponentialDelays() {
+        Duration MAX_DELAY = Duration.ofSeconds(15);
+        final Delay cappedExponential = CappedExponential.of()
+                .timeout(Duration.ofMinutes(20))
+                .maxDelay(MAX_DELAY)
+                .powerBy(1.3)
+                .minDelay(Duration.ofSeconds(1))
+                .build();
+        int[] results = {1, 1, 1, 1, 2, 2, 3, 4, 6, 8, 10, 13, 15, 15, 15, 15};
+        for (int tries = 0; tries <= 15; tries++) {
+            Duration delay = cappedExponential.nextDelay(tries);
+            assertThat(results[tries]).isEqualTo((int) delay.getSeconds());
+            if (tries >= 12) {
+                assertThat(MAX_DELAY.getSeconds()).isEqualTo(delay.getSeconds());
+            }
+        }
+
+        //If minDelay is not set, the retry is without delay.
+        final Delay cappedExponentialNoDelay = CappedExponential.of().timeout(Duration.ofSeconds(12)).build();
+        for (int tries = 0; tries <= 15; tries++) {
+            Duration delay = cappedExponentialNoDelay.nextDelay(tries);
+            assertThat(0).isEqualTo((int) delay.getSeconds());
+            if (tries >= 12) {
+                assertThat(0).isEqualTo(delay.getSeconds());
+            }
+        }
+
+        //If powerBy is not passed, it's set to default 2.
+        final Delay cappedExponentialNoPower = CappedExponential.of()
+                .timeout(Duration.ofMinutes(20))
+                .maxDelay(MAX_DELAY)
+                .minDelay(Duration.ofSeconds(1))
+                .build();
+
+        int[] resultsNoPower = {1, 1, 2, 4, 8, 15, 15, 15, 15, 15};
+        for (int tries = 0; tries <= 6; tries++) {
+            Duration delay = cappedExponentialNoPower.nextDelay(tries);
+            assertThat(resultsNoPower[tries]).isEqualTo((int) delay.getSeconds());
+            if (tries >= 5) {
+                assertThat(MAX_DELAY.getSeconds()).isEqualTo(delay.getSeconds());
+            }
+        }
+
     }
 }
