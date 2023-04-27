@@ -35,6 +35,11 @@ public enum HandlerErrorCode {
      * the customer has insufficient permissions to perform this action (Terminal)
      */
     AccessDenied(ExceptionMessages.ACCESS_DENIED),
+    /**
+     * the customer has insufficient permissions to perform tagging
+     * create/update/delete/read action (Terminal)
+     */
+    UnauthorizedTaggingOperation(ExceptionMessages.UNAUTHORIZED_TAGGING_OPERATION),
 
     /**
      * the customer's provided credentials were invalid (Terminal)

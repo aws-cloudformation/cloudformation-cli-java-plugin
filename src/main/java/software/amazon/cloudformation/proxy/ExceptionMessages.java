@@ -16,6 +16,7 @@ package software.amazon.cloudformation.proxy;
 
 final class ExceptionMessages {
     static final String ACCESS_DENIED = "Access denied for operation '%s'.";
+    static final String UNAUTHORIZED_TAGGING_OPERATION = "Unauthorized tagging operation";
     static final String ALREADY_EXISTS = "Resource of type '%s' with identifier '%s' already exists.";
     static final String GENERAL_SERVICE_EXCEPTION = "Error occurred during operation '%s'.";
     static final String INTERNAL_FAILURE = "Internal error occurred.";

@@ -203,13 +203,9 @@ public class DelayTest {
     @Test
     public void cappedExponentialDelays() {
         Duration MAX_DELAY = Duration.ofSeconds(15);
-        final Delay cappedExponential = CappedExponential.of()
-                .timeout(Duration.ofMinutes(20))
-                .maxDelay(MAX_DELAY)
-                .powerBy(1.3)
-                .minDelay(Duration.ofSeconds(1))
-                .build();
-        int[] results = {1, 1, 1, 1, 2, 2, 3, 4, 6, 8, 10, 13, 15, 15, 15, 15};
+        final Delay cappedExponential = CappedExponential.of().timeout(Duration.ofMinutes(20)).maxDelay(MAX_DELAY).powerBy(1.3)
+            .minDelay(Duration.ofSeconds(1)).build();
+        int[] results = { 1, 1, 1, 1, 2, 2, 3, 4, 6, 8, 10, 13, 15, 15, 15, 15 };
         for (int tries = 0; tries <= 15; tries++) {
             Duration delay = cappedExponential.nextDelay(tries);
             assertThat(results[tries]).isEqualTo((int) delay.getSeconds());
@@ -218,7 +214,7 @@ public class DelayTest {
             }
         }
 
-        //If minDelay is not set, the retry is without delay.
+        // If minDelay is not set, the retry is without delay.
         final Delay cappedExponentialNoDelay = CappedExponential.of().timeout(Duration.ofSeconds(12)).build();
         for (int tries = 0; tries <= 15; tries++) {
             Duration delay = cappedExponentialNoDelay.nextDelay(tries);
@@ -228,14 +224,11 @@ public class DelayTest {
             }
         }
 
-        //If powerBy is not passed, it's set to default 2.
-        final Delay cappedExponentialNoPower = CappedExponential.of()
-                .timeout(Duration.ofMinutes(20))
-                .maxDelay(MAX_DELAY)
-                .minDelay(Duration.ofSeconds(1))
-                .build();
+        // If powerBy is not passed, it's set to default 2.
+        final Delay cappedExponentialNoPower = CappedExponential.of().timeout(Duration.ofMinutes(20)).maxDelay(MAX_DELAY)
+            .minDelay(Duration.ofSeconds(1)).build();
 
-        int[] resultsNoPower = {1, 1, 2, 4, 8, 15, 15, 15, 15, 15};
+        int[] resultsNoPower = { 1, 1, 2, 4, 8, 15, 15, 15, 15, 15 };
         for (int tries = 0; tries <= 6; tries++) {
             Duration delay = cappedExponentialNoPower.nextDelay(tries);
             assertThat(resultsNoPower[tries]).isEqualTo((int) delay.getSeconds());
