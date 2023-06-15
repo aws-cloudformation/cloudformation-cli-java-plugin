@@ -77,7 +77,7 @@ public class TagHelper {
      */
     public final boolean shouldUpdateTags(final ResourceModel resourceModel, final ResourceHandlerRequest<ResourceModel> handlerRequest) {
         final Map<String, String> previousTags = getPreviouslyAttachedTags(handlerRequest);
-        final Map<String, String> desiredTags = getNewDesiredTags(resourceModel, handlerRequest);
+        final Map<String, String> desiredTags = getNewDesiredTags(handlerRequest);
         return ObjectUtils.notEqual(previousTags, desiredTags);
     }
 
