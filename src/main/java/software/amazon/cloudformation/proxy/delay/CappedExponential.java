@@ -16,15 +16,14 @@ package software.amazon.cloudformation.proxy.delay;
 
 import com.google.common.base.Preconditions;
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 
 public class CappedExponential extends MinDelayAbstractBase {
 
     final double powerBy;
 
-    final long startTimeInMillis;
-
     final Duration maxDelay;
+
+    private Duration accrued = Duration.ZERO;
 
     CappedExponential(Duration timeout,
                       Duration minDelay,
@@ -32,11 +31,10 @@ public class CappedExponential extends MinDelayAbstractBase {
                       Duration maxDelay) {
         super(timeout, minDelay);
         Preconditions.checkArgument(powerBy >= 1.0, "powerBy >= 1.0");
-        Preconditions.checkArgument(maxDelay != null && maxDelay.toMillis() >= 0, "maxDelay must be > 0");
+        Preconditions.checkArgument(maxDelay != null && maxDelay.toMillis() > 0, "maxDelay must be > 0");
         Preconditions.checkArgument(maxDelay.compareTo(minDelay) >= 0, "maxDelay.compareTo(minDelay) >= 0");
         this.powerBy = powerBy;
         this.maxDelay = maxDelay;
-        this.startTimeInMillis = System.currentTimeMillis();
     }
 
     public static Builder of() {
@@ -46,6 +44,8 @@ public class CappedExponential extends MinDelayAbstractBase {
     public static final class Builder extends MinDelayBasedBuilder<CappedExponential, Builder> {
         private double powerBy = 2;
         private Duration maxDelay = Duration.ofSeconds(20);
+
+        private Duration minDelay = Duration.ofSeconds(1);
 
         public CappedExponential.Builder powerBy(Double powerBy) {
             this.powerBy = powerBy;
@@ -57,6 +57,11 @@ public class CappedExponential extends MinDelayAbstractBase {
             return this;
         }
 
+        public CappedExponential.Builder minDelay(Duration minDelay) {
+            this.minDelay = minDelay;
+            return this;
+        }
+
         @Override
         public CappedExponential build() {
             return new CappedExponential(timeout, minDelay, powerBy, maxDelay);
@@ -65,14 +70,17 @@ public class CappedExponential extends MinDelayAbstractBase {
 
     @Override
     public Duration nextDelay(int attempt) {
-        if (attempt == 0) {
-            return minDelay;
-        }
-        if (System.currentTimeMillis() - startTimeInMillis > timeout.toMillis()) {
-            return Duration.ZERO;
-        }
-        long next = Math.round(minDelay.toMillis() * Math.pow(powerBy, attempt - 1));
-        return Duration.ofSeconds(Math.min(maxDelay.getSeconds(), TimeUnit.MILLISECONDS.toSeconds(next)));
+        Duration next = Duration.ofSeconds(Math.round(Math.pow(powerBy, attempt)));
+        Duration nextDelay = Duration.ofSeconds(Math.min(maxDelay.getSeconds(), next.getSeconds()));
+        accrued = accrued.plus(nextDelay);
+        return enforceBounds(accrued, nextDelay);
+
+    }
+
+    @Override
+    public String toString() {
+        return "CappedExponential{" + "powerBy=" + powerBy + ", maxDelay=" + maxDelay + ", accrued=" + accrued + ", minDelay="
+            + minDelay + ", timeout=" + timeout + '}';
     }
 
 }
