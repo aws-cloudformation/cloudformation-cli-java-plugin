@@ -205,30 +205,19 @@ public class DelayTest {
         Duration MAX_DELAY = Duration.ofSeconds(15);
         final Delay cappedExponential = CappedExponential.of().timeout(Duration.ofMinutes(20)).maxDelay(MAX_DELAY).powerBy(1.3)
             .minDelay(Duration.ofSeconds(1)).build();
-        int[] results = { 1, 1, 1, 1, 2, 2, 3, 4, 6, 8, 10, 13, 15, 15, 15, 15 };
+        int[] results = { 1, 1, 2, 2, 3, 4, 5, 6, 8, 11, 14, 15, 15, 15, 15, 15, 15 };
         for (int tries = 0; tries <= 15; tries++) {
             Duration delay = cappedExponential.nextDelay(tries);
             assertThat(results[tries]).isEqualTo((int) delay.getSeconds());
-            if (tries >= 12) {
+            if (tries >= 11) {
                 assertThat(MAX_DELAY.getSeconds()).isEqualTo(delay.getSeconds());
-            }
-        }
-
-        // If minDelay is not set, the retry is without delay.
-        final Delay cappedExponentialNoDelay = CappedExponential.of().timeout(Duration.ofSeconds(12)).build();
-        for (int tries = 0; tries <= 15; tries++) {
-            Duration delay = cappedExponentialNoDelay.nextDelay(tries);
-            assertThat(0).isEqualTo((int) delay.getSeconds());
-            if (tries >= 12) {
-                assertThat(0).isEqualTo(delay.getSeconds());
             }
         }
 
         // If powerBy is not passed, it's set to default 2.
         final Delay cappedExponentialNoPower = CappedExponential.of().timeout(Duration.ofMinutes(20)).maxDelay(MAX_DELAY)
-            .minDelay(Duration.ofSeconds(1)).build();
-
-        int[] resultsNoPower = { 1, 1, 2, 4, 8, 15, 15, 15, 15, 15 };
+            .minDelay(Duration.ofSeconds(2)).build();
+        int[] resultsNoPower = { 2, 2, 4, 8, 15, 15, 15, 15, 15 };
         for (int tries = 0; tries <= 6; tries++) {
             Duration delay = cappedExponentialNoPower.nextDelay(tries);
             assertThat(resultsNoPower[tries]).isEqualTo((int) delay.getSeconds());
@@ -237,5 +226,46 @@ public class DelayTest {
             }
         }
 
+        // If timeout is reached the delay is 0
+        final Delay cappedExponentialTimeout = CappedExponential.of().timeout(Duration.ofSeconds(5))
+            .maxDelay(Duration.ofSeconds(1)).powerBy(1.0).minDelay(Duration.ofSeconds(1)).build();
+
+        int[] resultsTimeout = { 1, 1, 1, 1, 1, 0 };
+        for (int tries = 0; tries <= 5; tries++) {
+            Duration delay = cappedExponentialTimeout.nextDelay(tries);
+            assertThat(resultsTimeout[tries]).isEqualTo((int) delay.getSeconds());
+            if (tries >= 5) {
+                assertThat(0).isEqualTo(delay.getSeconds());
+            }
+        }
+
+        // If minDelay is not passed, it's set to default 1.
+        final Delay cappedExponentialNoMinDelay = CappedExponential.of().timeout(Duration.ofSeconds(5))
+            .maxDelay(Duration.ofSeconds(1)).powerBy(1.0).build();
+        int[] resultsNoMinDelay = { 1, 1, 1, 1, 1, 0 };
+        for (int tries = 0; tries <= 5; tries++) {
+            Duration delay = cappedExponentialNoMinDelay.nextDelay(tries);
+            assertThat(resultsNoMinDelay[tries]).isEqualTo((int) delay.getSeconds());
+        }
+
+        // If maxDelay is not passed, it's set to default 20 sec.
+        final Delay cappedExponentialNoMaxDelay = CappedExponential.of().timeout(Duration.ofMinutes(20))
+            .minDelay(Duration.ofSeconds(2)).build();
+        int[] resultsNoMaxDelay = { 2, 2, 4, 8, 16, 20, 20, 20, 20 };
+        for (int tries = 0; tries <= 6; tries++) {
+            Duration delay = cappedExponentialNoMaxDelay.nextDelay(tries);
+            assertThat(resultsNoMaxDelay[tries]).isEqualTo((int) delay.getSeconds());
+        }
+
+        final Delay cappedExponentialSameMinMaxDelay = CappedExponential.of().timeout(Duration.ofSeconds(5))
+            .maxDelay(Duration.ofSeconds(1)).powerBy(1.3).minDelay(Duration.ofSeconds(1)).build();
+        int[] resultsSameMinMaxDelay = { 1, 1, 1, 1, 1, 0 };
+        for (int tries = 0; tries <= 5; tries++) {
+            Duration delay = cappedExponentialSameMinMaxDelay.nextDelay(tries);
+            assertThat(resultsSameMinMaxDelay[tries]).isEqualTo((int) delay.getSeconds());
+            if (tries >= 5) {
+                assertThat(0).isEqualTo(delay.getSeconds());
+            }
+        }
     }
 }
