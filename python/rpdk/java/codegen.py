@@ -635,7 +635,7 @@ class JavaLanguagePlugin(LanguagePlugin):
             target_schema = target_info["Schema"]
 
             target_namespace = [
-                s.lower() for s in target_type_name.split("::")
+                safe_reserved(s.lower()) for s in target_type_name.split("::")
             ]  # AWS::SQS::Queue -> awssqsqueue
             target_name = "".join(
                 [s.capitalize() for s in target_namespace]
