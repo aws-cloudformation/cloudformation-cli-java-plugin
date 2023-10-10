@@ -104,7 +104,7 @@ def project(tmpdir, request):
         {"test": lambda: JavaLanguagePlugin},
         clear=True,
     ), patch("rpdk.java.codegen.input_with_validation", new=mock_cli):
-        project.init("AWS::Foo::{}".format(RESOURCE), "test")
+        project.init(f"AWS::Foo::{RESOURCE}", "test")
     return project
 
 
@@ -124,7 +124,7 @@ def hook_project(tmpdir, request):
         {"test": lambda: JavaLanguagePlugin},
         clear=True,
     ), patch("rpdk.java.codegen.input_with_validation", new=mock_cli):
-        hook_project.init_hook("AWS::Foo::{}".format(RESOURCE), "test")
+        hook_project.init_hook(f"AWS::Foo::{RESOURCE}", "test")
     return hook_project
 
 
@@ -134,14 +134,14 @@ def test_java_language_plugin_module_is_set():
 
 
 def test_initialize(project):
-    expected_group_id = "software.amazon.foo.{}".format(RESOURCE.lower())
-    handler = "{}.HandlerWrapper::handleRequest".format(expected_group_id)
+    expected_group_id = f"software.amazon.foo.{RESOURCE.lower()}"
+    handler = f"{expected_group_id}.HandlerWrapper::handleRequest"
     assert_test_initialize(project, handler, expected_group_id)
 
 
 def test_hook_initialize(hook_project):
-    expected_group_id = "software.amazon.foo.{}".format(HOOK.lower())
-    handler = "{}.HookHandlerWrapper::handleRequest".format(expected_group_id)
+    expected_group_id = f"software.amazon.foo.{HOOK.lower()}"
+    handler = f"{expected_group_id}.HookHandlerWrapper::handleRequest"
     assert_test_initialize(hook_project, handler, expected_group_id)
 
 
@@ -158,9 +158,7 @@ def assert_test_initialize(
     with path.open("r", encoding="utf-8") as f:
         template = yaml.safe_load(f)
     handler_properties = template["Resources"]["TypeFunction"]["Properties"]
-    code_uri = "./target/{}-handler-1.0-SNAPSHOT.jar".format(
-        test_project.hypenated_name
-    )
+    code_uri = f"./target/{test_project.hypenated_name}-handler-1.0-SNAPSHOT.jar"
     assert handler_properties["CodeUri"] == code_uri
     assert handler_properties["Handler"] == handler
     assert handler_properties["Runtime"] == test_project._plugin.RUNTIME
@@ -372,7 +370,7 @@ def make_target(project, count):
     target.mkdir(exist_ok=True)
     jar_paths = []
     for i in range(count):
-        jar_path = target / "{}-{}.0-SNAPSHOT.jar".format(project.hypenated_name, i)
+        jar_path = target / f"{project.hypenated_name}-{i}.0-SNAPSHOT.jar"
         jar_path.touch()
         jar_paths.append(jar_path)
     return jar_paths
@@ -423,7 +421,7 @@ def test_generate_without_java_plugin_in_pom_should_not_fail(project):
 
 
 def test__get_plugin_version_invalid_pom(project):
-    with open(project.root / "pom.xml", "w") as pom:
+    with open(project.root / "pom.xml", "w", encoding="utf-8") as pom:
         pom.write("invalid pom")
         pom.close()
     with pytest.raises(InvalidMavenPOMError):
