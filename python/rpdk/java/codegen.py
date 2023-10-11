@@ -31,13 +31,13 @@ CODEGEN = AWSCODEGEN("default", "guided_aws", "1", "2")
 def logdebug(func: object):
     def wrapper(*args, **kwargs):
         log_msg = func.__name__ if not func.__doc__ else func.__doc__
-        entry_message = "{} started".format(log_msg)
+        entry_message = f"{log_msg} started".format()
         LOG.debug(entry_message)
         if "entity" in kwargs:
-            writing_message = "Writing {}".format(kwargs["entity"])
+            writing_message = f"Writing {log_msg}"
             LOG.debug(writing_message)
         result = func(*args, **kwargs)
-        exit_message = "{} complete".format(log_msg)
+        exit_message = f"{log_msg} complete"
         LOG.debug(exit_message)
         return result
 
@@ -109,9 +109,7 @@ class JavaLanguagePlugin(LanguagePlugin):
 
         namespace = tuple(safe_reserved(s.lower()) for s in namespace)
 
-        prompt = "Enter a package name (empty for default '{}'): ".format(
-            ".".join(namespace)
-        )
+        prompt = f"Enter a package name (empty for default '{'.'.join(namespace)}'): "
 
         self.namespace = input_with_validation(prompt, validate_namespace(namespace))
         project.settings["namespace"] = self.namespace
@@ -225,7 +223,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         path = project.root / "pom.xml"
         LOG.debug("Writing Maven POM: %s", path)
         template = self.env.get_template("init/shared/pom.xml")
-        artifact_id = "{}-handler".format(project.hypenated_name)
+        artifact_id = f"{project.hypenated_name}-handler"
         jacoco_excluded_paths = self._get_jacoco_maven_plugin_excluded_paths(
             project=project,
         )
@@ -355,14 +353,18 @@ class JavaLanguagePlugin(LanguagePlugin):
         """Writing hook stub handlers and tests"""
         handlers = project.schema.get("handlers")
         for operation in HOOK_OPERATIONS:
-            entity = "{}HookHandler.java".format(operation)
-            entity_test = "{}HookHandlerTest.java".format(operation)
+            entity = f"{operation}HookHandler.java"
+            entity_test = f"{operation}HookHandlerTest.java"
 
-            stub_entity = "Stub{}HookHandler.java".format(
-                operation if self._is_aws_guided(project) else ""
+            stub_entity = (
+                "Stub"
+                f"{operation if self._is_aws_guided(project) else ''}"
+                "HookHandler.java"
             )
-            stub_entity_test = "Stub{}HookHandlerTest.java".format(
-                operation if self._is_aws_guided(project) else ""
+            stub_entity_test = (
+                "Stub"
+                f"{operation if self._is_aws_guided(project) else ''}"
+                "HookHandlerTest.java"
             )
             target_names = handlers.get(operation[0].lower() + operation[1:], {}).get(
                 "targetNames", ["My::Example::Resource"]
@@ -391,14 +393,17 @@ class JavaLanguagePlugin(LanguagePlugin):
         """Writing stub handlers and tests"""
         pojo_name = "ResourceModel"
         for operation in RESOURCE_OPERATIONS:
-            entity = "{}Handler.java".format(operation)
-            entity_test = "{}HandlerTest.java".format(operation)
+            entity = f"{operation}Handler.java"
+            entity_test = f"{operation}HandlerTest.java"
 
-            stub_entity = "Stub{}Handler.java".format(
-                operation if operation == "List" or self._is_aws_guided(project) else ""
+            stub_entity = (
+                "Stub"
+                # pylint: disable=line-too-long
+                f"{operation if operation == 'List' or self._is_aws_guided(project) else ''}"  # noqa: B950
+                "Handler.java"
             )
-            stub_entity_test = "Stub{}HandlerTest.java".format(
-                operation if operation == "List" else ""
+            stub_entity_test = (
+                f"Stub{operation if operation == 'List' else ''}HandlerTest.java"
             )
 
             self._writing_component(
@@ -535,7 +540,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         pojo_template = self.env.get_template("generate/POJO.java")
 
         for model_name, properties in models.items():
-            path = src / "{}.java".format(model_name)
+            path = src / f"{model_name}.java"
             LOG.debug("%s POJO: %s", model_name, path)
 
             if model_name == "ResourceModel":
@@ -609,7 +614,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         pojo_template = self.env.get_template("generate/POJO.java")
 
         for model_name, properties in models.items():
-            path = src / "{}.java".format(model_name)
+            path = src / f"{model_name}.java"
             LOG.debug("%s POJO: %s", model_name, path)
 
             if model_name == "HookInputModel":  # pragma: no cover
@@ -640,11 +645,10 @@ class JavaLanguagePlugin(LanguagePlugin):
             target_name = "".join(
                 [s.capitalize() for s in target_namespace]
             )  # awssqsqueue -> AwsSqsQueue
-            target_schema_file_name = "{}.json".format(
-                "-".join(target_namespace)
-            )  # awssqsqueue -> aws-sqs-queue.json
-            target_model_package_name = "{}.model.{}".format(
-                self.package_name, ".".join(target_namespace)
+            target_schema_file_name = f"{'-'.join(target_namespace)}.json"
+            # awssqsqueue -> aws-sqs-queue.json
+            target_model_package_name = (
+                f"{self.package_name}.model.{'.'.join(target_namespace)}"
             )
             target_model_dir = (src / "model").joinpath(*target_namespace)
             target_model_dir.mkdir(parents=True, exist_ok=True)
@@ -691,7 +695,7 @@ class JavaLanguagePlugin(LanguagePlugin):
             pojo_template = self.env.get_template("generate/POJO.java")
 
             for model_name, properties in models.items():
-                path = target_model_dir / "{}.java".format(model_name)
+                path = target_model_dir / f"{model_name}.java"
                 LOG.debug("%s POJO: %s", model_name, path)
 
                 if model_name == target_name:
@@ -724,7 +728,7 @@ class JavaLanguagePlugin(LanguagePlugin):
                     )
                 project.overwrite(path, contents)
 
-            path = target_model_dir / "{}TargetModel.java".format(target_name)
+            path = target_model_dir / f"{target_name}TargetModel.java"
             contents = base_template.render(
                 type_name=target_type_name,
                 model_name=target_name,
@@ -799,10 +803,10 @@ class JavaLanguagePlugin(LanguagePlugin):
             )
             if java_plugin_dependency_version < MINIMUM_JAVA_DEPENDENCY_VERSION:
                 raise JavaPluginVersionNotSupportedError(
-                    "'aws-cloudformation-rpdk-java-plugin' {} is no longer supported."
-                    "Please update it in pom.xml to version {} or above.".format(
-                        java_plugin_dependency_version, MINIMUM_JAVA_DEPENDENCY_VERSION
-                    )
+                    f"'aws-cloudformation-rpdk-java-plugin' "
+                    f"{java_plugin_dependency_version} "
+                    "is no longer supported. Please update it in pom.xml to version "
+                    f"{MINIMUM_JAVA_DEPENDENCY_VERSION} or above."
                 )
         except JavaPluginNotFoundError:
             LOG.info(
@@ -833,7 +837,7 @@ class JavaLanguagePlugin(LanguagePlugin):
     @staticmethod
     def _find_jar(project):
         jar_glob = list(
-            (project.root / "target").glob("{}-*.jar".format(project.hypenated_name))
+            (project.root / "target").glob(f"{project.hypenated_name}-*.jar")
         )
         if not jar_glob:
             LOG.debug("No Java Archives matched at %s", str(project.root / "target"))
@@ -855,7 +859,7 @@ class JavaLanguagePlugin(LanguagePlugin):
     @staticmethod
     def _get_java_plugin_dependency_version(project):
         try:
-            tree = ET.parse(project.root / "pom.xml")
+            tree = ET.parse(project.root / "pom.xml")  # nosec
             root = tree.getroot()
             namespace = {"mvn": "http://maven.apache.org/POM/4.0.0"}
             plugin_dependency_version = root.find(
