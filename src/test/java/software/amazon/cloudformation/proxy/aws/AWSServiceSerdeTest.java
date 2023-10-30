@@ -34,6 +34,7 @@ import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.core.SdkField;
 import software.amazon.awssdk.core.SdkPojo;
+import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.core.protocol.MarshallLocation;
 import software.amazon.awssdk.core.protocol.MarshallingType;
 import software.amazon.awssdk.core.traits.LocationTrait;
@@ -47,6 +48,9 @@ import software.amazon.awssdk.services.cloudwatchevents.model.PutTargetsResponse
 import software.amazon.awssdk.services.cloudwatchevents.model.PutTargetsResultEntry;
 import software.amazon.awssdk.services.cloudwatchevents.model.Tag;
 import software.amazon.awssdk.services.cloudwatchevents.model.Target;
+import software.amazon.awssdk.services.kendra.model.DataSourceConfiguration;
+import software.amazon.awssdk.services.kendra.model.TemplateConfiguration;
+import software.amazon.awssdk.services.kendra.model.UpdateDataSourceRequest;
 import software.amazon.awssdk.utils.builder.SdkBuilder;
 import software.amazon.cloudformation.resource.Serializer;
 
@@ -433,4 +437,30 @@ public class AWSServiceSerdeTest {
         assertThat(exception.getMessage()).contains("Type mismatch, expecting " + MarshallingType.MAP + " got List type");
     }
 
+    @Test
+    public void documentFieldSerde() throws Exception {
+        Document template = Document.mapBuilder().putString("type", "S3")
+            .putDocument("connectionConfiguration",
+                Document.mapBuilder()
+                    .putDocument("repositoryEndpointMetadata", Document.mapBuilder().putString("BucketName", "mybucket").build())
+                    .build())
+            .putDocument("repositoryConfigurations",
+                Document.mapBuilder()
+                    .putDocument("document",
+                        Document.mapBuilder().putDocument("fieldMappings", Document.listBuilder()
+                            .addDocument(Document.mapBuilder().putString("indexFieldName", "foo")
+                                .putString("indexFieldType", "STRING").putString("dataSourceFieldName", "foo").build())
+                            .build()).build())
+                    .build())
+            .putBoolean("booleanValue", false).putNumber("numberValue", 1).putNull("nullValue").build();
+        UpdateDataSourceRequest request = UpdateDataSourceRequest.builder()
+            .configuration(DataSourceConfiguration.builder()
+                .templateConfiguration(TemplateConfiguration.builder().template(template).build()).build())
+            .id("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx").indexId("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx").build();
+
+        String json = serializer.serialize(request);
+        UpdateDataSourceRequest deserialized = serializer.deserialize(json, new TypeReference<UpdateDataSourceRequest>() {
+        });
+        assertThat(deserialized).isEqualTo(request);
+    }
 }

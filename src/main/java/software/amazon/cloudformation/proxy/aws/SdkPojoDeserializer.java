@@ -35,6 +35,8 @@ import java.util.Map;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.core.SdkField;
 import software.amazon.awssdk.core.SdkPojo;
+import software.amazon.awssdk.core.document.Document;
+import software.amazon.awssdk.core.document.Document.MapBuilder;
 import software.amazon.awssdk.core.protocol.MarshallingType;
 import software.amazon.awssdk.core.traits.ListTrait;
 import software.amazon.awssdk.core.traits.MapTrait;
@@ -151,8 +153,10 @@ public class SdkPojoDeserializer extends StdDeserializer<SdkPojo> {
                     return readMap(field, p, ctxt);
                 } else if (type.equals(MarshallingType.SDK_POJO)) {
                     return readPojo(field.constructor().get(), p, ctxt);
+                } else if (type.equals(MarshallingType.DOCUMENT)) {
+                    return readDocument(field, p, ctxt);
                 }
-                throw new JsonMappingException(p, "Type mismatch, expecting " + type + " got Map/SdkPojo");
+                throw new JsonMappingException(p, "Type mismatch, expecting " + type + " got Map/SdkPojo/Document");
             }
 
             case START_ARRAY: {
@@ -202,6 +206,38 @@ public class SdkPojoDeserializer extends StdDeserializer<SdkPojo> {
             value.add(readObject(valueType, p, ctxt));
         }
         return value;
+    }
+
+    private Document readDocument(SdkField<?> field, JsonParser p, DeserializationContext ctxt) throws IOException {
+        switch (p.currentToken()) {
+            case VALUE_STRING:
+                return Document.fromString(p.getText());
+            case VALUE_TRUE:
+            case VALUE_FALSE:
+                return Document.fromBoolean(p.getBooleanValue());
+            case VALUE_NUMBER_FLOAT:
+            case VALUE_NUMBER_INT:
+                return Document.fromNumber(p.getText());
+            case START_ARRAY: {
+                List<Document> documents = new ArrayList<>();
+                while (p.nextToken() != JsonToken.END_ARRAY) {
+                    documents.add(readDocument(field, p, ctxt));
+                }
+                return Document.fromList(documents);
+            }
+            case START_OBJECT:
+                MapBuilder builder = Document.mapBuilder();
+                while (p.nextToken() != JsonToken.END_OBJECT) {
+                    String fieldName = p.getCurrentName();
+                    p.nextToken();
+                    builder.putDocument(fieldName, readDocument(field, p, ctxt));
+                }
+                return builder.build();
+            case VALUE_NULL:
+                return Document.fromNull();
+            default:
+                throw new JsonMappingException(p, "Can not map type " + type + " as Document Token = " + p.currentToken());
+        }
     }
 
     @Override
