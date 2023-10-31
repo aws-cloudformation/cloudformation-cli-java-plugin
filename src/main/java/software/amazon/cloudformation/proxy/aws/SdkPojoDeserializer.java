@@ -36,6 +36,7 @@ import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.core.SdkField;
 import software.amazon.awssdk.core.SdkPojo;
 import software.amazon.awssdk.core.document.Document;
+import software.amazon.awssdk.core.document.Document.ListBuilder;
 import software.amazon.awssdk.core.document.Document.MapBuilder;
 import software.amazon.awssdk.core.protocol.MarshallingType;
 import software.amazon.awssdk.core.traits.ListTrait;
@@ -219,11 +220,11 @@ public class SdkPojoDeserializer extends StdDeserializer<SdkPojo> {
             case VALUE_NUMBER_INT:
                 return Document.fromNumber(p.getText());
             case START_ARRAY: {
-                List<Document> documents = new ArrayList<>();
+                ListBuilder builder = Document.listBuilder();
                 while (p.nextToken() != JsonToken.END_ARRAY) {
-                    documents.add(readDocument(field, p, ctxt));
+                    builder.addDocument(readDocument(field, p, ctxt));
                 }
-                return Document.fromList(documents);
+                return builder.build();
             }
             case START_OBJECT:
                 MapBuilder builder = Document.mapBuilder();
