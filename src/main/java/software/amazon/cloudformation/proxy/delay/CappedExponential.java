@@ -23,8 +23,6 @@ public class CappedExponential extends MinDelayAbstractBase {
 
     final Duration maxDelay;
 
-    private Duration accrued = Duration.ZERO;
-
     CappedExponential(Duration timeout,
                       Duration minDelay,
                       Double powerBy,
@@ -68,19 +66,27 @@ public class CappedExponential extends MinDelayAbstractBase {
         }
     }
 
+    /**
+     * Calculating accrued time as summation of all the delay based on attempt.
+     * Assumption:- attempt will not be big number.
+     */
     @Override
     public Duration nextDelay(int attempt) {
         Duration next = Duration.ofSeconds(Math.round(Math.pow(powerBy, attempt)));
         Duration nextDelay = Duration.ofSeconds(Math.min(maxDelay.getSeconds(), next.getSeconds()));
+        Duration accrued = Duration.ZERO;
+        for (int i = 1; i <= attempt; i++) {
+            Duration nextDuration = i > 1 ? nextDelay(i - 1) : Duration.ZERO;
+            accrued = accrued.plus(nextDuration);
+        }
         accrued = accrued.plus(nextDelay);
         return enforceBounds(accrued, nextDelay);
-
     }
 
     @Override
     public String toString() {
-        return "CappedExponential{" + "powerBy=" + powerBy + ", maxDelay=" + maxDelay + ", accrued=" + accrued + ", minDelay="
-            + minDelay + ", timeout=" + timeout + '}';
+        return "CappedExponential{" + "powerBy=" + powerBy + ", maxDelay=" + maxDelay + ", minDelay=" + minDelay + ", timeout="
+            + timeout + '}';
     }
 
 }
