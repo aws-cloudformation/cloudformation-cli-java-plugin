@@ -53,9 +53,10 @@ public class HookLambdaWrapperOverride extends HookLambdaWrapper<TestModel, Test
                                      final MetricsPublisher providerMetricsPublisher,
                                      final SchemaValidator validator,
                                      final SdkHttpClient httpClient,
-                                     final Cipher cipher) {
+                                     final Cipher cipher,
+                                     final Boolean strictDeserialize) {
         super(providerLoggingCredentialsProvider, providerEventsLogger, platformEventsLogger, providerMetricsPublisher, validator,
-              new Serializer(), httpClient, cipher);
+              new Serializer(strictDeserialize), httpClient, cipher);
     }
 
     @Override

@@ -1,0 +1,62 @@
+{
+    "clientRequestToken": "123456",
+    "awsAccountId": "123456789012",
+    "stackId": "arn:aws:cloudformation:us-east-1:123456789012:stack/SampleStack/e722ae60-fe62-11e8-9a0e-0ae8cc519968",
+    "changeSetId": "arn:aws:cloudformation:us-east-1:123456789012:changeSet/SampleChangeSet-conditional/1a2345b6-0000-00a0-a123-00abc0abc000",
+    "hookTypeName": "AWS::Test::TestModel",
+    "hookTypeVersion": "1.0",
+    "hookModel": {
+        "property1": "abc",
+        "property2": 123
+    },
+    "actionInvocationPoint": "CREATE_PRE_PROVISION",
+    "requestData": {
+        "targetName": "AWS::Example::ResourceTarget",
+        "targetType": "RESOURCE",
+        "targetLogicalId": "myResource",
+        "targetModel": {
+            "resourceProperties": {
+                "BucketName": "someBucketName",
+                "BucketEncryption": {
+                    "ServerSideEncryptionConfiguration": [
+                        {
+                            "BucketKeyEnabled": true,
+                            "ServerSideEncryptionByDefault": {
+                                "SSEAlgorithm": "aws:kms",
+                                "KMSMasterKeyID": "someKMSMasterKeyID"
+                            }
+                        }
+                    ]
+                }
+            },
+            "previousResourceProperties": null
+        },
+        "callerCredentials": "callerCredentials",
+        "providerCredentials": "providerCredentials",
+        "providerLogGroupName": "providerLoggingGroupName",
+        "hookEncryptionKeyArn": "hookEncryptionKeyArn",
+        "hookEncryptionKeyRole": "hookEncryptionKeyRole"
+    },
+    "targetName": "STACK",
+    "template": "<Original json template as string>",
+    "previousTemplate": "<Original json template as string>",
+    "changedResources": [
+        {
+            "logicalId": "MyBucket",
+            "typeName": "AWS::S3::Bucket",
+            "lineNumber": 3,
+            "action": "CREATE",
+            "beforeContext": "<Resource Properties as json string>",
+            "afterContext": "<Resource Properties as json string>"
+        },
+        {
+            "logicalId": "MyBucketPolicy",
+            "typeName": "AWS::S3::BucketPolicy",
+            "lineNumber": 15,
+            "action": "CREATE",
+            "beforeContext": "<Resource Properties as json string>",
+            "afterContext": "<Resource Properties as json string>"
+        }
+    ],
+    "requestContext": {}
+}

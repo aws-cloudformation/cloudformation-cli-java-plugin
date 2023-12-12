@@ -18,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
@@ -42,6 +43,7 @@ import software.amazon.cloudformation.loggers.CloudWatchLogPublisher;
 import software.amazon.cloudformation.loggers.LogPublisher;
 import software.amazon.cloudformation.metrics.MetricsPublisher;
 import software.amazon.cloudformation.proxy.Credentials;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.hook.HookHandlerRequest;
@@ -83,11 +85,15 @@ public class HookLambdaWrapperTest {
     private KMSCipher cipher;
 
     private HookLambdaWrapperOverride wrapper;
+    private HookLambdaWrapperOverride wrapperStrictDeserialize;
 
     @BeforeEach
     public void initWrapper() {
         wrapper = new HookLambdaWrapperOverride(providerLoggingCredentialsProvider, platformEventsLogger, providerEventsLogger,
-                                                providerMetricsPublisher, validator, httpClient, cipher);
+                providerMetricsPublisher, validator, httpClient, cipher, false);
+
+        wrapperStrictDeserialize = new HookLambdaWrapperOverride(providerLoggingCredentialsProvider, platformEventsLogger, providerEventsLogger,
+                providerMetricsPublisher, validator, httpClient, cipher, true);
     }
 
     private static InputStream loadRequestStream(final String fileName) {
@@ -166,4 +172,164 @@ public class HookLambdaWrapperTest {
             assertThat(wrapper.callbackContext).isNull();
         }
     }
+
+    @ParameterizedTest
+    @CsvSource({"preCreate.request.with-resource-properties.json,CREATE_PRE_PROVISION"})
+    public void invokeHandler_WithResourceProperties_returnsSuccess(final String requestDataPath,
+                                                                    final String invocationPointString)
+            throws IOException {
+        final HookInvocationPoint invocationPoint = HookInvocationPoint.valueOf(invocationPointString);
+
+        // if the handler responds Complete, this is treated as a successful synchronous
+        // completion
+        final ProgressEvent<TestModel,
+                TestContext> pe = ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.SUCCESS).build();
+        wrapper.setInvokeHandlerResponse(pe);
+
+        lenient().when(cipher.decryptCredentials(any())).thenReturn(new Credentials("123", "123", "123"));
+
+        wrapper.setTransformResponse(hookHandlerRequest);
+
+        try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
+            final Context context = getLambdaContext();
+
+            wrapper.handleRequest(in, out, context);
+
+            // verify initialiseRuntime was called and initialised dependencies
+            verifyInitialiseRuntime();
+
+            // verify output response
+            verifyHandlerResponse(out,
+                    HookProgressEvent.<TestContext>builder().clientRequestToken("123456").hookStatus(HookStatus.SUCCESS).build());
+
+            // assert handler receives correct injections
+            assertThat(wrapper.awsClientProxy).isNotNull();
+            assertThat(wrapper.getRequest()).isEqualTo(hookHandlerRequest);
+            assertThat(wrapper.invocationPoint).isEqualTo(invocationPoint);
+            assertThat(wrapper.callbackContext).isNull();
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"preCreate.request.with-resource-properties-and-extraneous-fields.json,CREATE_PRE_PROVISION"})
+    public void invokeHandler_WithResourcePropertiesAndExtraneousFields_returnsSuccess(final String requestDataPath,
+                                                                                       final String invocationPointString)
+            throws IOException {
+        final HookInvocationPoint invocationPoint = HookInvocationPoint.valueOf(invocationPointString);
+
+        // if the handler responds Complete, this is treated as a successful synchronous
+        // completion
+        final ProgressEvent<TestModel,
+                TestContext> pe = ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.SUCCESS).build();
+        wrapper.setInvokeHandlerResponse(pe);
+
+        lenient().when(cipher.decryptCredentials(any())).thenReturn(new Credentials("123", "123", "123"));
+
+        wrapper.setTransformResponse(hookHandlerRequest);
+
+        try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
+            final Context context = getLambdaContext();
+
+            wrapper.handleRequest(in, out, context);
+
+            // verify initialiseRuntime was called and initialised dependencies
+            verifyInitialiseRuntime();
+
+            // verify output response
+            verifyHandlerResponse(out,
+                    HookProgressEvent.<TestContext>builder().clientRequestToken("123456").hookStatus(HookStatus.SUCCESS).build());
+
+            // assert handler receives correct injections
+            assertThat(wrapper.awsClientProxy).isNotNull();
+            assertThat(wrapper.getRequest()).isEqualTo(hookHandlerRequest);
+            assertThat(wrapper.invocationPoint).isEqualTo(invocationPoint);
+            assertThat(wrapper.callbackContext).isNull();
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"preCreate.request.with-resource-properties.json,CREATE_PRE_PROVISION"})
+    public void invokeHandler_StrictDeserializer_WithResourceProperties_returnsSuccess(final String requestDataPath,
+                                                                                       final String invocationPointString)
+            throws IOException {
+        final HookInvocationPoint invocationPoint = HookInvocationPoint.valueOf(invocationPointString);
+
+        // if the handler responds Complete, this is treated as a successful synchronous
+        // completion
+        final ProgressEvent<TestModel,
+                TestContext> pe = ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.SUCCESS).build();
+        wrapperStrictDeserialize.setInvokeHandlerResponse(pe);
+
+        lenient().when(cipher.decryptCredentials(any())).thenReturn(new Credentials("123", "123", "123"));
+
+        wrapperStrictDeserialize.setTransformResponse(hookHandlerRequest);
+
+        try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
+            final Context context = getLambdaContext();
+
+            wrapperStrictDeserialize.handleRequest(in, out, context);
+
+            // verify initialiseRuntime was called and initialised dependencies
+            verifyInitialiseRuntime();
+
+            // verify output response
+            verifyHandlerResponse(out,
+                    HookProgressEvent.<TestContext>builder().clientRequestToken("123456").hookStatus(HookStatus.SUCCESS).build());
+
+            // assert handler receives correct injections
+            assertThat(wrapperStrictDeserialize.awsClientProxy).isNotNull();
+            assertThat(wrapperStrictDeserialize.getRequest()).isEqualTo(hookHandlerRequest);
+            assertThat(wrapperStrictDeserialize.invocationPoint).isEqualTo(invocationPoint);
+            assertThat(wrapperStrictDeserialize.callbackContext).isNull();
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"preCreate.request.with-resource-properties-and-extraneous-fields.json"})
+    public void invokeHandler_StrictDeserializer_WithResourcePropertiesAndExtraneousFields_returnsFailure(final String requestDataPath)
+            throws IOException {
+        // if the handler responds Complete, this is treated as a successful synchronous
+        // completion
+        final ProgressEvent<TestModel,
+                TestContext> pe = ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.SUCCESS).build();
+        wrapperStrictDeserialize.setInvokeHandlerResponse(pe);
+
+        lenient().when(cipher.decryptCredentials(any())).thenReturn(new Credentials("123", "123", "123"));
+
+        wrapperStrictDeserialize.setTransformResponse(hookHandlerRequest);
+
+        try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
+            final Context context = getLambdaContext();
+
+            wrapperStrictDeserialize.handleRequest(in, out, context);
+
+            // verify initialiseRuntime was called and initialised dependencies
+            verify(providerLoggingCredentialsProvider, times(0)).setCredentials(any(Credentials.class));
+            verify(providerMetricsPublisher, times(0)).refreshClient();
+
+            // verify output response
+            verifyHandlerResponse(out,
+                    HookProgressEvent.<TestContext>builder().clientRequestToken(null).hookStatus(HookStatus.FAILED).errorCode(HandlerErrorCode.InternalFailure).callbackContext(null).message(expectedStringWhenStrictDeserializingWithExtraneousFields).build());
+
+            // assert handler receives correct injections
+            assertThat(wrapperStrictDeserialize.awsClientProxy).isNull();
+            assertThat(wrapperStrictDeserialize.getRequest()).isEqualTo(null);
+            assertThat(wrapperStrictDeserialize.invocationPoint).isEqualTo(null);
+            assertThat(wrapperStrictDeserialize.callbackContext).isNull();
+        }
+    }
+
+    private final String expectedStringWhenStrictDeserializingWithExtraneousFields = "Unrecognized field \"targetName\" (class software.amazon.cloudformation.proxy.hook.HookInvocationRequest), not marked as ignorable (10 known properties: \"requestContext\", \"stackId\", \"clientRequestToken\", \"hookModel\", \"hookTypeName\", \"requestData\", \"actionInvocationPoint\", \"awsAccountId\", \"changeSetId\", \"hookTypeVersion\"])\n" +
+            " at [Source: (String)\"{\n" +
+            "    \"clientRequestToken\": \"123456\",\n" +
+            "    \"awsAccountId\": \"123456789012\",\n" +
+            "    \"stackId\": \"arn:aws:cloudformation:us-east-1:123456789012:stack/SampleStack/e722ae60-fe62-11e8-9a0e-0ae8cc519968\",\n" +
+            "    \"changeSetId\": \"arn:aws:cloudformation:us-east-1:123456789012:changeSet/SampleChangeSet-conditional/1a2345b6-0000-00a0-a123-00abc0abc000\",\n" +
+            "    \"hookTypeName\": \"AWS::Test::TestModel\",\n" +
+            "    \"hookTypeVersion\": \"1.0\",\n" +
+            "    \"hookModel\": {\n" +
+            "        \"property1\": \"abc\",\n" +
+            "        \"property2\": 123\n" +
+            "    },\n" +
+            "    \"action\"[truncated 1935 chars]; line: 40, column: 20] (through reference chain: software.amazon.cloudformation.proxy.hook.HookInvocationRequest[\"targetName\"])";
 }
