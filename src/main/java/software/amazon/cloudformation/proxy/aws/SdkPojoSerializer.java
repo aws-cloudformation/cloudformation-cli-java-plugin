@@ -23,10 +23,12 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.core.SdkField;
 import software.amazon.awssdk.core.SdkPojo;
+import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.core.protocol.MarshallingType;
 import software.amazon.awssdk.core.traits.ListTrait;
 import software.amazon.awssdk.core.traits.MapTrait;
@@ -75,6 +77,8 @@ public class SdkPojoSerializer extends StdSerializer<SdkPojo> {
             writeSdkList((Collection<Object>) value, sdkField, gen, serializers);
         } else if (type.equals(MarshallingType.MAP)) {
             writeSdkMap((Map<String, Object>) value, sdkField, gen, serializers);
+        } else if (type.equals(MarshallingType.DOCUMENT)) {
+            writeSdkDocument((Document) value, gen);
         }
     }
 
@@ -133,5 +137,37 @@ public class SdkPojoSerializer extends StdSerializer<SdkPojo> {
             writeObject(value, valueType, gen, serializers);
         }
         gen.writeEndObject();
+    }
+
+    private void writeSdkDocument(Document document, JsonGenerator gen) throws IOException {
+        if (document == null) {
+            gen.writeNull();
+            return;
+        }
+        if (document.isMap()) {
+            Map<String, Document> map = document.asMap();
+            gen.writeStartObject();
+            for (Map.Entry<String, Document> each : map.entrySet()) {
+                gen.writeFieldName(each.getKey());
+                Document value = each.getValue();
+                writeSdkDocument(value, gen);
+            }
+            gen.writeEndObject();
+        } else if (document.isList()) {
+            gen.writeStartArray();
+            List<Document> collection = document.asList();
+            for (Document each : collection) {
+                writeSdkDocument(each, gen);
+            }
+            gen.writeEndArray();
+        } else if (document.isBoolean()) {
+            gen.writeBoolean(document.asBoolean());
+        } else if (document.isNumber()) {
+            gen.writeNumber(document.asNumber().stringValue());
+        } else if (document.isString()) {
+            gen.writeString(document.asString());
+        } else if (document.isNull()) {
+            gen.writeNull();
+        }
     }
 }
