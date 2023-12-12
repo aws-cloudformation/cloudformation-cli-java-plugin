@@ -36,14 +36,6 @@ import org.apache.commons.codec.binary.Base64;
 import software.amazon.cloudformation.proxy.aws.AWSServiceSerdeModule;
 
 public class Serializer {
-    public Serializer(Boolean strictDeserialize) {
-        this.strictDeserialize = strictDeserialize;
-    }
-
-    public Serializer() {
-        this.strictDeserialize = false;
-    }
-
     public static final TypeReference<Map<String, Object>> MAP_TYPE_REFERENCE = new TypeReference<Map<String, Object>>() {
     };
     public static final String COMPRESSED = "__COMPRESSED__";
@@ -51,8 +43,6 @@ public class Serializer {
     private static final String COMPRESSION_GZIP_BASE64 = "gzip_base64";
     private static final ObjectMapper OBJECT_MAPPER;
     private static final ObjectMapper STRICT_OBJECT_MAPPER;
-
-    private final Boolean strictDeserialize;
 
     /**
      * Configures the specified ObjectMapper with the (de)serialization behaviours
@@ -91,6 +81,16 @@ public class Serializer {
         OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         OBJECT_MAPPER.registerModule(new AWSServiceSerdeModule());
         OBJECT_MAPPER.registerModule(new JavaTimeModule());
+    }
+
+    private final Boolean strictDeserialize;
+
+    public Serializer(Boolean strictDeserialize) {
+        this.strictDeserialize = strictDeserialize;
+    }
+
+    public Serializer() {
+        this.strictDeserialize = false;
     }
 
     public <T> String serialize(final T modelObject) throws JsonProcessingException {
