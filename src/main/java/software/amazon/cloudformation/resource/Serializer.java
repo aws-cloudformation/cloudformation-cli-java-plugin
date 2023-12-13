@@ -36,7 +36,6 @@ import org.apache.commons.codec.binary.Base64;
 import software.amazon.cloudformation.proxy.aws.AWSServiceSerdeModule;
 
 public class Serializer {
-
     public static final TypeReference<Map<String, Object>> MAP_TYPE_REFERENCE = new TypeReference<Map<String, Object>>() {
     };
     public static final String COMPRESSED = "__COMPRESSED__";
@@ -84,6 +83,16 @@ public class Serializer {
         OBJECT_MAPPER.registerModule(new JavaTimeModule());
     }
 
+    private final Boolean strictDeserialize;
+
+    public Serializer(Boolean strictDeserialize) {
+        this.strictDeserialize = strictDeserialize;
+    }
+
+    public Serializer() {
+        this.strictDeserialize = false;
+    }
+
     public <T> String serialize(final T modelObject) throws JsonProcessingException {
         return OBJECT_MAPPER.writeValueAsString(modelObject);
     }
@@ -101,7 +110,11 @@ public class Serializer {
     }
 
     public <T> T deserialize(final String s, final TypeReference<T> reference) throws IOException {
-        return OBJECT_MAPPER.readValue(s, reference);
+        if (!strictDeserialize) {
+            return OBJECT_MAPPER.readValue(s, reference);
+        } else {
+            return deserializeStrict(s, reference);
+        }
     }
 
     public String decompress(final String s) throws IOException {
