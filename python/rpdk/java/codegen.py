@@ -70,7 +70,7 @@ class InvalidMavenPOMError(SysExitRecommendedError):
 
 class JavaLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
-    RUNTIME = "java8"
+    RUNTIME = "java17"
     HOOK_ENTRY_POINT = "{}.HookHandlerWrapper::handleRequest"
     HOOK_TEST_ENTRY_POINT = "{}.HookHandlerWrapper::testEntrypoint"
     HOOK_EXECUTABLE_ENTRY_POINT = "{}.HookHandlerWrapperExecutable"
