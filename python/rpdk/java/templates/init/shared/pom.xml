@@ -12,8 +12,8 @@
     <packaging>jar</packaging>
 
     <properties>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <cfn.generate.args/>
@@ -30,7 +30,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.4</version>
+            <version>1.18.24</version>
             <scope>provided</scope>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-api -->

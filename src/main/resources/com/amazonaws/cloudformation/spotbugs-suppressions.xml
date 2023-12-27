@@ -38,6 +38,71 @@
             <Method name="setAdditionalProperty" />
             <Bug pattern="UPM_UNCALLED_PRIVATE_METHOD" />
         </Match>
+        <Match>
+            <Class name="software.amazon.cloudformation.AbstractWrapper" />
+            <Bug pattern="MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR" />
+        </Match>
+        <Match>
+            <Class name="software.amazon.cloudformation.HookAbstractWrapper" />
+            <Bug pattern="MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR" />
+        </Match>
+
+
+        <Match>
+            <Package name="software.amazon.cloudformation.scheduler.*"/>
+            <Bug pattern="EI_EXPOSE_REP2"/>
+        </Match>
+        <Match>
+            <Class name="software.amazon.cloudformation.encryption.KMSCipher"/>
+            <Bug pattern="EI_EXPOSE_REP2"/>
+        </Match>
+        <Match>
+            <Package name="software.amazon.cloudformation.*"/>
+            <Bug pattern="EI_EXPOSE_REP2"/>
+        </Match>
+        <Match>
+            <Package name="software.amazon.cloudformation.loggers.*"/>
+            <Bug pattern="EI_EXPOSE_REP2"/>
+        </Match>
+        <Match>
+            <Package name="software.amazon.cloudformation.proxy.*"/>
+            <Bug pattern="EI_EXPOSE_REP2"/>
+        </Match>
+        <Match>
+            <Package name="software.amazon.cloudformation.proxy.hook.*"/>
+            <Bug pattern="EI_EXPOSE_REP2"/>
+        </Match>
+        <Match>
+            <Package name="software.amazon.cloudformation.proxy.hook.targetmodel.*"/>
+            <Bug pattern="EI_EXPOSE_REP2"/>
+        </Match>
+
+
+
+        <Match>
+            <Package name="software.amazon.cloudformation.scheduler.*"/>
+            <Bug pattern="EI_EXPOSE_REP"/>
+        </Match>
+        <Match>
+            <Package name="software.amazon.cloudformation.*"/>
+            <Bug pattern="EI_EXPOSE_REP"/>
+        </Match>
+        <Match>
+            <Package name="software.amazon.cloudformation.loggers.*"/>
+            <Bug pattern="EI_EXPOSE_REP"/>
+        </Match>
+        <Match>
+            <Package name="software.amazon.cloudformation.proxy.*"/>
+            <Bug pattern="EI_EXPOSE_REP"/>
+        </Match>
+        <Match>
+            <Package name="software.amazon.cloudformation.proxy.hook.*"/>
+            <Bug pattern="EI_EXPOSE_REP"/>
+        </Match>
+        <Match>
+            <Package name="software.amazon.cloudformation.proxy.hook.targetmodel.*"/>
+            <Bug pattern="EI_EXPOSE_REP"/>
+        </Match>
     </FindBugsFilter>
 
 </FindBugsFilter>
