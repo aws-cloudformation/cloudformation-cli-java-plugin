@@ -54,6 +54,12 @@ source env/bin/activate
 pip3 install -e /path/to/cloudformation-cli-java-plugin
 ```
 
+Install `pytest-cov`, used when running unit tests for this plugin:
+
+```shell
+pip3 install pytest-cov
+```
+
 You may also want to check out the [CloudFormation CLI](https://github.com/aws-cloudformation/cloudformation-cli) if you wish to make edits to that. In this case, installing them in one operation works well:
 
 ```shell

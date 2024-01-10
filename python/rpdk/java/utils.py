@@ -58,8 +58,28 @@ LANGUAGE_KEYWORDS = {
 }
 
 
+# Keywords used in the context of AWS CloudFormation Hooks. For
+# example, the `properties` item below is excluded because if a target
+# resource type has a property called `properties` (see the
+# `AWS::ApiGateway::DocumentationPart` resource type as one of the
+# examples), the generated class code for the target resource type
+# will contain a getter, `getProperties()`, that will collide with
+# `getProperties()` that is already defined for
+# `ResourceHookTarget`. By excluding `properties`, the generated code
+# for the class will still have a private variable, but whose name
+# will contain an underscore as a suffix: the Lombok-generated getter
+# (and setter) for that private variable will, in turn, contain an
+# underscore suffix as well; see `safe_reserved()` below for the
+# implementation of this behavior (`safe_reserved()` is, in turn,
+# consumed by other parts of the code generation logic in this
+# plugin).
+HOOKS_KEYWORDS = {
+    "properties",
+}
+
+
 def safe_reserved(token):
-    if token in LANGUAGE_KEYWORDS:
+    if token in LANGUAGE_KEYWORDS or token in HOOKS_KEYWORDS:
         return token + "_"
     return token
 
