@@ -4,6 +4,7 @@ import pytest
 from rpdk.core.exceptions import WizardValidationError
 from rpdk.java.utils import (
     safe_reserved,
+    safe_reserved_hook_target,
     validate_codegen_model as validate_codegen_model_factory,
     validate_namespace as validate_namespace_factory,
 )
@@ -27,6 +28,14 @@ def test_safe_reserved_safe_string():
 
 def test_safe_reserved_unsafe_string():
     assert safe_reserved("class") == "class_"
+
+
+def test_safe_reserved_hook_target_safe_string():
+    assert safe_reserved_hook_target("foo") == "foo"
+
+
+def test_safe_reserved_hook_target_unsafe_string():
+    assert safe_reserved_hook_target("properties") == "properties_"
 
 
 def test_validate_namespace_empty(validate_namespace):

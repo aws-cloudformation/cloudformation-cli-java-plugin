@@ -58,8 +58,44 @@ LANGUAGE_KEYWORDS = {
 }
 
 
+# Keywords used in the context of AWS CloudFormation Hooks, when
+# classes are generated, by this plugin, for target resource
+# types. For example, the `properties` item below is marked as a
+# keyword because if a target resource type has a property called
+# `Properties` (see the `AWS::ApiGateway::DocumentationPart` resource
+# type as one of the examples), the generated class code for the
+# target resource type will contain a getter, `getProperties()`, that
+# will collide with `getProperties()` that is already defined for
+# `ResourceHookTarget`. By marking `properties` as a keyword, the
+# generated code for the class will still have a relevant, private
+# variable for the resource type target's property, but whose name
+# will contain an underscore as a suffix: the Lombok-generated getter
+# (and setter) for that private variable will, in turn, contain an
+# underscore suffix as well; see `safe_reserved_hook_target()` below
+# for more information (`safe_reserved_hook_target()` is, in turn,
+# consumed by other parts of a hook's code generation logic in this
+# plugin).
+HOOK_TARGET_KEYWORDS = {
+    "properties",
+}
+
+
 def safe_reserved(token):
     if token in LANGUAGE_KEYWORDS:
+        return token + "_"
+    return token
+
+
+# This is a specialized method for hooks only. In addition to using
+# LANGUAGE_KEYWORDS (used by safe_reserved()), this function uses
+# HOOK_TARGET_KEYWORDS: the reason for having such a specialized
+# method is that since excluding `properties` will alter an affected
+# target's getters and setters (see this specific case explained in
+# comments for `HOOK_TARGET_KEYWORDS`), we do not want to have the
+# same behavior for resource type extensions, that you also model with
+# this plugin of the CloudFormation CLI.
+def safe_reserved_hook_target(token):
+    if token in LANGUAGE_KEYWORDS or token in HOOK_TARGET_KEYWORDS:
         return token + "_"
     return token
 

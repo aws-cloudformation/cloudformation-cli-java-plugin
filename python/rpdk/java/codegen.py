@@ -17,7 +17,12 @@ from rpdk.core.utils.init_utils import input_with_validation
 
 from . import __version__
 from .resolver import UNDEFINED, translate_type
-from .utils import safe_reserved, validate_codegen_model, validate_namespace
+from .utils import (
+    safe_reserved,
+    safe_reserved_hook_target,
+    validate_codegen_model,
+    validate_namespace,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -86,6 +91,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         self.codegen_template_path = None
         self.env.filters["translate_type"] = translate_type
         self.env.filters["safe_reserved"] = safe_reserved
+        self.env.filters["safe_reserved_hook_target"] = safe_reserved_hook_target
         self.namespace = None
         self.package_name = None
 
