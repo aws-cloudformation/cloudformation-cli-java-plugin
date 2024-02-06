@@ -32,8 +32,10 @@ import software.amazon.cloudformation.loggers.LogPublisher;
 import software.amazon.cloudformation.metrics.MetricsPublisher;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.ProgressEvent;
+import software.amazon.cloudformation.proxy.hook.HookContext;
 import software.amazon.cloudformation.proxy.hook.HookHandlerRequest;
 import software.amazon.cloudformation.proxy.hook.HookInvocationRequest;
+import software.amazon.cloudformation.proxy.hook.targetmodel.HookTargetModel;
 import software.amazon.cloudformation.resource.SchemaValidator;
 import software.amazon.cloudformation.resource.Serializer;
 
@@ -112,7 +114,16 @@ public class HookLambdaWrapperOverride extends HookLambdaWrapper<TestModel, Test
 
     @Override
     protected HookHandlerRequest transform(final HookInvocationRequest<TestConfigurationModel, TestContext> request) {
-        return transformResponse;
+        this.request = HookHandlerRequest.builder().clientRequestToken(request.getClientRequestToken())
+            .hookContext(HookContext.builder().awsAccountId(request.getAwsAccountId()).stackId(request.getStackId())
+                .changeSetId(request.getChangeSetId()).hookTypeName(request.getHookTypeName())
+                .hookTypeVersion(request.getHookTypeVersion()).invocationPoint(request.getActionInvocationPoint())
+                .targetName(request.getRequestData().getTargetName()).targetType(request.getRequestData().getTargetType())
+                .targetLogicalId(request.getRequestData().getTargetLogicalId())
+                .targetModel(HookTargetModel.of(request.getRequestData().getTargetModel())).build())
+            .build();
+
+        return this.request;
     }
 
     public HookHandlerRequest transformResponse;

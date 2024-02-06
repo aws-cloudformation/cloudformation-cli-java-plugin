@@ -49,6 +49,8 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.hook.HookHandlerRequest;
 import software.amazon.cloudformation.proxy.hook.HookProgressEvent;
 import software.amazon.cloudformation.proxy.hook.HookStatus;
+import software.amazon.cloudformation.proxy.hook.targetmodel.ChangedResource;
+import software.amazon.cloudformation.proxy.hook.targetmodel.StackHookTargetModel;
 import software.amazon.cloudformation.resource.SchemaValidator;
 import software.amazon.cloudformation.resource.Serializer;
 
@@ -168,7 +170,6 @@ public class HookLambdaWrapperTest {
 
             // assert handler receives correct injections
             assertThat(wrapper.awsClientProxy).isNotNull();
-            assertThat(wrapper.getRequest()).isEqualTo(hookHandlerRequest);
             assertThat(wrapper.invocationPoint).isEqualTo(invocationPoint);
             assertThat(wrapper.callbackContext).isNull();
         }
@@ -205,7 +206,6 @@ public class HookLambdaWrapperTest {
 
             // assert handler receives correct injections
             assertThat(wrapper.awsClientProxy).isNotNull();
-            assertThat(wrapper.getRequest()).isEqualTo(hookHandlerRequest);
             assertThat(wrapper.invocationPoint).isEqualTo(invocationPoint);
             assertThat(wrapper.callbackContext).isNull();
         }
@@ -242,7 +242,6 @@ public class HookLambdaWrapperTest {
 
             // assert handler receives correct injections
             assertThat(wrapper.awsClientProxy).isNotNull();
-            assertThat(wrapper.getRequest()).isEqualTo(hookHandlerRequest);
             assertThat(wrapper.invocationPoint).isEqualTo(invocationPoint);
             assertThat(wrapper.callbackContext).isNull();
         }
@@ -279,7 +278,6 @@ public class HookLambdaWrapperTest {
 
             // assert handler receives correct injections
             assertThat(wrapperStrictDeserialize.awsClientProxy).isNotNull();
-            assertThat(wrapperStrictDeserialize.getRequest()).isEqualTo(hookHandlerRequest);
             assertThat(wrapperStrictDeserialize.invocationPoint).isEqualTo(invocationPoint);
             assertThat(wrapperStrictDeserialize.callbackContext).isNull();
         }
@@ -320,6 +318,54 @@ public class HookLambdaWrapperTest {
             assertThat(wrapperStrictDeserialize.getRequest()).isEqualTo(null);
             assertThat(wrapperStrictDeserialize.invocationPoint).isEqualTo(null);
             assertThat(wrapperStrictDeserialize.callbackContext).isNull();
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({ "preCreate.request.with-stack-level-hook.json,CREATE_PRE_PROVISION" })
+    public void invokeHandler_WithStackLevelHook_returnsSuccess(final String requestDataPath, final String invocationPointString)
+        throws IOException {
+        final HookInvocationPoint invocationPoint = HookInvocationPoint.valueOf(invocationPointString);
+
+        final ProgressEvent<TestModel,
+            TestContext> pe = ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.SUCCESS).build();
+        wrapper.setInvokeHandlerResponse(pe);
+
+        lenient().when(cipher.decryptCredentials(any())).thenReturn(new Credentials("123", "123", "123"));
+
+        try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
+            final Context context = getLambdaContext();
+
+            wrapper.handleRequest(in, out, context);
+
+            // verify initialiseRuntime was called and initialised dependencies
+            verifyInitialiseRuntime();
+
+            // verify output response
+            verifyHandlerResponse(out,
+                HookProgressEvent.<TestContext>builder().clientRequestToken("123456").hookStatus(HookStatus.SUCCESS).build());
+
+            // assert handler receives correct injections
+            assertThat(wrapper.awsClientProxy).isNotNull();
+            assertThat(wrapper.invocationPoint).isEqualTo(invocationPoint);
+            assertThat(wrapper.callbackContext).isNull();
+
+            assertThat(wrapper.getRequest().getHookContext().getTargetType()).isEqualTo("STACK");
+            assertThat(wrapper.getRequest().getHookContext().getTargetName()).isEqualTo("STACK");
+            assertThat(wrapper.getRequest().getHookContext().getTargetLogicalId()).isEqualTo("myStack");
+
+            StackHookTargetModel stackHookTargetModel = wrapper.getRequest().getHookContext()
+                .getTargetModel(StackHookTargetModel.class);
+            assertThat(stackHookTargetModel.getTemplate()).isEqualTo("template string here");
+            assertThat(stackHookTargetModel.getPreviousTemplate()).isEqualTo("previous template string here");
+            assertThat(stackHookTargetModel.getResolvedTemplate()).isEqualTo("resolved template string here");
+            assertThat(stackHookTargetModel.getChangedResources().size()).isEqualTo(1);
+
+            ChangedResource expectedChangedResource = ChangedResource.builder().logicalResourceId("SomeLogicalResourceId")
+                .resourceType("AWS::S3::Bucket").lineNumber(3).action("CREATE")
+                .resourceProperties("<Resource Properties as json string>")
+                .previousResourceProperties("<Resource Properties as json string>").build();
+            assertThat(stackHookTargetModel.getChangedResources().get(0)).isEqualTo(expectedChangedResource);
         }
     }
 
