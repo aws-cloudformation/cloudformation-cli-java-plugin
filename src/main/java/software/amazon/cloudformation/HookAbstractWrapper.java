@@ -17,6 +17,7 @@ package software.amazon.cloudformation;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.retry.RetryUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.annotations.VisibleForTesting;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,8 +28,6 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Map;
-
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -389,8 +388,7 @@ public abstract class HookAbstractWrapper<TargetT, CallbackT, ConfigurationT> {
 
             try {
                 URL presignedUrl = new URL(s3PresignedUrl);
-                SdkHttpRequest httpRequest = SdkHttpRequest.builder().method(SdkHttpMethod.GET).uri(presignedUrl.toURI())
-                        .build();
+                SdkHttpRequest httpRequest = SdkHttpRequest.builder().method(SdkHttpMethod.GET).uri(presignedUrl.toURI()).build();
 
                 HttpExecuteRequest executeRequest = HttpExecuteRequest.builder().request(httpRequest).build();
 
