@@ -22,6 +22,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -405,7 +406,7 @@ public abstract class HookAbstractWrapper<TargetT, CallbackT, ConfigurationT> {
                 String str = byteArrayOutputStream.toString(StandardCharsets.UTF_8);
 
                 return this.serializer.deserialize(str, hookStackPayloadS3TypeReference);
-            } catch (Exception exp) {
+            } catch (RuntimeException | IOException | URISyntaxException exp) {
                 loggerProxy.log("Failed to retrieve hook invocation payload" + exp.toString());
             }
         }
