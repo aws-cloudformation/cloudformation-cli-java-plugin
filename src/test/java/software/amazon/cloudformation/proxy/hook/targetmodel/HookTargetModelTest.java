@@ -222,11 +222,11 @@ public class HookTargetModelTest {
         Assertions.assertEquals(changedResources, targetModel.getChangedResources());
         Assertions.assertNull(targetModel.getHookTargetTypeReference());
         Assertions.assertEquals(
-            "{\"Template\":\"{\\\"key1\\\":\\\"value1\\\"}\",\"PreviousTemplate\":\"{\\\"previousKey1\\\":\\\"" +
-                    "previousValue1\\\"}\",\"ResolvedTemplate\":\"{\\\"resolvedKey1\\\":\\\"resolvedValue1\\\"}\",\"ChangedResources\"" +
-                    ":[{\"LogicalResourceId\":\"SomeLogicalResourceId\",\"ResourceType\":\"AWS::S3::Bucket\",\"LineNumber\":" +
-                    "11,\"Action\":\"CREATE\",\"ResourceProperties\":\"{\\\"BucketName\\\": \\\"some-bucket-name\\\"\"," +
-                    "\"PreviousResourceProperties\":\"{\\\"BucketName\\\": \\\"some-prev-bucket-name\\\"\"}]}",
+            "{\"Template\":\"{\\\"key1\\\":\\\"value1\\\"}\",\"PreviousTemplate\":\"{\\\"previousKey1\\\":\\\""
+                + "previousValue1\\\"}\",\"ResolvedTemplate\":\"{\\\"resolvedKey1\\\":\\\"resolvedValue1\\\"}\",\"ChangedResources\""
+                + ":[{\"LogicalResourceId\":\"SomeLogicalResourceId\",\"ResourceType\":\"AWS::S3::Bucket\",\"LineNumber\":"
+                + "11,\"Action\":\"CREATE\",\"ResourceProperties\":\"{\\\"BucketName\\\": \\\"some-bucket-name\\\"\","
+                + "\"PreviousResourceProperties\":\"{\\\"BucketName\\\": \\\"some-prev-bucket-name\\\"\"}]}",
             OBJECT_MAPPER.writeValueAsString(targetModel));
     }
 
@@ -252,14 +252,12 @@ public class HookTargetModelTest {
         Assertions.assertEquals(changedResources, targetModel.getChangedResources());
         Assertions.assertNull(targetModel.getHookTargetTypeReference());
 
-        Assertions.assertEquals(
-            "{\"Template\":\"{\\\"key1\\\":\\\"value1\\\"}\",\"PreviousTemplate\":\"{\\\"previousKey1\\\":" +
-                    "\\\"previousValue1\\\"}\",\"ResolvedTemplate\":\"{\\\"resolvedKey1\\\":\\\"resolvedValue1\\\"}\"," +
-                    "\"ChangedResources\":[{\"LogicalResourceId\":\"SomeLogicalResourceId\",\"ResourceType\":" +
-                    "\"AWS::S3::Bucket\",\"LineNumber\":11,\"Action\":\"CREATE\",\"ResourceProperties\":\"{" +
-                    "\\\"BucketName\\\": \\\"some-bucket-name\\\"\",\"PreviousResourceProperties\":\"{\\\"BucketName\\\":" +
-                    " \\\"some-prev-bucket-name\\\"\"}]}",
-            OBJECT_MAPPER.writeValueAsString(targetModel));
+        Assertions.assertEquals("{\"Template\":\"{\\\"key1\\\":\\\"value1\\\"}\",\"PreviousTemplate\":\"{\\\"previousKey1\\\":"
+            + "\\\"previousValue1\\\"}\",\"ResolvedTemplate\":\"{\\\"resolvedKey1\\\":\\\"resolvedValue1\\\"}\","
+            + "\"ChangedResources\":[{\"LogicalResourceId\":\"SomeLogicalResourceId\",\"ResourceType\":"
+            + "\"AWS::S3::Bucket\",\"LineNumber\":11,\"Action\":\"CREATE\",\"ResourceProperties\":\"{"
+            + "\\\"BucketName\\\": \\\"some-bucket-name\\\"\",\"PreviousResourceProperties\":\"{\\\"BucketName\\\":"
+            + " \\\"some-prev-bucket-name\\\"\"}]}", OBJECT_MAPPER.writeValueAsString(targetModel));
     }
 
     @Test
@@ -282,11 +280,11 @@ public class HookTargetModelTest {
         Assertions.assertEquals(changedResources, targetModel.getChangedResources());
         Assertions.assertNull(targetModel.getHookTargetTypeReference());
         Assertions.assertEquals(
-            "{\"Template\":\"{\\\"key1\\\":\\\"value1\\\"}\",\"PreviousTemplate\":null,\"ResolvedTemplate\":" +
-                    "\"{\\\"resolvedKey1\\\":\\\"resolvedValue1\\\"}\",\"ChangedResources\":[{\"LogicalResourceId\":" +
-                    "\"SomeLogicalResourceId\",\"ResourceType\":\"AWS::S3::Bucket\",\"LineNumber\":null,\"Action\":" +
-                    "\"CREATE\",\"ResourceProperties\":\"{\\\"BucketName\\\": \\\"some-bucket-name\\\"\"," +
-                    "\"PreviousResourceProperties\":\"{\\\"BucketName\\\": \\\"some-prev-bucket-name\\\"\"}]}",
+            "{\"Template\":\"{\\\"key1\\\":\\\"value1\\\"}\",\"PreviousTemplate\":null,\"ResolvedTemplate\":"
+                + "\"{\\\"resolvedKey1\\\":\\\"resolvedValue1\\\"}\",\"ChangedResources\":[{\"LogicalResourceId\":"
+                + "\"SomeLogicalResourceId\",\"ResourceType\":\"AWS::S3::Bucket\",\"LineNumber\":null,\"Action\":"
+                + "\"CREATE\",\"ResourceProperties\":\"{\\\"BucketName\\\": \\\"some-bucket-name\\\"\","
+                + "\"PreviousResourceProperties\":\"{\\\"BucketName\\\": \\\"some-prev-bucket-name\\\"\"}]}",
             OBJECT_MAPPER.writeValueAsString(targetModel));
     }
 
