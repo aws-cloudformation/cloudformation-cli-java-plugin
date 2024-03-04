@@ -29,6 +29,7 @@ public class HookRequestData {
     private String targetType;
     private String targetLogicalId;
     private Map<String, Object> targetModel;
+    private String payload;
     private String callerCredentials;
     private String providerCredentials;
     private String providerLogGroupName;

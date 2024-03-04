@@ -19,6 +19,7 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -45,6 +46,8 @@ import software.amazon.cloudformation.resource.Serializer;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class HookLambdaWrapperOverride extends HookLambdaWrapper<TestModel, TestContext, TestConfigurationModel> {
+
+    private Map<String, Object> hookInvocationPayloadFromS3;
 
     /**
      * This .ctor provided for testing
@@ -127,6 +130,15 @@ public class HookLambdaWrapperOverride extends HookLambdaWrapper<TestModel, Test
     }
 
     public HookHandlerRequest transformResponse;
+
+    @Override
+    public Map<String, Object> retrieveHookInvocationPayloadFromS3(final String s3PresignedUrl) {
+        return hookInvocationPayloadFromS3;
+    }
+
+    public void setHookInvocationPayloadFromS3(Map<String, Object> input) {
+        hookInvocationPayloadFromS3 = input;
+    }
 
     @Override
     protected TypeReference<HookInvocationRequest<TestConfigurationModel, TestContext>> getTypeReference() {

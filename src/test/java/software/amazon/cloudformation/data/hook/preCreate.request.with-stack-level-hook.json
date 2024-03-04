@@ -14,21 +14,8 @@
         "targetName": "STACK",
         "targetType": "STACK",
         "targetLogicalId": "myStack",
-        "targetModel": {
-            "template": "template string here",
-            "previousTemplate": "previous template string here",
-            "resolvedTemplate": "resolved template string here",
-            "changedResources": [
-                {
-                    "LogicalResourceId": "SomeLogicalResourceId",
-                    "ResourceType": "AWS::S3::Bucket",
-                    "LineNumber": 3,
-                    "Action": "CREATE",
-                    "ResourceProperties": "<Resource Properties as json string>",
-                    "PreviousResourceProperties": "<Resource Properties as json string>"
-                }
-            ]
-        },
+        "targetModel": {},
+        "payload": "http://someS3PresignedUrl",
         "callerCredentials": "callerCredentials",
         "providerCredentials": "providerCredentials",
         "providerLogGroupName": "providerLoggingGroupName",

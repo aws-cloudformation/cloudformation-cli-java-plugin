@@ -19,8 +19,12 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
 import java.util.List;
-import lombok.*;
 
 @EqualsAndHashCode(callSuper = false)
 @Getter
@@ -33,13 +37,13 @@ public class StackHookTargetModel extends HookTargetModel {
     };
 
     @JsonProperty("Template")
-    private String template;
+    private Object template;
 
     @JsonProperty("PreviousTemplate")
-    private String previousTemplate;
+    private Object previousTemplate;
 
     @JsonProperty("ResolvedTemplate")
-    private String resolvedTemplate;
+    private Object resolvedTemplate;
 
     @JsonProperty("ChangedResources")
     private List<ChangedResource> changedResources;
