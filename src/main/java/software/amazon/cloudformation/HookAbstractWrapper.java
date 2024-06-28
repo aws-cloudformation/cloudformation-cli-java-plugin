@@ -415,15 +415,17 @@ public abstract class HookAbstractWrapper<TargetT, CallbackT, ConfigurationT> {
 
     @VisibleForTesting
     protected boolean isHookInvocationPayloadRemote(HookRequestData hookRequestData) {
-        if (hookRequestData == null || hookRequestData.getTargetModel() == null) {
+        if (hookRequestData == null) {
             throw new TerminalException("Invalid request object received. Target Model can not be null.");
         }
 
-        if (hookRequestData.getTargetModel().isEmpty() && hookRequestData.getPayload() == null) {
+        if ((hookRequestData.getTargetModel() == null || hookRequestData.getTargetModel().isEmpty())
+            && hookRequestData.getPayload() == null) {
             throw new TerminalException("No payload data set.");
         }
 
-        return hookRequestData.getTargetModel().isEmpty();
+        return true;
+        // return hookRequestData.getTargetModel().isEmpty();
     }
 
     /**
