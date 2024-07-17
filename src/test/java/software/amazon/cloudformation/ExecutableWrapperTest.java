@@ -17,7 +17,6 @@ package software.amazon.cloudformation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.ByteArrayOutputStream;
@@ -27,7 +26,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -132,11 +130,6 @@ public class ExecutableWrapperTest {
 
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
-
-            // verify that model validation occurred for CREATE/UPDATE
-            if (action == Action.CREATE || action == Action.UPDATE) {
-                verify(validator, times(1)).validateObject(any(JSONObject.class), any(JSONObject.class));
-            }
 
             // verify output response
             verifyHandlerResponse(out, ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.SUCCESS).build());

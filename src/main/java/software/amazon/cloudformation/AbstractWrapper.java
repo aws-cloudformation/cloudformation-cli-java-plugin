@@ -76,7 +76,10 @@ public abstract class AbstractWrapper<ResourceT, CallbackT, ConfigurationT> {
     public static final SdkHttpClient HTTP_CLIENT = ApacheHttpClient.builder().build();
 
     private static final Set<Action> MUTATING_ACTIONS = ImmutableSet.of(Action.CREATE, Action.DELETE, Action.UPDATE);
-    private static final Set<Action> VALIDATING_ACTIONS = ImmutableSet.of(Action.CREATE, Action.UPDATE);
+
+    // Soft disable redundant schema validation
+    // Next action remove all validation code
+    private static final Set<Action> VALIDATING_ACTIONS = ImmutableSet.of();
 
     protected final Serializer serializer;
     protected LoggerProxy loggerProxy;

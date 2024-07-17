@@ -32,7 +32,6 @@ import java.io.OutputStream;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -59,7 +58,6 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 import software.amazon.cloudformation.resource.SchemaValidator;
 import software.amazon.cloudformation.resource.Serializer;
 import software.amazon.cloudformation.resource.Validator;
-import software.amazon.cloudformation.resource.exceptions.ValidationException;
 
 @ExtendWith(MockitoExtension.class)
 public class WrapperTest {
@@ -155,11 +153,6 @@ public class WrapperTest {
             verify(providerMetricsPublisher).publishInvocationMetric(any(Instant.class), eq(action));
             verify(providerMetricsPublisher).publishDurationMetric(any(Instant.class), eq(action), anyLong());
 
-            // verify that model validation occurred for CREATE/UPDATE
-            if (action == Action.CREATE || action == Action.UPDATE) {
-                verify(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
-            }
-
             verify(providerEventsLogger).refreshClient();
             verify(providerEventsLogger, times(2)).publishLogEvent(any());
             verifyNoMoreInteractions(providerEventsLogger);
@@ -173,37 +166,6 @@ public class WrapperTest {
             assertThat(wrapper.getRequest()).isEqualTo(resourceHandlerRequest);
             assertThat(wrapper.action).isEqualTo(action);
             assertThat(wrapper.callbackContext).isNull();
-        }
-    }
-
-    @Test
-    public void invokeHandler_SchemaFailureOnNestedProperties() throws IOException {
-        // use actual validator to verify behaviour
-        final WrapperOverride wrapper = new WrapperOverride(providerLoggingCredentialsProvider, platformEventsLogger,
-                                                            providerEventsLogger, providerMetricsPublisher, new Validator() {
-                                                            }, httpClient);
-
-        wrapper.setTransformResponse(resourceHandlerRequest);
-
-        try (final InputStream in = loadRequestStream("create.request.with-extraneous-model-object.json");
-            final OutputStream out = new ByteArrayOutputStream()) {
-
-            wrapper.processRequest(in, out);
-            // validation failure metric should be published but no others
-            verify(providerMetricsPublisher).publishExceptionMetric(any(Instant.class), eq(Action.CREATE), any(Exception.class),
-                any(HandlerErrorCode.class));
-
-            // all metrics should be published, even for a single invocation
-            verify(providerMetricsPublisher).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
-
-            // verify initialiseRuntime was called and initialised dependencies
-            verifyInitialiseRuntime();
-
-            // verify output response
-            verifyHandlerResponse(out,
-                ProgressEvent.<TestModel, TestContext>builder().errorCode(HandlerErrorCode.InvalidRequest)
-                    .status(OperationStatus.FAILED).message("Resource properties validation failed with invalid configuration")
-                    .build());
         }
     }
 
@@ -237,11 +199,6 @@ public class WrapperTest {
             verify(providerMetricsPublisher, times(0)).publishInvocationMetric(any(Instant.class), eq(action));
             verify(providerMetricsPublisher, times(0)).publishDurationMetric(any(Instant.class), eq(action), anyLong());
 
-            // verify that model validation occurred for CREATE/UPDATE/DELETE
-            if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
-                verify(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
-            }
-
             verifyNoMoreInteractions(providerEventsLogger);
 
             // verify output response
@@ -269,11 +226,6 @@ public class WrapperTest {
 
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
-
-            // verify that model validation occurred for CREATE/UPDATE
-            if (action == Action.CREATE || action == Action.UPDATE) {
-                verify(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
-            }
 
             // verify output response
             verifyHandlerResponse(out, ProgressEvent.<TestModel, TestContext>builder().errorCode(HandlerErrorCode.InternalFailure)
@@ -325,11 +277,6 @@ public class WrapperTest {
 
             // verify initialiseRuntime was called and initialised dependencies
             verifyInitialiseRuntime();
-
-            // verify that model validation occurred for CREATE/UPDATE
-            if (action == Action.CREATE || action == Action.UPDATE) {
-                verify(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
-            }
 
             // verify output response
             verifyHandlerResponse(out, ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.SUCCESS).build());
@@ -400,11 +347,6 @@ public class WrapperTest {
             // all metrics should be published, once for a single invocation
             verify(providerMetricsPublisher).publishInvocationMetric(any(Instant.class), eq(action));
             verify(providerMetricsPublisher).publishDurationMetric(any(Instant.class), eq(action), anyLong());
-
-            // verify that model validation occurred for CREATE/UPDATE
-            if (action == Action.CREATE || action == Action.UPDATE) {
-                verify(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
-            }
 
             if (action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE) {
                 verifyHandlerResponse(out, ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.IN_PROGRESS)
@@ -514,46 +456,9 @@ public class WrapperTest {
             // validation failure metric should not be published
             verifyNoMoreInteractions(providerMetricsPublisher);
 
-            // verify that model validation occurred for CREATE/UPDATE
-            verify(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
-
             // verify output response
             verifyHandlerResponse(out, ProgressEvent.<TestModel, TestContext>builder().status(OperationStatus.IN_PROGRESS)
                 .resourceModel(TestModel.builder().property1("abc").property2(123).build()).build());
-        }
-    }
-
-    @ParameterizedTest
-    @CsvSource({ "create.request.json,CREATE", "update.request.json,UPDATE" })
-    public void invokeHandler_SchemaValidationFailure(final String requestDataPath, final String actionAsString)
-        throws IOException {
-        final Action action = Action.valueOf(actionAsString);
-
-        doThrow(ValidationException.class).when(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
-
-        wrapper.setTransformResponse(resourceHandlerRequest);
-
-        try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
-            wrapper.processRequest(in, out);
-
-            // verify initialiseRuntime was called and initialised dependencies
-            verifyInitialiseRuntime();
-
-            // validation failure metric should be published but no others
-            verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), eq(action),
-                any(Exception.class), any(HandlerErrorCode.class));
-
-            // all metrics should be published, even for a single invocation
-            verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(action));
-
-            // verify that model validation occurred for CREATE/UPDATE
-            if (action == Action.CREATE || action == Action.UPDATE) {
-                verify(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
-            }
-
-            // verify output response
-            verifyHandlerResponse(out, ProgressEvent.<TestModel, TestContext>builder().errorCode(HandlerErrorCode.InvalidRequest)
-                .status(OperationStatus.FAILED).message("Model validation failed with unknown cause.").build());
         }
     }
 
@@ -647,36 +552,6 @@ public class WrapperTest {
                 ProgressEvent.<TestModel, TestContext>builder().errorCode(HandlerErrorCode.InvalidRequest)
                     .status(OperationStatus.FAILED)
                     .message("Model validation failed (#/property1: expected type: String, found: JSONArray)").build());
-        }
-    }
-
-    @Test
-    public void invokeHandler_extraneousModelFields_causesSchemaValidationFailure() throws IOException {
-        // use actual validator to verify behaviour
-        final WrapperOverride wrapper = new WrapperOverride(providerLoggingCredentialsProvider, platformEventsLogger,
-                                                            providerEventsLogger, providerMetricsPublisher, new Validator() {
-                                                            }, httpClient);
-
-        wrapper.setTransformResponse(resourceHandlerRequest);
-
-        try (final InputStream in = loadRequestStream("create.request.with-extraneous-model-fields.json");
-            final OutputStream out = new ByteArrayOutputStream()) {
-            wrapper.processRequest(in, out);
-
-            // validation failure metric should be published but no others
-            verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), eq(Action.CREATE),
-                any(Exception.class), any(HandlerErrorCode.class));
-
-            // all metrics should be published, even for a single invocation
-            verify(providerMetricsPublisher, times(1)).publishInvocationMetric(any(Instant.class), eq(Action.CREATE));
-
-            // verify initialiseRuntime was called and initialised dependencies
-            verifyInitialiseRuntime();
-
-            // verify output response
-            verifyHandlerResponse(out, ProgressEvent.<TestModel, TestContext>builder().errorCode(HandlerErrorCode.InvalidRequest)
-                .status(OperationStatus.FAILED)
-                .message("Model validation failed (#: extraneous key [fieldCausesValidationError] is not permitted)").build());
         }
     }
 
@@ -814,9 +689,6 @@ public class WrapperTest {
             verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(Action.class),
                 any(AmazonServiceException.class), any(HandlerErrorCode.class));
 
-            // verify that model validation occurred for CREATE/UPDATE/DELETE
-            verify(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
-
             // verify output response
             verifyHandlerResponse(out,
                 ProgressEvent.<TestModel, TestContext>builder().errorCode(HandlerErrorCode.GeneralServiceException)
@@ -846,9 +718,6 @@ public class WrapperTest {
             // failure metric should be published
             verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(Action.class),
                 any(CloudWatchLogsException.class), any(HandlerErrorCode.class));
-
-            // verify that model validation occurred for CREATE/UPDATE/DELETE
-            verify(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
 
             // verify output response
             verifyHandlerResponse(out,
@@ -882,9 +751,6 @@ public class WrapperTest {
             verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(Action.class),
                 any(AmazonServiceException.class), any(HandlerErrorCode.class));
 
-            // verify that model validation occurred for CREATE/UPDATE/DELETE
-            verify(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
-
             // verify output response
             verifyHandlerResponse(out,
                 ProgressEvent.<TestModel, TestContext>builder().errorCode(HandlerErrorCode.Throttling)
@@ -916,9 +782,6 @@ public class WrapperTest {
             verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(Action.class),
                 any(ResourceAlreadyExistsException.class), any(HandlerErrorCode.class));
 
-            // verify that model validation occurred for CREATE/UPDATE/DELETE
-            verify(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
-
             // verify output response
             verifyHandlerResponse(out,
                 ProgressEvent.<TestModel, TestContext>builder().errorCode(HandlerErrorCode.AlreadyExists)
@@ -948,9 +811,6 @@ public class WrapperTest {
             // failure metric should be published
             verify(providerMetricsPublisher, times(1)).publishExceptionMetric(any(Instant.class), any(Action.class),
                 any(ResourceNotFoundException.class), any(HandlerErrorCode.class));
-
-            // verify that model validation occurred for CREATE/UPDATE/DELETE
-            verify(validator).validateObject(any(JSONObject.class), any(JSONObject.class));
 
             // verify output response
             verifyHandlerResponse(out,
