@@ -23,8 +23,8 @@ import org.apache.commons.lang3.RandomStringUtils;
 
 public class IdentifierUtils {
 
+    public static final int GUID_LENGTH = 12;
     private static final int GENERATED_PHYSICALID_MAXLEN = 40;
-    private static final int GUID_LENGTH = 12;
     private static final int MIN_PHYSICAL_RESOURCE_ID_LENGTH = 15;
     private static final int MIN_PREFERRED_LENGTH = 17;
     private static final Splitter STACKID_SPLITTER = Splitter.on('/');

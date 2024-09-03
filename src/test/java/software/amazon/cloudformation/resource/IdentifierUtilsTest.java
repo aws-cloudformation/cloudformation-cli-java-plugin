@@ -18,6 +18,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 
 public class IdentifierUtilsTest {
+    private static final String guidPattern = "[a-zA-Z0-9]{" + IdentifierUtils.GUID_LENGTH + "}$";
+
     @Test
     public void generateResourceIdentifier_withDefaultLength() {
         String result = IdentifierUtils.generateResourceIdentifier("my-resource", "123456");
@@ -88,7 +90,7 @@ public class IdentifierUtilsTest {
             "arn:aws:cloudformation:us-east-1:123456789012:stack/my-stack-name/084c0bd1-082b-11eb-afdc-0a2fadfa68a5",
             "my-resource", "123456", 255);
         assertThat(result.length()).isLessThanOrEqualTo(44);
-        assertThat(result).isEqualTo("my-stack-name-my-resource-hDoP0dahAFjd");
+        assertThat(result).matches("^my-stack-name-my-resource-" + IdentifierUtilsTest.guidPattern);
     }
 
     @Test
@@ -97,7 +99,7 @@ public class IdentifierUtilsTest {
             "arn:aws:cloudformation:us-east-1:123456789012:stack/my-very-very-very-very-very-very-long-custom-stack-name/084c0bd1-082b-11eb-afdc-0a2fadfa68a5",
             "abc", "123456", 36);
         assertThat(result.length()).isLessThanOrEqualTo(36);
-        assertThat(result).isEqualTo("my-very-very-very-v-abc-hDoP0dahAFjd");
+        assertThat(result).matches("^my-very-very-very-v-abc-" + IdentifierUtilsTest.guidPattern);
     }
 
     @Test
@@ -105,7 +107,7 @@ public class IdentifierUtilsTest {
         String result = IdentifierUtils.generateResourceIdentifier("abc",
             "my-very-very-very-very-very-very-long-custom-logical-id", "123456", 36);
         assertThat(result.length()).isLessThanOrEqualTo(36);
-        assertThat(result).isEqualTo("abc-my-very-very-very-v-hDoP0dahAFjd");
+        assertThat(result).matches("^abc-my-very-very-very-v-" + IdentifierUtilsTest.guidPattern);
     }
 
     @Test
@@ -114,7 +116,7 @@ public class IdentifierUtilsTest {
             "arn:aws:cloudformation:us-east-1:123456789012:stack/my-very-very-very-very-very-very-long-custom-stack-name/084c0bd1-082b-11eb-afdc-0a2fadfa68a5",
             "my-very-very-very-very-very-very-long-custom-logical-id", "123456", 36);
         assertThat(result.length()).isEqualTo(36);
-        assertThat(result).isEqualTo("my-very-ver-my-very-ver-hDoP0dahAFjd");
+        assertThat(result).matches("^my-very-ver-my-very-ver-" + IdentifierUtilsTest.guidPattern);
     }
 
     @Test
