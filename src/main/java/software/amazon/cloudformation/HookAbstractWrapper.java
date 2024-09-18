@@ -424,7 +424,7 @@ public abstract class HookAbstractWrapper<TargetT, CallbackT, ConfigurationT> {
             throw new TerminalException("No payload data set.");
         }
 
-        return hookRequestData.getTargetModel().isEmpty();
+        return (hookRequestData.getTargetModel() == null || hookRequestData.getTargetModel().isEmpty());
     }
 
     /**
