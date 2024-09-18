@@ -418,10 +418,13 @@ public class HookLambdaWrapperTest {
          HookRequestData onlyPayloadPopulated = HookRequestData.builder()
                  .targetModel(Collections.emptyMap())
                  .payload("http://s3PresignedUrl").build();
+         HookRequestData onlyPayloadPopulatedWithNullTargetModel = HookRequestData.builder().targetModel(null)
+                 .payload("http://s3PresignedUrl").build();
 
          Assertions.assertFalse(wrapper.isHookInvocationPayloadRemote(bothFieldsPopulated));
          Assertions.assertFalse(wrapper.isHookInvocationPayloadRemote(onlyTargetModelPopulated));
          Assertions.assertTrue(wrapper.isHookInvocationPayloadRemote(onlyPayloadPopulated));
+         Assertions.assertTrue(wrapper.isHookInvocationPayloadRemote(onlyPayloadPopulatedWithNullTargetModel));
      }
 
     private final String expectedStringWhenStrictDeserializingWithExtraneousFields = "Unrecognized field \"targetName\" (class software.amazon.cloudformation.proxy.hook.HookInvocationRequest), not marked as ignorable (10 known properties: \"requestContext\", \"stackId\", \"clientRequestToken\", \"hookModel\", \"hookTypeName\", \"requestData\", \"actionInvocationPoint\", \"awsAccountId\", \"changeSetId\", \"hookTypeVersion\"])\n"
