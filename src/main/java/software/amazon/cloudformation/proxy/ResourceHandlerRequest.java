@@ -51,4 +51,5 @@ public class ResourceHandlerRequest<T> {
     private Map<String, Object> creationPolicy;
     private String region;
     private String stackId;
+    private int maxResults;
 }

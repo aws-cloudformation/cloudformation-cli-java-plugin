@@ -183,6 +183,7 @@ public class {{ "HandlerWrapper" if wrapper_parent == "LambdaWrapper" else "Hand
             .nextToken(request.getNextToken())
             .region(request.getRegion())
             .awsPartition(PartitionMetadata.of(Region.of(request.getRegion())).id())
+            .maxResults(request.getMaxResults())
             .build();
     }
 
