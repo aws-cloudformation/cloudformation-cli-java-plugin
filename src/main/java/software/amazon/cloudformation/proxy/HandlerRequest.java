@@ -29,7 +29,7 @@ public class HandlerRequest<ResourceT, CallbackT, ConfigurationT> {
     private String awsAccountId;
     private String bearerToken;
     private String nextToken;
-    private int maxResults;
+    private Integer maxResults;
     private String region;
     private String resourceType;
     private String resourceTypeVersion;
