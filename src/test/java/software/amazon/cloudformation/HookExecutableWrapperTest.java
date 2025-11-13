@@ -114,6 +114,7 @@ public class HookExecutableWrapperTest {
         assertThat(handlerResponse.getResult()).isEqualTo(expected.getResult());
         assertThat(handlerResponse.getCallbackContext()).isEqualTo(expected.getCallbackContext());
         assertThat(handlerResponse.getCallbackDelaySeconds()).isEqualTo(expected.getCallbackDelaySeconds());
+        assertThat(handlerResponse.getAnnotations()).isEqualTo(expected.getAnnotations());
     }
 
     @ParameterizedTest

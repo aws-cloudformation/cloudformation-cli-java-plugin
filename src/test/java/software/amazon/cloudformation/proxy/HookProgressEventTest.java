@@ -16,8 +16,12 @@ package software.amazon.cloudformation.proxy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import software.amazon.cloudformation.TestContext;
+import software.amazon.cloudformation.proxy.hook.HookAnnotation;
+import software.amazon.cloudformation.proxy.hook.HookAnnotationSeverityLevel;
+import software.amazon.cloudformation.proxy.hook.HookAnnotationStatus;
 import software.amazon.cloudformation.proxy.hook.HookProgressEvent;
 import software.amazon.cloudformation.proxy.hook.HookStatus;
 import software.amazon.cloudformation.resource.Serializer;
@@ -38,6 +42,7 @@ public class HookProgressEventTest {
         assertThat(progressEvent.isComplete()).isFalse();
         assertThat(progressEvent.isInProgress()).isFalse();
         assertThat(progressEvent.canContinueProgress()).isFalse();
+        assertThat(progressEvent.getAnnotations()).isNull();
     }
 
     @Test
@@ -54,6 +59,7 @@ public class HookProgressEventTest {
         assertThat(progressEvent.isComplete()).isFalse();
         assertThat(progressEvent.isInProgress()).isTrue();
         assertThat(progressEvent.canContinueProgress()).isFalse();
+        assertThat(progressEvent.getAnnotations()).isNull();
     }
 
     @Test
@@ -70,6 +76,7 @@ public class HookProgressEventTest {
         assertThat(progressEvent.isComplete()).isFalse();
         assertThat(progressEvent.isInProgress()).isTrue();
         assertThat(progressEvent.canContinueProgress()).isTrue();
+        assertThat(progressEvent.getAnnotations()).isNull();
     }
 
     @Test
@@ -85,6 +92,7 @@ public class HookProgressEventTest {
         assertThat(progressEvent.isComplete()).isTrue();
         assertThat(progressEvent.isInProgress()).isFalse();
         assertThat(progressEvent.canContinueProgress()).isFalse();
+        assertThat(progressEvent.getAnnotations()).isNull();
     }
 
     @Test
@@ -101,6 +109,7 @@ public class HookProgressEventTest {
         assertThat(progressEvent.isComplete()).isFalse();
         assertThat(progressEvent.isInProgress()).isFalse();
         assertThat(progressEvent.canContinueProgress()).isFalse();
+        assertThat(progressEvent.getAnnotations()).isNull();
     }
 
     @Test
@@ -117,6 +126,7 @@ public class HookProgressEventTest {
         assertThat(progressEvent.isComplete()).isFalse();
         assertThat(progressEvent.isInProgress()).isTrue();
         assertThat(progressEvent.canContinueProgress()).isFalse();
+        assertThat(progressEvent.getAnnotations()).isNull();
     }
 
     @Test
@@ -132,6 +142,7 @@ public class HookProgressEventTest {
         assertThat(progressEvent.isComplete()).isTrue();
         assertThat(progressEvent.isInProgress()).isFalse();
         assertThat(progressEvent.canContinueProgress()).isFalse();
+        assertThat(progressEvent.getAnnotations()).isNull();
     }
 
     @Test
@@ -148,6 +159,7 @@ public class HookProgressEventTest {
         assertThat(chained.isFailed()).isEqualTo(true);
         assertThat(chained.isInProgress()).isEqualTo(false);
         assertThat(chained.isInProgressCallbackDelay()).isEqualTo(false);
+        assertThat(progressEvent.getAnnotations()).isNull();
     }
 
     @Test
@@ -157,5 +169,22 @@ public class HookProgressEventTest {
         final String json = serializer.serialize(progressEvent);
 
         assertThat(json).isEqualTo("{\"hookStatus\":\"SUCCESS\",\"callbackDelaySeconds\":0}");
+    }
+
+    @Test
+    public void progressEvent_with_annotations_serialize_shouldReturnJson() throws JsonProcessingException {
+        final List<HookAnnotation> annotations = List.of(
+            HookAnnotation.builder().annotationName("test1").status(HookAnnotationStatus.PASSED).build(),
+            HookAnnotation.builder().annotationName("test2").status(HookAnnotationStatus.FAILED).statusMessage("test-message-2")
+                .remediationMessage("test-remediation-message-2").remediationLink("https://localhost")
+                .severityLevel(HookAnnotationSeverityLevel.CRITICAL).build());
+
+        final HookProgressEvent<
+            Object> progressEvent = HookProgressEvent.builder().hookStatus(HookStatus.SUCCESS).annotations(annotations).build();
+        final Serializer serializer = new Serializer();
+        final String json = serializer.serialize(progressEvent);
+
+        assertThat(json).isEqualTo(
+            "{\"hookStatus\":\"SUCCESS\",\"callbackDelaySeconds\":0,\"annotations\":[{\"annotationName\":\"test1\",\"status\":\"PASSED\"},{\"annotationName\":\"test2\",\"status\":\"FAILED\",\"statusMessage\":\"test-message-2\",\"remediationMessage\":\"test-remediation-message-2\",\"remediationLink\":\"https://localhost\",\"severityLevel\":\"CRITICAL\"}]}");
     }
 }

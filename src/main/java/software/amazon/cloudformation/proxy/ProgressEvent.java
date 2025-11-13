@@ -21,6 +21,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import software.amazon.cloudformation.proxy.hook.HookAnnotation;
 
 @Data
 @AllArgsConstructor
@@ -80,6 +81,15 @@ public class ProgressEvent<ResourceT, CallbackT> {
      * The token used to request additional pages of resources for a LIST operation
      */
     private String nextToken;
+
+    /**
+     * The optional list of HookAnnotation objects that, if used by a CloudFormation
+     * Hook, contain additional, user-defined metadata and information on the
+     * results of a hook's evaluation.
+     *
+     * Note: this field is ignored for resource handlers.
+     */
+    private List<HookAnnotation> annotations;
 
     /**
      * Convenience method for constructing a FAILED response
@@ -158,13 +168,28 @@ public class ProgressEvent<ResourceT, CallbackT> {
 
     public static <ResourceT,
         CallbackT> ProgressEvent<ResourceT, CallbackT> success(ResourceT model, CallbackT cxt, String message) {
-        return success(model, cxt, message, null);
+        return ProgressEvent.<ResourceT, CallbackT>builder().resourceModel(model).callbackContext(cxt).message(message)
+            .status(OperationStatus.SUCCESS).build();
     }
 
     public static <ResourceT,
         CallbackT> ProgressEvent<ResourceT, CallbackT> success(ResourceT model, CallbackT cxt, String message, String result) {
         return ProgressEvent.<ResourceT, CallbackT>builder().resourceModel(model).callbackContext(cxt).message(message)
             .result(result).status(OperationStatus.SUCCESS).build();
+    }
+
+    public static <ResourceT, CallbackT>
+        ProgressEvent<ResourceT, CallbackT>
+        success(ResourceT model, CallbackT cxt, String message, List<HookAnnotation> annotations) {
+        return ProgressEvent.<ResourceT, CallbackT>builder().resourceModel(model).callbackContext(cxt).message(message)
+            .annotations(annotations).status(OperationStatus.SUCCESS).build();
+    }
+
+    public static <ResourceT, CallbackT>
+        ProgressEvent<ResourceT, CallbackT>
+        success(ResourceT model, CallbackT cxt, String message, String result, List<HookAnnotation> annotations) {
+        return ProgressEvent.<ResourceT, CallbackT>builder().resourceModel(model).callbackContext(cxt).message(message)
+            .result(result).annotations(annotations).status(OperationStatus.SUCCESS).build();
     }
 
     public ProgressEvent<ResourceT, CallbackT>

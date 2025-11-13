@@ -36,7 +36,7 @@ setup(
     # package_data -> use MANIFEST.in instead
     include_package_data=True,
     zip_safe=True,
-    install_requires=["cloudformation-cli>=0.2.23"],
+    install_requires=["cloudformation-cli>=0.2.23", "setuptools"],
     python_requires=">=3.8",
     entry_points={"rpdk.v1.languages": ["java = rpdk.java.codegen:JavaLanguagePlugin"]},
     license="Apache License 2.0",
