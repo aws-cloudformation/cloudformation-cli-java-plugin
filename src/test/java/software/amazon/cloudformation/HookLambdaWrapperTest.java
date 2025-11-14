@@ -145,6 +145,7 @@ public class HookLambdaWrapperTest {
         assertThat(handlerResponse.getResult()).isEqualTo(expected.getResult());
         assertThat(handlerResponse.getCallbackContext()).isEqualTo(expected.getCallbackContext());
         assertThat(handlerResponse.getCallbackDelaySeconds()).isEqualTo(expected.getCallbackDelaySeconds());
+        assertThat(handlerResponse.getAnnotations()).isEqualTo(expected.getAnnotations());
     }
 
     @ParameterizedTest
@@ -342,21 +343,11 @@ public class HookLambdaWrapperTest {
 
         lenient().when(cipher.decryptCredentials(any())).thenReturn(new Credentials("123", "123", "123"));
 
-        wrapper.setHookInvocationPayloadFromS3(Map.of(
-                "Template", "template string here",
-                "PreviousTemplate", "previous template string here",
-                "ResolvedTemplate", "resolved template string here",
-                "ChangedResources", List.of(
-                        Map.of(
-                                "LogicalResourceId", "SomeLogicalResourceId",
-                                "ResourceType", "AWS::S3::Bucket",
-                                "Action", "CREATE",
-                                "LineNumber", 3,
-                                "ResourceProperties", "<Resource Properties as json string>",
-                                "PreviousResourceProperties", "<Resource Properties as json string>"
-                        )
-                )
-        ));
+        wrapper.setHookInvocationPayloadFromS3(Map.of("Template", "template string here", "PreviousTemplate",
+            "previous template string here", "ResolvedTemplate", "resolved template string here", "ChangedResources",
+            List.of(Map.of("LogicalResourceId", "SomeLogicalResourceId", "ResourceType", "AWS::S3::Bucket", "Action", "CREATE",
+                "LineNumber", 3, "ResourceProperties", "<Resource Properties as json string>", "PreviousResourceProperties",
+                "<Resource Properties as json string>"))));
 
         try (final InputStream in = loadRequestStream(requestDataPath); final OutputStream out = new ByteArrayOutputStream()) {
             final Context context = getLambdaContext();
@@ -394,38 +385,33 @@ public class HookLambdaWrapperTest {
         }
     }
 
-     @Test
-     public void testIsHookInvocationPayloadRemote() {
-         List<HookRequestData> invalidHookRequestDataObjects = ImmutableList.of(
-             HookRequestData.builder().targetModel(null).build(),
-             HookRequestData.builder().targetModel(null).payload(null).build(),
-             HookRequestData.builder().targetModel(Collections.emptyMap()).payload(null).build()
-         );
+    @Test
+    public void testIsHookInvocationPayloadRemote() {
+        List<
+            HookRequestData> invalidHookRequestDataObjects = ImmutableList.of(HookRequestData.builder().targetModel(null).build(),
+                HookRequestData.builder().targetModel(null).payload(null).build(),
+                HookRequestData.builder().targetModel(Collections.emptyMap()).payload(null).build());
 
-         invalidHookRequestDataObjects.forEach(requestData -> {
+        invalidHookRequestDataObjects.forEach(requestData -> {
             Assertions.assertThrows(TerminalException.class, () -> wrapper.isHookInvocationPayloadRemote(requestData));
-         });
+        });
 
-         Assertions.assertThrows(TerminalException.class, () -> wrapper.isHookInvocationPayloadRemote(null));
+        Assertions.assertThrows(TerminalException.class, () -> wrapper.isHookInvocationPayloadRemote(null));
 
-         HookRequestData bothFieldsPopulated = HookRequestData.builder()
-                 .targetModel(ImmutableMap.of("foo", "bar"))
-                 .payload("http://s3PresignedUrl")
-                 .build();
-         HookRequestData onlyTargetModelPopulated = HookRequestData.builder()
-                 .targetModel(ImmutableMap.of("foo", "bar"))
-                 .payload(null).build();
-         HookRequestData onlyPayloadPopulated = HookRequestData.builder()
-                 .targetModel(Collections.emptyMap())
-                 .payload("http://s3PresignedUrl").build();
-         HookRequestData onlyPayloadPopulatedWithNullTargetModel = HookRequestData.builder().targetModel(null)
-                 .payload("http://s3PresignedUrl").build();
+        HookRequestData bothFieldsPopulated = HookRequestData.builder().targetModel(ImmutableMap.of("foo", "bar"))
+            .payload("http://s3PresignedUrl").build();
+        HookRequestData onlyTargetModelPopulated = HookRequestData.builder().targetModel(ImmutableMap.of("foo", "bar"))
+            .payload(null).build();
+        HookRequestData onlyPayloadPopulated = HookRequestData.builder().targetModel(Collections.emptyMap())
+            .payload("http://s3PresignedUrl").build();
+        HookRequestData onlyPayloadPopulatedWithNullTargetModel = HookRequestData.builder().targetModel(null)
+            .payload("http://s3PresignedUrl").build();
 
-         Assertions.assertFalse(wrapper.isHookInvocationPayloadRemote(bothFieldsPopulated));
-         Assertions.assertFalse(wrapper.isHookInvocationPayloadRemote(onlyTargetModelPopulated));
-         Assertions.assertTrue(wrapper.isHookInvocationPayloadRemote(onlyPayloadPopulated));
-         Assertions.assertTrue(wrapper.isHookInvocationPayloadRemote(onlyPayloadPopulatedWithNullTargetModel));
-     }
+        Assertions.assertFalse(wrapper.isHookInvocationPayloadRemote(bothFieldsPopulated));
+        Assertions.assertFalse(wrapper.isHookInvocationPayloadRemote(onlyTargetModelPopulated));
+        Assertions.assertTrue(wrapper.isHookInvocationPayloadRemote(onlyPayloadPopulated));
+        Assertions.assertTrue(wrapper.isHookInvocationPayloadRemote(onlyPayloadPopulatedWithNullTargetModel));
+    }
 
     private final String expectedStringWhenStrictDeserializingWithExtraneousFields = "Unrecognized field \"targetName\" (class software.amazon.cloudformation.proxy.hook.HookInvocationRequest), not marked as ignorable (10 known properties: \"requestContext\", \"stackId\", \"clientRequestToken\", \"hookModel\", \"hookTypeName\", \"requestData\", \"actionInvocationPoint\", \"awsAccountId\", \"changeSetId\", \"hookTypeVersion\"])\n"
         + " at [Source: (String)\"{\n" + "    \"clientRequestToken\": \"123456\",\n" + "    \"awsAccountId\": \"123456789012\",\n"

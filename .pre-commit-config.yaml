@@ -45,6 +45,7 @@ repos:
   hooks:
   - id: bandit
     files: "^python/"
+    additional_dependencies: [pbr]
 - repo: local
   hooks:
   - id: pylint-local

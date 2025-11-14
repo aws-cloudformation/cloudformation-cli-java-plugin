@@ -15,6 +15,7 @@
 package software.amazon.cloudformation.proxy.hook;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.util.List;
 import java.util.function.Function;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -70,6 +71,13 @@ public class HookProgressEvent<CallbackT> {
      * result.
      */
     private String result;
+
+    /**
+     * The optional list of HookAnnotation objects that, if used by a CloudFormation
+     * Hook, contain additional, user-defined metadata and information on the
+     * results of a hook's evaluation.
+     */
+    private List<HookAnnotation> annotations;
 
     /**
      * Convenience method for constructing a FAILED response

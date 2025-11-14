@@ -414,6 +414,12 @@ public abstract class AbstractWrapper<ResourceT, CallbackT, ConfigurationT> {
             response.setResult(null);
         }
 
+        if (response.getAnnotations() != null) {
+            // Same as above: remove any non-resource specific fields
+            // from response - in this case, expunge Hook Annotations.
+            response.setAnnotations(null);
+        }
+
         String output = this.serializer.serialize(response);
         outputStream.write(output.getBytes(StandardCharsets.UTF_8));
         outputStream.flush();

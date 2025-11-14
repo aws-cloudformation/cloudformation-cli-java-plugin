@@ -373,6 +373,7 @@ public abstract class HookAbstractWrapper<TargetT, CallbackT, ConfigurationT> {
         if (request != null) {
             response.setClientRequestToken(request.getClientRequestToken());
         }
+        response.setAnnotations(progressEvent.getAnnotations());
 
         return response;
     }
