@@ -82,7 +82,7 @@ public class SdkPojoDeserializer extends StdDeserializer<SdkPojo> {
              * if (next != JsonToken.FIELD_NAME) { throw new JsonMappingException(p,
              * "Expecting to get FIELD_NAME token, got " + next); }
              */
-            String fieldName = p.getCurrentName();
+            String fieldName = p.currentName();
             SdkField<?> sdkField = fieldMap.get(fieldName);
             if (sdkField == null) {
                 if (codec.isEnabled(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)) {
@@ -187,7 +187,7 @@ public class SdkPojoDeserializer extends StdDeserializer<SdkPojo> {
             if (p.currentToken() != JsonToken.FIELD_NAME) {
                 throw new JsonMappingException(p, "Expecting String key for map got " + p.currentToken());
             }
-            String fieldName = p.getCurrentName();
+            String fieldName = p.currentName();
             // progress to next token
             p.nextToken();
             value.put(fieldName, readObject(valueType, p, ctxt));
@@ -229,7 +229,7 @@ public class SdkPojoDeserializer extends StdDeserializer<SdkPojo> {
             case START_OBJECT:
                 MapBuilder builder = Document.mapBuilder();
                 while (p.nextToken() != JsonToken.END_OBJECT) {
-                    String fieldName = p.getCurrentName();
+                    String fieldName = p.currentName();
                     p.nextToken();
                     builder.putDocument(fieldName, readDocument(field, p, ctxt));
                 }
