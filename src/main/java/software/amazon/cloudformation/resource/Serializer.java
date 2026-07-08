@@ -53,7 +53,8 @@ public class Serializer {
     static {
         STRICT_OBJECT_MAPPER = JsonMapper.builder().configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, true)
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true)
-            .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true).build();
+            .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
+            .configure(com.fasterxml.jackson.core.StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION, true).build();
         STRICT_OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_ABSENT);
         STRICT_OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
         STRICT_OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
@@ -74,7 +75,8 @@ public class Serializer {
     static {
         OBJECT_MAPPER = JsonMapper.builder().configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, true)
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-            .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true).build();
+            .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
+            .configure(com.fasterxml.jackson.core.StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION, true).build();
         OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_ABSENT);
         OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
         OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);

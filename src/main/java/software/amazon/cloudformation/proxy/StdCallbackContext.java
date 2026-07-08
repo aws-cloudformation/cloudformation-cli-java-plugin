@@ -151,8 +151,7 @@ public class StdCallbackContext {
                 }
                 return value;
             } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
-                throw new JsonMappingException(p, "Can not create empty map for class " + type + " @ " + p.getCurrentLocation(),
-                                               e);
+                throw new JsonMappingException(p, "Can not create empty map for class " + type + " @ " + p.currentLocation(), e);
             }
         }
 
@@ -237,8 +236,8 @@ public class StdCallbackContext {
                 } while (p.nextToken() != JsonToken.END_ARRAY);
                 return value;
             } catch (IllegalAccessException | InstantiationException | NoSuchMethodException | InvocationTargetException e) {
-                throw new IOException("Can not create empty constructor collection class " + type + " @ "
-                    + p.getCurrentLocation(), e);
+                throw new IOException("Can not create empty constructor collection class " + type + " @ " + p.currentLocation(),
+                                      e);
             }
         }
     }
