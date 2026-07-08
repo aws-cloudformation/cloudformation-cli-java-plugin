@@ -18,15 +18,16 @@ jobs:
         java: [17]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python }}
     - name: Set up Java ${{ matrix.java }}
-      uses: actions/setup-java@v1
+      uses: actions/setup-java@v4
       with:
         java-version: ${{ matrix.java }}
+        distribution: 'corretto'
     - name: Install python dependencies
       run: |
         pip install --upgrade 'attrs==19.2.0' wheel -r https://raw.githubusercontent.com/aws-cloudformation/cloudformation-cli/master/requirements.txt
